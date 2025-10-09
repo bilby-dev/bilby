@@ -36,10 +36,10 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4
         )
-        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
             duration=4,
             sampling_frequency=2048,
-            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomPv2"),
         )
 
         self.likelihood = bilby.gw.likelihood.BasicGravitationalWaveTransient(
