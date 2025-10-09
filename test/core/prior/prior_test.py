@@ -88,7 +88,19 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
             bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
             bilby.core.prior.FermiDirac(name="test", unit="unit", mu=1, sigma=1),
-            bilby.core.prior.SymmetricLogUniform(name="test", unit="unit", minimum=1e-2, maximum=1e2),
+            bilby.core.prior.WeightedDiscreteValues(
+                name="test", unit="unit", values=[1, 2, 3, 4], weights=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.DiscreteValues(
+                name="test", unit="unit", values=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.WeightedCategorical(
+                name="test", unit="unit", ncategories=4, weights=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.Categorical(name="test", unit="unit", ncategories=5),
+            bilby.core.prior.SymmetricLogUniform(
+                name="test", unit="unit", minimum=1e-2, maximum=1e2
+            ),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
             bilby.gw.prior.AlignedSpin(
                 a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
@@ -150,21 +162,21 @@ class TestPriorClasses(unittest.TestCase):
                 unit="unit",
                 minimum=-1.1,
                 maximum=3.14,
-                mode=0.,
+                mode=0.0,
             ),
             bilby.core.prior.Triangular(
                 name="test",
                 unit="unit",
-                minimum=0.,
-                maximum=4.,
-                mode=4.,
+                minimum=0.0,
+                maximum=4.0,
+                mode=4.0,
             ),
             bilby.core.prior.Triangular(
                 name="test",
                 unit="unit",
-                minimum=2.,
-                maximum=5.,
-                mode=2.,
+                minimum=2.0,
+                maximum=5.0,
+                mode=2.0,
             ),
             bilby.gw.prior.ConditionalUniformComovingVolume(
                 condition_func=condition_func, name="redshift", minimum=0.1, maximum=1.0
@@ -373,8 +385,16 @@ class TestPriorClasses(unittest.TestCase):
                 or bilby.core.prior.JointPrior in prior.__class__.__mro__
             ):
                 continue
-            rescaled = prior.rescale(domain)
-            max_difference = max(np.abs(domain - prior.cdf(rescaled)))
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                rescaled = prior.rescale(domain)
+                cdf_vals = prior.cdf(rescaled)
+                rescaled_2 = prior.rescale(cdf_vals)
+                cdf_vals_2 = prior.cdf(rescaled_2)
+                self.assertTrue(np.array_equal(rescaled, rescaled_2))
+                max_difference = max(np.abs(cdf_vals - cdf_vals_2))
+            else:
+                rescaled = prior.rescale(domain)
+                max_difference = max(np.abs(domain - prior.cdf(rescaled)))
             self.assertLess(max_difference, threshold)
 
     def test_cdf_one_above_domain(self):
@@ -580,11 +600,14 @@ class TestPriorClasses(unittest.TestCase):
         because they are too sharply peaked to be tested efficiently in this way.
         """
         for prior in self.priors:
-            if isinstance(prior, (
-                bilby.core.prior.DeltaFunction,
-                bilby.core.prior.Cauchy,
-                bilby.core.prior.SymmetricLogUniform
-            )):
+            if isinstance(
+                prior,
+                (
+                    bilby.core.prior.DeltaFunction,
+                    bilby.core.prior.Cauchy,
+                    bilby.core.prior.SymmetricLogUniform,
+                ),
+            ):
                 continue
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
@@ -608,6 +631,10 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(0.0, 1e2, 1000)
             elif isinstance(prior, bilby.gw.prior.AlignedSpin):
                 domain = np.linspace(prior.minimum, prior.maximum, 10000)
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                domain = prior.values
+                self.assertTrue(np.sum(prior.prob(domain)) == 1)
+                continue
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             self.assertAlmostEqual(trapezoid(prior.prob(domain), domain), 1, 3)
@@ -678,6 +705,18 @@ class TestPriorClasses(unittest.TestCase):
                 scipy_lnprob = ss.beta.logpdf(domain, 2, 2, loc=0, scale=1)
                 scipy_cdf = ss.beta.cdf(domain, 2, 2, loc=0, scale=1)
                 scipy_rescale = ss.beta.ppf(rescale_domain, 2, 2, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                domain = prior.values
+                rescale_domain = prior.weights
+                scipy_dist = ss.rv_discrete(
+                    a=np.min(domain),
+                    b=np.max(domain),
+                    values=(domain, rescale_domain),
+                )
+                scipy_prob = scipy_dist.pmf(domain)
+                scipy_lnprob = scipy_dist.logpmf(domain)
+                scipy_cdf = scipy_dist.cdf(domain)
+                scipy_rescale = scipy_dist.ppf(rescale_domain)
             else:
                 continue
             testTuple = (
@@ -690,6 +729,7 @@ class TestPriorClasses(unittest.TestCase):
                 bilby.core.prior.LogNormal,
                 bilby.core.prior.Gamma,
                 bilby.core.prior.Beta,
+                bilby.core.prior.WeightedDiscreteValues,
             )
             if isinstance(prior, (testTuple)):
                 np.testing.assert_almost_equal(prior.prob(domain), scipy_prob)
@@ -754,6 +794,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue  # This feature does not exist because we cannot recreate the condition function
             else:
                 repr_prior_string = "bilby.core.prior." + repr(prior)
+
             repr_prior = eval(repr_prior_string, None, dict(inf=np.inf))
             self.assertEqual(prior, repr_prior)
 
@@ -773,6 +814,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Gamma,
                     bilby.core.prior.MultivariateGaussian,
                     bilby.core.prior.FermiDirac,
+                    bilby.core.prior.WeightedDiscreteValues,
                     bilby.core.prior.Triangular,
                     bilby.gw.prior.HealPixPrior,
                 ),
@@ -797,6 +839,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Gamma,
                     bilby.core.prior.MultivariateGaussian,
                     bilby.core.prior.FermiDirac,
+                    bilby.core.prior.WeightedDiscreteValues,
                     bilby.core.prior.Triangular,
                     bilby.core.prior.SymmetricLogUniform,
                     bilby.gw.prior.HealPixPrior,
