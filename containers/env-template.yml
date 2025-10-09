@@ -9,7 +9,7 @@ dependencies:
   - setuptools
   - setuptools_scm
   - matplotlib
-  - numpy
+  - numpy<2.2  # dynesty<2.2 requires numpy<2.2
   - scipy
   - pandas
   - astropy
@@ -31,7 +31,6 @@ dependencies:
   - corner
   - healpy
   - cython
-  - pytables
   - pytorch
   - cpuonly
   - python-lalsimulation
@@ -53,7 +52,6 @@ dependencies:
   - ultranest
   - cpnest
   - kombine
-  - dnest4
   - zeus-mcmc
   - pytorch
   - pymc>=5.9

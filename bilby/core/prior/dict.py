@@ -3,6 +3,7 @@ import os
 import re
 from importlib import import_module
 from io import open as ioopen
+from warnings import warn
 
 import numpy as np
 
@@ -317,15 +318,9 @@ class PriorDict(dict):
                     "{} cannot be converted to delta function prior.".format(key)
                 )
 
-    def fill_priors(self, likelihood, default_priors_file=None):
+    def fill_priors(self, likelihood=None, default_priors_file=None):
         """
-        Fill dictionary of priors based on required parameters of likelihood
-
-        Any floats in prior will be converted to delta function prior. Any
-        required, non-specified parameters will use the default.
-
-        Note: if `likelihood` has `non_standard_sampling_parameter_keys`, then
-        this will set-up default priors for those as well.
+        Any floats in prior will be converted to delta function prior.
 
         Parameters
         ==========
@@ -341,24 +336,12 @@ class PriorDict(dict):
             The filled prior dictionary
 
         """
+        if likelihood is not None:
+            warn("Filling priors from likelihood parameters is deprecated", FutureWarning)
+        if default_priors_file is not None:
+            warn("Setting default priors from a defaults file is deprecated", FutureWarning)
 
         self.convert_floats_to_delta_functions()
-
-        missing_keys = set(likelihood.parameters) - set(self.keys())
-
-        for missing_key in missing_keys:
-            if not self.test_redundancy(missing_key):
-                default_prior = create_default_prior(missing_key, default_priors_file)
-                if default_prior is None:
-                    set_val = likelihood.parameters[missing_key]
-                    logger.warning(
-                        "Parameter {} has no default prior and is set to {}, this"
-                        " will not be sampled and may cause an error.".format(
-                            missing_key, set_val
-                        )
-                    )
-                else:
-                    self[missing_key] = default_prior
 
         for key in self:
             self.test_redundancy(key)
@@ -441,6 +424,23 @@ class PriorDict(dict):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
     def sample_subset_constrained(self, keys=iter([]), size=None):
+        """
+        Sample a subset of priors while ensuring constraints are satisfied.
+
+        Parameters
+        ==========
+        keys: list
+            List of prior keys to sample from.
+        size: int
+            The number of samples to draw.
+
+        Returns
+        =======
+        dict: Dictionary of valid samples.
+        """
+        if not any(isinstance(self[key], Constraint) for key in self):
+            return self.sample_subset(keys=keys, size=size)
+
         efficiency_warning_was_issued = False
 
         def check_efficiency(n_tested, n_valid):
@@ -487,7 +487,9 @@ class PriorDict(dict):
     def normalize_constraint_factor(
         self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
     ):
-        if keys in self._cached_normalizations.keys():
+        if len(self.constraint_keys) == 0:
+            return 1
+        elif keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
         else:
             factor_estimates = [
@@ -549,8 +551,10 @@ class PriorDict(dict):
                     return 0.0
             else:
                 constrained_prob = np.zeros_like(prob)
-                keep = np.array(self.evaluate_constraints(sample), dtype=bool)
-                constrained_prob[keep] = prob[keep] * ratio
+                in_bounds = np.isfinite(prob)
+                subsample = {key: sample[key][in_bounds] for key in sample}
+                keep = np.array(self.evaluate_constraints(subsample), dtype=bool)
+                constrained_prob[in_bounds] = prob[in_bounds] * keep * ratio
                 return constrained_prob
 
     def ln_prob(self, sample, axis=None, normalized=True):
@@ -591,8 +595,10 @@ class PriorDict(dict):
                     return -np.inf
             else:
                 constrained_ln_prob = -np.inf * np.ones_like(ln_prob)
-                keep = np.array(self.evaluate_constraints(sample), dtype=bool)
-                constrained_ln_prob[keep] = ln_prob[keep] + np.log(ratio)
+                in_bounds = np.isfinite(ln_prob)
+                subsample = {key: sample[key][in_bounds] for key in sample}
+                keep = np.log(np.array(self.evaluate_constraints(subsample), dtype=bool))
+                constrained_ln_prob[in_bounds] = ln_prob[in_bounds] + keep + np.log(ratio)
                 return constrained_ln_prob
 
     def cdf(self, sample):
@@ -626,12 +632,9 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        theta = list(theta)
-        samples = []
-        for key, units in zip(keys, theta):
-            samps = self[key].rescale(units)
-            samples += list(np.asarray(samps).flatten())
-        return samples
+        return list(
+            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
+        )
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -653,9 +656,7 @@ class PriorDict(dict):
             del temp[key]
             if temp.test_redundancy(key, disable_logging=True):
                 logger.warning(
-                    "{} is a redundant key in this {}.".format(
-                        key, self.__class__.__name__
-                    )
+                    f"{key} is a redundant key in this {self.__class__.__name__}."
                 )
                 redundant = True
         return redundant
@@ -863,6 +864,7 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
+        joint = dict()
         for key, index in zip(
             self.sorted_keys_without_fixed_parameters, self._rescale_indexes
         ):
@@ -870,10 +872,35 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-        samples = []
-        for key in keys:
-            samples += list(np.asarray(result[key]).flatten())
-        return samples
+            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
+                joint[self[key].dist.distname] = [key]
+            elif isinstance(self[key], JointPrior):
+                joint[self[key].dist.distname].append(key)
+        for names in joint.values():
+            # this is needed to unpack how joint prior rescaling works
+            # as an example of a joint prior over {a, b, c, d} we might
+            # get the following based on the order within the joint prior
+            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
+            # -> [1, 2, 3, 4]
+            # -> {a: 1, b: 2, c: 3, d: 4}
+            values = list()
+            for key in names:
+                values = np.concatenate([values, result[key]])
+            for key, value in zip(names, values):
+                result[key] = value
+
+        def safe_flatten(value):
+            """
+            this is gross but can be removed whenever we switch to returning
+            arrays, flatten converts 0-d arrays to 1-d so has to be special
+            cased
+            """
+            if isinstance(value, (float, int)):
+                return value
+            else:
+                return result[key].flatten()
+
+        return [safe_flatten(result[key]) for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

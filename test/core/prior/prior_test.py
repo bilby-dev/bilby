@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import os
 import scipy.stats as ss
+from scipy.integrate import trapezoid
 
 
 class TestPriorClasses(unittest.TestCase):
@@ -86,6 +87,20 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Lorentzian(name="test", unit="unit", alpha=0, beta=1),
             bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
             bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
+            bilby.core.prior.FermiDirac(name="test", unit="unit", mu=1, sigma=1),
+            bilby.core.prior.WeightedDiscreteValues(
+                name="test", unit="unit", values=[1, 2, 3, 4], weights=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.DiscreteValues(
+                name="test", unit="unit", values=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.WeightedCategorical(
+                name="test", unit="unit", ncategories=4, weights=[1, 2, 3, 4]
+            ),
+            bilby.core.prior.Categorical(name="test", unit="unit", ncategories=5),
+            bilby.core.prior.SymmetricLogUniform(
+                name="test", unit="unit", minimum=1e-2, maximum=1e2
+            ),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
             bilby.gw.prior.AlignedSpin(
                 a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
@@ -147,21 +162,21 @@ class TestPriorClasses(unittest.TestCase):
                 unit="unit",
                 minimum=-1.1,
                 maximum=3.14,
-                mode=0.,
+                mode=0.0,
             ),
             bilby.core.prior.Triangular(
                 name="test",
                 unit="unit",
-                minimum=0.,
-                maximum=4.,
-                mode=4.,
+                minimum=0.0,
+                maximum=4.0,
+                mode=4.0,
             ),
             bilby.core.prior.Triangular(
                 name="test",
                 unit="unit",
-                minimum=2.,
-                maximum=5.,
-                mode=2.,
+                minimum=2.0,
+                maximum=5.0,
+                mode=2.0,
             ),
             bilby.gw.prior.ConditionalUniformComovingVolume(
                 condition_func=condition_func, name="redshift", minimum=0.1, maximum=1.0
@@ -235,6 +250,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if isinstance(prior, bilby.gw.prior.AlignedSpin):
                 # the edge of the prior is extremely suppressed for these priors
                 # and so the rescale function doesn't quite return the lower bound
@@ -263,6 +281,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_many_sample_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             many_samples = prior.rescale(np.random.uniform(0, 1, 1000))
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_rescale():
@@ -281,6 +302,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             single_sample = prior.sample()
             self.assertTrue(
                 (single_sample >= prior.minimum) & (single_sample <= prior.maximum)
@@ -289,6 +313,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             many_samples = prior.sample(5000)
             self.assertTrue(
                 (all(many_samples >= prior.minimum))
@@ -311,6 +338,9 @@ class TestPriorClasses(unittest.TestCase):
     def test_probability_below_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if prior.minimum != -np.inf:
                 outside_domain = np.linspace(
                     prior.minimum - 1e4, prior.minimum - 1, 1000
@@ -355,8 +385,16 @@ class TestPriorClasses(unittest.TestCase):
                 or bilby.core.prior.JointPrior in prior.__class__.__mro__
             ):
                 continue
-            rescaled = prior.rescale(domain)
-            max_difference = max(np.abs(domain - prior.cdf(rescaled)))
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                rescaled = prior.rescale(domain)
+                cdf_vals = prior.cdf(rescaled)
+                rescaled_2 = prior.rescale(cdf_vals)
+                cdf_vals_2 = prior.cdf(rescaled_2)
+                self.assertTrue(np.array_equal(rescaled, rescaled_2))
+                max_difference = max(np.abs(cdf_vals - cdf_vals_2))
+            else:
+                rescaled = prior.rescale(domain)
+                max_difference = max(np.abs(domain - prior.cdf(rescaled)))
             self.assertLess(max_difference, threshold)
 
     def test_cdf_one_above_domain(self):
@@ -369,6 +407,9 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_cdf_zero_below_domain(self):
         for prior in self.priors:
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             if (
                 bilby.core.prior.JointPrior in prior.__class__.__mro__
                 and prior.maximum == np.inf
@@ -379,6 +420,12 @@ class TestPriorClasses(unittest.TestCase):
                     prior.minimum - 1e4, prior.minimum - 1, 1000
                 )
                 self.assertTrue(all(np.nan_to_num(prior.cdf(outside_domain)) == 0))
+
+    def test_cdf_float_with_float_input(self):
+        for prior in self.priors:
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                continue
+            self.assertIsInstance(prior.cdf(prior.sample()), float)
 
     def test_log_normal_fail(self):
         with self.assertRaises(ValueError):
@@ -529,6 +576,9 @@ class TestPriorClasses(unittest.TestCase):
             # skip delta function prior in this case
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
+            if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
+                # SymmetricLogUniform has support down to -maximum
+                continue
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
             indomain = (surround_domain >= prior.minimum) | (
                 surround_domain <= prior.maximum
@@ -543,11 +593,21 @@ class TestPriorClasses(unittest.TestCase):
             self.assertTrue(all(prior.prob(surround_domain[outdomain]) == 0))
 
     def test_normalized(self):
-        """Test that each of the priors are normalised, this needs care for delta function and Gaussian priors"""
+        """
+        Test that each of the priors are normalised.
+        This needs extra care for priors defined on infinite domains and the
+        Cauchy, DeltaFunction, and SymmetricLogUniform priors are skipped
+        because they are too sharply peaked to be tested efficiently in this way.
+        """
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.DeltaFunction):
-                continue
-            if isinstance(prior, bilby.core.prior.Cauchy):
+            if isinstance(
+                prior,
+                (
+                    bilby.core.prior.DeltaFunction,
+                    bilby.core.prior.Cauchy,
+                    bilby.core.prior.SymmetricLogUniform,
+                ),
+            ):
                 continue
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
@@ -571,9 +631,13 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(0.0, 1e2, 1000)
             elif isinstance(prior, bilby.gw.prior.AlignedSpin):
                 domain = np.linspace(prior.minimum, prior.maximum, 10000)
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                domain = prior.values
+                self.assertTrue(np.sum(prior.prob(domain)) == 1)
+                continue
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
-            self.assertAlmostEqual(np.trapz(prior.prob(domain), domain), 1, 3)
+            self.assertAlmostEqual(trapezoid(prior.prob(domain), domain), 1, 3)
 
     def test_accuracy(self):
         """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
@@ -641,6 +705,18 @@ class TestPriorClasses(unittest.TestCase):
                 scipy_lnprob = ss.beta.logpdf(domain, 2, 2, loc=0, scale=1)
                 scipy_cdf = ss.beta.cdf(domain, 2, 2, loc=0, scale=1)
                 scipy_rescale = ss.beta.ppf(rescale_domain, 2, 2, loc=0, scale=1)
+            elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                domain = prior.values
+                rescale_domain = prior.weights
+                scipy_dist = ss.rv_discrete(
+                    a=np.min(domain),
+                    b=np.max(domain),
+                    values=(domain, rescale_domain),
+                )
+                scipy_prob = scipy_dist.pmf(domain)
+                scipy_lnprob = scipy_dist.logpmf(domain)
+                scipy_cdf = scipy_dist.cdf(domain)
+                scipy_rescale = scipy_dist.ppf(rescale_domain)
             else:
                 continue
             testTuple = (
@@ -653,6 +729,7 @@ class TestPriorClasses(unittest.TestCase):
                 bilby.core.prior.LogNormal,
                 bilby.core.prior.Gamma,
                 bilby.core.prior.Beta,
+                bilby.core.prior.WeightedDiscreteValues,
             )
             if isinstance(prior, (testTuple)):
                 np.testing.assert_almost_equal(prior.prob(domain), scipy_prob)
@@ -717,6 +794,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue  # This feature does not exist because we cannot recreate the condition function
             else:
                 repr_prior_string = "bilby.core.prior." + repr(prior)
+
             repr_prior = eval(repr_prior_string, None, dict(inf=np.inf))
             self.assertEqual(prior, repr_prior)
 
@@ -736,6 +814,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Gamma,
                     bilby.core.prior.MultivariateGaussian,
                     bilby.core.prior.FermiDirac,
+                    bilby.core.prior.WeightedDiscreteValues,
                     bilby.core.prior.Triangular,
                     bilby.gw.prior.HealPixPrior,
                 ),
@@ -760,7 +839,9 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.Gamma,
                     bilby.core.prior.MultivariateGaussian,
                     bilby.core.prior.FermiDirac,
+                    bilby.core.prior.WeightedDiscreteValues,
                     bilby.core.prior.Triangular,
+                    bilby.core.prior.SymmetricLogUniform,
                     bilby.gw.prior.HealPixPrior,
                 ),
             ):

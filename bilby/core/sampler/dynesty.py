@@ -4,10 +4,12 @@ import os
 import sys
 import time
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame
 
+from ..likelihood import _safe_likelihood_call
 from ..result import rejection_sample
 from ..utils import (
     check_directory_exists_and_if_not_mkdir,
@@ -45,15 +47,20 @@ def _log_likelihood_wrapper(theta):
             for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
         }
     ):
-        params = {
-            key: t
-            for key, t in zip(_sampling_convenience_dump.search_parameter_keys, theta)
-        }
-        _sampling_convenience_dump.likelihood.parameters.update(params)
-        if _sampling_convenience_dump.use_ratio:
-            return _sampling_convenience_dump.likelihood.log_likelihood_ratio()
-        else:
-            return _sampling_convenience_dump.likelihood.log_likelihood()
+        params = deepcopy(_sampling_convenience_dump.parameters)
+        params.update(
+            {
+                key: t
+                for key, t in zip(
+                    _sampling_convenience_dump.search_parameter_keys, theta
+                )
+            }
+        )
+        return _safe_likelihood_call(
+            _sampling_convenience_dump.likelihood,
+            params,
+            _sampling_convenience_dump.use_ratio,
+        )
     else:
         return np.nan_to_num(-np.inf)
 
@@ -392,7 +399,7 @@ class Dynesty(NestedSampler):
         if logl_min > -np.inf:
             string.append(f"logl:{logl_min:.1f} < {loglstar:.1f} < {logl_max:.1f}")
         if dlogz is not None:
-            string.append(f"dlogz:{delta_logz:0.3f}>{dlogz:0.2g}")
+            string.append(f"dlogz:{delta_logz:0.3g}>{dlogz:0.2g}")
         else:
             string.append(f"stop:{stop_val:6.3f}")
         string = " ".join(string)
@@ -617,7 +624,7 @@ class Dynesty(NestedSampler):
         import dynesty
         from scipy.special import logsumexp
 
-        from ..utils.random import rng
+        from ..utils import random
 
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
@@ -626,7 +633,7 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > rng.uniform(0, max(weights), len(weights))
+            keep = weights > random.rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(

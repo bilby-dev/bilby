@@ -11,11 +11,11 @@ from copy import deepcopy
 
 import bilby
 import numpy as np
-from bilby.core.utils.random import rng, seed
-from tqdm.auto import trange
+from bilby.core.utils import random
+from tqdm.auto import tqdm
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
@@ -49,7 +49,6 @@ injection_parameters = dict(
     geocent_time=1126259642.413,
     ra=1.375,
     dec=-1.2108,
-    fiducial=1,
 )
 
 # Fixed arguments passed into the source model
@@ -57,6 +56,7 @@ waveform_arguments = dict(
     waveform_approximant="IMRPhenomXP",
     reference_frequency=50.0,
     minimum_frequency=minimum_frequency,
+    fiducial=1,
 )
 
 # Create the waveform_generator using a LAL BinaryBlackHole source function
@@ -145,13 +145,14 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
+alt_waveform_arguments = deepcopy(waveform_arguments)
+del alt_waveform_arguments["frequency_bin_edges"], alt_waveform_arguments["fiducial"]
 alt_waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    # frequency_domain_source_model=lal_binary_black_hole_relative_binning,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-    waveform_arguments=waveform_arguments,
+    waveform_arguments=alt_waveform_arguments,
 )
 alt_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     interferometers=ifos,
@@ -159,12 +160,10 @@ alt_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
 )
 likelihood.distance_marginalization = False
 weights = list()
-for ii in trange(len(result.posterior)):
-    parameters = dict(result.posterior.iloc[ii])
-    likelihood.parameters.update(parameters)
-    alt_likelihood.parameters.update(parameters)
+for parameters in tqdm(result.posterior.to_dict(orient="records")):
     weights.append(
-        alt_likelihood.log_likelihood_ratio() - likelihood.log_likelihood_ratio()
+        alt_likelihood.log_likelihood_ratio(parameters)
+        - likelihood.log_likelihood_ratio(parameters)
     )
 weights = np.exp(weights)
 print(
@@ -175,7 +174,7 @@ print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 # Generate result object with the posterior for the regular likelihood using
 # rejection sampling
 alt_result = deepcopy(result)
-keep = weights > rng.uniform(0, max(weights), len(weights))
+keep = weights > random.rng.uniform(0, max(weights), len(weights))
 alt_result.posterior = result.posterior.iloc[keep]
 
 # Make a comparison corner plot.

@@ -9,6 +9,7 @@ from parameterized import parameterized
 import numpy as np
 import bilby
 from bilby.gw.detector import calibration
+from scipy.integrate import trapezoid
 from scipy.special import logsumexp
 
 
@@ -380,7 +381,7 @@ class TestMarginalizations(unittest.TestCase):
             ln_likes[ii] = non_marginalized.log_likelihood_ratio()
         like = np.exp(ln_likes - max(ln_likes))
 
-        marg_like = np.log(np.trapz(like * prior_values, values)) + max(ln_likes)
+        marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
         self.assertAlmostEqual(
             marg_like, marginalized.log_likelihood_ratio(), delta=0.5
         )
@@ -463,8 +464,7 @@ class TestMarginalizations(unittest.TestCase):
         for key in marginalizations:
             if marginalizations[key]:
                 params[key] = reference_values[key]
-        like.parameters.update(params)
-        output = like.generate_posterior_sample_from_marginalized_likelihood()
+        output = like.generate_posterior_sample_from_marginalized_likelihood(params)
         for key in marginalizations:
             self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
 
@@ -513,6 +513,37 @@ class CalibrationMarginalization(unittest.TestCase):
 
     @parameterized.expand(["no_time", "time"])
     def test_calibration_marginalization(self, time):
+        marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=deepcopy(self.ifos),
+            waveform_generator=self.wfg,
+            priors=deepcopy(self.priors),
+            calibration_marginalization=True,
+            time_marginalization=time == "time",
+            number_of_response_curves=100,
+            jitter_time=False,
+        )
+        non_marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=deepcopy(self.ifos),
+            waveform_generator=self.wfg,
+            priors=deepcopy(self.priors),
+            calibration_marginalization=False,
+            time_marginalization=time == "time",
+            jitter_time=False,
+        )
+        parameters = self.priors.sample()
+        marg_ln_l = marginalized.log_likelihood_ratio(parameters)
+        non_marg_ln_ls = list()
+        draws = marginalized.calibration_parameter_draws
+        for ii in range(100):
+            for name, value in draws["H1"].items():
+                parameters[name] = value[ii]
+            parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
+            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio(parameters))
+        non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
+        self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)
+
+    @parameterized.expand(["no_time", "time"])
+    def test_calibration_marginalization_state(self, time):
         marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=deepcopy(self.ifos),
             waveform_generator=self.wfg,

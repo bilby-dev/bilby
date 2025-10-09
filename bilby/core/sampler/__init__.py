@@ -179,9 +179,13 @@ def run_sampler(
         `bilby.sampler.get_implemented_samplers()` for a list of available
         samplers.
         Alternatively a Sampler object can be passed
-    use_ratio: bool (False)
-        If True, use the likelihood's log_likelihood_ratio, rather than just
-        the log_likelihood.
+    use_ratio: bool (None)
+        If True, use the likelihood's `log_likelihood_ratio`, rather than just
+        the `log_likelihood`. If left as the default value of `None`, and the
+        likelihood has a valid `log_likelihood_ratio` method, then that method
+        will also be used, i.e., the likelihood ratio will be calculated. To
+        ensure that the `log_likelihood` method is used for the calculation,
+        rather than the likelihood ratio, this argument should be set to False.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
@@ -245,7 +249,7 @@ def run_sampler(
     else:
         raise ValueError("Input priors not understood should be dict or PriorDict")
 
-    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
+    priors.fill_priors()
 
     # Generate the meta-data if not given and append the likelihood meta_data
     if meta_data is None:

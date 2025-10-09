@@ -18,6 +18,8 @@ Welcome to bilby's documentation!
    samplers
    dynesty-guide
    bilby-mcmc-guide
+   rng
+   parameters
    plugins
    bilby-output
    compact-binary-coalescence-parameter-estimation

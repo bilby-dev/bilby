@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import numpy as np
 
@@ -294,6 +294,44 @@ class TestPriorDict(unittest.TestCase):
         self.assertTrue(isinstance(out, np.ndarray))
         self.assertTrue(out.shape == (len(keys), size))
 
+    def test_sample_subset_constrained(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        N = 1_000
+
+        priors1 = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors1["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors1["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors1["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        with patch("bilby.core.prior.logger.warning") as mock_warning:
+            samples1 = priors1.sample_subset_constrained(
+                keys=list(priors1.keys()), size=N
+            )
+            self.assertEqual(len(priors1) - 1, len(samples1))
+            for key in samples1:
+                self.assertEqual(N, len(samples1[key]))
+            mock_warning.assert_called()
+
+        priors2 = bilby.core.prior.PriorDict()
+        priors2["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors2["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+
+        with patch("bilby.core.prior.logger.warning") as mock_warning:
+            samples2 = priors2.sample_subset_constrained(
+                keys=list(priors2.keys()), size=N
+            )
+            self.assertEqual(len(priors2), len(samples2))
+            for key in samples2:
+                self.assertEqual(N, len(samples2[key]))
+            mock_warning.assert_not_called()
+
     def test_sample(self):
         size = 7
         bilby.core.utils.random.seed(42)
@@ -572,7 +610,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
 class TestFillPrior(unittest.TestCase):
     def setUp(self):
         self.likelihood = Mock()
-        self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0, ra=1)
+        self.likelihood.parameters = dict(a=0, b=0, c=0, d=0, asdf=0)
         self.likelihood.non_standard_sampling_parameter_keys = dict(t=8)
         self.priors = dict(a=1, b=1.1, c="string", d=bilby.core.prior.Uniform(0, 1))
         self.priors = bilby.core.prior.PriorDict(dictionary=self.priors)
@@ -604,9 +642,6 @@ class TestFillPrior(unittest.TestCase):
     def test_without_available_default_priors_no_prior_is_set(self):
         with self.assertRaises(KeyError):
             print(self.priors["asdf"])
-
-    def test_with_available_default_priors_a_default_prior_is_set(self):
-        self.assertIsInstance(self.priors["ra"], bilby.core.prior.Uniform)
 
 
 class TestLoadPriorWithCosmologicalParameters(unittest.TestCase):

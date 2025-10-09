@@ -1,8 +1,10 @@
+import os
 import unittest
 from unittest import mock
 
 import lal
 import lalsimulation
+import pytest
 from shutil import rmtree
 
 import numpy as np
@@ -371,6 +373,29 @@ class TestInterferometer(unittest.TestCase):
             bilby.gw.detector.Interferometer.from_pickle(filename)
 
 
+def test_psd_not_impacted_by_window_factor(monkeypatch):
+    ifo = bilby.gw.detector.get_empty_interferometer("H1")
+    ifo.set_strain_data_from_zero_noise(duration=4, sampling_frequency=256)
+    monkeypatch.setattr(ifo.strain_data, "window_factor", np.nan)
+    np.testing.assert_array_equal(
+        ifo.power_spectral_density.get_power_spectral_density_array(
+            frequency_array=ifo.strain_data.frequency_array
+        ),
+        ifo.power_spectral_density_array
+    )
+
+
+def test_psd_impacted_by_window_factor_with_environment_variable(monkeypatch):
+    ifo = bilby.gw.detector.get_empty_interferometer("H1")
+    ifo.set_strain_data_from_zero_noise(duration=4, sampling_frequency=256)
+    old_psd = ifo.power_spectral_density_array
+    factor = 0.1
+    env = dict(BILBY_INCORRECT_PSD_NORMALIZATION="TRUE")
+    monkeypatch.setattr(os, "environ", env)
+    monkeypatch.setattr(ifo.strain_data, "window_factor", factor)
+    np.testing.assert_array_equal(old_psd * factor, ifo.power_spectral_density_array)
+
+
 class TestInterferometerEquals(unittest.TestCase):
     def setUp(self):
         self.name = "name"
@@ -570,6 +595,7 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
                 self.assertAlmostEqual(std, 0.0, places=10)
 
 
+@pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64

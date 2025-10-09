@@ -11,7 +11,7 @@ def test_sampler_import(sampler_name):
 
     Do not test :code:`FakeSampler` since it requires an additional argument.
     """
-    if sampler_name in ["fake_sampler", "pypolychord"]:
+    if sampler_name in ["dnest4", "fake_sampler", "pypolychord"]:
         pytest.skip(f"Skipping import test for {sampler_name}")
     bilby.core.utils.logger.setLevel("ERROR")
     likelihood = bilby.core.likelihood.Likelihood(dict())

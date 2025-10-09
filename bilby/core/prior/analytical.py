@@ -169,8 +169,10 @@ class PowerLaw(Prior):
             _cdf = (np.log(val / self.minimum) /
                     np.log(self.maximum / self.minimum))
         else:
-            _cdf = np.atleast_1d(val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)) / \
-                (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
+            _cdf = (
+                (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
+                / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
+            )
         _cdf = np.minimum(_cdf, 1)
         _cdf = np.maximum(_cdf, 0)
         return _cdf
@@ -367,16 +369,16 @@ class SymmetricLogUniform(Prior):
         return np.nan_to_num(- np.log(2 * np.abs(val)) - np.log(np.log(self.maximum / self.minimum)))
 
     def cdf(self, val):
-        val = np.atleast_1d(val)
         norm = 0.5 / np.log(self.maximum / self.minimum)
-        cdf = np.zeros((len(val)))
-        lower_indices = np.where(np.logical_and(-self.maximum <= val, val <= -self.minimum))[0]
-        upper_indices = np.where(np.logical_and(self.minimum <= val, val <= self.maximum))[0]
-        cdf[lower_indices] = -norm * np.log(-val[lower_indices] / self.maximum)
-        cdf[np.where(np.logical_and(-self.minimum < val, val < self.minimum))] = 0.5
-        cdf[upper_indices] = 0.5 + norm * np.log(val[upper_indices] / self.minimum)
-        cdf[np.where(self.maximum < val)] = 1
-        return cdf
+        _cdf = (
+            -norm * np.log(abs(val) / self.maximum)
+            * (val <= -self.minimum) * (val >= -self.maximum)
+            + (0.5 + norm * np.log(abs(val) / self.minimum))
+            * (val >= self.minimum) * (val <= self.maximum)
+            + 0.5 * (val > -self.minimum) * (val < self.minimum)
+            + 1 * (val > self.maximum)
+        )
+        return _cdf
 
 
 class Cosine(Prior):
@@ -426,10 +428,12 @@ class Cosine(Prior):
         return np.cos(val) / 2 * self.is_in_prior_range(val)
 
     def cdf(self, val):
-        _cdf = np.atleast_1d((np.sin(val) - np.sin(self.minimum)) /
-                             (np.sin(self.maximum) - np.sin(self.minimum)))
-        _cdf[val > self.maximum] = 1
-        _cdf[val < self.minimum] = 0
+        _cdf = (
+            (np.sin(val) - np.sin(self.minimum))
+            / (np.sin(self.maximum) - np.sin(self.minimum))
+            * (val >= self.minimum) * (val <= self.maximum)
+            + 1 * (val > self.maximum)
+        )
         return _cdf
 
 
@@ -480,10 +484,12 @@ class Sine(Prior):
         return np.sin(val) / 2 * self.is_in_prior_range(val)
 
     def cdf(self, val):
-        _cdf = np.atleast_1d((np.cos(val) - np.cos(self.minimum)) /
-                             (np.cos(self.maximum) - np.cos(self.minimum)))
-        _cdf[val > self.maximum] = 1
-        _cdf[val < self.minimum] = 0
+        _cdf = (
+            (np.cos(val) - np.cos(self.minimum))
+            / (np.cos(self.maximum) - np.cos(self.minimum))
+            * (val >= self.minimum) * (val <= self.maximum)
+            + 1 * (val > self.maximum)
+        )
         return _cdf
 
 
@@ -625,11 +631,13 @@ class TruncatedGaussian(Prior):
             / self.sigma / self.normalisation * self.is_in_prior_range(val)
 
     def cdf(self, val):
-        val = np.atleast_1d(val)
-        _cdf = (erf((val - self.mu) / 2 ** 0.5 / self.sigma) - erf(
-            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2 / self.normalisation
-        _cdf[val > self.maximum] = 1
-        _cdf[val < self.minimum] = 0
+        _cdf = (
+            (
+                erf((val - self.mu) / 2 ** 0.5 / self.sigma)
+                - erf((self.minimum - self.mu) / 2 ** 0.5 / self.sigma)
+            ) / 2 / self.normalisation * (val >= self.minimum) * (val <= self.maximum)
+            + 1 * (val > self.maximum)
+        )
         return _cdf
 
 
@@ -1367,6 +1375,8 @@ class FermiDirac(Prior):
             raise ValueError("For the Fermi-Dirac prior the values of sigma and r "
                              "must be positive.")
 
+        self.expr = np.exp(self.r)
+
     def rescale(self, val):
         """
         'Rescale' a sample from the unit line element to the appropriate Fermi-Dirac prior.
@@ -1384,21 +1394,8 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        inv = (-np.exp(-1. * self.r) + (1. + np.exp(self.r)) ** -val +
-               np.exp(-1. * self.r) * (1. + np.exp(self.r)) ** -val)
-
-        # if val is 1 this will cause inv to be negative (due to numerical
-        # issues), so return np.inf
-        if isinstance(val, (float, int)):
-            if inv < 0:
-                return np.inf
-            else:
-                return -self.sigma * np.log(inv)
-        else:
-            idx = inv >= 0.
-            tmpinv = np.inf * np.ones(len(np.atleast_1d(val)))
-            tmpinv[idx] = -self.sigma * np.log(inv[idx])
-            return tmpinv
+        inv = -1 / self.expr + (1 + self.expr)**-val + (1 + self.expr)**-val / self.expr
+        return -self.sigma * np.log(np.maximum(inv, 0))
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1411,7 +1408,11 @@ class FermiDirac(Prior):
         =======
         float: Prior probability of val
         """
-        return np.exp(self.ln_prob(val))
+        return (
+            (np.exp((val - self.mu) / self.sigma) + 1)**-1
+            / (self.sigma * np.log1p(self.expr))
+            * (val >= self.minimum)
+        )
 
     def ln_prob(self, val):
         """Return the log prior probability of val.
@@ -1424,53 +1425,107 @@ class FermiDirac(Prior):
         =======
         Union[float, array_like]: Log prior probability of val
         """
+        return np.log(self.prob(val))
 
-        norm = -np.log(self.sigma * np.log(1. + np.exp(self.r)))
-        if isinstance(val, (float, int)):
-            if val < self.minimum:
-                return -np.inf
-            else:
-                return norm - np.logaddexp((val / self.sigma) - self.r, 0.)
-        else:
-            val = np.atleast_1d(val)
-            lnp = -np.inf * np.ones(len(val))
-            idx = val >= self.minimum
-            lnp[idx] = norm - np.logaddexp((val[idx] / self.sigma) - self.r, 0.)
-            return lnp
-
-
-class Categorical(Prior):
-    def __init__(self, ncategories, name=None, latex_label=None,
-                 unit=None, boundary="periodic"):
-        """ An equal-weighted Categorical prior
+    def cdf(self, val):
+        """
+        Evaluate the CDF of the Fermi-Dirac distribution using a slightly
+        modified form of Equation 23 of [1]_.
 
         Parameters
         ==========
-        ncategories: int
-            The number of available categories. The prior mass support is then
-            integers [0, ncategories - 1].
+        val: Union[float, int, array_like]
+            The value(s) to evaluate the CDF at
+
+        Returns
+        =======
+        Union[float, array_like]:
+            The CDF value(s)
+
+        References
+        ==========
+
+        .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
+           <https:arxiv.org/abs/1705.08978v1>`_, 2017.
+        """
+        result = (
+            (np.logaddexp(0, -self.r) - np.logaddexp(-val / self.sigma, -self.r))
+            / np.logaddexp(0, self.r)
+        )
+        return np.clip(result, 0, 1)
+
+
+class WeightedDiscreteValues(Prior):
+    def __init__(
+        self,
+        values,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary="periodic",
+    ):
+        """A weighted discrete-valued prior
+
+        Parameters
+        ==========
+        values: 1d array_like of numeric type
+            The discrete values of the prior.
+        weights: 1d array_like of numeric type or None
+            The weights of each category. If None, then all values are
+            equally weighted. Default: None.
         name: str
-            See superclass
+            The name of the parameter
         latex_label: str
-            See superclass
+            The latex label of the parameter. Used for plotting.
         unit: str
-            See superclass
+            The unit of the parameter. Used for plotting.
         """
 
-        minimum = 0
+        nvalues = len(values)
+        values = np.array(values)
+        if values.shape != (nvalues,):
+            raise ValueError(
+                f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}"
+            )
+        minimum = np.min(values)
         # Small delta added to help with MCMC walking
-        maximum = ncategories - 1 + 1e-15
-        super(Categorical, self).__init__(
+        maximum = np.max(values) * (1 + 1e-15)
+        super(WeightedDiscreteValues, self).__init__(
             name=name, latex_label=latex_label, minimum=minimum,
             maximum=maximum, unit=unit, boundary=boundary)
-        self.ncategories = ncategories
-        self.categories = np.arange(self.minimum, self.maximum)
-        self.p = 1 / self.ncategories
-        self.lnp = -np.log(self.ncategories)
+        self.nvalues = nvalues
+        sorter = np.argsort(values)
+        self._values_array = values[sorter]
+
+        # inititialization of priors from repr only supports
+        # python buildins
+        self.values = self._values_array.tolist()
+
+        weights = (
+            np.array(weights) / np.sum(weights)
+            if weights is not None
+            else np.ones(self.nvalues) / self.nvalues
+        )
+        # check for consistent shape of input
+        if weights.shape != (self.nvalues,):
+            raise ValueError(
+                "Inconsistent shape of weights and number of values:"
+                + f"weights has shape {weights.shape} "
+                + f"while number of values is {self.values}"
+            )
+        self._weights_array = weights[sorter]
+        self.weights = self._weights_array.tolist()
+        self._lnweights_array = np.log(self._weights_array)
+
+        # save cdf for rescaling
+        _cumulative_weights_array = np.cumsum(self._weights_array)
+        # insert 0 for values smaller than minimum
+        self._cumulative_weights_array = np.insert(_cumulative_weights_array, 0, 0)
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the categorical prior.
+        'Rescale' a sample from the unit line element to the discrete-value prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
 
@@ -1483,7 +1538,22 @@ class Categorical(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return np.floor(val * (1 + self.maximum))
+        index = np.searchsorted(self._cumulative_weights_array[1:], val)
+        return self._values_array[index]
+
+    def cdf(self, val):
+        """Return the cumulative prior probability of val.
+
+        Parameters
+        ==========
+        val: Union[float, int, array_like]
+
+        Returns
+        =======
+        float: cumulative prior probability of val
+        """
+        index = np.searchsorted(self._values_array, val, side="right")
+        return self._cumulative_weights_array[index]
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -1496,17 +1566,11 @@ class Categorical(Prior):
         =======
         float: Prior probability of val
         """
-        if isinstance(val, (float, int)):
-            if val in self.categories:
-                return self.p
-            else:
-                return 0
-        else:
-            val = np.atleast_1d(val)
-            probs = np.zeros_like(val, dtype=np.float64)
-            idxs = np.isin(val, self.categories)
-            probs[idxs] = self.p
-            return probs
+        index = np.searchsorted(self._values_array, val)
+        index = np.clip(index, 0, self.nvalues - 1)
+        p = np.where(self._values_array[index] == val, self._weights_array[index], 0)
+        # turn 0d numpy array to scalar
+        return p[()]
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -1520,17 +1584,107 @@ class Categorical(Prior):
         float:
 
         """
-        if isinstance(val, (float, int)):
-            if val in self.categories:
-                return self.lnp
-            else:
-                return -np.inf
-        else:
-            val = np.atleast_1d(val)
-            probs = -np.inf * np.ones_like(val, dtype=np.float64)
-            idxs = np.isin(val, self.categories)
-            probs[idxs] = self.lnp
-            return probs
+        index = np.searchsorted(self._values_array, val)
+        index = np.clip(index, 0, self.nvalues - 1)
+        lnp = np.where(
+            self._values_array[index] == val, self._lnweights_array[index], -np.inf
+        )
+        # turn 0d numpy array to scalar
+        return lnp[()]
+
+
+class DiscreteValues(WeightedDiscreteValues):
+    def __init__(self, values, name=None, latex_label=None,
+                 unit=None, boundary="periodic"):
+        """An equal-weighted discrete-valued prior
+
+        Parameters
+        ==========
+        values: array
+            The discrete values of the prior.
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        weights = np.ones_like(values)
+        super(DiscreteValues, self).__init__(
+            values=values,
+            weights=weights,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
+
+
+class WeightedCategorical(WeightedDiscreteValues):
+    def __init__(
+        self,
+        ncategories,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary="periodic",
+    ):
+        """A weighted Categorical prior
+
+        Parameters
+        ==========
+        ncategories: int
+            The number of available categories. The prior mass support is then
+            integers [0, ncategories - 1].
+        weights: 1d array_like or None
+            The weights of each category. If None, then all categories are
+            equally weighted. Default None.
+        name: str
+            The name of the parameter
+        latex_label: str
+            The latex label of the parameter. Used for plotting.
+        unit: str
+            The unit of the parameter. Used for plotting.
+        """
+        self.ncategories = ncategories
+        values = np.arange(0, ncategories)
+        super(WeightedCategorical, self).__init__(
+            values=values,
+            weights=weights,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
+
+
+class Categorical(DiscreteValues):
+    def __init__(
+        self, ncategories, name=None, latex_label=None, unit=None, boundary="periodic"
+    ):
+        """An equal-weighted Categorical prior
+        Parameters
+        ==========
+        ncategories: int
+            The number of available categories. The prior mass support is then
+            integers [0, ncategories - 1].
+        name: str
+            See superclass
+        latex_label: str
+            See superclass
+        unit: str
+            See superclass
+        """
+        self.ncategories = ncategories
+        values = np.arange(0, ncategories)
+        super(Categorical, self).__init__(
+            values=values,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
 
 
 class Triangular(Prior):

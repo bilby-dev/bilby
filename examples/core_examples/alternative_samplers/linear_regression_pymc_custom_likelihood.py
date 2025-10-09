@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pymc as pm
 from bilby.core.sampler.pymc import Pymc
-from bilby.core.utils.random import rng, seed
+from bilby.core.utils import random
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # A few simple setup steps
 label = "linear_regression_pymc_custom_likelihood"
@@ -41,7 +41,7 @@ sampling_frequency = 10
 time_duration = 10
 time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
-data = model(time, **injection_parameters) + rng.normal(0, sigma, N)
+data = model(time, **injection_parameters) + random.rng.normal(0, sigma, N)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()
@@ -75,7 +75,7 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
         """
         super(GaussianLikelihoodPyMC, self).__init__(x=x, y=y, func=func, sigma=sigma)
 
-    def log_likelihood(self, sampler=None):
+    def log_likelihood(self, sampler=None, parameters=None):
         """
         Parameters
         ----------
@@ -84,10 +84,16 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
             and PyMC :class:`~pymc.Model` to use as a context manager.
             If this is not passed, the super class is called and the regular
             likelihood is evaluated.
+        parameters: `dict`
+            A dictionary containing the values of the parameters for which to
+            evaluate the likelihood. This is only used when :code:`sampler` is
+            not a :class:`~pymc.Model` object.
         """
 
         if not isinstance(sampler, Pymc):
-            return super(GaussianLikelihoodPyMC, self).log_likelihood()
+            return super(GaussianLikelihoodPyMC, self).log_likelihood(
+                parameters=parameters
+            )
 
         if not hasattr(sampler, "pymc_model"):
             raise AttributeError("Sampler has not PyMC model attribute")
