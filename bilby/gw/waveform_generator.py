@@ -365,23 +365,19 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
     @property
     def defaults(self):
-        from lalsimulation.gwsignal.core import parameter_conventions
-
-        keys = parameter_conventions.nongr_params.copy()
+        keys = list()
         if not self.eccentric:
             keys += ["eccentricity", "mean_per_ano"]
         if not self.tidal:
             keys += ["lambda_1", "lambda_2"]
         if not self.spinning:
             keys += ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
-        keys += ["longitude_ascending_nodes"]
 
         output = {key: 0.0 for key in keys}
         return output
 
     def _from_bilby_parameters(self, **parameters):
         from .conversion import bilby_to_lalsimulation_spins
-        from lalsimulation.gwsignal.core.parameter_conventions import Cosmo_units_dictionary
 
         parameters = self._format_parameters(parameters)
 
@@ -449,10 +445,13 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             'distance': parameters["luminosity_distance"] * 1e6,
             'inclination': iota,
             'eccentricity': parameters["eccentricity"],
-            'longAscNodes': parameters["longitude_ascending_nodes"],
             'meanPerAno': parameters["mean_per_ano"],
-            'condition': self.condition,
+            'condition': int(self.generator.metadata["implemented_domain"] == 'time'),
         }
+
+        # add astropy units to the parameters using the defaults from gwsignal
+        from lalsimulation.gwsignal.core.parameter_conventions import Cosmo_units_dictionary
+
         gwsignal_dict = {
             key: val << Cosmo_units_dictionary.get(key, 0)
             for key, val in gwsignal_dict.items()
@@ -482,13 +481,6 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         gwsignal_dict.update(extra_args)
         return gwsignal_dict
 
-    @property
-    def condition(self):
-        condition = 0
-        if self.generator.metadata["implemented_domain"] == 'time':
-            condition = 1
-        return condition
-
     def frequency_domain_strain(self, parameters):
         from lalsimulation.gwsignal import GenerateFDWaveform
 
@@ -515,7 +507,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         for key in wf:
             wf[key] *= frequency_bounds
 
-        if self.condition:
+        if self.generator.metadata["implemented_domain"] == 'time':
             dt = 1 / hpc.hp.df.value + hpc.hp.epoch.value
             time_shift = np.exp(-1j * 2 * np.pi * dt * self.frequency_array[frequency_bounds])
             for key in wf:

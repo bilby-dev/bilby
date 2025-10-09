@@ -820,13 +820,6 @@ class TestGWSignalGenerator(unittest.TestCase):
         wf_2 = wfg.frequency_domain_strain(parameters_2)
         assert not all(wf_1["plus"] == wf_2["plus"])
 
-    def test_condition(self):
-        fd = self.get_wfgen(waveform_arguments=dict(waveform_approximant="IMRPhenomD"))
-        assert fd.condition == 0
-
-        td = self.get_wfgen(waveform_arguments=dict(waveform_approximant="SEOBNRv4"))
-        assert td.condition == 1
-
     def test_bilby_to_gwsignal_parameters(self):
         from astropy import units as u
 
@@ -851,7 +844,6 @@ class TestGWSignalGenerator(unittest.TestCase):
             distance=1 * u.Mpc,
             inclination=1 * u.rad,
             eccentricity=0 * u.dimensionless_unscaled,
-            longAscNodes=0 * u.rad,
             meanPerAno=0 * u.rad,
             condition=0,
         )
