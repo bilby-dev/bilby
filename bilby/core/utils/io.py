@@ -298,7 +298,7 @@ def decode_bilby_json(dct):
                     dct["kwargs"]["name"]
                 )
             elif type(e).__name__ == 'ValueError':
-                warning_message = "Unknown prior conversion function, defaulting to base Prior object"
+                warning_message = f"Unable to load prior {cls} with arguments {dct['kwargs']}, defaulting to base Prior object"
             logger.warning(warning_message)
             from ..prior import Prior
 
