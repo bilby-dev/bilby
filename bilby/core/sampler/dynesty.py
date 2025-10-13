@@ -296,7 +296,7 @@ class Dynesty(NestedSampler):
             elif kwargs["bound"] == "live":
                 logger.info(
                     "Live-point based bound method requested with dynesty sample "
-                    f"'{sample}', overwriting to 'multi'"
+                    f"'{kwargs['sample']}', overwriting to 'multi'"
                 )
                 kwargs["bound"] = "multi"
         return kwargs
