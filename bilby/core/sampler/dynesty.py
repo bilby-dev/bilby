@@ -278,6 +278,9 @@ class Dynesty(NestedSampler):
     @property
     def sampler_init_kwargs(self):
         kwargs = {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        # if we're using a Bilby implemented sampling method we need to register the
+        # method. If we aren't we need to make sure the default "live" isn't set as
+        # the bounding method
         if self.new_dynesty_api:
             from . import dynesty3_utils as dynesty_utils
 
@@ -290,6 +293,8 @@ class Dynesty(NestedSampler):
             elif kwargs["sample"] == "rwalk":
                 kwargs["sample"] = dynesty_utils.AcceptanceTrackingRWalk(**kwargs)
                 kwargs["bound"] = "none"
+            elif kwargs["bound"] == "live":
+                kwargs["bound"] = "multi"
         return kwargs
 
     def _translate_kwargs(self, kwargs):
