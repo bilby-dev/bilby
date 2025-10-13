@@ -294,6 +294,10 @@ class Dynesty(NestedSampler):
                 kwargs["sample"] = dynesty_utils.AcceptanceTrackingRWalk(**kwargs)
                 kwargs["bound"] = "none"
             elif kwargs["bound"] == "live":
+                logger.info(
+                    "Live-point based bound method requested with dynesty sample "
+                    f"'{sample}', overwriting to 'multi'"
+                )
                 kwargs["bound"] = "multi"
         return kwargs
 
