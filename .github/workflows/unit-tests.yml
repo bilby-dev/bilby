@@ -57,12 +57,12 @@ jobs:
     #     pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Run unit tests
       run: |
-        python -m pytest --cov=bilby --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
+        python -m pytest --cov=bilby --cov-branch --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v        
     - name: Publish coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage.xml
