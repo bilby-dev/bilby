@@ -57,7 +57,7 @@ jobs:
     #     pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Run unit tests
       run: |
-        conda run -n test pytest --cov=bilby --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
+        python -m pytest --cov=bilby --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v        
@@ -68,7 +68,7 @@ jobs:
         files: coverage.xml
         flags: python${{ matrix.python-version }}
     - name: Coverage report
-      run: conda run -n test python -m coverage report --show-missing
+      run: python -m coverage report --show-missing
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
