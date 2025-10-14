@@ -68,12 +68,12 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage.xml
-        flags: python${{ matrix.python-version }}
+        flags: python${{ matrix.python.version }}
     - name: Coverage report
       run: python -m coverage report --show-missing
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: pytest-${{ matrix.python-version }}
+        name: pytest-${{ matrix.python.version }}
         path: pytest.xml
