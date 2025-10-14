@@ -12,7 +12,7 @@ There are a few significant changes/additions in this release along with minor c
 ### Major changes
 
 * `Likelihood` instances can now be called as `likelihood.log_likelihood(parameters)`, see [here](https://bilby-dev.github.io/bilby/parameters.html) for more information.
-* Support the new API in `dynesty=3`
+* Support the new API in [`dynesty=3`](https://github.com/joshspeagle/dynesty/releases/tag/v3.0.0)
 * Add a [new `WaveformGenerator`](https://bilby-dev.github.io/bilby/api/bilby.gw.waveform_generator.GWSignalWaveformGenerator.html) capable of using arbitrary waveform models implemented through the `gwsignal` waveform interface.
 
 ### Additions
@@ -54,9 +54,7 @@ There are a few significant changes/additions in this release along with minor c
 * BLD: use release branches by @mj-will in https://github.com/bilby-dev/bilby/pull/954
 
 ### New Contributors
-* @asb5468 made their first contribution in https://github.com/bilby-dev/bilby/pull/940
 * @fgittins made their first contribution in https://github.com/bilby-dev/bilby/pull/953
-* @mattpitkin made their first contribution in https://github.com/bilby-dev/bilby/pull/958
 * @duncanmmacleod made their first contribution in https://github.com/bilby-dev/bilby/pull/982
 
 **Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
