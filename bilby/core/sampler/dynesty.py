@@ -551,9 +551,9 @@ class Dynesty(NestedSampler):
         elif bound == "live-multi":
             from .dynesty_utils import MultiEllipsoidLivePointSampler
 
-            dynesty.dynamicsampler._SAMPLERS[
-                "live-multi"
-            ] = MultiEllipsoidLivePointSampler
+            dynesty.dynamicsampler._SAMPLERS["live-multi"] = (
+                MultiEllipsoidLivePointSampler
+            )
         elif sample == "acceptance-walk":
             raise DynestySetupError(
                 "bound must be set to live or live-multi for sample=acceptance-walk"
@@ -846,44 +846,47 @@ class Dynesty(NestedSampler):
             with open(self.resume_file, "rb") as file:
                 try:
                     sampler = dill.load(file)
+                    if isinstance(sampler, tuple):
+                        sampler, stored_versions, extras = sampler
+                    elif not hasattr(sampler, "versions"):
+                        logger.warning(
+                            f"The resume file {self.resume_file} is corrupted or "
+                            "the version of bilby has changed between runs. This "
+                            "resume file will be ignored."
+                        )
+                        return False
+                    else:
+                        stored_versions = sampler.versions
+                        extras = sampler.kwargs
+                        del sampler.versions
                 except EOFError:
                     sampler = None
-
-                if not hasattr(sampler, "versions"):
+                except ModuleNotFoundError as e:
                     logger.warning(
-                        f"The resume file {self.resume_file} is corrupted or "
-                        "the version of bilby has changed between runs. This "
-                        "resume file will be ignored."
+                        f"The resume file cannot be loaded with message: {e}. "
+                        "This is likely due to a change in the version of Bilby "
+                        "and/or dynesty. The resume file will be ignored."
                     )
                     return False
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
                     "Old version = {old}, new version = {new}."
                 )
                 for code in versions:
-                    if not versions[code] == sampler.versions.get(code, None):
+                    if not versions[code] == stored_versions.get(code, None):
                         logger.warning(
                             version_warning.format(
                                 code=code,
-                                old=sampler.versions.get(code, "None"),
+                                old=stored_versions.get(code, "None"),
                                 new=versions[code],
                             )
                         )
-                del sampler.versions
                 self.sampler = sampler
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                if hasattr(self.sampler, "_bilby_metadata"):
-                    extras = self.sampler._bilby_metadata
-                elif hasattr(self.sampler, "kwargs"):
-                    extras = self.sampler.kwargs
-                else:
-                    raise AttributeError(
-                        "Loaded sampler doesn't contain timing info, "
-                        "the checkpoint is probably corrupted."
-                    )
                 self.start_time = extras.pop("start_time")
                 self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
@@ -930,18 +933,20 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler._bilby_metadata = dict(
+            metadata = dict(
                 sampling_time=self.sampling_time,
                 start_time=self.start_time,
             )
-        self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
+        else:
+            metadata = dict()
+        versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         if self.new_dynesty_api:
             self.sampler.mapper = map
         else:
             self.sampler.M = map
         if dill.pickles(self.sampler):
-            safe_file_dump(self.sampler, self.resume_file, dill)
+            safe_file_dump((self.sampler, versions, metadata), self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
