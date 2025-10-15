@@ -553,7 +553,7 @@ class Dynesty(NestedSampler):
 
             dynesty.dynamicsampler._SAMPLERS[
                 "live-multi"
-                ] = MultiEllipsoidLivePointSampler
+            ] = MultiEllipsoidLivePointSampler
         elif sample == "acceptance-walk":
             raise DynestySetupError(
                 "bound must be set to live or live-multi for sample=acceptance-walk"
