@@ -852,9 +852,13 @@ class Dynesty(NestedSampler):
                 self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
-                    self.sampler.M = self.pool.map
+                    mapper = self.pool.map
                 else:
-                    self.sampler.M = map
+                    mapper = map
+                if self.new_dynesty_api:
+                    self.sampler.mapper = mapper
+                else:
+                    self.sampler.M = mapper
             return True
         else:
             logger.info(f"Resume file {self.resume_file} does not exist.")
@@ -895,7 +899,10 @@ class Dynesty(NestedSampler):
             )
         self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
-        self.sampler.M = map
+        if self.new_dynesty_api:
+            self.sampler.mapper = map
+        else:
+            self.sampler.M = map
         if dill.pickles(self.sampler):
             safe_file_dump(self.sampler, self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
@@ -906,7 +913,10 @@ class Dynesty(NestedSampler):
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
-            self.sampler.M = self.sampler.pool.map
+            if self.new_dynesty_api:
+                self.sampler.mapper = self.sampler.pool.map
+            else:
+                self.sampler.M = self.sampler.pool.map
 
     def dump_samples_to_dat(self):
         """
