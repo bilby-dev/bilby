@@ -115,16 +115,15 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         Update the proposal parameters based on the number of accepted steps
         and MCMC chain length.
 
-        The :code:`walks` parameter to asymptotically approach the
-        desired number of accepted steps.
+        The :code:`walks` parameter to asymptotically approaches the desired number
+        of accepted steps. Update :code:`self.scale` for inclusion in the state plot.
         """
         # update walks to match target naccept
         accept_prob = max(0.5, tuning_info["accept"]) / self.sampler_kwargs["walks"]
         delay = max(self.nlive // 10 - 1, 0)
+        self.scale = tuning_info["accept"]
         self.walks = (self.walks * delay + self.naccept / accept_prob) / (delay + 1)
         self.sampler_kwargs["walks"] = min(int(np.ceil(self.walks)), self.maxmcmc)
-
-        tuning_info["accept"]
 
     @staticmethod
     def sample(args):
@@ -564,6 +563,13 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
         self.nact = kwargs.get("nact", 40)
         self.sampler_kwargs["nact"] = self.nact
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
+
+    def tune(self, tuning_info, update=True):
+        """
+        The tuning all happens inside the MCMC for this proposal
+        so all we do is extract the number of accepted steps for plotting.
+        """
+        self.scale = tuning_info["accept"]
 
     @staticmethod
     def sample(args):
