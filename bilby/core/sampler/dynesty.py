@@ -289,7 +289,6 @@ class Dynesty(NestedSampler):
                 reflective=self.kwargs.get("reflective", None),
                 maxmcmc=self.maxmcmc,
             )
-            print(internal_kwargs)
 
             from . import dynesty3_utils as dynesty_utils
 
@@ -330,11 +329,11 @@ class Dynesty(NestedSampler):
                     "Live-point based bound method requested with dynesty sample "
                     f"'{kwargs['sample']}', overwriting to 'multi'"
                 )
-                internal_sampler = None
+                internal_sampler = kwargs["sample"]
                 bound = "multi"
             else:
-                internal_sampler = None
-                kwargs["bound"] = kwargs["bound"]
+                internal_sampler = kwargs["sample"]
+                bound = kwargs["bound"]
             kwargs["sample"] = internal_sampler
             kwargs["bound"] = bound
         return kwargs
@@ -552,9 +551,9 @@ class Dynesty(NestedSampler):
         elif bound == "live-multi":
             from .dynesty_utils import MultiEllipsoidLivePointSampler
 
-            dynesty.dynamicsampler._SAMPLERS[
-                "live-multi"
-            ] = MultiEllipsoidLivePointSampler
+            dynesty.dynamicsampler._SAMPLERS["live-multi"] = (
+                MultiEllipsoidLivePointSampler
+            )
         elif sample == "acceptance-walk":
             raise DynestySetupError(
                 "bound must be set to live or live-multi for sample=acceptance-walk"

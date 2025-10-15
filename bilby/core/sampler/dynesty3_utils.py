@@ -371,10 +371,12 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
 
         # Setup
         current_u = args.u
-        check_interval = ACTTrackingEnsembleWalk.integer_act(args.kwargs["act"])
+        old_act = args.kwargs.get("act", 100)
+        check_interval = ACTTrackingEnsembleWalk.integer_act(old_act)
         target_nact = 50
         next_check = check_interval
         n_checks = 0
+        maxmcmc = args.kwargs.get("maxmcmc", 5000)
         evaluation_history = list()
 
         # Initialize internal variables
@@ -395,7 +397,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         current_failures = 0
 
         iteration = 0
-        while iteration < min(target_nact * act, args.kwargs["maxmcmc"]):
+        while iteration < min(target_nact * act, maxmcmc):
             iteration += 1
 
             prop = proposals[iteration % len(proposals)]
@@ -459,7 +461,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         reject += nfail
         blob = {"accept": accept, "reject": reject, "act": act}
         iact = ACTTrackingEnsembleWalk.integer_act(act)
-        thin = args.kwargs["thin"] * iact
+        thin = args.kwargs.get("thin", 2) * iact
 
         cache = ACTTrackingEnsembleWalk._cache
 
@@ -580,8 +582,8 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
         reject = 0
         nfail = 0
         act = np.inf
-        nact = args.kwargs["nact"]
-        maxmcmc = args.kwargs["maxmcmc"]
+        nact = args.kwargs.get("nact", 40)
+        maxmcmc = args.kwargs.get("maxmcmc", 5000)
         evaluation_history = list()
 
         iteration = 0
@@ -638,7 +640,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             current_v = args.prior_transform(current_u)
             logl = args.loglikelihood(current_v)
 
-        blob = {"accept": accept, "reject": reject + nfail}
+        sampling_info = {"accept": accept, "reject": reject + nfail}
         AcceptanceTrackingRWalk.old_act = act
 
         ncall = accept + reject
@@ -646,12 +648,11 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             u=current_u,
             v=current_v,
             logl=logl,
-            tuning_info=blob,
+            tuning_info=sampling_info,
             ncalls=ncall,
-            proposal_info=blob,
+            proposal_stats=sampling_info,
             evaluation_history=evaluation_history,
         )
-        # return current_u, current_v, logl, ncall, blob
 
     @staticmethod
     def estimate_nmcmc(accept_ratio, safety=5, tau=None, maxmcmc=5000, old_act=None):
