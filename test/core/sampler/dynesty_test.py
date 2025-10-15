@@ -53,6 +53,9 @@ class TestDynesty(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
+        self.init_sampler()
+
+    def init_sampler(self, **kwargs):
         self.sampler = bilby.core.sampler.dynesty.Dynesty(
             self.likelihood,
             self.priors,
@@ -61,12 +64,29 @@ class TestDynesty(unittest.TestCase):
             use_ratio=False,
             plot=False,
             skip_import_verification=True,
+            **kwargs,
         )
+        if NEW_DYNESTY_API:
+            bilby.core.sampler.base_sampler._initialize_global_variables(
+                self.likelihood,
+                self.priors,
+                self.priors.keys(),
+                False,
+                self.priors.sample(),
+            )
+            self.dysampler = self.sampler.sampler_init(
+                loglikelihood=bilby.core.sampler.dynesty._log_likelihood_wrapper,
+                prior_transform=bilby.core.sampler.dynesty._prior_transform_wrapper,
+                ndim=self.sampler.ndim,
+                **self.sampler.sampler_init_kwargs,
+            )
 
     def tearDown(self):
         del self.likelihood
         del self.priors
         del self.sampler
+        if NEW_DYNESTY_API:
+            del self.dysampler
 
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
@@ -96,17 +116,46 @@ class TestDynesty(unittest.TestCase):
         self.priors["c"] = bilby.core.prior.Prior(boundary=None)
         self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
-        self.sampler = bilby.core.sampler.dynesty.Dynesty(
-            self.likelihood,
-            self.priors,
-            outdir="outdir",
-            label="label",
-            use_ratio=False,
-            plot=False,
-            skip_import_verification=True,
-        )
-        self.assertEqual([0, 4], self.sampler.kwargs["periodic"])
-        self.assertEqual([1, 3], self.sampler.kwargs["reflective"])
+        self.init_sampler()
+        if NEW_DYNESTY_API:
+            self.assertEqual([0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"])
+            self.assertEqual([1, 3], self.dysampler.internal_sampler_next.sampler_kwargs["reflective"])
+        else:
+            self.assertEqual([0, 4], self.sampler.kwargs["periodic"])
+            self.assertEqual([1, 3], self.sampler.kwargs["reflective"])
+
+    def test_sampler_kwargs_act(self):
+        self.init_sampler(sample="act-walk", nact=5, maxmcmc=200)
+        if NEW_DYNESTY_API:
+            self.assertIsInstance(self.dysampler.internal_sampler_next, dynesty_utils.ACTTrackingEnsembleWalk)
+            self.assertEqual(self.dysampler.internal_sampler_next.thin, 5)
+            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200 * 50)
+        else:
+            self.assertEqual(self.sampler.kwargs["sample"], "act-walk")
+            self.assertEqual(self.sampler.nact, 5)
+            self.assertEqual(self.sampler.maxmcmc, 200)
+
+    def test_sampler_kwargs_rwalk(self):
+        self.init_sampler(sample="rwalk", nact=5, maxmcmc=200)
+        if NEW_DYNESTY_API:
+            self.assertIsInstance(self.dysampler.internal_sampler_next, dynesty_utils.AcceptanceTrackingRWalk)
+            self.assertEqual(self.dysampler.internal_sampler_next.nact, 5)
+            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
+        else:
+            self.assertEqual(self.sampler.kwargs["sample"], "rwalk")
+            self.assertEqual(self.sampler.nact, 5)
+            self.assertEqual(self.sampler.maxmcmc, 200)
+
+    def test_sampler_kwargs_acceptance_walk(self):
+        self.init_sampler(sample="acceptance-walk", naccept=5, maxmcmc=200)
+        if NEW_DYNESTY_API:
+            self.assertIsInstance(self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler)
+            self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
+            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
+        else:
+            self.assertEqual(self.sampler.kwargs["sample"], "acceptance-walk")
+            self.assertEqual(self.sampler.naccept, 5)
+            self.assertEqual(self.sampler.maxmcmc, 200)
 
     def test_run_test_runs(self):
         self.sampler._run_test()
