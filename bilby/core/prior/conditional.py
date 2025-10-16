@@ -323,16 +323,18 @@ class ConditionalInterped(conditional_prior_factory(Interped)):
 
 
 class DirichletElement(ConditionalBeta):
-    r"""Single element in a dirichlet distribution. The probability defined as,
+    r"""
+    Single element in a dirichlet distribution. The probability defined as,
 
     .. math::
         p(x_n\mid S_n) := \begin{cases}
             \displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
             & n < N - 1 \\
-            \displaystyle\frac{1}{1-S_n} & n = N - 1
+            \displaystyle\delta(1-S_{N-1}-x_{N-1}) & n = N - 1
         \end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
 
-    where,
+    where, :math:`\delta` is the Dirac delta function, :math:`N` is the total number of
+    dimensions and :math:`S_n` is the sum of all previous dimensions,
 
     .. math::
         S_n := \begin{cases}
@@ -352,8 +354,8 @@ class DirichletElement(ConditionalBeta):
 
             .. math::
                 \begin{align}
-                    p(x_0)         &= 1 - x_0            ; & 0 \leq x_0 \leq 1       \\
-                    p(x_1\mid x_0) &= \frac{1}{1-x_0-x_1}; & 0 \leq x_1 \leq 1 - x_0
+                    p(x_0)         &= 1 - x_0        ; & 0 \leq x_0 \leq 1       \\
+                    p(x_1\mid x_0) &= \frac{1}{1-x_0}; & 0 \leq x_1 \leq 1 - x_0
                 \end{align}
 
     Parameters
