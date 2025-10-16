@@ -323,39 +323,48 @@ class ConditionalInterped(conditional_prior_factory(Interped)):
 
 
 class DirichletElement(ConditionalBeta):
-    r"""
-    Single element in a dirichlet distribution
-
-    The probability scales as
+    r"""Single element in a dirichlet distribution. The probability defined as,
 
     .. math::
-        p(x_n) \propto (x_\max - x_n)^{(N - n - 2)}
+        p(x_n\mid S_n) := \begin{cases}
+			\displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
+            & n < N - 1 \\
+			\displaystyle\frac{1}{1-S_n} & n = N - 1
+		\end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
 
-    for :math:`x_n < x_\max`, where :math:`x_\max` is the sum of :math:`x_i`
-    for :math:`i < n`
+    where,
+
+	.. math::
+		S_n := \begin{cases}
+ 					0                                & n = N - 1 \\
+					\displaystyle\sum_{i=0}^{N-2}x_i & n < N - 1
+			   \end{cases}
 
     Examples
     ========
-    n_dimensions = 1:
+    
+        :code:`n_dimensions` = :math:`N = 1`:
 
-        .. math::
-            p(x_0) \propto 1 ; 0 < x_0 < 1
+            .. math::
+                p(x_0) = 1 ; 0 < x_0 < 1
 
-    n_dimensions = 2:
-        .. math::
-            p(x_0) &\propto (1 - x_0) ; 0 < x_0 < 1
-            p(x_1) &\propto 1 ; 0 < x_1 < 1
+        :code:`n_dimensions` = :math:`N = 2`:
+
+            .. math::
+                \begin{align}
+                    p(x_0)         &= 1 - x_0            ; & 0 \leq x_0 \leq 1       \\
+                    p(x_1\mid x_0) &= \frac{1}{1-x_0-x_1}; & 0 \leq x_1 \leq 1 - x_0
+                \end{align}
 
     Parameters
     ==========
     order: int
-        Order of this element of the dirichlet distribution.
+        Order of this element of the dirichlet distribution. Equivalent to :math:`n`.
     n_dimensions: int
-        Total number of elements of the dirichlet distribution
+        Total number of elements of the dirichlet distribution. Equivalent to :math:`N`.
     label: str
         Label for the dirichlet distribution.
         This should be the same for all elements.
-
     """
 
     def __init__(self, order, n_dimensions, label):
