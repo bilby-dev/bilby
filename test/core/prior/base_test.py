@@ -149,6 +149,7 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
 
         def conversion_func(parameters):
             return dict(a=parameters["a"], b=parameters["b"], c=parameters["a"] / parameters["b"])
+
         self.priors = bilby.core.prior.PriorDict(self.priors, conversion_function=conversion_func)
 
     def test_prob_integrate_to_one(self):
@@ -158,7 +159,7 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
         prob = self.priors.prob(samples, axis=0)
         dm1 = self.priors["a"].maximum - self.priors["a"].minimum
         dm2 = self.priors["b"].maximum - self.priors["b"].minimum
-        prior_volume = (dm1 * dm2)
+        prior_volume = dm1 * dm2
         n_accepted = np.sum(prob)
         integral = prior_volume * n_accepted / n_samples
         # binomial random distribution

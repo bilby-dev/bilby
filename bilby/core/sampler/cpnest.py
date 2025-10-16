@@ -97,10 +97,7 @@ class Cpnest(NestedSampler):
                 return self.log_prior(theta)
 
             def _update_bounds(self):
-                self.bounds = [
-                    [self.priors[key].minimum, self.priors[key].maximum]
-                    for key in self.names
-                ]
+                self.bounds = [[self.priors[key].minimum, self.priors[key].maximum] for key in self.names]
 
             def new_point(self):
                 """Draw a point from the prior"""
@@ -137,14 +134,10 @@ class Cpnest(NestedSampler):
             out.plot()
 
         self.calc_likelihood_count()
-        self.result.samples = structured_to_unstructured(
-            out.posterior_samples[self.search_parameter_keys]
-        )
+        self.result.samples = structured_to_unstructured(out.posterior_samples[self.search_parameter_keys])
         self.result.log_likelihood_evaluations = out.posterior_samples["logL"]
         self.result.nested_samples = DataFrame(out.get_nested_samples(filename=""))
-        self.result.nested_samples.rename(
-            columns=dict(logL="log_likelihood"), inplace=True
-        )
+        self.result.nested_samples.rename(columns=dict(logL="log_likelihood"), inplace=True)
         _, log_weights = compute_weights(
             np.array(self.result.nested_samples.log_likelihood),
             np.array(out.NS.state.nlive),
@@ -184,14 +177,10 @@ class Cpnest(NestedSampler):
             if self.kwargs["proposals"] is None:
                 return
             if isinstance(self.kwargs["proposals"], JumpProposalCycle):
-                self.kwargs["proposals"] = dict(
-                    mhs=self.kwargs["proposals"], hmc=self.kwargs["proposals"]
-                )
+                self.kwargs["proposals"] = dict(mhs=self.kwargs["proposals"], hmc=self.kwargs["proposals"])
             for key, proposal in self.kwargs["proposals"].items():
                 if isinstance(proposal, JumpProposalCycle):
-                    self.kwargs["proposals"][key] = cpnest_proposal_cycle_factory(
-                        proposal
-                    )
+                    self.kwargs["proposals"][key] = cpnest_proposal_cycle_factory(proposal)
                 elif isinstance(proposal, ProposalCycle):
                     pass
                 else:
@@ -233,11 +222,9 @@ def cpnest_proposal_cycle_factory(jump_proposals):
         def __init__(self):
             self.jump_proposals = copy.deepcopy(jump_proposals)
             for i, prop in enumerate(self.jump_proposals.proposal_functions):
-                self.jump_proposals.proposal_functions[i] = cpnest_proposal_factory(
-                    prop
-                )
+                self.jump_proposals.proposal_functions[i] = cpnest_proposal_factory(prop)
             self.jump_proposals.update_cycle()
-            super(CPNestProposalCycle, self).__init__(
+            super().__init__(
                 proposals=self.jump_proposals.proposal_functions,
                 weights=self.jump_proposals.weights,
                 cyclelength=self.jump_proposals.cycle_length,

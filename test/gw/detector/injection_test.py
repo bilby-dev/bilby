@@ -1,6 +1,7 @@
-import bilby
 import pytest
 from gwpy.frequencyseries import FrequencySeries
+
+import bilby
 
 
 @pytest.mark.flaky(reruns=3)
@@ -17,9 +18,7 @@ def test_injection_into_timeseries_matches_ifo_injections():
     duration = 8
     sampling_frequency = 16384
     ifo = bilby.gw.detector.get_empty_interferometer("H1")
-    ifo.set_strain_data_from_zero_noise(
-        sampling_frequency=sampling_frequency, duration=duration
-    )
+    ifo.set_strain_data_from_zero_noise(sampling_frequency=sampling_frequency, duration=duration)
     wfg = bilby.gw.waveform_generator.WaveformGenerator(
         frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         duration=duration,
@@ -51,8 +50,6 @@ def test_injection_into_timeseries_matches_ifo_injections():
     whitened_data_2 = ifo.whitened_time_domain_strain
 
     mismatch = 1 - (
-        sum(whitened_data_1 * whitened_data_2)
-        / sum(whitened_data_1**2)**0.5
-        / sum(whitened_data_2**2)**0.5
+        sum(whitened_data_1 * whitened_data_2) / sum(whitened_data_1**2) ** 0.5 / sum(whitened_data_2**2) ** 0.5
     )
     assert mismatch < 3e-3

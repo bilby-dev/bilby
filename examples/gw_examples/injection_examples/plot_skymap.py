@@ -3,6 +3,7 @@
 Example script which produces posterior samples of ra and dec and generates a
 skymap
 """
+
 import bilby
 from bilby.core.utils.random import seed
 
@@ -47,9 +48,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 
 priors = bilby.gw.prior.BBHPriorDict()
 for key in [
@@ -69,9 +68,7 @@ for key in [
     priors[key] = injection_parameters[key]
 del priors["chirp_mass"], priors["mass_ratio"]
 
-likelihood = bilby.gw.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator
-)
+likelihood = bilby.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 result = bilby.run_sampler(
     likelihood=likelihood,

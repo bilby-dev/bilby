@@ -14,7 +14,6 @@ class MVNSubclass(bilby.core.prior.MultivariateNormalDist):
 
 
 class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
-
     def __init__(self, names, bounds=None):
         super().__init__(names=names, bounds=bounds)
 
@@ -23,19 +22,13 @@ setattr(bilby.core.prior, "FakeJointPriorDist", FakeJointPriorDist)
 
 
 class TestPriorDict(unittest.TestCase):
-
     def setUp(self):
-
-        self.first_prior = bilby.core.prior.Uniform(
-            name="a", minimum=0, maximum=1, unit="kg", boundary=None
-        )
+        self.first_prior = bilby.core.prior.Uniform(name="a", minimum=0, maximum=1, unit="kg", boundary=None)
         self.second_prior = bilby.core.prior.PowerLaw(
             name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None
         )
         self.third_prior = bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m")
-        self.priors = dict(
-            mass=self.first_prior, speed=self.second_prior, length=self.third_prior
-        )
+        self.priors = dict(mass=self.first_prior, speed=self.second_prior, length=self.third_prior)
         self.prior_set_from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.default_prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
@@ -45,13 +38,9 @@ class TestPriorDict(unittest.TestCase):
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/joint_prior.prior",
         )
-        self.prior_set_from_file = bilby.core.prior.PriorDict(
-            filename=self.default_prior_file
-        )
+        self.prior_set_from_file = bilby.core.prior.PriorDict(filename=self.default_prior_file)
 
-        self.joint_prior_from_file = bilby.core.prior.PriorDict(
-            filename=self.joint_prior_file
-        )
+        self.joint_prior_from_file = bilby.core.prior.PriorDict(filename=self.joint_prior_file)
 
     def tearDown(self):
         del self.first_prior
@@ -100,20 +89,12 @@ class TestPriorDict(unittest.TestCase):
                 latex_label="$q$",
                 unit=None,
             ),
-            a_1=bilby.core.prior.Uniform(
-                name="a_1", minimum=0, maximum=0.99
-            ),
-            a_2=bilby.core.prior.Uniform(
-                name="a_2", minimum=0, maximum=0.99
-            ),
+            a_1=bilby.core.prior.Uniform(name="a_1", minimum=0, maximum=0.99),
+            a_2=bilby.core.prior.Uniform(name="a_2", minimum=0, maximum=0.99),
             tilt_1=bilby.core.prior.Sine(name="tilt_1"),
             tilt_2=bilby.core.prior.Sine(name="tilt_2"),
-            phi_12=bilby.core.prior.Uniform(
-                name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"
-            ),
-            phi_jl=bilby.core.prior.Uniform(
-                name="phi_jl", minimum=0, maximum=2 * np.pi, boundary="periodic"
-            ),
+            phi_12=bilby.core.prior.Uniform(name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"),
+            phi_jl=bilby.core.prior.Uniform(name="phi_jl", minimum=0, maximum=2 * np.pi, boundary="periodic"),
             luminosity_distance=bilby.gw.prior.UniformSourceFrame(
                 name="luminosity_distance",
                 minimum=1e2,
@@ -122,16 +103,10 @@ class TestPriorDict(unittest.TestCase):
                 boundary=None,
             ),
             dec=bilby.core.prior.Cosine(name="dec"),
-            ra=bilby.core.prior.Uniform(
-                name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
-            ),
+            ra=bilby.core.prior.Uniform(name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"),
             theta_jn=bilby.core.prior.Sine(name="theta_jn"),
-            psi=bilby.core.prior.Uniform(
-                name="psi", minimum=0, maximum=np.pi, boundary="periodic"
-            ),
-            phase=bilby.core.prior.Uniform(
-                name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic"
-            ),
+            psi=bilby.core.prior.Uniform(name="psi", minimum=0, maximum=np.pi, boundary="periodic"),
+            phase=bilby.core.prior.Uniform(name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic"),
         )
         self.assertDictEqual(expected, self.prior_set_from_file)
 
@@ -143,10 +118,12 @@ class TestPriorDict(unittest.TestCase):
         testBbase = bilby.core.prior.JointPrior(dist=base_dist, name="testBbase", unit="unit")
         expected_joint = dict(testAfake=testAfake, testBfake=testBfake, testAbase=testAbase, testBbase=testBbase)
         self.assertDictEqual(expected_joint, self.joint_prior_from_file)
-        self.assertTrue(id(self.joint_prior_from_file["testAfake"].dist)
-                        == id(self.joint_prior_from_file["testBfake"].dist))
-        self.assertTrue(id(self.joint_prior_from_file["testAbase"].dist)
-                        == id(self.joint_prior_from_file["testBbase"].dist))
+        self.assertTrue(
+            id(self.joint_prior_from_file["testAfake"].dist) == id(self.joint_prior_from_file["testBfake"].dist)
+        )
+        self.assertTrue(
+            id(self.joint_prior_from_file["testAbase"].dist) == id(self.joint_prior_from_file["testBbase"].dist)
+        )
 
     def test_to_file(self):
         """
@@ -156,23 +133,16 @@ class TestPriorDict(unittest.TestCase):
         """
         expected = [
             "length = DeltaFunction(peak=42, name='c', latex_label='c', unit='m')\n",
-            "speed = PowerLaw(alpha=3, minimum=1, maximum=2, name='b', latex_label='b', "
-            "unit='m/s', boundary=None)\n",
-            "mass = Uniform(minimum=0, maximum=1, name='a', latex_label='a', "
-            "unit='kg', boundary=None)\n",
+            "speed = PowerLaw(alpha=3, minimum=1, maximum=2, name='b', latex_label='b', unit='m/s', boundary=None)\n",
+            "mass = Uniform(minimum=0, maximum=1, name='a', latex_label='a', unit='kg', boundary=None)\n",
         ]
         self.prior_set_from_dict.to_file(outdir="prior_files", label="to_file_test")
         with open("prior_files/to_file_test.prior") as f:
             for i, line in enumerate(f.readlines()):
-                self.assertTrue(
-                    any([sorted(line) == sorted(expect) for expect in expected])
-                )
+                self.assertTrue(any([sorted(line) == sorted(expect) for expect in expected]))
 
     def test_from_dict_with_string(self):
-        string_prior = (
-            "PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', "
-            "boundary=None)"
-        )
+        string_prior = "PowerLaw(name='b', alpha=3, minimum=1, maximum=2, unit='m/s', boundary=None)"
         self.priors["speed"] = string_prior
         from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.assertDictEqual(self.prior_set_from_dict, from_dict)
@@ -183,12 +153,8 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict["f"] = "unconvertable"
         self.prior_set_from_dict.convert_floats_to_delta_functions()
         expected = dict(
-            mass=bilby.core.prior.Uniform(
-                name="a", minimum=0, maximum=1, unit="kg", boundary=None
-            ),
-            speed=bilby.core.prior.PowerLaw(
-                name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None
-            ),
+            mass=bilby.core.prior.Uniform(name="a", minimum=0, maximum=1, unit="kg", boundary=None),
+            speed=bilby.core.prior.PowerLaw(name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None),
             length=bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m"),
             d=bilby.core.prior.DeltaFunction(peak=5),
             e=bilby.core.prior.DeltaFunction(peak=7.3),
@@ -224,19 +190,19 @@ class TestPriorDict(unittest.TestCase):
                     unit=None,
                 ),
                 a_1=bilby.core.prior.Uniform(
-                    name="a_1", minimum=0, maximum=0.99,
+                    name="a_1",
+                    minimum=0,
+                    maximum=0.99,
                 ),
                 a_2=bilby.core.prior.Uniform(
-                    name="a_2", minimum=0, maximum=0.99,
+                    name="a_2",
+                    minimum=0,
+                    maximum=0.99,
                 ),
                 tilt_1=bilby.core.prior.Sine(name="tilt_1"),
                 tilt_2=bilby.core.prior.Sine(name="tilt_2"),
-                phi_12=bilby.core.prior.Uniform(
-                    name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"
-                ),
-                phi_jl=bilby.core.prior.Uniform(
-                    name="phi_jl", minimum=0, maximum=2 * np.pi, boundary="periodic"
-                ),
+                phi_12=bilby.core.prior.Uniform(name="phi_12", minimum=0, maximum=2 * np.pi, boundary="periodic"),
+                phi_jl=bilby.core.prior.Uniform(name="phi_jl", minimum=0, maximum=2 * np.pi, boundary="periodic"),
                 luminosity_distance=bilby.gw.prior.UniformSourceFrame(
                     name="luminosity_distance",
                     minimum=1e2,
@@ -245,16 +211,10 @@ class TestPriorDict(unittest.TestCase):
                     boundary=None,
                 ),
                 dec=bilby.core.prior.Cosine(name="dec"),
-                ra=bilby.core.prior.Uniform(
-                    name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
-                ),
+                ra=bilby.core.prior.Uniform(name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"),
                 theta_jn=bilby.core.prior.Sine(name="theta_jn"),
-                psi=bilby.core.prior.Uniform(
-                    name="psi", minimum=0, maximum=np.pi, boundary="periodic"
-                ),
-                phase=bilby.core.prior.Uniform(
-                    name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic"
-                ),
+                psi=bilby.core.prior.Uniform(name="psi", minimum=0, maximum=np.pi, boundary="periodic"),
+                phase=bilby.core.prior.Uniform(name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic"),
             )
         )
         all_keys = set(prior_set.keys()).union(set(expected.keys()))
@@ -267,18 +227,14 @@ class TestPriorDict(unittest.TestCase):
 
     def test_sample_subset_correct_size(self):
         size = 7
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size
-        )
+        samples = self.prior_set_from_dict.sample_subset(keys=self.prior_set_from_dict.keys(), size=size)
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
         for key in samples:
             self.assertEqual(size, len(samples[key]))
 
     def test_sample_subset_correct_size_when_non_priors_in_dict(self):
         self.prior_set_from_dict["asdf"] = "not_a_prior"
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys()
-        )
+        samples = self.prior_set_from_dict.sample_subset(keys=self.prior_set_from_dict.keys())
         self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
 
     def test_sample_subset_with_actual_subset(self):
@@ -295,12 +251,9 @@ class TestPriorDict(unittest.TestCase):
         self.assertTrue(out.shape == (len(keys), size))
 
     def test_sample_subset_constrained(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
-            converted_parameters["delta_mass"] = (
-                parameters["mass_1"] - parameters["mass_2"]
-            )
+            converted_parameters["delta_mass"] = parameters["mass_1"] - parameters["mass_2"]
             return converted_parameters
 
         N = 1_000
@@ -311,9 +264,7 @@ class TestPriorDict(unittest.TestCase):
         priors1["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
-            samples1 = priors1.sample_subset_constrained(
-                keys=list(priors1.keys()), size=N
-            )
+            samples1 = priors1.sample_subset_constrained(keys=list(priors1.keys()), size=N)
             self.assertEqual(len(priors1) - 1, len(samples1))
             for key in samples1:
                 self.assertEqual(N, len(samples1[key]))
@@ -324,9 +275,7 @@ class TestPriorDict(unittest.TestCase):
         priors2["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
-            samples2 = priors2.sample_subset_constrained(
-                keys=list(priors2.keys()), size=N
-            )
+            samples2 = priors2.sample_subset_constrained(keys=list(priors2.keys()), size=N)
             self.assertEqual(len(priors2), len(samples2))
             for key in samples2:
                 self.assertEqual(N, len(samples2[key]))
@@ -335,9 +284,7 @@ class TestPriorDict(unittest.TestCase):
     def test_sample(self):
         size = 7
         bilby.core.utils.random.seed(42)
-        samples1 = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size
-        )
+        samples1 = self.prior_set_from_dict.sample_subset(keys=self.prior_set_from_dict.keys(), size=size)
         bilby.core.utils.random.seed(42)
         samples2 = self.prior_set_from_dict.sample(size=size)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
@@ -346,16 +293,12 @@ class TestPriorDict(unittest.TestCase):
 
     def test_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
-        expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
-            samples["speed"]
-        )
+        expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.prob(samples))
 
     def test_ln_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
-        expected = self.first_prior.ln_prob(
-            samples["mass"]
-        ) + self.second_prior.ln_prob(samples["speed"])
+        expected = self.first_prior.ln_prob(samples["mass"]) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
 
     def test_rescale(self):
@@ -367,11 +310,7 @@ class TestPriorDict(unittest.TestCase):
         ]
         self.assertListEqual(
             sorted(expected),
-            sorted(
-                self.prior_set_from_dict.rescale(
-                    keys=self.prior_set_from_dict.keys(), theta=theta
-                )
-            ),
+            sorted(self.prior_set_from_dict.rescale(keys=self.prior_set_from_dict.keys(), theta=theta)),
         )
 
     def test_cdf(self):
@@ -382,10 +321,9 @@ class TestPriorDict(unittest.TestCase):
         """
         sample = self.prior_set_from_dict.sample()
         original = np.array(list(sample.values()))
-        new = np.array(self.prior_set_from_dict.rescale(
-            sample.keys(),
-            self.prior_set_from_dict.cdf(sample=sample).values()
-        ))
+        new = np.array(
+            self.prior_set_from_dict.rescale(sample.keys(), self.prior_set_from_dict.cdf(sample=sample).values())
+        )
         self.assertLess(max(abs(original - new)), 1e-10)
 
     def test_redundancy(self):
@@ -421,9 +359,7 @@ class TestJsonIO(unittest.TestCase):
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/GW150914_testing_skymap.fits",
         )
-        hp_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec"]
-        )
+        hp_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file, names=["testra", "testdec"])
         hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
             hp_map_file, names=["testRA", "testDEC", "testdistance"], distance=True
         )
@@ -433,27 +369,13 @@ class TestJsonIO(unittest.TestCase):
                 aa=bilby.core.prior.DeltaFunction(name="test", unit="unit", peak=1),
                 bb=bilby.core.prior.Gaussian(name="test", unit="unit", mu=0, sigma=1),
                 cc=bilby.core.prior.Normal(name="test", unit="unit", mu=0, sigma=1),
-                dd=bilby.core.prior.PowerLaw(
-                    name="test", unit="unit", alpha=0, minimum=0, maximum=1
-                ),
-                ee=bilby.core.prior.PowerLaw(
-                    name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1
-                ),
-                ff=bilby.core.prior.PowerLaw(
-                    name="test", unit="unit", alpha=2, minimum=1, maximum=1e2
-                ),
-                gg=bilby.core.prior.Uniform(
-                    name="test", unit="unit", minimum=0, maximum=1
-                ),
-                hh=bilby.core.prior.LogUniform(
-                    name="test", unit="unit", minimum=5e0, maximum=1e2
-                ),
-                ii=bilby.gw.prior.UniformComovingVolume(
-                    name="redshift", minimum=0.1, maximum=1.0
-                ),
-                jj=bilby.gw.prior.UniformSourceFrame(
-                    name="luminosity_distance", minimum=1.0, maximum=1000.0
-                ),
+                dd=bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1),
+                ee=bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1),
+                ff=bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=2, minimum=1, maximum=1e2),
+                gg=bilby.core.prior.Uniform(name="test", unit="unit", minimum=0, maximum=1),
+                hh=bilby.core.prior.LogUniform(name="test", unit="unit", minimum=5e0, maximum=1e2),
+                ii=bilby.gw.prior.UniformComovingVolume(name="redshift", minimum=0.1, maximum=1.0),
+                jj=bilby.gw.prior.UniformSourceFrame(name="luminosity_distance", minimum=1.0, maximum=1000.0),
                 kk=bilby.core.prior.Sine(name="test", unit="unit"),
                 ll=bilby.core.prior.Cosine(name="test", unit="unit"),
                 m=bilby.core.prior.Interped(
@@ -464,77 +386,41 @@ class TestJsonIO(unittest.TestCase):
                     minimum=3,
                     maximum=5,
                 ),
-                nn=bilby.core.prior.TruncatedGaussian(
-                    name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
-                ),
-                oo=bilby.core.prior.TruncatedNormal(
-                    name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
-                ),
+                nn=bilby.core.prior.TruncatedGaussian(name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1),
+                oo=bilby.core.prior.TruncatedNormal(name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1),
                 pp=bilby.core.prior.HalfGaussian(name="test", unit="unit", sigma=1),
                 qq=bilby.core.prior.HalfNormal(name="test", unit="unit", sigma=1),
                 rr=bilby.core.prior.LogGaussian(name="test", unit="unit", mu=0, sigma=1),
                 ss=bilby.core.prior.LogNormal(name="test", unit="unit", mu=0, sigma=1),
                 tt=bilby.core.prior.Exponential(name="test", unit="unit", mu=1),
-                uu=bilby.core.prior.StudentT(
-                    name="test", unit="unit", df=3, mu=0, scale=1
-                ),
+                uu=bilby.core.prior.StudentT(name="test", unit="unit", df=3, mu=0, scale=1),
                 vv=bilby.core.prior.Beta(name="test", unit="unit", alpha=2.0, beta=2.0),
                 xx=bilby.core.prior.Logistic(name="test", unit="unit", mu=0, scale=1),
                 yy=bilby.core.prior.Cauchy(name="test", unit="unit", alpha=0, beta=1),
-                zz=bilby.core.prior.Lorentzian(
-                    name="test", unit="unit", alpha=0, beta=1
-                ),
+                zz=bilby.core.prior.Lorentzian(name="test", unit="unit", alpha=0, beta=1),
                 a_=bilby.core.prior.Gamma(name="test", unit="unit", k=1, theta=1),
                 ab=bilby.core.prior.ChiSquared(name="test", unit="unit", nu=2),
                 ac=bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
-                testa=bilby.core.prior.MultivariateGaussian(
-                    dist=mvg, name="testa", unit="unit"
-                ),
-                testb=bilby.core.prior.MultivariateGaussian(
-                    dist=mvg, name="testb", unit="unit"
-                ),
-                testA=bilby.core.prior.MultivariateNormal(
-                    dist=mvn, name="testA", unit="unit"
-                ),
-                testB=bilby.core.prior.MultivariateNormal(
-                    dist=mvn, name="testB", unit="unit"
-                ),
-                testAsubclass=bilby.core.prior.JointPrior(
-                    dist=mvn_subclass, name="testAsubclass", unit="unit"
-                ),
-                testBsubclass=bilby.core.prior.JointPrior(
-                    dist=mvn_subclass, name="testBsubclass", unit="unit"
-                ),
-                testAfake=bilby.core.prior.JointPrior(
-                    dist=fake_joint_prior, name="testAfake", unit="unit"
-                ),
-                testBfake=bilby.core.prior.JointPrior(
-                    dist=fake_joint_prior, name="testBfake", unit="unit"
-                ),
-                testra=bilby.gw.prior.HealPixPrior(
-                    dist=hp_dist, name="testra", unit="unit"
-                ),
-                testdec=bilby.gw.prior.HealPixPrior(
-                    dist=hp_dist, name="testdec", unit="unit"
-                ),
-                testRA=bilby.gw.prior.HealPixPrior(
-                    dist=hp_3d_dist, name="testRA", unit="unit"
-                ),
-                testDEC=bilby.gw.prior.HealPixPrior(
-                    dist=hp_3d_dist, name="testDEC", unit="unit"
-                ),
-                testdistance=bilby.gw.prior.HealPixPrior(
-                    dist=hp_3d_dist, name="testdistance", unit="unit"
-                ),
+                testa=bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
+                testb=bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
+                testA=bilby.core.prior.MultivariateNormal(dist=mvn, name="testA", unit="unit"),
+                testB=bilby.core.prior.MultivariateNormal(dist=mvn, name="testB", unit="unit"),
+                testAsubclass=bilby.core.prior.JointPrior(dist=mvn_subclass, name="testAsubclass", unit="unit"),
+                testBsubclass=bilby.core.prior.JointPrior(dist=mvn_subclass, name="testBsubclass", unit="unit"),
+                testAfake=bilby.core.prior.JointPrior(dist=fake_joint_prior, name="testAfake", unit="unit"),
+                testBfake=bilby.core.prior.JointPrior(dist=fake_joint_prior, name="testBfake", unit="unit"),
+                testra=bilby.gw.prior.HealPixPrior(dist=hp_dist, name="testra", unit="unit"),
+                testdec=bilby.gw.prior.HealPixPrior(dist=hp_dist, name="testdec", unit="unit"),
+                testRA=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testRA", unit="unit"),
+                testDEC=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testDEC", unit="unit"),
+                testdistance=bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testdistance", unit="unit"),
             )
         )
 
     def test_read_write_to_json(self):
-        """ Interped prior is removed as there is numerical error in the recovered prior."""
+        """Interped prior is removed as there is numerical error in the recovered prior."""
         self.priors.to_json(outdir="prior_files", label="json_test")
-        new_priors = bilby.core.prior.PriorDict.from_json(
-            filename="prior_files/json_test_prior.json"
-        )
+        new_priors = bilby.core.prior.PriorDict.from_json(filename="prior_files/json_test_prior.json")
         old_interped = self.priors.pop("m")
         new_interped = new_priors.pop("m")
         self.assertDictEqual(self.priors, new_priors)
@@ -577,9 +463,7 @@ class TestLoadPrior(unittest.TestCase):
 
 class TestCreateDefaultPrior(unittest.TestCase):
     def test_none_behaviour(self):
-        self.assertIsNone(
-            bilby.core.prior.create_default_prior(name="name", default_priors_file=None)
-        )
+        self.assertIsNone(bilby.core.prior.create_default_prior(name="name", default_priors_file=None))
 
     def test_bbh_params(self):
         prior_file = os.path.join(
@@ -590,9 +474,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
         for prior in prior_set:
             self.assertEqual(
                 prior_set[prior],
-                bilby.core.prior.create_default_prior(
-                    name=prior, default_priors_file=prior_file
-                ),
+                bilby.core.prior.create_default_prior(name=prior, default_priors_file=prior_file),
             )
 
     def test_unknown_prior(self):
@@ -600,11 +482,7 @@ class TestCreateDefaultPrior(unittest.TestCase):
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/precessing_spins_bbh.prior",
         )
-        self.assertIsNone(
-            bilby.core.prior.create_default_prior(
-                name="name", default_priors_file=prior_file
-            )
-        )
+        self.assertIsNone(bilby.core.prior.create_default_prior(name="name", default_priors_file=prior_file))
 
 
 class TestFillPrior(unittest.TestCase):
@@ -645,11 +523,9 @@ class TestFillPrior(unittest.TestCase):
 
 
 class TestLoadPriorWithCosmologicalParameters(unittest.TestCase):
-
     def test_load(self):
         prior_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/prior_with_cosmo_params.prior"
+            os.path.dirname(os.path.realpath(__file__)), "prior_files/prior_with_cosmo_params.prior"
         )
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=prior_file)
         cosmology = prior_dict["luminosity_distance"].cosmology

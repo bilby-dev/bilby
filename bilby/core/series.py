@@ -1,19 +1,18 @@
 from . import utils
 
 
-class CoupledTimeAndFrequencySeries(object):
-
+class CoupledTimeAndFrequencySeries:
     def __init__(self, duration=None, sampling_frequency=None, start_time=0):
-        """ A waveform generator
+        """A waveform generator
 
-    Parameters
-    ==========
-    sampling_frequency: float, optional
-        The sampling frequency
-    duration: float, optional
-        Time duration of data
-    start_time: float, optional
-        Starting time of the time array
+        Parameters
+        ==========
+        sampling_frequency: float, optional
+            The sampling frequency
+        duration: float, optional
+            Time duration of data
+        start_time: float, optional
+            Starting time of the time array
         """
         self._duration = duration
         self._sampling_frequency = sampling_frequency
@@ -24,12 +23,14 @@ class CoupledTimeAndFrequencySeries(object):
         self._time_array = None
 
     def __repr__(self):
-        return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={})'\
-            .format(self.duration, self.sampling_frequency, self.start_time)
+        return (
+            self.__class__.__name__
+            + f"(duration={self.duration}, sampling_frequency={self.sampling_frequency}, start_time={self.start_time})"
+        )
 
     @property
     def frequency_array(self):
-        """ Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
+        """Frequency array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
 
         Returns
         =======
@@ -38,12 +39,13 @@ class CoupledTimeAndFrequencySeries(object):
         if not self._frequency_array_updated:
             if self.sampling_frequency and self.duration:
                 self._frequency_array = utils.create_frequency_series(
-                    sampling_frequency=self.sampling_frequency,
-                    duration=self.duration)
+                    sampling_frequency=self.sampling_frequency, duration=self.duration
+                )
             else:
-                raise ValueError('Can not calculate a frequency series without a '
-                                 'legitimate sampling_frequency ({}) or duration ({})'
-                                 .format(self.sampling_frequency, self.duration))
+                raise ValueError(
+                    "Can not calculate a frequency series without a "
+                    f"legitimate sampling_frequency ({self.sampling_frequency}) or duration ({self.duration})"
+                )
 
             self._frequency_array_updated = True
         return self._frequency_array
@@ -51,13 +53,14 @@ class CoupledTimeAndFrequencySeries(object):
     @frequency_array.setter
     def frequency_array(self, frequency_array):
         self._frequency_array = frequency_array
-        self._sampling_frequency, self._duration = \
-            utils.get_sampling_frequency_and_duration_from_frequency_array(frequency_array)
+        self._sampling_frequency, self._duration = utils.get_sampling_frequency_and_duration_from_frequency_array(
+            frequency_array
+        )
         self._frequency_array_updated = True
 
     @property
     def time_array(self):
-        """ Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
+        """Time array for the waveforms. Automatically updates if sampling_frequency or duration are updated.
 
         Returns
         =======
@@ -67,13 +70,13 @@ class CoupledTimeAndFrequencySeries(object):
         if not self._time_array_updated:
             if self.sampling_frequency and self.duration:
                 self._time_array = utils.create_time_series(
-                    sampling_frequency=self.sampling_frequency,
-                    duration=self.duration,
-                    starting_time=self.start_time)
+                    sampling_frequency=self.sampling_frequency, duration=self.duration, starting_time=self.start_time
+                )
             else:
-                raise ValueError('Can not calculate a time series without a '
-                                 'legitimate sampling_frequency ({}) or duration ({})'
-                                 .format(self.sampling_frequency, self.duration))
+                raise ValueError(
+                    "Can not calculate a time series without a "
+                    f"legitimate sampling_frequency ({self.sampling_frequency}) or duration ({self.duration})"
+                )
 
             self._time_array_updated = True
         return self._time_array
@@ -81,14 +84,13 @@ class CoupledTimeAndFrequencySeries(object):
     @time_array.setter
     def time_array(self, time_array):
         self._time_array = time_array
-        self._sampling_frequency, self._duration = \
-            utils.get_sampling_frequency_and_duration_from_time_array(time_array)
+        self._sampling_frequency, self._duration = utils.get_sampling_frequency_and_duration_from_time_array(time_array)
         self._start_time = time_array[0]
         self._time_array_updated = True
 
     @property
     def duration(self):
-        """ Allows one to set the time duration and automatically updates the frequency and time array.
+        """Allows one to set the time duration and automatically updates the frequency and time array.
 
         Returns
         =======
@@ -105,7 +107,7 @@ class CoupledTimeAndFrequencySeries(object):
 
     @property
     def sampling_frequency(self):
-        """ Allows one to set the sampling frequency and automatically updates the frequency and time array.
+        """Allows one to set the sampling frequency and automatically updates the frequency and time array.
 
         Returns
         =======

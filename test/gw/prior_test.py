@@ -1,28 +1,26 @@
-from collections import OrderedDict
-import unittest
 import glob
 import os
-import sys
 import pickle
+import sys
+import unittest
+from collections import OrderedDict
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from astropy import cosmology
 from scipy.stats import ks_2samp
-import matplotlib.pyplot as plt
-import pandas as pd
 
 import bilby
-from bilby.core.prior import Uniform, Constraint
-from bilby.gw.prior import BBHPriorDict
+from bilby.core.prior import Constraint, Uniform
 from bilby.gw import conversion
+from bilby.gw.prior import BBHPriorDict
 
 
 class TestBBHPriorDict(unittest.TestCase):
     def setUp(self):
         self.prior_dict = dict()
-        self.base_directory = "/".join(
-            os.path.dirname(os.path.abspath(sys.argv[0])).split("/")[:-1]
-        )
+        self.base_directory = "/".join(os.path.dirname(os.path.abspath(sys.argv[0])).split("/")[:-1])
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/precessing_spins_bbh.prior",
@@ -47,30 +45,10 @@ class TestBBHPriorDict(unittest.TestCase):
 
     def test_create_default_prior(self):
         default = bilby.gw.prior.BBHPriorDict()
-        minima = all(
-            [
-                self.bbh_prior_dict[key].minimum == default[key].minimum
-                for key in default.keys()
-            ]
-        )
-        maxima = all(
-            [
-                self.bbh_prior_dict[key].maximum == default[key].maximum
-                for key in default.keys()
-            ]
-        )
-        names = all(
-            [
-                self.bbh_prior_dict[key].name == default[key].name
-                for key in default.keys()
-            ]
-        )
-        boundaries = all(
-            [
-                self.bbh_prior_dict[key].boundary == default[key].boundary
-                for key in default.keys()
-            ]
-        )
+        minima = all([self.bbh_prior_dict[key].minimum == default[key].minimum for key in default.keys()])
+        maxima = all([self.bbh_prior_dict[key].maximum == default[key].maximum for key in default.keys()])
+        names = all([self.bbh_prior_dict[key].name == default[key].name for key in default.keys()])
+        boundaries = all([self.bbh_prior_dict[key].boundary == default[key].boundary for key in default.keys()])
 
         self.assertTrue(all([minima, maxima, names, boundaries]))
 
@@ -165,9 +143,7 @@ class TestBBHPriorDict(unittest.TestCase):
             del self.bbh_prior_dict[prior]
 
     def test_add_constraint_prior_not_redundant(self):
-        self.bbh_prior_dict["chirp_mass"] = bilby.prior.Constraint(
-            minimum=20, maximum=40, name="chirp_mass"
-        )
+        self.bbh_prior_dict["chirp_mass"] = bilby.prior.Constraint(minimum=20, maximum=40, name="chirp_mass")
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
 
     def test_is_cosmological_true(self):
@@ -188,10 +164,16 @@ class TestBBHPriorDict(unittest.TestCase):
 
     def test_check_valid_cosmology_raises_error(self):
         self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance", cosmology="Planck15",
+            minimum=10,
+            maximum=10000,
+            name="luminosity_distance",
+            cosmology="Planck15",
         )
         self.bbh_prior_dict["redshift"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=0.1, maximum=1, name="redshift", cosmology="Planck15_LAL",
+            minimum=0.1,
+            maximum=1,
+            name="redshift",
+            cosmology="Planck15_LAL",
         )
         self.assertEqual(
             self.bbh_prior_dict._cosmological_priors,
@@ -230,12 +212,8 @@ class TestPriorConversion(unittest.TestCase):
 
         bilby_prior = BBHPriorDict(
             dictionary=dict(
-                chirp_mass=Uniform(
-                    name="chirp_mass", minimum=chirp_mass[0], maximum=chirp_mass[1]
-                ),
-                mass_ratio=Uniform(
-                    name="mass_ratio", minimum=mass_ratio[0], maximum=mass_ratio[1]
-                ),
+                chirp_mass=Uniform(name="chirp_mass", minimum=chirp_mass[0], maximum=chirp_mass[1]),
+                mass_ratio=Uniform(name="mass_ratio", minimum=mass_ratio[0], maximum=mass_ratio[1]),
                 mass_2=Constraint(name="mass_2", minimum=mass_1[0], maximum=mass_1[1]),
                 mass_1=Constraint(name="mass_1", minimum=mass_2[0], maximum=mass_2[1]),
             )
@@ -243,12 +221,8 @@ class TestPriorConversion(unittest.TestCase):
 
         lalinf_prior = BBHPriorDict(
             dictionary=dict(
-                mass_ratio=Constraint(
-                    name="mass_ratio", minimum=mass_ratio[0], maximum=mass_ratio[1]
-                ),
-                chirp_mass=Constraint(
-                    name="chirp_mass", minimum=chirp_mass[0], maximum=chirp_mass[1]
-                ),
+                mass_ratio=Constraint(name="mass_ratio", minimum=mass_ratio[0], maximum=mass_ratio[1]),
+                chirp_mass=Constraint(name="chirp_mass", minimum=chirp_mass[0], maximum=chirp_mass[1]),
                 mass_2=Uniform(name="mass_2", minimum=mass_1[0], maximum=mass_1[1]),
                 mass_1=Uniform(name="mass_1", minimum=mass_2[0], maximum=mass_2[1]),
             )
@@ -256,9 +230,7 @@ class TestPriorConversion(unittest.TestCase):
 
         nsamples = 5000
         bilby_samples = bilby_prior.sample(nsamples)
-        bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
-            bilby_samples
-        )
+        bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(bilby_samples)
 
         # Quicker way to generate LA prior samples (rather than specifying Constraint)
         lalinf_samples = []
@@ -269,9 +241,7 @@ class TestPriorConversion(unittest.TestCase):
             if s["mass_2"] / s["mass_1"] > 0.125:
                 lalinf_samples.append(s)
         lalinf_samples = pd.DataFrame(lalinf_samples)
-        lalinf_samples["mass_ratio"] = (
-            lalinf_samples["mass_2"] / lalinf_samples["mass_1"]
-        )
+        lalinf_samples["mass_ratio"] = lalinf_samples["mass_2"] / lalinf_samples["mass_1"]
 
         # Construct fake result object
         result = bilby.core.result.Result()
@@ -279,9 +249,7 @@ class TestPriorConversion(unittest.TestCase):
         result.meta_data = dict()
         result.priors = bilby_prior
         result.posterior = pd.DataFrame(bilby_samples)
-        result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(
-            result
-        )
+        result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(result)
 
         if "plot" in sys.argv:
             # Useful for debugging
@@ -301,15 +269,13 @@ class TestPriorConversion(unittest.TestCase):
         self.assertFalse(ks.pvalue > 0.05)
 
         # Check that the non-reweighted posteriors pass a KS test
-        ks = ks_2samp(
-            result_converted.posterior["mass_ratio"], lalinf_samples["mass_ratio"]
-        )
+        ks = ks_2samp(result_converted.posterior["mass_ratio"], lalinf_samples["mass_ratio"])
         print("Reweighted KS test = ", ks)
         self.assertTrue(ks.pvalue > 0.001)
 
 
 class TestPackagedPriors(unittest.TestCase):
-    """ Test that the prepackaged priors load """
+    """Test that the prepackaged priors load"""
 
     def test_aligned(self):
         filename = "aligned_spins_bbh.prior"
@@ -325,7 +291,7 @@ class TestPackagedPriors(unittest.TestCase):
     def test_all(self):
         prior_files = glob.glob(bilby.gw.prior.DEFAULT_PRIOR_DIR + "/*prior")
         for ff in prior_files:
-            print("Checking prior file {}".format(ff))
+            print(f"Checking prior file {ff}")
             prior_dict = bilby.gw.prior.BBHPriorDict(filename=ff)
             self.assertTrue("chirp_mass" in prior_dict)
             self.assertTrue("mass_ratio" in prior_dict)
@@ -338,9 +304,7 @@ class TestPackagedPriors(unittest.TestCase):
 class TestBNSPriorDict(unittest.TestCase):
     def setUp(self):
         self.prior_dict = OrderedDict()
-        self.base_directory = "/".join(
-            os.path.dirname(os.path.abspath(sys.argv[0])).split("/")[:-1]
-        )
+        self.base_directory = "/".join(os.path.dirname(os.path.abspath(sys.argv[0])).split("/")[:-1])
         self.filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/aligned_spins_bns_tides_on.prior",
@@ -357,30 +321,10 @@ class TestBNSPriorDict(unittest.TestCase):
 
     def test_create_default_prior(self):
         default = bilby.gw.prior.BNSPriorDict()
-        minima = all(
-            [
-                self.bns_prior_dict[key].minimum == default[key].minimum
-                for key in default.keys()
-            ]
-        )
-        maxima = all(
-            [
-                self.bns_prior_dict[key].maximum == default[key].maximum
-                for key in default.keys()
-            ]
-        )
-        names = all(
-            [
-                self.bns_prior_dict[key].name == default[key].name
-                for key in default.keys()
-            ]
-        )
-        boundaries = all(
-            [
-                self.bns_prior_dict[key].boundary == default[key].boundary
-                for key in default.keys()
-            ]
-        )
+        minima = all([self.bns_prior_dict[key].minimum == default[key].minimum for key in default.keys()])
+        maxima = all([self.bns_prior_dict[key].maximum == default[key].maximum for key in default.keys()])
+        names = all([self.bns_prior_dict[key].name == default[key].name for key in default.keys()])
+        boundaries = all([self.bns_prior_dict[key].boundary == default[key].boundary for key in default.keys()])
 
         self.assertTrue(all([minima, maxima, names, boundaries]))
 
@@ -458,9 +402,7 @@ class TestBNSPriorDict(unittest.TestCase):
             del self.bns_prior_dict[prior]
 
     def test_add_constraint_prior_not_redundant(self):
-        self.bns_prior_dict["chirp_mass"] = bilby.prior.Constraint(
-            minimum=1, maximum=2, name="chirp_mass"
-        )
+        self.bns_prior_dict["chirp_mass"] = bilby.prior.Constraint(minimum=1, maximum=2, name="chirp_mass")
         self.assertFalse(self.bns_prior_dict.test_has_redundant_keys())
 
 
@@ -492,29 +434,21 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
         pass
 
     def test_minimum(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000, name="luminosity_distance")
         self.assertEqual(prior.minimum, 10)
 
     def test_maximum(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000, name="luminosity_distance")
         self.assertEqual(prior.maximum, 10000)
 
     def test_increase_maximum(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000, name="luminosity_distance")
         prior.maximum = 20000
         prior_sample = prior.sample(5000)
         self.assertGreater(np.mean(prior_sample), 10000)
 
     def test_zero_minimum_works(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=0, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=0, maximum=10000, name="luminosity_distance")
         self.assertEqual(prior.minimum, 0)
 
     def test_specify_cosmology(self):
@@ -524,35 +458,25 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
         self.assertEqual(repr(prior.cosmology), repr(cosmology.Planck13))
 
     def test_comoving_prior_creation(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=1000, name="comoving_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=1000, name="comoving_distance")
         self.assertEqual(prior.latex_label, "$d_C$")
 
     def test_redshift_prior_creation(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=0.1, maximum=1, name="redshift"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=0.1, maximum=1, name="redshift")
         self.assertEqual(prior.latex_label, "$z$")
 
     def test_redshift_to_luminosity_distance(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=0.1, maximum=1, name="redshift"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=0.1, maximum=1, name="redshift")
         new_prior = prior.get_corresponding_prior("luminosity_distance")
         self.assertEqual(new_prior.name, "luminosity_distance")
 
     def test_luminosity_distance_to_redshift(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000, name="luminosity_distance")
         new_prior = prior.get_corresponding_prior("redshift")
         self.assertEqual(new_prior.name, "redshift")
 
     def test_luminosity_distance_to_comoving_distance(self):
-        prior = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
-        )
+        prior = bilby.gw.prior.UniformComovingVolume(minimum=10, maximum=10000, name="luminosity_distance")
         new_prior = prior.get_corresponding_prior("comoving_distance")
         self.assertEqual(new_prior.name, "comoving_distance")
 
@@ -579,7 +503,6 @@ class TestAlignedSpin(unittest.TestCase):
 
 
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
-
     def setUp(self):
         pass
 

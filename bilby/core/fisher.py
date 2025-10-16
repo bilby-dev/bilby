@@ -6,9 +6,9 @@ from scipy.optimize import minimize
 from .likelihood import _safe_likelihood_call
 
 
-class FisherMatrixPosteriorEstimator(object):
+class FisherMatrixPosteriorEstimator:
     def __init__(self, likelihood, priors, parameters=None, fd_eps=1e-6, n_prior_samples=100):
-        """ A class to estimate posteriors using the Fisher Matrix approach
+        """A class to estimate posteriors using the Fisher Matrix approach
 
         Parameters
         ----------
@@ -34,9 +34,7 @@ class FisherMatrixPosteriorEstimator(object):
         self.n_prior_samples = n_prior_samples
         self.N = len(self.parameter_names)
 
-        self.prior_samples = [
-            priors.sample_subset(self.parameter_names) for _ in range(n_prior_samples)
-        ]
+        self.prior_samples = [priors.sample_subset(self.parameter_names) for _ in range(n_prior_samples)]
         self.prior_bounds = [(priors[key].minimum, priors[key].maximum) for key in self.parameter_names]
 
         self.prior_width_dict = {}
@@ -93,13 +91,13 @@ class FisherMatrixPosteriorEstimator(object):
         p = self.shift_sample_x(sample, ii, 1)
         m = self.shift_sample_x(sample, ii, -1)
 
-        dx = .5 * (p[ii] - m[ii])
+        dx = 0.5 * (p[ii] - m[ii])
 
         loglp = self.log_likelihood(p)
         logl = self.log_likelihood(sample)
         loglm = self.log_likelihood(m)
 
-        return (loglp - 2 * logl + loglm) / dx ** 2
+        return (loglp - 2 * logl + loglm) / dx**2
 
     def get_finite_difference_xy(self, sample, ii, jj):
         # Sample grid
@@ -108,8 +106,8 @@ class FisherMatrixPosteriorEstimator(object):
         mp = self.shift_sample_xy(sample, ii, -1, jj, 1)
         mm = self.shift_sample_xy(sample, ii, -1, jj, -1)
 
-        dx = .5 * (pp[ii] - mm[ii])
-        dy = .5 * (pp[jj] - mm[jj])
+        dx = 0.5 * (pp[ii] - mm[ii])
+        dy = 0.5 * (pp[jj] - mm[jj])
 
         loglpp = self.log_likelihood(pp)
         loglpm = self.log_likelihood(pm)
@@ -119,7 +117,6 @@ class FisherMatrixPosteriorEstimator(object):
         return (loglpp - loglpm - loglmp + loglmm) / (4 * dx * dy)
 
     def shift_sample_x(self, sample, x_key, x_coef):
-
         vx = sample[x_key]
         dvx = self.fd_eps * self.prior_width_dict[x_key]
 
@@ -129,7 +126,6 @@ class FisherMatrixPosteriorEstimator(object):
         return shift_sample
 
     def shift_sample_xy(self, sample, x_key, x_coef, y_key, y_coef):
-
         vx = sample[x_key]
         vy = sample[y_key]
 
@@ -142,7 +138,7 @@ class FisherMatrixPosteriorEstimator(object):
         return shift_sample
 
     def get_maximum_likelihood_sample(self, initial_sample=None):
-        """ A method to attempt optimization of the maximum likelihood
+        """A method to attempt optimization of the maximum likelihood
 
         This uses a simple scipy optimization approach, starting from a number
         of draws from the prior to avoid problems with local optimization.
@@ -160,7 +156,7 @@ class FisherMatrixPosteriorEstimator(object):
 
             def neg_log_like(x, self, T=1):
                 sample = {key: val for key, val in zip(self.parameter_names, x)}
-                return - 1 / T * self.log_likelihood(sample)
+                return -1 / T * self.log_likelihood(sample)
 
             out = minimize(
                 neg_log_like,

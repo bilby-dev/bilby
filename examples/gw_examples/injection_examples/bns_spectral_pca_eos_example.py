@@ -10,7 +10,6 @@ The principal component analysis (PCA) used for the spectral model here can be f
 in the appendix of https://arxiv.org/pdf/2001.01747.pdf.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 
@@ -78,9 +77,7 @@ for interferometer in interferometers:
 interferometers.set_strain_data_from_zero_noise(
     sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
 )
-interferometers.inject_signal(
-    parameters=injection_parameters, waveform_generator=waveform_generator
-)
+interferometers.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 
 # Load the default prior for binary neutron stars.
 # We're going to sample in chirp_mass, mass_ratio, and model parameters

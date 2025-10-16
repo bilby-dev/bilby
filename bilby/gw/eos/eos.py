@@ -1,36 +1,38 @@
 import os
-import numpy as np
-from scipy.interpolate import interp1d, CubicSpline
 
-from .tov_solver import IntegrateTOV
+import numpy as np
+from scipy.interpolate import CubicSpline, interp1d
+
 from ...core import utils
+from .tov_solver import IntegrateTOV
 
 C_SI = utils.speed_of_light  # m/s
-C_CGS = C_SI * 100.
+C_CGS = C_SI * 100.0
 G_SI = utils.gravitational_constant  # m^3 kg^-1 s^-2
 MSUN_SI = utils.solar_mass  # Kg
 
 # Stores conversions from geometerized to cgs or si unit systems
-conversion_dict = {'pressure': {'cgs': C_SI ** 4. / G_SI * 10., 'si': C_SI ** 4. / G_SI, 'geom': 1.},
-                   'energy_density': {'cgs': C_SI ** 4. / G_SI * 10., 'si': C_SI ** 4. / G_SI, 'geom': 1.},
-                   'density': {'cgs': C_SI ** 2. / G_SI / 1000., 'si': C_SI ** 2. / G_SI, 'geom': 1.},
-                   'pseudo_enthalpy': {'dimensionless': 1.},
-                   'mass': {'g': C_SI ** 2. / G_SI * 1000, 'kg': C_SI ** 2. / G_SI, 'geom': 1.,
-                            'm_sol': C_SI ** 2. / G_SI / MSUN_SI},
-                   'radius': {'cm': 100., 'm': 1., 'km': .001},
-                   'tidal_deformability': {'geom': 1.}}
+conversion_dict = {
+    "pressure": {"cgs": C_SI**4.0 / G_SI * 10.0, "si": C_SI**4.0 / G_SI, "geom": 1.0},
+    "energy_density": {"cgs": C_SI**4.0 / G_SI * 10.0, "si": C_SI**4.0 / G_SI, "geom": 1.0},
+    "density": {"cgs": C_SI**2.0 / G_SI / 1000.0, "si": C_SI**2.0 / G_SI, "geom": 1.0},
+    "pseudo_enthalpy": {"dimensionless": 1.0},
+    "mass": {"g": C_SI**2.0 / G_SI * 1000, "kg": C_SI**2.0 / G_SI, "geom": 1.0, "m_sol": C_SI**2.0 / G_SI / MSUN_SI},
+    "radius": {"cm": 100.0, "m": 1.0, "km": 0.001},
+    "tidal_deformability": {"geom": 1.0},
+}
 
 
 # construct dictionary of pre-shipped EOS pressure denstity table
-path_to_eos_tables = os.path.join(os.path.dirname(__file__), 'eos_tables')
+path_to_eos_tables = os.path.join(os.path.dirname(__file__), "eos_tables")
 list_of_eos_tables = os.listdir(path_to_eos_tables)
-valid_eos_files = [i for i in list_of_eos_tables if 'LAL' in i]
+valid_eos_files = [i for i in list_of_eos_tables if "LAL" in i]
 valid_eos_file_paths = [os.path.join(path_to_eos_tables, filename) for filename in valid_eos_files]
-valid_eos_names = [i.split('_', maxsplit=1)[-1].strip('.dat') for i in valid_eos_files]
+valid_eos_names = [i.split("_", maxsplit=1)[-1].strip(".dat") for i in valid_eos_files]
 valid_eos_dict = dict(zip(valid_eos_names, valid_eos_file_paths))
 
 
-class TabularEOS(object):
+class TabularEOS:
     """
     Given a valid eos input format, such as 2-D array, an ascii file, or a string, parse, and interpolate
 
@@ -68,8 +70,9 @@ class TabularEOS(object):
         elif isinstance(eos, np.ndarray):
             table = eos
         else:
-            raise ValueError("eos provided is invalid type please supply a str name, str path to ASCII file, "
-                             "or a numpy array")
+            raise ValueError(
+                "eos provided is invalid type please supply a str name, str path to ASCII file, or a numpy array"
+            )
 
         table = self.__remove_leading_zero(table)
 
@@ -85,18 +88,22 @@ class TabularEOS(object):
             integrand = self.pressure / (self.energy_density + self.pressure)
             self.pseudo_enthalpy = cumulative_trapezoid(integrand, np.log(self.pressure), initial=0) + integrand[0]
 
-            self.interp_energy_density_from_pressure = CubicSpline(np.log10(self.pressure),
-                                                                   np.log10(self.energy_density),
-                                                                   )
+            self.interp_energy_density_from_pressure = CubicSpline(
+                np.log10(self.pressure),
+                np.log10(self.energy_density),
+            )
 
-            self.interp_energy_density_from_pseudo_enthalpy = CubicSpline(np.log10(self.pseudo_enthalpy),
-                                                                          np.log10(self.energy_density))
+            self.interp_energy_density_from_pseudo_enthalpy = CubicSpline(
+                np.log10(self.pseudo_enthalpy), np.log10(self.energy_density)
+            )
 
-            self.interp_pressure_from_pseudo_enthalpy = CubicSpline(np.log10(self.pseudo_enthalpy),
-                                                                    np.log10(self.pressure))
+            self.interp_pressure_from_pseudo_enthalpy = CubicSpline(
+                np.log10(self.pseudo_enthalpy), np.log10(self.pressure)
+            )
 
-            self.interp_pseudo_enthalpy_from_energy_density = CubicSpline(np.log10(self.energy_density),
-                                                                          np.log10(self.pseudo_enthalpy))
+            self.interp_pseudo_enthalpy_from_energy_density = CubicSpline(
+                np.log10(self.energy_density), np.log10(self.pseudo_enthalpy)
+            )
 
             self.__construct_all_tables()
 
@@ -110,13 +117,13 @@ class TabularEOS(object):
         loglog interpolation breaks if the first entries are 0s
         """
 
-        if table[0, 0] == 0. or table[0, 1] == 0.:
+        if table[0, 0] == 0.0 or table[0, 1] == 0.0:
             return table[1:, :]
 
         else:
             return table
 
-    def energy_from_pressure(self, pressure, interp_type='CubicSpline'):
+    def energy_from_pressure(self, pressure, interp_type="CubicSpline"):
         """
         Find value of energy_from_pressure
         as in lalsimulation, return e = K * p**(3./5.) below min pressure
@@ -137,26 +144,28 @@ class TabularEOS(object):
         indices_greater_than_min = np.nonzero(pressure >= self.minimum_pressure)
 
         # We do this special for less than min pressure
-        energy_returned[indices_less_than_min] = 10 ** (np.log10(self.energy_density[0]) +
-                                                        (3. / 5.) * (np.log10(pressure[indices_less_than_min]) -
-                                                                     np.log10(self.pressure[0])))
+        energy_returned[indices_less_than_min] = 10 ** (
+            np.log10(self.energy_density[0])
+            + (3.0 / 5.0) * (np.log10(pressure[indices_less_than_min]) - np.log10(self.pressure[0]))
+        )
 
-        if interp_type == 'CubicSpline':
-            energy_returned[indices_greater_than_min] = (
-                10. ** self.interp_energy_density_from_pressure(np.log10(pressure[indices_greater_than_min])))
-        elif interp_type == 'linear':
-            energy_returned[indices_greater_than_min] = np.interp(pressure[indices_greater_than_min],
-                                                                  self.pressure,
-                                                                  self.energy_density)
+        if interp_type == "CubicSpline":
+            energy_returned[indices_greater_than_min] = 10.0 ** self.interp_energy_density_from_pressure(
+                np.log10(pressure[indices_greater_than_min])
+            )
+        elif interp_type == "linear":
+            energy_returned[indices_greater_than_min] = np.interp(
+                pressure[indices_greater_than_min], self.pressure, self.energy_density
+            )
         else:
-            raise ValueError('Interpolation scheme must be linear or CubicSpline')
+            raise ValueError("Interpolation scheme must be linear or CubicSpline")
 
         if energy_returned.size == 1:
             return energy_returned[0]
         else:
             return energy_returned
 
-    def pressure_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type='CubicSpline'):
+    def pressure_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type="CubicSpline"):
         """
         Find p(h)
         as in lalsimulation, return p = K * h**(5./2.) below min enthalpy
@@ -172,26 +181,28 @@ class TabularEOS(object):
         indices_less_than_min = np.nonzero(pseudo_enthalpy < self.minimum_pseudo_enthalpy)
         indices_greater_than_min = np.nonzero(pseudo_enthalpy >= self.minimum_pseudo_enthalpy)
 
-        pressure_returned[indices_less_than_min] = 10. ** (np.log10(self.pressure[0]) +
-                                                           2.5 * (np.log10(pseudo_enthalpy[indices_less_than_min]) -
-                                                                  np.log10(self.pseudo_enthalpy[0])))
+        pressure_returned[indices_less_than_min] = 10.0 ** (
+            np.log10(self.pressure[0])
+            + 2.5 * (np.log10(pseudo_enthalpy[indices_less_than_min]) - np.log10(self.pseudo_enthalpy[0]))
+        )
 
-        if interp_type == 'CubicSpline':
-            pressure_returned[indices_greater_than_min] = (
-                10. ** self.interp_pressure_from_pseudo_enthalpy(np.log10(pseudo_enthalpy[indices_greater_than_min])))
-        elif interp_type == 'linear':
-            pressure_returned[indices_greater_than_min] = np.interp(pseudo_enthalpy[indices_greater_than_min],
-                                                                    self.pseudo_enthalpy,
-                                                                    self.pressure)
+        if interp_type == "CubicSpline":
+            pressure_returned[indices_greater_than_min] = 10.0 ** self.interp_pressure_from_pseudo_enthalpy(
+                np.log10(pseudo_enthalpy[indices_greater_than_min])
+            )
+        elif interp_type == "linear":
+            pressure_returned[indices_greater_than_min] = np.interp(
+                pseudo_enthalpy[indices_greater_than_min], self.pseudo_enthalpy, self.pressure
+            )
         else:
-            raise ValueError('Interpolation scheme must be linear or CubicSpline')
+            raise ValueError("Interpolation scheme must be linear or CubicSpline")
 
         if pressure_returned.size == 1:
             return pressure_returned[0]
         else:
             return pressure_returned
 
-    def energy_density_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type='CubicSpline'):
+    def energy_density_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type="CubicSpline"):
         """
         Find energy_density_from_pseudo_enthalpy(pseudo_enthalpy)
         as in lalsimulation, return e = K * h**(3./2.) below min enthalpy
@@ -207,25 +218,26 @@ class TabularEOS(object):
         indices_less_than_min = np.nonzero(pseudo_enthalpy < self.minimum_pseudo_enthalpy)
         indices_greater_than_min = np.nonzero(pseudo_enthalpy >= self.minimum_pseudo_enthalpy)
 
-        energy_returned[indices_less_than_min] = 10 ** (np.log10(self.energy_density[0]) +
-                                                        1.5 * (np.log10(pseudo_enthalpy[indices_less_than_min]) -
-                                                               np.log10(self.pseudo_enthalpy[0])))
-        if interp_type == 'CubicSpline':
+        energy_returned[indices_less_than_min] = 10 ** (
+            np.log10(self.energy_density[0])
+            + 1.5 * (np.log10(pseudo_enthalpy[indices_less_than_min]) - np.log10(self.pseudo_enthalpy[0]))
+        )
+        if interp_type == "CubicSpline":
             x = np.log10(pseudo_enthalpy[indices_greater_than_min])
             energy_returned[indices_greater_than_min] = 10 ** self.interp_energy_density_from_pseudo_enthalpy(x)
-        elif interp_type == 'linear':
-            energy_returned[indices_greater_than_min] = np.interp(pseudo_enthalpy[indices_greater_than_min],
-                                                                  self.pseudo_enthalpy,
-                                                                  self.energy_density)
+        elif interp_type == "linear":
+            energy_returned[indices_greater_than_min] = np.interp(
+                pseudo_enthalpy[indices_greater_than_min], self.pseudo_enthalpy, self.energy_density
+            )
         else:
-            raise ValueError('Interpolation scheme must be linear or CubicSpline')
+            raise ValueError("Interpolation scheme must be linear or CubicSpline")
 
         if energy_returned.size == 1:
             return energy_returned[0]
         else:
             return energy_returned
 
-    def pseudo_enthalpy_from_energy_density(self, energy_density, interp_type='CubicSpline'):
+    def pseudo_enthalpy_from_energy_density(self, energy_density, interp_type="CubicSpline"):
         """
         Find h(epsilon)
         as in lalsimulation, return h = K * e**(2./3.) below min enthalpy
@@ -241,26 +253,29 @@ class TabularEOS(object):
         indices_less_than_min = np.nonzero(energy_density < self.minimum_energy_density)
         indices_greater_than_min = np.nonzero(energy_density >= self.minimum_energy_density)
 
-        pseudo_enthalpy_returned[indices_less_than_min] = 10 ** (np.log10(self.pseudo_enthalpy[0]) + (2. / 3.) *
-                                                                 (np.log10(energy_density[indices_less_than_min]) -
-                                                                  np.log10(self.energy_density[0])))
+        pseudo_enthalpy_returned[indices_less_than_min] = 10 ** (
+            np.log10(self.pseudo_enthalpy[0])
+            + (2.0 / 3.0) * (np.log10(energy_density[indices_less_than_min]) - np.log10(self.energy_density[0]))
+        )
 
-        if interp_type == 'CubicSpline':
+        if interp_type == "CubicSpline":
             x = np.log10(energy_density[indices_greater_than_min])
-            pseudo_enthalpy_returned[indices_greater_than_min] = 10**self.interp_pseudo_enthalpy_from_energy_density(x)
-        elif interp_type == 'linear':
-            pseudo_enthalpy_returned[indices_greater_than_min] = np.interp(energy_density[indices_greater_than_min],
-                                                                           self.energy_density,
-                                                                           self.pseudo_enthalpy)
+            pseudo_enthalpy_returned[indices_greater_than_min] = 10 ** self.interp_pseudo_enthalpy_from_energy_density(
+                x
+            )
+        elif interp_type == "linear":
+            pseudo_enthalpy_returned[indices_greater_than_min] = np.interp(
+                energy_density[indices_greater_than_min], self.energy_density, self.pseudo_enthalpy
+            )
         else:
-            raise ValueError('Interpolation scheme must be linear or CubicSpline')
+            raise ValueError("Interpolation scheme must be linear or CubicSpline")
 
         if pseudo_enthalpy_returned.size == 1:
             return pseudo_enthalpy_returned[0]
         else:
             return pseudo_enthalpy_returned
 
-    def dedh(self, pseudo_enthalpy, rel_dh=1e-5, interp_type='CubicSpline'):
+    def dedh(self, pseudo_enthalpy, rel_dh=1e-5, interp_type="CubicSpline"):
         """
         Value of [depsilon/dh](p)
 
@@ -279,9 +294,9 @@ class TabularEOS(object):
         eps_upper = self.energy_density_from_pseudo_enthalpy(pseudo_enthalpy + dh, interp_type=interp_type)
         eps_lower = self.energy_density_from_pseudo_enthalpy(pseudo_enthalpy - dh, interp_type=interp_type)
 
-        return (eps_upper - eps_lower) / (2. * dh)
+        return (eps_upper - eps_lower) / (2.0 * dh)
 
-    def dedp(self, pressure, rel_dp=1e-5, interp_type='CubicSpline'):
+    def dedp(self, pressure, rel_dp=1e-5, interp_type="CubicSpline"):
         """
         Find value of [depsilon/dp](p)
 
@@ -300,9 +315,9 @@ class TabularEOS(object):
         eps_upper = self.energy_from_pressure(pressure + dp, interp_type=interp_type)
         eps_lower = self.energy_from_pressure(pressure - dp, interp_type=interp_type)
 
-        return (eps_upper - eps_lower) / (2. * dp)
+        return (eps_upper - eps_lower) / (2.0 * dp)
 
-    def velocity_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type='CubicSpline'):
+    def velocity_from_pseudo_enthalpy(self, pseudo_enthalpy, interp_type="CubicSpline"):
         """
         Returns the speed of sound in geometerized units in the
         neutron star at the specified pressure.
@@ -399,53 +414,62 @@ class TabularEOS(object):
         import matplotlib.pyplot as plt
 
         # Set data based on specified representation
-        varnames = rep.split('-')
+        varnames = rep.split("-")
 
-        assert varnames[0] != varnames[
-            1], 'Cannot plot the same variable against itself. Please choose another representation'
+        assert varnames[0] != varnames[1], (
+            "Cannot plot the same variable against itself. Please choose another representation"
+        )
 
         # Correspondence of rep parameter, data, and latex symbol
         # rep_dict = {'energy_density': [self.epsilon, r'$\epsilon$'],
         # 'pressure': [self.p, r'$p$'], 'pseudo_enthalpy': [pseudo_enthalpy, r'$h$']}
 
         # FIXME: The second element in these arrays should be tex labels, but tex's not working rn
-        rep_dict = {'energy_density': [self.energy_density, 'energy_density'],
-                    'pressure': [self.pressure, 'pressure'],
-                    'pseudo_enthalpy': [self.pseudo_enthalpy, 'pseudo_enthalpy']}
+        rep_dict = {
+            "energy_density": [self.energy_density, "energy_density"],
+            "pressure": [self.pressure, "pressure"],
+            "pseudo_enthalpy": [self.pseudo_enthalpy, "pseudo_enthalpy"],
+        }
 
         xname = varnames[1]
         yname = varnames[0]
 
         # Set units
-        eos_default_units = {'pressure': 'cgs', 'energy_density': 'cgs', 'density': 'cgs',
-                             'pseudo_enthalpy': 'dimensionless'}
+        eos_default_units = {
+            "pressure": "cgs",
+            "energy_density": "cgs",
+            "density": "cgs",
+            "pseudo_enthalpy": "dimensionless",
+        }
         if units is None:
-            units = [eos_default_units[yname], eos_default_units[xname]]          # Default unit system is cgs
+            units = [eos_default_units[yname], eos_default_units[xname]]  # Default unit system is cgs
         elif isinstance(units, str):
-            units = [units, units]          # If only one unit system given, use for both
+            units = [units, units]  # If only one unit system given, use for both
 
         xunits = units[1]
         yunits = units[0]
 
         # Ensure valid units
         if xunits not in list(conversion_dict[xname].keys()) or yunits not in list(conversion_dict[yname].keys()):
-            s = '''
+            s = """
                 Invalid unit system. Valid variable-unit pairs are:
                 p: {p_units}
                 e: {e_units}
                 rho: {rho_units}
                 h: {h_units}.
-                '''.format(p_units=list(conversion_dict['pressure'].keys()),
-                           e_units=list(conversion_dict['energy_density'].keys()),
-                           rho_units=list(conversion_dict['density'].keys()),
-                           h_units=list(conversion_dict['pseudo_enthalpy'].keys()))
+                """.format(
+                p_units=list(conversion_dict["pressure"].keys()),
+                e_units=list(conversion_dict["energy_density"].keys()),
+                rho_units=list(conversion_dict["density"].keys()),
+                h_units=list(conversion_dict["pseudo_enthalpy"].keys()),
+            )
             raise ValueError(s)
 
         xdat = rep_dict[xname][0] * conversion_dict[xname][xunits]
         ydat = rep_dict[yname][0] * conversion_dict[yname][yunits]
 
-        xlabel = rep_dict[varnames[1]][1].replace('_', ' ')
-        ylabel = rep_dict[varnames[0]][1].replace('_', ' ') + '(' + xlabel + ')'
+        xlabel = rep_dict[varnames[1]][1].replace("_", " ")
+        ylabel = rep_dict[varnames[0]][1].replace("_", " ") + "(" + xlabel + ")"
 
         # Determine plot ranges. Currently shows 10% wider than actual data range.
         if xlim is None:
@@ -468,7 +492,7 @@ class TabularEOS(object):
 def spectral_adiabatic_index(gammas, x):
     arg = 0
     for i in range(len(gammas)):
-        arg += gammas[i] * x ** i
+        arg += gammas[i] * x**i
 
     return np.exp(arg)
 
@@ -529,29 +553,28 @@ class SpectralDecompositionEOS(TabularEOS):
         highest_order_gamma = np.abs(self.gammas[-1])[0]
         expansion_order = float(len(self.gammas) - 1)
 
-        xmax = (np.log(a_max) / highest_order_gamma) ** (1. / expansion_order)
+        xmax = (np.log(a_max) / highest_order_gamma) ** (1.0 / expansion_order)
         return xmax
 
     def __mu_integrand(self, x):
-
-        return 1. / spectral_adiabatic_index(self.gammas, x)
+        return 1.0 / spectral_adiabatic_index(self.gammas, x)
 
     def mu(self, x):
         from scipy.integrate import quad
+
         return np.exp(-quad(self.__mu_integrand, 0, x)[0])
 
     def __eps_integrand(self, x):
-
         return np.exp(x) * self.mu(x) / spectral_adiabatic_index(self.gammas, x)
 
     def energy_density(self, x, eps0):
         from scipy.integrate import quad
+
         quad_result, quad_err = quad(self.__eps_integrand, 0, x)
-        eps_of_x = (eps0 * C_CGS ** 2.) / self.mu(x) + self.p0 / self.mu(x) * quad_result
+        eps_of_x = (eps0 * C_CGS**2.0) / self.mu(x) + self.p0 / self.mu(x) * quad_result
         return eps_of_x
 
     def __construct_a_of_x_table(self):
-
         xdat = np.linspace(0, self.xmax, num=self.npts)
 
         # Generate adiabatic index points until a point is out of prior range
@@ -568,7 +591,7 @@ class SpectralDecompositionEOS(TabularEOS):
             xmax_new = xdat[i - 1]
 
             # If EOS is too short, set prior to 0, else resample the function and set new xmax
-            if xmax_new < 4. or i == 0:
+            if xmax_new < 4.0 or i == 0:
                 self.warning_flag = True
             else:
                 xdat = np.linspace(0, xmax_new, num=self.npts)
@@ -580,7 +603,6 @@ class SpectralDecompositionEOS(TabularEOS):
         self.adat = adat
 
     def __construct_e_of_p_table(self):
-
         """
         Creates p, epsilon table for a given set of spectral parameters
         """
@@ -598,11 +620,11 @@ class SpectralDecompositionEOS(TabularEOS):
 
         # convert eos to geometrized units in *m^-2*
         # IMPORTANT
-        eos_vals = eos_vals * 0.1 * G_SI / C_SI ** 4
+        eos_vals = eos_vals * 0.1 * G_SI / C_SI**4
 
         # doing as those before me have done and using SLY4 as low density region
         # SLY4 in geometrized units
-        low_density_path = os.path.join(os.path.dirname(__file__), 'eos_tables', 'LALSimNeutronStarEOS_SLY4.dat')
+        low_density_path = os.path.join(os.path.dirname(__file__), "eos_tables", "LALSimNeutronStarEOS_SLY4.dat")
         low_density = np.loadtxt(low_density_path)
 
         cutoff = eos_vals[0, :]
@@ -620,7 +642,7 @@ class SpectralDecompositionEOS(TabularEOS):
         return eos_vals
 
 
-class EOSFamily(object):
+class EOSFamily:
     """
     Create a EOS family and get mass-radius information
 
@@ -636,8 +658,10 @@ class EOSFamily(object):
     The mass-radius and mass-k2 data should be
     populated here via the TOV solver upon object construction.
     """
+
     def __init__(self, eos, npts=500):
         from scipy.optimize import minimize_scalar
+
         self.eos = eos
 
         # FIXME: starting_energy_density is set somewhat arbitrarily
@@ -645,9 +669,7 @@ class EOSFamily(object):
         ending_energy_density = max(self.eos.energy_density)
         log_starting_energy_density = np.log(starting_energy_density)
         log_ending_energy_density = np.log(ending_energy_density)
-        log_energy_density_grid = np.linspace(log_starting_energy_density,
-                                              log_ending_energy_density,
-                                              num=npts)
+        log_energy_density_grid = np.linspace(log_starting_energy_density, log_ending_energy_density, num=npts)
         energy_density_grid = np.exp(log_energy_density_grid)
 
         # Generate m, r, and k2 lists
@@ -674,7 +696,7 @@ class EOSFamily(object):
             x = [energy_density_grid[i - 2], energy_density_grid[i - 1], energy_density_grid[i]]
             y = [mass[i - 2], mass[i - 1], mass[i]]
 
-            f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value='extrapolate')
+            f = interp1d(x, y, kind="quadratic", bounds_error=False, fill_value="extrapolate")
 
             res = minimize_scalar(lambda x: -f(x))
 
@@ -692,8 +714,7 @@ class EOSFamily(object):
         # with these quantities, then convert to SI.
 
         # Calculating dimensionless lambda values from k2, radii, and mass
-        tidal_deformability = [2. / 3. * k2 * r ** 5. / m ** 5. for k2, r, m in
-                               zip(k2love_number, radius, mass)]
+        tidal_deformability = [2.0 / 3.0 * k2 * r**5.0 / m**5.0 for k2, r, m in zip(k2love_number, radius, mass)]
 
         # As a last resort, if highest mass is still smaller than second
         # to last point, remove the last point from each array
@@ -707,16 +728,16 @@ class EOSFamily(object):
         self.radius = np.array(radius)
         self.k2love_number = np.array(k2love_number)
         self.tidal_deformability = np.array(tidal_deformability)
-        self.maximum_mass = mass[-1] * conversion_dict['mass']['m_sol']
+        self.maximum_mass = mass[-1] * conversion_dict["mass"]["m_sol"]
 
     def radius_from_mass(self, m):
         """
         :param m: mass of neutron star in solar masses
         :return: radius of neutron star in meters
         """
-        f = CubicSpline(self.mass, self.radius, bc_type='natural', extrapolate=True)
+        f = CubicSpline(self.mass, self.radius, bc_type="natural", extrapolate=True)
 
-        mass_converted_to_geom = m * MSUN_SI * G_SI / C_SI ** 2.
+        mass_converted_to_geom = m * MSUN_SI * G_SI / C_SI**2.0
         return f(mass_converted_to_geom)
 
     def k2_from_mass(self, m):
@@ -724,9 +745,9 @@ class EOSFamily(object):
         :param m: mass of neutron star in solar masses.
         :return: dimensionless second tidal love number.
         """
-        f = CubicSpline(self.mass, self.k2love_number, bc_type='natural', extrapolate=True)
+        f = CubicSpline(self.mass, self.k2love_number, bc_type="natural", extrapolate=True)
 
-        m_geom = m * MSUN_SI * G_SI / C_SI ** 2.
+        m_geom = m * MSUN_SI * G_SI / C_SI**2.0
         return f(m_geom)
 
     def lambda_from_mass(self, m):
@@ -742,9 +763,9 @@ class EOSFamily(object):
 
         r = self.radius_from_mass(m)
         k = self.k2_from_mass(m)
-        m_geom = m * MSUN_SI * G_SI / C_SI ** 2.
+        m_geom = m * MSUN_SI * G_SI / C_SI**2.0
         c = m_geom / r
-        lmbda = (2. / 3.) * k / c ** 5.
+        lmbda = (2.0 / 3.0) * k / c**5.0
 
         return lmbda
 
@@ -784,20 +805,25 @@ class EOSFamily(object):
         import matplotlib.pyplot as plt
 
         # Set data based on specified representation
-        varnames = rep.split('-')
+        varnames = rep.split("-")
 
-        assert varnames[0] != varnames[
-            1], 'Cannot plot the same variable against itself. Please choose another representation'
+        assert varnames[0] != varnames[1], (
+            "Cannot plot the same variable against itself. Please choose another representation"
+        )
 
         # Correspondence of rep parameter, data, and latex symbol
-        rep_dict = {'mass': [self.mass, r'$M$'], 'radius': [self.radius, r'$R$'], 'k2': [self.k2love_number, r'$k_2$'],
-                    'tidal_deformability': [self.tidal_deformability, r'$l$']}
+        rep_dict = {
+            "mass": [self.mass, r"$M$"],
+            "radius": [self.radius, r"$R$"],
+            "k2": [self.k2love_number, r"$k_2$"],
+            "tidal_deformability": [self.tidal_deformability, r"$l$"],
+        }
 
         xname = varnames[1]
         yname = varnames[0]
 
         # Set units
-        fam_default_units = {'mass': 'm_sol', 'radius': 'km', 'tidal_deformability': 'geom'}
+        fam_default_units = {"mass": "m_sol", "radius": "km", "tidal_deformability": "geom"}
         if units is None:
             units = [fam_default_units[yname], fam_default_units[xname]]  # Default unit system is cgs
         elif isinstance(units, str):
@@ -808,21 +834,23 @@ class EOSFamily(object):
 
         # Ensure valid units
         if xunits not in list(conversion_dict[xname].keys()) or yunits not in list(conversion_dict[yname].keys()):
-            s = '''
+            s = """
                         Invalid unit system. Valid variable-unit pairs are:
                         m: {m_units}
                         r: {r_units}
                         l: {l_units}.
-                        '''.format(m_units=list(conversion_dict['mass'].keys()),
-                                   r_units=list(conversion_dict['radius'].keys()),
-                                   l_units=list(conversion_dict['tidal_deformability'].keys()))
+                        """.format(
+                m_units=list(conversion_dict["mass"].keys()),
+                r_units=list(conversion_dict["radius"].keys()),
+                l_units=list(conversion_dict["tidal_deformability"].keys()),
+            )
             raise ValueError(s)
 
         xdat = rep_dict[varnames[1]][0] * conversion_dict[xname][xunits]
         ydat = rep_dict[varnames[0]][0] * conversion_dict[yname][yunits]
 
-        xlabel = rep_dict[varnames[1]][1].replace('_', ' ')
-        ylabel = rep_dict[varnames[0]][1].replace('_', ' ') + '(' + xlabel + ')'
+        xlabel = rep_dict[varnames[1]][1].replace("_", " ")
+        ylabel = rep_dict[varnames[0]][1].replace("_", " ") + "(" + xlabel + ")"
 
         # Determine plot ranges. Currently shows 10% wider than actual data range.
         if xlim is None:

@@ -80,7 +80,7 @@ class Emcee(MCMCSampler):
         **kwargs,
     ):
         self._check_version()
-        super(Emcee, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -139,10 +139,7 @@ class Emcee(MCMCSampler):
 
         if self.prerelease:
             if function_kwargs["mh_proposal"] is not None:
-                logger.warning(
-                    "The 'mh_proposal' option is no longer used "
-                    "in emcee > 2.2.1, and will be ignored."
-                )
+                logger.warning("The 'mh_proposal' option is no longer used in emcee > 2.2.1, and will be ignored.")
             del function_kwargs["mh_proposal"]
 
             for key in updatekeys:
@@ -155,11 +152,7 @@ class Emcee(MCMCSampler):
 
     @property
     def sampler_init_kwargs(self):
-        init_kwargs = {
-            key: value
-            for key, value in self.kwargs.items()
-            if key not in self.sampler_function_kwargs
-        }
+        init_kwargs = {key: value for key, value in self.kwargs.items() if key not in self.sampler_function_kwargs}
 
         init_kwargs["lnpostfn"] = _evaluator.call_emcee
         init_kwargs["dim"] = self.ndim
@@ -192,10 +185,7 @@ class Emcee(MCMCSampler):
     def nburn(self, nburn):
         if isinstance(nburn, (float, int)):
             if nburn > self.kwargs["iterations"] - 1:
-                raise ValueError(
-                    "Number of burn-in samples must be smaller "
-                    "than the total number of iterations"
-                )
+                raise ValueError("Number of burn-in samples must be smaller than the total number of iterations")
 
         self.__nburn = nburn
 
@@ -249,20 +239,14 @@ class Emcee(MCMCSampler):
             to write the chain data to disk
 
         """
-        out_dir = os.path.join(
-            self.outdir, f"{self.__class__.__name__.lower()}_{self.label}"
-        )
+        out_dir = os.path.join(self.outdir, f"{self.__class__.__name__.lower()}_{self.label}")
         check_directory_exists_and_if_not_mkdir(out_dir)
 
         chain_file = os.path.join(out_dir, "chain.dat")
         sampler_file = os.path.join(out_dir, "sampler.pickle")
-        chain_template = (
-            "{:d}" + "\t{:.9e}" * (len(self.search_parameter_keys) + 2) + "\n"
-        )
+        chain_template = "{:d}" + "\t{:.9e}" * (len(self.search_parameter_keys) + 2) + "\n"
 
-        CheckpointInfo = namedtuple(
-            "CheckpointInfo", ["sampler_file", "chain_file", "chain_template"]
-        )
+        CheckpointInfo = namedtuple("CheckpointInfo", ["sampler_file", "chain_file", "chain_template"])
 
         checkpoint_info = CheckpointInfo(
             sampler_file=sampler_file,
@@ -284,9 +268,7 @@ class Emcee(MCMCSampler):
         Overwrites the stored sampler chain with one that is truncated
         to only the completed steps
         """
-        logger.info(
-            f"Checkpointing sampler to file {self.checkpoint_info.sampler_file}"
-        )
+        logger.info(f"Checkpointing sampler to file {self.checkpoint_info.sampler_file}")
         self.sampler._chain = self.sampler_chain
         _pool = self.sampler.pool
         self.sampler.pool = None
@@ -317,9 +299,7 @@ class Emcee(MCMCSampler):
         ):
             import dill
 
-            logger.info(
-                f"Resuming run from checkpoint file {self.checkpoint_info.sampler_file}"
-            )
+            logger.info(f"Resuming run from checkpoint file {self.checkpoint_info.sampler_file}")
             with open(self.checkpoint_info.sampler_file, "rb") as f:
                 self._sampler = dill.load(f)
                 self._sampler.pool = self.pool
@@ -337,8 +317,7 @@ class Emcee(MCMCSampler):
         else:
             points = np.hstack([sample[0], np.array(sample[3])])
         data_to_write = "\n".join(
-            self.checkpoint_info.chain_template.format(ii, *point)
-            for ii, point in enumerate(points)
+            self.checkpoint_info.chain_template.format(ii, *point) for ii, point in enumerate(points)
         )
         with open(temp_chain_file, "w") as ff:
             ff.write(data_to_write)
@@ -359,9 +338,7 @@ class Emcee(MCMCSampler):
             return 0
 
     def _draw_pos0_from_prior(self):
-        return np.array(
-            [self.get_random_draw_from_prior() for _ in range(self.nwalkers)]
-        )
+        return np.array([self.get_random_draw_from_prior() for _ in range(self.nwalkers)])
 
     @property
     def _pos0_shape(self):
@@ -418,9 +395,7 @@ class Emcee(MCMCSampler):
 
         self._generate_result()
 
-        self.result.samples = self.sampler.chain[:, self.nburn :, :].reshape(
-            (-1, self.ndim)
-        )
+        self.result.samples = self.sampler.chain[:, self.nburn :, :].reshape((-1, self.ndim))
         self.result.walkers = self.sampler.chain
         return self.result
 

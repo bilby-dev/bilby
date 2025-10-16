@@ -1,3 +1,4 @@
+from .eos import EOSFamily, SpectralDecompositionEOS, TabularEOS
 from .tov_solver import IntegrateTOV
-from .eos import (SpectralDecompositionEOS,
-                  EOSFamily, TabularEOS)
+
+__all__ = [EOSFamily, SpectralDecompositionEOS, TabularEOS, IntegrateTOV]

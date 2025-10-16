@@ -4,12 +4,13 @@ matplotlib.use("Agg")  # noqa
 
 import glob
 import importlib.util
-import unittest
+import logging
 import os
+import shutil
+import unittest
+
 import parameterized
 import pytest
-import shutil
-import logging
 
 import bilby.core.utils
 
@@ -48,7 +49,7 @@ class ExampleTest(unittest.TestCase):
             try:
                 shutil.rmtree(self.outdir)
             except OSError:
-                logging.warning("{} not removed after tests".format(self.outdir))
+                logging.warning(f"{self.outdir} not removed after tests")
         os.chdir(self.init_dir)
 
     @classmethod
@@ -57,7 +58,7 @@ class ExampleTest(unittest.TestCase):
             try:
                 shutil.rmtree(cls.outdir)
             except OSError:
-                logging.warning("{} not removed prior to tests".format(cls.outdir))
+                logging.warning(f"{cls.outdir} not removed prior to tests")
 
     @classmethod
     def tearDownClass(cls):
@@ -65,11 +66,11 @@ class ExampleTest(unittest.TestCase):
             try:
                 shutil.rmtree(cls.outdir)
             except OSError:
-                logging.warning("{} not removed prior to tests".format(cls.outdir))
+                logging.warning(f"{cls.outdir} not removed prior to tests")
 
     @parameterized.parameterized.expand(core_args)
     def test_core_examples(self, name, fname):
-        """ Loop over examples to check they run """
+        """Loop over examples to check they run"""
         bilby.core.utils.command_line_args.bilby_test_mode = False
         ignore = ["15d_gaussian"]
         if any([item in fname for item in ignore]):
@@ -78,7 +79,7 @@ class ExampleTest(unittest.TestCase):
 
     @parameterized.parameterized.expand(gw_args)
     def test_gw_examples(self, name, fname):
-        """ Loop over examples to check they run """
+        """Loop over examples to check they run"""
         bilby.core.utils.command_line_args.bilby_test_mode = True
         _execute_file(name, fname)
 

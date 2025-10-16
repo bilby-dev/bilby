@@ -1,7 +1,8 @@
-import unittest
-import numpy as np
-import shutil
 import os
+import shutil
+import unittest
+
+import numpy as np
 from scipy.stats import multivariate_normal
 
 import bilby
@@ -10,7 +11,7 @@ import bilby
 # set 2D multivariate Gaussian likelihood
 class MultiGaussian(bilby.Likelihood):
     def __init__(self, mean, cov):
-        super(MultiGaussian, self).__init__(parameters=dict())
+        super().__init__(parameters=dict())
         self.cov = np.array(cov)
         self.mean = np.array(mean)
         self.sigma = np.sqrt(np.diag(self.cov))
@@ -21,7 +22,7 @@ class MultiGaussian(bilby.Likelihood):
         return len(self.cov[0])
 
     def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        x = np.array([self.parameters[f"x{i}"] for i in range(self.dim)])
         return self.pdf.logpdf(x)
 
 
@@ -37,19 +38,10 @@ class TestGrid(unittest.TestCase):
 
         # set priors out to +/- 5 sigma
         self.priors = bilby.core.prior.PriorDict()
-        self.priors.update(
-            {
-                "x{0}".format(i): bilby.core.prior.Uniform(-5, 5, "x{0}".format(i))
-                for i in range(dim)
-            }
-        )
+        self.priors.update({f"x{i}": bilby.core.prior.Uniform(-5, 5, f"x{i}") for i in range(dim)})
 
         # expected evidence integral should be (1/V) where V is the prior volume
-        log_prior_vol = np.sum(
-            np.log(
-                [prior.maximum - prior.minimum for key, prior in self.priors.items()]
-            )
-        )
+        log_prior_vol = np.sum(np.log([prior.maximum - prior.minimum for key, prior in self.priors.items()]))
         self.expected_ln_evidence = -log_prior_vol
 
         self.grid_size = 100
@@ -80,11 +72,11 @@ class TestGrid(unittest.TestCase):
         label = "label"
         self.assertEqual(
             bilby.core.grid.grid_file_name(outdir, label),
-            "{}/{}_grid.json".format(outdir, label),
+            f"{outdir}/{label}_grid.json",
         )
         self.assertEqual(
             bilby.core.grid.grid_file_name(outdir, label, True),
-            "{}/{}_grid.json.gz".format(outdir, label),
+            f"{outdir}/{label}_grid.json.gz",
         )
 
     def test_fail_save_and_load(self):
@@ -111,9 +103,11 @@ class TestGrid(unittest.TestCase):
     def test_no_marginalization(self):
         # test arrays are the same if no parameters are given to marginalize
         # over
-        self.assertTrue(np.array_equal(
-            self.grid.ln_likelihood,
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names)))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.ln_likelihood, self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names)
+            )
+        )
 
     def test_marginalization_shapes(self):
         self.assertEqual(0, len(self.grid.marginalize_ln_likelihood().shape))
@@ -125,13 +119,19 @@ class TestGrid(unittest.TestCase):
         self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.ln_posterior.shape)
 
     def test_marginalization_opposite(self):
-        self.assertTrue(np.array_equal(
-            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0]),
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[1])))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0]),
+                self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[1]),
+            )
+        )
 
-        self.assertTrue(np.array_equal(
-            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1]),
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[0])))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1]),
+                self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[0]),
+            )
+        )
 
     def test_max_marginalized_likelihood(self):
         # marginalised likelihoods should have max values of 1 (as they are not
@@ -161,11 +161,7 @@ class TestGrid(unittest.TestCase):
     def test_grid_integer_points(self):
         n_points = [10, 20]
         grid = bilby.core.grid.Grid(
-            label="label",
-            outdir="outdir",
-            priors=self.priors,
-            grid_size=n_points,
-            likelihood=self.likelihood
+            label="label", outdir="outdir", priors=self.priors, grid_size=n_points, likelihood=self.likelihood
         )
 
         self.assertTupleEqual(tuple(n_points), grid.mesh_grid[0].shape)
@@ -175,11 +171,7 @@ class TestGrid(unittest.TestCase):
     def test_grid_dict_points(self):
         n_points = {"x0": 15, "x1": 18}
         grid = bilby.core.grid.Grid(
-            label="label",
-            outdir="outdir",
-            priors=self.priors,
-            grid_size=n_points,
-            likelihood=self.likelihood
+            label="label", outdir="outdir", priors=self.priors, grid_size=n_points, likelihood=self.likelihood
         )
         self.assertTupleEqual((n_points["x0"], n_points["x1"]), grid.mesh_grid[0].shape)
         self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
@@ -227,9 +219,7 @@ class TestGrid(unittest.TestCase):
         self.assertEqual(self.grid.n_dims, new_grid.n_dims)
         self.assertTrue(np.array_equal(new_grid.mesh_grid[0], self.grid.mesh_grid[0]))
         for par in new_grid.parameter_names:
-            self.assertTrue(np.array_equal(
-                new_grid.sample_points[par], self.grid.sample_points[par])
-            )
+            self.assertTrue(np.array_equal(new_grid.sample_points[par], self.grid.sample_points[par]))
         self.assertEqual(self.grid.ln_evidence, new_grid.ln_evidence)
         self.assertTrue(np.array_equal(self.grid.ln_likelihood, new_grid.ln_likelihood))
         self.assertTrue(np.array_equal(self.grid.ln_posterior, new_grid.ln_posterior))

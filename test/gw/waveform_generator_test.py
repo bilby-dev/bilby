@@ -1,44 +1,25 @@
 import unittest
 from unittest import mock
 
-import bilby
 import lalsimulation
 import numpy as np
 
+import bilby
 
-def dummy_func_array_return_value(
-    frequency_array, amplitude, mu, sigma, ra, dec, geocent_time, psi, **kwargs
-):
+
+def dummy_func_array_return_value(frequency_array, amplitude, mu, sigma, ra, dec, geocent_time, psi, **kwargs):
     return amplitude + mu + frequency_array + sigma + ra + dec + geocent_time + psi
 
 
-def dummy_func_dict_return_value(
-    frequency_array, amplitude, mu, sigma, ra, dec, geocent_time, psi, **kwargs
-):
+def dummy_func_dict_return_value(frequency_array, amplitude, mu, sigma, ra, dec, geocent_time, psi, **kwargs):
     ht = {
-        "plus": amplitude
-        + mu
-        + frequency_array
-        + sigma
-        + ra
-        + dec
-        + geocent_time
-        + psi,
-        "cross": amplitude
-        + mu
-        + frequency_array
-        + sigma
-        + ra
-        + dec
-        + geocent_time
-        + psi,
+        "plus": amplitude + mu + frequency_array + sigma + ra + dec + geocent_time + psi,
+        "cross": amplitude + mu + frequency_array + sigma + ra + dec + geocent_time + psi,
     }
     return ht
 
 
-def dummy_func_array_return_value_2(
-    array, amplitude, mu, sigma, ra, dec, geocent_time, psi
-):
+def dummy_func_array_return_value_2(array, amplitude, mu, sigma, ra, dec, geocent_time, psi):
     return dict(plus=np.array(array), cross=np.array(array))
 
 
@@ -62,18 +43,19 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         del self.simulation_parameters
 
     def test_repr(self):
+        frequency_domain_model = bilby.core.utils.get_function_path(
+            self.waveform_generator.frequency_domain_source_model
+        )
+        time_domain_model = bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model)
+        conversion = bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
         expected = (
-            "WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, "
-            "frequency_domain_source_model={}, time_domain_source_model={}, "
-            "parameter_conversion={}, waveform_arguments={})".format(
-                self.waveform_generator.duration,
-                self.waveform_generator.sampling_frequency,
-                self.waveform_generator.start_time,
-                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
-                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
-                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
-                self.waveform_generator.waveform_arguments,
-            )
+            f"WaveformGenerator(duration={self.waveform_generator.duration}, "
+            f"sampling_frequency={self.waveform_generator.sampling_frequency}, "
+            f"start_time={self.waveform_generator.start_time}, "
+            f"frequency_domain_source_model={frequency_domain_model}, "
+            f"time_domain_source_model={time_domain_model}, "
+            f"parameter_conversion={conversion}, "
+            f"waveform_arguments={self.waveform_generator.waveform_arguments})"
         )
         self.assertEqual(expected, repr(self.waveform_generator))
 
@@ -81,18 +63,19 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             1, 4096, time_domain_source_model=dummy_func_dict_return_value
         )
+        frequency_domain_model = bilby.core.utils.get_function_path(
+            self.waveform_generator.frequency_domain_source_model
+        )
+        time_domain_model = bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model)
+        conversion = bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters)
         expected = (
-            "WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, "
-            "frequency_domain_source_model={}, time_domain_source_model={}, "
-            "parameter_conversion={}, waveform_arguments={})".format(
-                self.waveform_generator.duration,
-                self.waveform_generator.sampling_frequency,
-                self.waveform_generator.start_time,
-                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
-                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
-                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
-                self.waveform_generator.waveform_arguments,
-            )
+            f"WaveformGenerator(duration={self.waveform_generator.duration}, "
+            f"sampling_frequency={self.waveform_generator.sampling_frequency}, "
+            f"start_time={self.waveform_generator.start_time}, "
+            f"frequency_domain_source_model={frequency_domain_model}, "
+            f"time_domain_source_model={time_domain_model}, "
+            f"parameter_conversion={conversion}, "
+            f"waveform_arguments={self.waveform_generator.waveform_arguments})"
         )
         self.assertEqual(expected, repr(self.waveform_generator))
 
@@ -101,18 +84,19 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
             pass
 
         self.waveform_generator.parameter_conversion = conversion_func
+        frequency_domain_model = bilby.core.utils.get_function_path(
+            self.waveform_generator.frequency_domain_source_model
+        )
+        time_domain_model = bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model)
+        conversion = bilby.core.utils.get_function_path(conversion_func)
         expected = (
-            "WaveformGenerator(duration={}, sampling_frequency={}, start_time={}, "
-            "frequency_domain_source_model={}, time_domain_source_model={}, "
-            "parameter_conversion={}, waveform_arguments={})".format(
-                self.waveform_generator.duration,
-                self.waveform_generator.sampling_frequency,
-                self.waveform_generator.start_time,
-                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
-                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
-                bilby.core.utils.get_function_path(conversion_func),
-                self.waveform_generator.waveform_arguments,
-            )
+            f"WaveformGenerator(duration={self.waveform_generator.duration}, "
+            f"sampling_frequency={self.waveform_generator.sampling_frequency}, "
+            f"start_time={self.waveform_generator.start_time}, "
+            f"frequency_domain_source_model={frequency_domain_model}, "
+            f"time_domain_source_model={time_domain_model}, "
+            f"parameter_conversion={conversion}",
+            f"waveform_arguments={self.waveform_generator.waveform_arguments})",
         )
         self.assertEqual(expected, repr(self.waveform_generator))
 
@@ -246,9 +230,7 @@ class TestSetters(unittest.TestCase):
     def test_parameter_setter_sets_expected_values_with_expected_keys(self):
         self.waveform_generator.parameters = self.simulation_parameters.copy()
         for key in self.simulation_parameters:
-            self.assertEqual(
-                self.waveform_generator.parameters[key], self.simulation_parameters[key]
-            )
+            self.assertEqual(self.waveform_generator.parameters[key], self.simulation_parameters[key])
 
     def test_parameter_setter_none_handling(self):
         with self.assertRaises(TypeError):
@@ -259,21 +241,15 @@ class TestSetters(unittest.TestCase):
     def test_frequency_array_setter(self):
         new_frequency_array = np.arange(1, 100)
         self.waveform_generator.frequency_array = new_frequency_array
-        self.assertTrue(
-            np.array_equal(new_frequency_array, self.waveform_generator.frequency_array)
-        )
+        self.assertTrue(np.array_equal(new_frequency_array, self.waveform_generator.frequency_array))
 
     def test_time_array_setter(self):
         new_time_array = np.arange(1, 100)
         self.waveform_generator.time_array = new_time_array
-        self.assertTrue(
-            np.array_equal(new_time_array, self.waveform_generator.time_array)
-        )
+        self.assertTrue(np.array_equal(new_time_array, self.waveform_generator.time_array))
 
     def test_parameters_set_from_frequency_domain_source_model(self):
-        self.waveform_generator.frequency_domain_source_model = (
-            dummy_func_dict_return_value
-        )
+        self.waveform_generator.frequency_domain_source_model = dummy_func_dict_return_value
         self.waveform_generator.parameters = self.simulation_parameters.copy()
         self.assertListEqual(
             sorted(list(self.waveform_generator.parameters.keys())),
@@ -323,13 +299,9 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         del self.simulation_parameters
 
     def test_parameter_conversion_is_called(self):
-        self.waveform_generator.parameter_conversion = mock.MagicMock(
-            side_effect=KeyError("test")
-        )
+        self.waveform_generator.parameter_conversion = mock.MagicMock(side_effect=KeyError("test"))
         with self.assertRaises(KeyError):
-            self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
 
     def test_frequency_domain_source_model_call(self):
         expected = self.waveform_generator.frequency_domain_source_model(
@@ -342,9 +314,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             self.simulation_parameters["geocent_time"],
             self.simulation_parameters["psi"],
         )
-        actual = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        actual = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
         self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
         self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
 
@@ -357,12 +327,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
 
         with mock.patch("bilby.core.utils.nfft") as m:
             m.side_effect = side_effect
-            expected = self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
-            actual = self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            expected = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
+            actual = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
             self.assertTrue(np.array_equal(expected, actual))
 
     def test_time_domain_source_model_call_with_dict(self):
@@ -374,12 +340,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
 
         with mock.patch("bilby.core.utils.nfft") as m:
             m.side_effect = side_effect
-            expected = self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
-            actual = self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            expected = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
+            actual = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
             self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
             self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
 
@@ -387,9 +349,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         self.waveform_generator.time_domain_source_model = None
         self.waveform_generator.frequency_domain_source_model = None
         with self.assertRaises(RuntimeError):
-            self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
 
     def test_key_popping(self):
         self.waveform_generator.parameter_conversion = mock.MagicMock(
@@ -409,9 +369,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             )
         )
         try:
-            self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
         except RuntimeError:
             pass
         self.assertListEqual(
@@ -420,74 +378,68 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         )
 
     def test_caching_with_parameters(self):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        original_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
         self.assertDictEqual(original_waveform, new_waveform)
 
     def test_caching_without_parameters(self):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        original_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
         new_waveform = self.waveform_generator.frequency_domain_strain()
         self.assertDictEqual(original_waveform, new_waveform)
 
     def test_frequency_domain_caching_and_using_time_domain_strain_without_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.frequency_domain_strain,
-            self.waveform_generator.time_domain_strain,
-            self.simulation_parameters,
-            None,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.frequency_domain_strain,
+                self.waveform_generator.time_domain_strain,
+                self.simulation_parameters,
+                None,
+            )
+        )
 
     def test_frequency_domain_caching_and_using_time_domain_strain_with_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.frequency_domain_strain,
-            self.waveform_generator.time_domain_strain,
-            self.simulation_parameters,
-            self.simulation_parameters,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.frequency_domain_strain,
+                self.waveform_generator.time_domain_strain,
+                self.simulation_parameters,
+                self.simulation_parameters,
+            )
+        )
 
     def test_time_domain_caching_and_using_frequency_domain_strain_without_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.time_domain_strain,
-            self.waveform_generator.frequency_domain_strain,
-            self.simulation_parameters,
-            None,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.time_domain_strain,
+                self.waveform_generator.frequency_domain_strain,
+                self.simulation_parameters,
+                None,
+            )
+        )
 
     def test_time_domain_caching_and_using_frequency_domain_strain_with_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.time_domain_strain,
-            self.waveform_generator.frequency_domain_strain,
-            self.simulation_parameters,
-            self.simulation_parameters,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.time_domain_strain,
+                self.waveform_generator.frequency_domain_strain,
+                self.simulation_parameters,
+                self.simulation_parameters,
+            )
+        )
 
     def test_frequency_domain_caching_changing_model(self):
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.waveform_generator.frequency_domain_source_model = (
-            dummy_func_array_return_value_2
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertFalse(
-            np.array_equal(original_waveform["plus"], new_waveform["plus"])
-        )
+        original_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+        self.waveform_generator.frequency_domain_source_model = dummy_func_array_return_value_2
+        new_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+        self.assertFalse(np.array_equal(original_waveform["plus"], new_waveform["plus"]))
 
     def test_time_domain_caching_changing_model(self):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -495,18 +447,10 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             sampling_frequency=4096,
             time_domain_source_model=dummy_func_dict_return_value,
         )
-        original_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.waveform_generator.time_domain_source_model = (
-            dummy_func_array_return_value_2
-        )
-        new_waveform = self.waveform_generator.frequency_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        self.assertFalse(
-            np.array_equal(original_waveform["plus"], new_waveform["plus"])
-        )
+        original_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+        self.waveform_generator.time_domain_source_model = dummy_func_array_return_value_2
+        new_waveform = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+        self.assertFalse(np.array_equal(original_waveform["plus"], new_waveform["plus"]))
 
 
 class TestTimeDomainStrainMethod(unittest.TestCase):
@@ -529,13 +473,9 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         del self.simulation_parameters
 
     def test_parameter_conversion_is_called(self):
-        self.waveform_generator.parameter_conversion = mock.MagicMock(
-            side_effect=KeyError("test")
-        )
+        self.waveform_generator.parameter_conversion = mock.MagicMock(side_effect=KeyError("test"))
         with self.assertRaises(KeyError):
-            self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
 
     def test_time_domain_source_model_call(self):
         expected = self.waveform_generator.time_domain_source_model(
@@ -548,48 +488,34 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
             self.simulation_parameters["geocent_time"],
             self.simulation_parameters["psi"],
         )
-        actual = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        actual = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
         self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
         self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
 
     def test_frequency_domain_source_model_call_with_ndarray(self):
         self.waveform_generator.time_domain_source_model = None
-        self.waveform_generator.frequency_domain_source_model = (
-            dummy_func_array_return_value
-        )
+        self.waveform_generator.frequency_domain_source_model = dummy_func_array_return_value
 
         def side_effect(value, value2):
             return value
 
         with mock.patch("bilby.core.utils.infft") as m:
             m.side_effect = side_effect
-            expected = self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
-            actual = self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            expected = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+            actual = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
             self.assertTrue(np.array_equal(expected, actual))
 
     def test_frequency_domain_source_model_call_with_dict(self):
         self.waveform_generator.time_domain_source_model = None
-        self.waveform_generator.frequency_domain_source_model = (
-            dummy_func_dict_return_value
-        )
+        self.waveform_generator.frequency_domain_source_model = dummy_func_dict_return_value
 
         def side_effect(value, value2):
             return value
 
         with mock.patch("bilby.core.utils.infft") as m:
             m.side_effect = side_effect
-            expected = self.waveform_generator.frequency_domain_strain(
-                parameters=self.simulation_parameters
-            )
-            actual = self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            expected = self.waveform_generator.frequency_domain_strain(parameters=self.simulation_parameters)
+            actual = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
             self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
             self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
 
@@ -597,9 +523,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         self.waveform_generator.time_domain_source_model = None
         self.waveform_generator.frequency_domain_source_model = None
         with self.assertRaises(RuntimeError):
-            self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
 
     def test_key_popping(self):
         self.waveform_generator.parameter_conversion = mock.MagicMock(
@@ -619,9 +543,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
             )
         )
         try:
-            self.waveform_generator.time_domain_strain(
-                parameters=self.simulation_parameters
-            )
+            self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
         except RuntimeError:
             pass
         self.assertListEqual(
@@ -630,60 +552,62 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         )
 
     def test_caching_with_parameters(self):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
-        new_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        original_waveform = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
+        new_waveform = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
         self.assertDictEqual(original_waveform, new_waveform)
 
     def test_caching_without_parameters(self):
-        original_waveform = self.waveform_generator.time_domain_strain(
-            parameters=self.simulation_parameters
-        )
+        original_waveform = self.waveform_generator.time_domain_strain(parameters=self.simulation_parameters)
         new_waveform = self.waveform_generator.time_domain_strain()
         self.assertDictEqual(original_waveform, new_waveform)
 
     def test_frequency_domain_caching_and_using_time_domain_strain_without_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.frequency_domain_strain,
-            self.waveform_generator.time_domain_strain,
-            self.simulation_parameters,
-            None,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.frequency_domain_strain,
+                self.waveform_generator.time_domain_strain,
+                self.simulation_parameters,
+                None,
+            )
+        )
 
     def test_frequency_domain_caching_and_using_time_domain_strain_with_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.frequency_domain_strain,
-            self.waveform_generator.time_domain_strain,
-            self.simulation_parameters,
-            self.simulation_parameters,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.frequency_domain_strain,
+                self.waveform_generator.time_domain_strain,
+                self.simulation_parameters,
+                self.simulation_parameters,
+            )
+        )
 
     def test_time_domain_caching_and_using_frequency_domain_strain_without_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.time_domain_strain,
-            self.waveform_generator.frequency_domain_strain,
-            self.simulation_parameters,
-            None,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.time_domain_strain,
+                self.waveform_generator.frequency_domain_strain,
+                self.simulation_parameters,
+                None,
+            )
+        )
 
     def test_time_domain_caching_and_using_frequency_domain_strain_with_parameters(
         self,
     ):
-        self.assertFalse(_test_caching_different_domain(
-            self.waveform_generator.time_domain_strain,
-            self.waveform_generator.frequency_domain_strain,
-            self.simulation_parameters,
-            self.simulation_parameters,
-        ))
+        self.assertFalse(
+            _test_caching_different_domain(
+                self.waveform_generator.time_domain_strain,
+                self.waveform_generator.frequency_domain_strain,
+                self.simulation_parameters,
+                self.simulation_parameters,
+            )
+        )
 
 
 def _test_caching_different_domain(func1, func2, params1, params2):
@@ -696,7 +620,6 @@ def _test_caching_different_domain(func1, func2, params1, params2):
 
 
 class TestGWSignalGenerator(unittest.TestCase):
-
     def get_wfgen(self, **kwargs):
         default_kwargs = dict(
             duration=4,
@@ -769,7 +692,9 @@ class TestGWSignalGenerator(unittest.TestCase):
 
     def test_eccentric_parameters_work(self):
         wfg = self.get_wfgen(
-            eccentric=True, spinning=False, waveform_approximant="EccentricFD",
+            eccentric=True,
+            spinning=False,
+            waveform_approximant="EccentricFD",
         )
         parameters_1 = dict(
             mass_1=10,
@@ -795,7 +720,9 @@ class TestGWSignalGenerator(unittest.TestCase):
 
     def test_tidal_parameters_work(self):
         wfg = self.get_wfgen(
-            tidal=True, spinning=False, waveform_approximant="IMRPhenomD_NRTidalv2",
+            tidal=True,
+            spinning=False,
+            waveform_approximant="IMRPhenomD_NRTidalv2",
             sampling_frequency=16384,
         )
         parameters_1 = dict(

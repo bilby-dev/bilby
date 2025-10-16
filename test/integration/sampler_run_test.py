@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import multiprocessing
 import os
 import sys
@@ -7,14 +9,14 @@ from signal import SIGINT
 
 multiprocessing.set_start_method("fork")  # noqa
 
+import shutil
 import unittest
+
+import numpy as np
 import pytest
 from parameterized import parameterized
-import shutil
 
 import bilby
-import numpy as np
-
 
 _sampler_kwargs = dict(
     bilby_mcmc=dict(nsamples=200, printdt=1),
@@ -47,13 +49,10 @@ _sampler_kwargs = dict(
     pymc=dict(draws=50, tune=50, n_init=250),
     pymultinest=dict(nlive=100),
     ultranest=dict(nlive=100, temporary_directory=False),
-    zeus=dict(nwalkers=10, iterations=100)
+    zeus=dict(nwalkers=10, iterations=100),
 )
 
-sampler_imports = dict(
-    bilby_mcmc="bilby",
-    dynamic_dynesty="dynesty"
-)
+sampler_imports = dict(bilby_mcmc="bilby", dynamic_dynesty="dynesty")
 
 no_pool_test = ["pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
 
@@ -77,12 +76,8 @@ class TestRunningSamplers(unittest.TestCase):
         self.x = np.linspace(0, 1, 11)
         self.injection_parameters = dict(m=0.5, c=0.2)
         self.sigma = 0.1
-        self.y = model(self.x, **self.injection_parameters) + rng.normal(
-            0, self.sigma, len(self.x)
-        )
-        self.likelihood = bilby.likelihood.GaussianLikelihood(
-            self.x, self.y, model, self.sigma
-        )
+        self.y = model(self.x, **self.injection_parameters) + rng.normal(0, self.sigma, len(self.x))
+        self.likelihood = bilby.likelihood.GaussianLikelihood(self.x, self.y, model, self.sigma)
 
         self.priors = bilby.core.prior.PriorDict()
         self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")

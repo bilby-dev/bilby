@@ -6,6 +6,7 @@ allowed in general relativity.
 We adapt the sine-Gaussian burst model to include vector polarizations with an
 unknown contribution from the vector modes.
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed
@@ -31,9 +32,7 @@ def vector_tensor_sine_gaussian(frequency_array, hrss, Q, frequency, epsilon):
     epsilon: float
         Relative size of the vector modes compared to the tensor modes.
     """
-    waveform_polarizations = bilby.gw.source.sinegaussian(
-        frequency_array, hrss, Q, frequency
-    )
+    waveform_polarizations = bilby.gw.source.sinegaussian(frequency_array, hrss, Q, frequency)
 
     waveform_polarizations["x"] = epsilon * waveform_polarizations["plus"]
     waveform_polarizations["y"] = epsilon * waveform_polarizations["cross"]

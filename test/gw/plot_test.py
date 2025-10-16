@@ -20,9 +20,7 @@ class TestCBCResult(unittest.TestCase):
                 time_marginalization=True,
                 frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
                 time_domain_source_model=None,
-                waveform_arguments=dict(
-                    reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"
-                ),
+                waveform_arguments=dict(reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"),
                 interferometers=dict(
                     H1=dict(optimal_SNR=1, parameters=injection_parameters),
                     L1=dict(optimal_SNR=1, parameters=injection_parameters),
@@ -66,9 +64,7 @@ class TestCBCResult(unittest.TestCase):
             label="recalib_H1_",
             n_nodes=5,
         )
-        calibration_filename = (
-            f"{self.result.outdir}/{self.result.label}_calibration.png"
-        )
+        calibration_filename = f"{self.result.outdir}/{self.result.label}_calibration.png"
         for key in calibration_prior:
             self.result.posterior[key] = calibration_prior[key].sample(100)
         self.result.plot_calibration_posterior()
@@ -76,9 +72,7 @@ class TestCBCResult(unittest.TestCase):
 
     def test_calibration_plot_returns_none_with_no_calibration_parameters(self):
         self.assertIsNone(self.result.plot_calibration_posterior())
-        calibration_filename = (
-            f"{self.result.outdir}/{self.result.label}_calibration.png"
-        )
+        calibration_filename = f"{self.result.outdir}/{self.result.label}_calibration.png"
         self.assertFalse(os.path.exists(calibration_filename))
 
     def test_calibration_pdf_plot(self):
@@ -90,9 +84,7 @@ class TestCBCResult(unittest.TestCase):
             label="recalib_H1_",
             n_nodes=5,
         )
-        calibration_filename = (
-            f"{self.result.outdir}/{self.result.label}_calibration.pdf"
-        )
+        calibration_filename = f"{self.result.outdir}/{self.result.label}_calibration.pdf"
         for key in calibration_prior:
             self.result.posterior[key] = calibration_prior[key].sample(100)
         self.result.plot_calibration_posterior(format="pdf")
@@ -105,11 +97,7 @@ class TestCBCResult(unittest.TestCase):
     def test_waveform_plotting_png(self):
         self.result.plot_waveform_posterior(n_samples=200)
         for ifo in self.result.interferometers:
-            self.assertTrue(
-                os.path.exists(
-                    f"{self.result.outdir}/{self.result.label}_{ifo}_waveform.png"
-                )
-            )
+            self.assertTrue(os.path.exists(f"{self.result.outdir}/{self.result.label}_{ifo}_waveform.png"))
 
     def test_plot_skymap_meta_data(self):
         from ligo.skymap import io

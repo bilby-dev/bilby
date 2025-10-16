@@ -1,19 +1,19 @@
-import unittest
-import os
-
-import dill
-import numpy as np
-from astropy import constants
 import importlib
-import lal
-import logging
-import matplotlib.pyplot as plt
-import h5py
 import json
-import pytest
+import logging
+import os
 import sys
 import types
+import unittest
 import warnings
+
+import dill
+import h5py
+import lal
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from astropy import constants
 
 import bilby
 from bilby.core import utils
@@ -23,9 +23,7 @@ from bilby.core.utils import global_meta_data
 class TestConstants(unittest.TestCase):
     def test_speed_of_light(self):
         self.assertEqual(utils.speed_of_light, lal.C_SI)
-        self.assertLess(
-            abs(utils.speed_of_light - constants.c.value) / utils.speed_of_light, 1e-16
-        )
+        self.assertLess(abs(utils.speed_of_light - constants.c.value) / utils.speed_of_light, 1e-16)
 
     def test_parsec(self):
         self.assertEqual(utils.parsec, lal.PC_SI)
@@ -33,15 +31,12 @@ class TestConstants(unittest.TestCase):
 
     def test_solar_mass(self):
         self.assertEqual(utils.solar_mass, lal.MSUN_SI)
-        self.assertLess(
-            abs(utils.solar_mass - constants.M_sun.value) / utils.solar_mass, 1e-4
-        )
+        self.assertLess(abs(utils.solar_mass - constants.M_sun.value) / utils.solar_mass, 1e-4)
 
     def test_radius_of_earth(self):
         self.assertEqual(bilby.core.utils.radius_of_earth, lal.REARTH_SI)
         self.assertLess(
-            abs(utils.radius_of_earth - constants.R_earth.value)
-            / utils.radius_of_earth,
+            abs(utils.radius_of_earth - constants.R_earth.value) / utils.radius_of_earth,
             1e-5,
         )
 
@@ -63,20 +58,14 @@ class TestFFT(unittest.TestCase):
 
         time_domain_strain = np.sin(2 * np.pi * times * injected_frequency + 0.4)
 
-        frequency_domain_strain, frequencies = bilby.core.utils.nfft(
-            time_domain_strain, self.sampling_frequency
-        )
+        frequency_domain_strain, frequencies = bilby.core.utils.nfft(time_domain_strain, self.sampling_frequency)
         frequency_at_peak = frequencies[np.argmax(np.abs(frequency_domain_strain))]
         self.assertAlmostEqual(injected_frequency, frequency_at_peak, places=1)
 
     def test_nfft_infft(self):
         time_domain_strain = np.random.normal(0, 1, 10)
-        frequency_domain_strain, _ = bilby.core.utils.nfft(
-            time_domain_strain, self.sampling_frequency
-        )
-        new_time_domain_strain = bilby.core.utils.infft(
-            frequency_domain_strain, self.sampling_frequency
-        )
+        frequency_domain_strain, _ = bilby.core.utils.nfft(time_domain_strain, self.sampling_frequency)
+        new_time_domain_strain = bilby.core.utils.infft(frequency_domain_strain, self.sampling_frequency)
         self.assertTrue(np.allclose(time_domain_strain, new_time_domain_strain))
 
 
@@ -166,14 +155,10 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
     def test_get_sampling_frequency_from_time_array_unequally_sampled(self):
         self.time_array[-1] += 0.0001
         with self.assertRaises(ValueError):
-            _, _ = utils.get_sampling_frequency_and_duration_from_time_array(
-                self.time_array
-            )
+            _, _ = utils.get_sampling_frequency_and_duration_from_time_array(self.time_array)
 
     def test_get_duration_from_time_array(self):
-        _, new_duration = utils.get_sampling_frequency_and_duration_from_time_array(
-            self.time_array
-        )
+        _, new_duration = utils.get_sampling_frequency_and_duration_from_time_array(self.time_array)
         self.assertEqual(self.duration, new_duration)
 
     def test_get_start_time_from_time_array(self):
@@ -184,25 +169,19 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         (
             new_sampling_freq,
             _,
-        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(
-            self.frequency_array
-        )
+        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
 
     def test_get_sampling_frequency_from_frequency_array_unequally_sampled(self):
         self.frequency_array[-1] += 0.0001
         with self.assertRaises(ValueError):
-            _, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(
-                self.frequency_array
-            )
+            _, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
 
     def test_get_duration_from_frequency_array(self):
         (
             _,
             new_duration,
-        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(
-            self.frequency_array
-        )
+        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
         self.assertEqual(self.duration, new_duration)
 
     def test_consistency_time_array_to_time_array(self):
@@ -222,9 +201,7 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         (
             new_sampling_frequency,
             new_duration,
-        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(
-            self.frequency_array
-        )
+        ) = utils.get_sampling_frequency_and_duration_from_frequency_array(self.frequency_array)
         new_frequency_array = utils.create_frequency_series(
             sampling_frequency=new_sampling_frequency, duration=new_duration
         )
@@ -232,9 +209,7 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
 
     def test_illegal_sampling_frequency_and_duration(self):
         with self.assertRaises(utils.IllegalDurationAndSamplingFrequencyException):
-            _ = utils.create_time_series(
-                sampling_frequency=7.7, duration=1.3, starting_time=0
-            )
+            _ = utils.create_time_series(sampling_frequency=7.7, duration=1.3, starting_time=0)
 
 
 class TestReflect(unittest.TestCase):
@@ -345,9 +320,7 @@ class TestUnsortedInterp2d(unittest.TestCase):
     def test_returns_float_for_float_and_array(self):
         self.assertIsInstance(self.interpolant(0.5, np.random.random(10)), np.ndarray)
         self.assertIsInstance(self.interpolant(np.random.random(10), 0.5), np.ndarray)
-        self.assertIsInstance(
-            self.interpolant(np.random.random(10), np.random.random(10)), np.ndarray
-        )
+        self.assertIsInstance(self.interpolant(np.random.random(10), np.random.random(10)), np.ndarray)
 
     def test_raises_for_mismatched_arrays(self):
         with self.assertRaises(ValueError):
@@ -369,7 +342,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
             self.lnfunc1 = np.log(self.x)
         self.func1int = (self.x[-1] ** 2 - self.x[0] ** 2) / 2
         with np.errstate(divide="ignore"):
-            self.lnfunc2 = np.log(self.x ** 2)
+            self.lnfunc2 = np.log(self.x**2)
         self.func2int = (self.x[-1] ** 3 - self.x[0] ** 3) / 3
 
         self.irregularx = np.array(
@@ -391,7 +364,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
         )
         with np.errstate(divide="ignore"):
             self.lnfunc1irregular = np.log(self.irregularx)
-            self.lnfunc2irregular = np.log(self.irregularx ** 2)
+            self.lnfunc2irregular = np.log(self.irregularx**2)
         self.irregulardxs = np.diff(self.irregularx)
 
     def test_incorrect_step_type(self):
@@ -423,7 +396,6 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
 
 
 class TestSavingNumpyRandomGenerator(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -439,9 +411,7 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
 
     def test_hdf5(self):
         with h5py.File(self.outdir / "test.h5", "w") as f:
-            bilby.core.utils.recursively_save_dict_contents_to_group(
-                f, "/", self.data
-            )
+            bilby.core.utils.recursively_save_dict_contents_to_group(f, "/", self.data)
         a = self.data["rng"].random()
 
         with h5py.File(self.outdir / "test.h5", "r") as f:
@@ -451,30 +421,29 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
         self.assertEqual(a, b)
 
     def test_json(self):
-        with open(self.outdir / "test.json", 'w') as file:
+        with open(self.outdir / "test.json", "w") as file:
             json.dump(self.data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
 
         a = self.data["rng"].random()
 
-        with open(self.outdir / "test.json", 'r') as file:
+        with open(self.outdir / "test.json") as file:
             data = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
 
         b = data["rng"].random()
         self.assertEqual(a, b)
 
     def test_pickle(self):
-        with open(self.outdir / "test.pkl", 'wb') as file:
+        with open(self.outdir / "test.pkl", "wb") as file:
             dill.dump(self.data, file)
         a = self.data["rng"].random()
 
-        with open(self.outdir / "test.pkl", 'rb') as file:
+        with open(self.outdir / "test.pkl", "rb") as file:
             data = dill.load(file)
         b = data["rng"].random()
         self.assertEqual(a, b)
 
 
 class TestGlobalMetaData(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -519,7 +488,6 @@ class TestGlobalMetaData(unittest.TestCase):
 
 
 class TestRandomUtils(unittest.TestCase):
-
     def setUp(self):
         # Ensure a clean import of the random module
         if "bilby.core.utils.random" in sys.modules:
@@ -541,8 +509,8 @@ class TestRandomUtils(unittest.TestCase):
             self.assertNotIn("Detected that `rng` was likely imported directly", str(warning.message))
 
     def test_warning_when_imported_directly(self):
-        from bilby.core.utils.random import rng
         from bilby.core.utils import random
+        from bilby.core.utils.random import rng
 
         # Simulate direct import of rng in a fake module
         fake_module = types.ModuleType("fake_module")

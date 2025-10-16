@@ -1,1 +1,1 @@
-from . import proposal
+from . import proposal  # noqa: F401

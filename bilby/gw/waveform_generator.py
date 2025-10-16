@@ -2,29 +2,35 @@ import numpy as np
 
 from ..core import utils
 from ..core.series import CoupledTimeAndFrequencySeries
-from ..core.utils import PropertyAccessor
-from ..core.utils import logger
+from ..core.utils import PropertyAccessor, logger
 from .conversion import convert_to_lal_binary_black_hole_parameters
 from .utils import lalsim_GetApproximantFromString
 
 
-class WaveformGenerator(object):
+class WaveformGenerator:
     """
     The base waveform generator class.
 
     Waveform generators provide a unified method to call disparate source models.
     """
 
-    duration = PropertyAccessor('_times_and_frequencies', 'duration')
-    sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
-    start_time = PropertyAccessor('_times_and_frequencies', 'start_time')
-    frequency_array = PropertyAccessor('_times_and_frequencies', 'frequency_array')
-    time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
+    duration = PropertyAccessor("_times_and_frequencies", "duration")
+    sampling_frequency = PropertyAccessor("_times_and_frequencies", "sampling_frequency")
+    start_time = PropertyAccessor("_times_and_frequencies", "start_time")
+    frequency_array = PropertyAccessor("_times_and_frequencies", "frequency_array")
+    time_array = PropertyAccessor("_times_and_frequencies", "time_array")
 
-    def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
-                 time_domain_source_model=None, parameters=None,
-                 parameter_conversion=None,
-                 waveform_arguments=None):
+    def __init__(
+        self,
+        duration=None,
+        sampling_frequency=None,
+        start_time=0,
+        frequency_domain_source_model=None,
+        time_domain_source_model=None,
+        parameters=None,
+        parameter_conversion=None,
+        waveform_arguments=None,
+    ):
         """
         The base waveform generator class.
 
@@ -59,9 +65,9 @@ class WaveformGenerator(object):
             the WaveformGenerator object and initialised to `None`.
 
         """
-        self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
-                                                                    sampling_frequency=sampling_frequency,
-                                                                    start_time=start_time)
+        self._times_and_frequencies = CoupledTimeAndFrequencySeries(
+            duration=duration, sampling_frequency=sampling_frequency, start_time=start_time
+        )
         self.frequency_domain_source_model = frequency_domain_source_model
         self.time_domain_source_model = time_domain_source_model
         self.source_parameter_keys = self._parameters_from_source_model()
@@ -92,15 +98,16 @@ class WaveformGenerator(object):
         else:
             param_conv_name = utils.get_function_path(self.parameter_conversion)
 
-        return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
-                                         'frequency_domain_source_model={}, time_domain_source_model={}, ' \
-                                         'parameter_conversion={}, ' \
-                                         'waveform_arguments={})'\
-            .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
-                    param_conv_name, self.waveform_arguments)
+        return (
+            self.__class__.__name__
+            + f"(duration={self.duration}, sampling_frequency={self.sampling_frequency}, start_time={self.start_time}, "
+            f"frequency_domain_source_model={fdsm_name}, time_domain_source_model={tdsm_name}, "
+            f"parameter_conversion={param_conv_name}, "
+            f"waveform_arguments={self.waveform_arguments})"
+        )
 
     def frequency_domain_strain(self, parameters=None):
-        """ Wrapper to source_model.
+        """Wrapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
@@ -121,15 +128,17 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        return self._calculate_strain(model=self.frequency_domain_source_model,
-                                      model_data_points=self.frequency_array,
-                                      parameters=parameters,
-                                      transformation_function=utils.nfft,
-                                      transformed_model=self.time_domain_source_model,
-                                      transformed_model_data_points=self.time_array)
+        return self._calculate_strain(
+            model=self.frequency_domain_source_model,
+            model_data_points=self.frequency_array,
+            parameters=parameters,
+            transformation_function=utils.nfft,
+            transformed_model=self.time_domain_source_model,
+            transformed_model_data_points=self.time_array,
+        )
 
     def time_domain_strain(self, parameters=None):
-        """ Wrapper to source_model.
+        """Wrapper to source_model.
 
         Converts self.parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the frequency_domain_source model via INFFT if no frequency_domain_source_model is
@@ -151,33 +160,46 @@ class WaveformGenerator(object):
         RuntimeError: If no source model is given
 
         """
-        return self._calculate_strain(model=self.time_domain_source_model,
-                                      model_data_points=self.time_array,
-                                      parameters=parameters,
-                                      transformation_function=utils.infft,
-                                      transformed_model=self.frequency_domain_source_model,
-                                      transformed_model_data_points=self.frequency_array)
+        return self._calculate_strain(
+            model=self.time_domain_source_model,
+            model_data_points=self.time_array,
+            parameters=parameters,
+            transformation_function=utils.infft,
+            transformed_model=self.frequency_domain_source_model,
+            transformed_model_data_points=self.frequency_array,
+        )
 
-    def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
-                          transformed_model_data_points, parameters):
+    def _calculate_strain(
+        self,
+        model,
+        model_data_points,
+        transformation_function,
+        transformed_model,
+        transformed_model_data_points,
+        parameters,
+    ):
         if parameters is None:
             parameters = self.parameters
-        if parameters == self._cache['parameters'] and self._cache['model'] == model and \
-                self._cache['transformed_model'] == transformed_model:
-            return self._cache['waveform']
+        if (
+            parameters == self._cache["parameters"]
+            and self._cache["model"] == model
+            and self._cache["transformed_model"] == transformed_model
+        ):
+            return self._cache["waveform"]
         else:
-            self._cache['parameters'] = parameters.copy()
-            self._cache['model'] = model
-            self._cache['transformed_model'] = transformed_model
+            self._cache["parameters"] = parameters.copy()
+            self._cache["model"] = model
+            self._cache["transformed_model"] = transformed_model
         parameters = self._format_parameters(parameters)
         if model is not None:
             model_strain = self._strain_from_model(model_data_points, model, parameters)
         elif transformed_model is not None:
-            model_strain = self._strain_from_transformed_model(transformed_model_data_points, transformed_model,
-                                                               transformation_function, parameters)
+            model_strain = self._strain_from_transformed_model(
+                transformed_model_data_points, transformed_model, transformation_function, parameters
+            )
         else:
             raise RuntimeError("No source model given")
-        self._cache['waveform'] = model_strain
+        self._cache["waveform"] = model_strain
         return model_strain
 
     def _strain_from_model(self, model_data_points, model, parameters):
@@ -186,9 +208,7 @@ class WaveformGenerator(object):
     def _strain_from_transformed_model(
         self, transformed_model_data_points, transformed_model, transformation_function, parameters
     ):
-        transformed_model_strain = self._strain_from_model(
-            transformed_model_data_points, transformed_model, parameters
-        )
+        transformed_model_strain = self._strain_from_model(transformed_model_data_points, transformed_model, parameters)
 
         if isinstance(transformed_model_strain, np.ndarray):
             return transformation_function(transformed_model_strain, self.sampling_frequency)
@@ -196,15 +216,14 @@ class WaveformGenerator(object):
         model_strain = dict()
         for key in transformed_model_strain:
             if transformation_function == utils.nfft:
-                model_strain[key], _ = \
-                    transformation_function(transformed_model_strain[key], self.sampling_frequency)
+                model_strain[key], _ = transformation_function(transformed_model_strain[key], self.sampling_frequency)
             else:
                 model_strain[key] = transformation_function(transformed_model_strain[key], self.sampling_frequency)
         return model_strain
 
     @property
     def parameters(self):
-        """ The dictionary of parameters for source model.
+        """The dictionary of parameters for source model.
 
         Returns
         =======
@@ -238,8 +257,7 @@ class WaveformGenerator(object):
             raise TypeError('"parameters" must be a dictionary.')
         new_parameters = parameters.copy()
         new_parameters, _ = self.parameter_conversion(new_parameters)
-        for key in self.source_parameter_keys.symmetric_difference(
-                new_parameters):
+        for key in self.source_parameter_keys.symmetric_difference(new_parameters):
             new_parameters.pop(key)
         new_parameters.update(self.waveform_arguments)
         return new_parameters
@@ -257,13 +275,13 @@ class WaveformGenerator(object):
         elif self.time_domain_source_model is not None:
             model = self.time_domain_source_model
         else:
-            raise AttributeError('Either time or frequency domain source '
-                                 'model must be provided.')
+            raise AttributeError("Either time or frequency domain source model must be provided.")
         return set(utils.infer_parameters_from_function(model))
 
 
 class LALCBCWaveformGenerator(WaveformGenerator):
-    """ A waveform generator with specific checks for LAL CBC waveforms """
+    """A waveform generator with specific checks for LAL CBC waveforms"""
+
     LAL_SIM_INSPIRAL_SPINS_FLOW = 1
 
     def __init__(self, **kwargs):
@@ -272,6 +290,7 @@ class LALCBCWaveformGenerator(WaveformGenerator):
 
     def validate_reference_frequency(self):
         from lalsimulation import SimInspiralGetSpinFreqFromApproximant
+
         waveform_approximant = self.waveform_arguments["waveform_approximant"]
         waveform_approximant_number = lalsim_GetApproximantFromString(waveform_approximant)
         if SimInspiralGetSpinFreqFromApproximant(waveform_approximant_number) == self.LAL_SIM_INSPIRAL_SPINS_FLOW:
@@ -311,7 +330,8 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         A dictionary of fixed keyword arguments to pass to the waveform generator.
         There is one required waveform argument :code:`waveform_approximant`.
 
-    .. gwsignal waveform generator: https://docs.ligo.org/lscsoft/lalsuite/lalsimulation/classlalsimulation_1_1gwsignal_1_1core_1_1waveform_1_1_gravitational_wave_generator.html  # noqa
+    # noqa: E501
+    .. gwsignal waveform generator: https://docs.ligo.org/lscsoft/lalsuite/lalsimulation/classlalsimulation_1_1gwsignal_1_1core_1_1waveform_1_1_gravitational_wave_generator.html
     """
 
     generator_pickles = False
@@ -389,11 +409,11 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             pn_amplitude_order=0,
         )
         waveform_kwargs.update(self.waveform_arguments)
-        reference_frequency = waveform_kwargs['reference_frequency']
-        minimum_frequency = waveform_kwargs['minimum_frequency']
-        maximum_frequency = waveform_kwargs['maximum_frequency']
-        mode_array = waveform_kwargs['mode_array']
-        pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
+        reference_frequency = waveform_kwargs["reference_frequency"]
+        minimum_frequency = waveform_kwargs["minimum_frequency"]
+        maximum_frequency = waveform_kwargs["maximum_frequency"]
+        mode_array = waveform_kwargs["mode_array"]
+        pn_amplitude_order = waveform_kwargs["pn_amplitude_order"]
 
         if pn_amplitude_order != 0:
             # This is to mimic the behaviour in
@@ -403,7 +423,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
                     pn_amplitude_order = 3  # Equivalent to MAX_PRECESSING_AMP_PN_ORDER in LALSimulation
                 else:
                     pn_amplitude_order = 6  # Equivalent to MAX_NONPRECESSING_AMP_PN_ORDER in LALSimulation
-            start_frequency = minimum_frequency * 2. / (pn_amplitude_order + 2)
+            start_frequency = minimum_frequency * 2.0 / (pn_amplitude_order + 2)
         else:
             start_frequency = minimum_frequency
 
@@ -426,36 +446,33 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         )
 
         gwsignal_dict = {
-            'mass1': parameters["mass_1"],
-            'mass2': parameters["mass_2"],
-            'spin1x': spin_1x,
-            'spin1y': spin_1y,
-            'spin1z': spin_1z,
-            'spin2x': spin_2x,
-            'spin2y': spin_2y,
-            'spin2z': spin_2z,
-            'lambda1': parameters["lambda_1"],
-            'lambda2': parameters["lambda_2"],
-            'deltaF': 1 / self.duration,
-            'deltaT': 1 / self.sampling_frequency,
-            'f22_start': start_frequency,
-            'f_max': maximum_frequency,
-            'f22_ref': reference_frequency,
-            'phi_ref': parameters["phase"],
-            'distance': parameters["luminosity_distance"] * 1e6,
-            'inclination': iota,
-            'eccentricity': parameters["eccentricity"],
-            'meanPerAno': parameters["mean_per_ano"],
-            'condition': int(self.generator.metadata["implemented_domain"] == 'time'),
+            "mass1": parameters["mass_1"],
+            "mass2": parameters["mass_2"],
+            "spin1x": spin_1x,
+            "spin1y": spin_1y,
+            "spin1z": spin_1z,
+            "spin2x": spin_2x,
+            "spin2y": spin_2y,
+            "spin2z": spin_2z,
+            "lambda1": parameters["lambda_1"],
+            "lambda2": parameters["lambda_2"],
+            "deltaF": 1 / self.duration,
+            "deltaT": 1 / self.sampling_frequency,
+            "f22_start": start_frequency,
+            "f_max": maximum_frequency,
+            "f22_ref": reference_frequency,
+            "phi_ref": parameters["phase"],
+            "distance": parameters["luminosity_distance"] * 1e6,
+            "inclination": iota,
+            "eccentricity": parameters["eccentricity"],
+            "meanPerAno": parameters["mean_per_ano"],
+            "condition": int(self.generator.metadata["implemented_domain"] == "time"),
         }
 
         # add astropy units to the parameters using the defaults from gwsignal
         from lalsimulation.gwsignal.core.parameter_conventions import Cosmo_units_dictionary
 
-        gwsignal_dict = {
-            key: val << Cosmo_units_dictionary.get(key, 0)
-            for key, val in gwsignal_dict.items()
-        }
+        gwsignal_dict = {key: val << Cosmo_units_dictionary.get(key, 0) for key, val in gwsignal_dict.items()}
 
         if mode_array is not None:
             gwsignal_dict.update(ModeArray=mode_array)
@@ -463,17 +480,17 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         extra_args = waveform_kwargs.copy()
 
         for key in [
-                "waveform_approximant",
-                "reference_frequency",
-                "minimum_frequency",
-                "maximum_frequency",
-                "catch_waveform_errors",
-                "mode_array",
-                "pn_spin_order",
-                "pn_amplitude_order",
-                "pn_tidal_order",
-                "pn_phase_order",
-                "numerical_relativity_file",
+            "waveform_approximant",
+            "reference_frequency",
+            "minimum_frequency",
+            "maximum_frequency",
+            "catch_waveform_errors",
+            "mode_array",
+            "pn_spin_order",
+            "pn_amplitude_order",
+            "pn_tidal_order",
+            "pn_phase_order",
+            "numerical_relativity_file",
         ]:
             if key in extra_args.keys():
                 del extra_args[key]
@@ -491,7 +508,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             GenerateFDWaveform,
             self._from_bilby_parameters(**parameters),
             self.generator,
-            self.waveform_arguments.get("catch_waveform_errors", False)
+            self.waveform_arguments.get("catch_waveform_errors", False),
         )
 
         wf = self._extract_waveform(hpc, "frequency")
@@ -500,14 +517,11 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
         minimum_frequency = self.waveform_arguments.get("minimum_frequency", 20.0)
         maximum_frequency = self.waveform_arguments.get("maximum_frequency", self.frequency_array[-1])
-        frequency_bounds = (
-            (self.frequency_array >= minimum_frequency)
-            * (self.frequency_array <= maximum_frequency)
-        )
+        frequency_bounds = (self.frequency_array >= minimum_frequency) * (self.frequency_array <= maximum_frequency)
         for key in wf:
             wf[key] *= frequency_bounds
 
-        if self.generator.metadata["implemented_domain"] == 'time':
+        if self.generator.metadata["implemented_domain"] == "time":
             dt = 1 / hpc.hp.df.value + hpc.hp.epoch.value
             time_shift = np.exp(-1j * 2 * np.pi * dt * self.frequency_array[frequency_bounds])
             for key in wf:
@@ -525,7 +539,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             GenerateTDWaveform,
             self._from_bilby_parameters(**parameters),
             self.generator,
-            self.waveform_arguments.get("catch_waveform_errors", False)
+            self.waveform_arguments.get("catch_waveform_errors", False),
         )
         return self._extract_waveform(hpc, "time")
 
@@ -547,13 +561,14 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         if len(hpc.hp) > len(array):
             logger.debug(
                 f"GWsignal waveform longer than bilby's `{kind}_array`({len(hpc.hp)} "
-                f"vs {len(array)}). Truncating GWsignal array.")
+                f"vs {len(array)}). Truncating GWsignal array."
+            )
             # set slice to force the output into a numpy array
-            h_plus[:] = hpc.hp[:len(h_plus)]
-            h_cross[:] = hpc.hc[:len(h_cross)]
+            h_plus[:] = hpc.hp[: len(h_plus)]
+            h_cross[:] = hpc.hc[: len(h_cross)]
         else:
-            h_plus[:len(hpc.hp)] = hpc.hp
-            h_cross[:len(hpc.hc)] = hpc.hc
+            h_plus[: len(hpc.hp)] = hpc.hp
+            h_cross[: len(hpc.hc)] = hpc.hc
 
         return dict(plus=h_plus, cross=h_cross)
 

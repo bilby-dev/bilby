@@ -3,6 +3,7 @@
 This example demonstrates how to simulate some data, add an injected signal
 and plot the data.
 """
+
 from bilby.core.utils.random import seed
 from bilby.gw.detector import get_empty_interferometer
 from bilby.gw.source import lal_binary_black_hole
@@ -34,9 +35,7 @@ injection_parameters = dict(
     dec=-1.2108,
 )
 
-waveform_arguments = dict(
-    waveform_approximant="IMRPhenomTPHM", reference_frequency=50.0
-)
+waveform_arguments = dict(waveform_approximant="IMRPhenomTPHM", reference_frequency=50.0)
 
 waveform_generator = WaveformGenerator(
     duration=duration,
@@ -48,9 +47,7 @@ waveform_generator = WaveformGenerator(
 hf_signal = waveform_generator.frequency_domain_strain(injection_parameters)
 
 ifo = get_empty_interferometer("H1")
-ifo.set_strain_data_from_power_spectral_density(
-    duration=duration, sampling_frequency=sampling_frequency
-)
+ifo.set_strain_data_from_power_spectral_density(duration=duration, sampling_frequency=sampling_frequency)
 ifo.inject_signal(injection_polarizations=hf_signal, parameters=injection_parameters)
 
 t0 = injection_parameters["geocent_time"]

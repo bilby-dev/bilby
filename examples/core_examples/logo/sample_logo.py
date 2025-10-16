@@ -1,4 +1,5 @@
-""" Script used to generate the samples for the bilby logo """
+"""Script used to generate the samples for the bilby logo"""
+
 import bilby
 import numpy as np
 import scipy.interpolate as si
@@ -15,7 +16,7 @@ class Likelihood(bilby.core.likelihood.Likelihood):
 
 
 for letter in ["B", "I", "L", "Y"]:
-    img = 1 - io.imread("{}.png".format(letter), as_gray=True)[::-1, :]
+    img = 1 - io.imread(f"{letter}.png", as_gray=True)[::-1, :]
     x = np.arange(img.shape[0])
     y = np.arange(img.shape[1])
     interp = si.RectBivariateSpline(x, y, img, kx=1, ky=1)

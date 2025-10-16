@@ -78,7 +78,7 @@ class Kombine(Emcee):
         autoburnin=False,
         **kwargs,
     ):
-        super(Kombine, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -140,8 +140,7 @@ class Kombine(Emcee):
         init_kwargs = {
             key: value
             for key, value in self.kwargs.items()
-            if key not in self.sampler_function_kwargs
-            and key not in self.sampler_burnin_kwargs
+            if key not in self.sampler_function_kwargs and key not in self.sampler_burnin_kwargs
         }
         init_kwargs.pop("burnin_verbose")
         init_kwargs["lnpostfn"] = _evaluator.call_emcee
@@ -183,9 +182,7 @@ class Kombine(Emcee):
                 self.sampler.burnin(**self.sampler_burnin_kwargs)
                 self.kwargs["iterations"] += self._previous_iterations
                 self.nburn = self._previous_iterations
-                logger.info(
-                    f"Kombine auto-burnin complete. Removing {self.nburn} samples from chains"
-                )
+                logger.info(f"Kombine auto-burnin complete. Removing {self.nburn} samples from chains")
                 self._set_pos0_for_resume()
 
         from tqdm.auto import tqdm
@@ -212,15 +209,13 @@ class Kombine(Emcee):
 
         tmp_chain = self.sampler.chain[self.nburn :, :, :].copy()
         self.result.samples = tmp_chain.reshape((-1, self.ndim))
-        self.result.walkers = self.sampler.chain.reshape(
-            (self.nwalkers, self.nsteps, self.ndim)
-        )
+        self.result.walkers = self.sampler.chain.reshape((self.nwalkers, self.nsteps, self.ndim))
         return self.result
 
     def _setup_pool(self):
         from kombine import SerialPool
 
-        super(Kombine, self)._setup_pool()
+        super()._setup_pool()
         if self.pool is None:
             self.pool = SerialPool()
 
@@ -229,4 +224,4 @@ class Kombine(Emcee):
 
         if isinstance(self.pool, SerialPool):
             self.pool = None
-        super(Kombine, self)._close_pool()
+        super()._close_pool()

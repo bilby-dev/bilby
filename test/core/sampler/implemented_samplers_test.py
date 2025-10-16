@@ -1,5 +1,6 @@
-from bilby.core.sampler import IMPLEMENTED_SAMPLERS, ImplementedSamplers
 import pytest
+
+from bilby.core.sampler import IMPLEMENTED_SAMPLERS, ImplementedSamplers
 
 
 def test_singleton():
@@ -20,10 +21,8 @@ def test_allowed_keys():
 
 def test_values():
     # Values and keys should have the same lengths
-    assert len(list(IMPLEMENTED_SAMPLERS.values())) \
-        == len(list(IMPLEMENTED_SAMPLERS.keys()))
-    assert len(list(IMPLEMENTED_SAMPLERS.values())) \
-        == len(list(IMPLEMENTED_SAMPLERS._samplers.values()))
+    assert len(list(IMPLEMENTED_SAMPLERS.values())) == len(list(IMPLEMENTED_SAMPLERS.keys()))
+    assert len(list(IMPLEMENTED_SAMPLERS.values())) == len(list(IMPLEMENTED_SAMPLERS._samplers.values()))
 
 
 def test_items():

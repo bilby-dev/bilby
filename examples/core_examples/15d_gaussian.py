@@ -273,12 +273,7 @@ outdir = "outdir"
 
 likelihood = AnalyticalMultidimensionalCovariantGaussian(mean, cov)
 priors = bilby.core.prior.PriorDict()
-priors.update(
-    {
-        "x{0}".format(i): bilby.core.prior.Uniform(-5, 5, "x{0}".format(i))
-        for i in range(dim)
-    }
-)
+priors.update({f"x{i}": bilby.core.prior.Uniform(-5, 5, f"x{i}") for i in range(dim)})
 
 result = bilby.run_sampler(
     likelihood=likelihood,
@@ -290,27 +285,18 @@ result = bilby.run_sampler(
     resume=True,
 )
 
-result.plot_corner(parameters={"x{0}".format(i): mean[i] for i in range(dim)})
+result.plot_corner(parameters={f"x{i}": mean[i] for i in range(dim)})
 
 # The prior is constant and flat, and the likelihood is normalised such that the area under it is one.
 # The analytical evidence is then given as 1/(prior volume)
 
-log_prior_vol = np.sum(
-    np.log([prior.maximum - prior.minimum for key, prior in priors.items()])
-)
+log_prior_vol = np.sum(np.log([prior.maximum - prior.minimum for key, prior in priors.items()]))
 log_evidence = -log_prior_vol
 
-sampled_std = [
-    np.std(result.posterior[param]) for param in result.search_parameter_keys
-]
+sampled_std = [np.std(result.posterior[param]) for param in result.search_parameter_keys]
 
 logger.info("Analytic log evidence: " + str(log_evidence))
-logger.info(
-    "Sampled log evidence:  "
-    + str(result.log_evidence)
-    + " +/- "
-    + str(result.log_evidence_err)
-)
+logger.info("Sampled log evidence:  " + str(result.log_evidence) + " +/- " + str(result.log_evidence_err))
 
 for i, search_parameter_key in enumerate(result.search_parameter_keys):
     logger.info(search_parameter_key)
@@ -327,12 +313,7 @@ mean_2 = -4 * np.sqrt(np.diag(cov))
 
 likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(mean_1, mean_2, cov)
 priors = bilby.core.prior.PriorDict()
-priors.update(
-    {
-        "x{0}".format(i): bilby.core.prior.Uniform(-5, 5, "x{0}".format(i))
-        for i in range(dim)
-    }
-)
+priors.update({f"x{i}": bilby.core.prior.Uniform(-5, 5, f"x{i}") for i in range(dim)})
 
 result = bilby.run_sampler(
     likelihood=likelihood,
@@ -344,17 +325,15 @@ result = bilby.run_sampler(
     resume=True,
 )
 result.plot_corner(
-    parameters={"x{0}".format(i): mean_1[i] for i in range(dim)},
+    parameters={f"x{i}": mean_1[i] for i in range(dim)},
     filename=outdir + "/multidim_gaussian_bimodal_mode_1",
 )
 result.plot_corner(
-    parameters={"x{0}".format(i): mean_2[i] for i in range(dim)},
+    parameters={f"x{i}": mean_2[i] for i in range(dim)},
     filename=outdir + "/multidim_gaussian_bimodal_mode_2",
 )
 
-log_prior_vol = np.sum(
-    np.log([prior.maximum - prior.minimum for key, prior in priors.items()])
-)
+log_prior_vol = np.sum(np.log([prior.maximum - prior.minimum for key, prior in priors.items()]))
 log_evidence = -log_prior_vol
 sampled_std_1 = []
 sampled_std_2 = []
@@ -366,21 +345,10 @@ for param in result.search_parameter_keys:
     sampled_std_2.append(np.std(samples_2))
 
 logger.info("Analytic log evidence: " + str(log_evidence))
-logger.info(
-    "Sampled log evidence:  "
-    + str(result.log_evidence)
-    + " +/- "
-    + str(result.log_evidence_err)
-)
+logger.info("Sampled log evidence:  " + str(result.log_evidence) + " +/- " + str(result.log_evidence_err))
 
 for i, search_parameter_key in enumerate(result.search_parameter_keys):
     logger.info(search_parameter_key)
-    logger.info(
-        "Expected posterior standard deviation both modes: " + str(likelihood.sigma[i])
-    )
-    logger.info(
-        "Sampled posterior standard deviation first mode:  " + str(sampled_std_1[i])
-    )
-    logger.info(
-        "Sampled posterior standard deviation second mode:  " + str(sampled_std_2[i])
-    )
+    logger.info("Expected posterior standard deviation both modes: " + str(likelihood.sigma[i]))
+    logger.info("Sampled posterior standard deviation first mode:  " + str(sampled_std_1[i]))
+    logger.info("Sampled posterior standard deviation second mode:  " + str(sampled_std_2[i]))

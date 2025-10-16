@@ -19,34 +19,26 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         del self.asd_array
 
     def test_init_with_asd_array(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, asd_array=self.asd_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_init_with_psd_array(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_setting_asd_array_after_init(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.asd_array = self.asd_array
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
 
     def test_setting_psd_array_after_init(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.psd_array = self.psd_array
         self.assertTrue(np.array_equal(self.frequency_array, psd.frequency_array))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
@@ -54,16 +46,12 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
 
     def test_power_spectral_density_interpolated_from_asd_array(self):
         expected = np.array([25.0])
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, asd_array=self.asd_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_array=self.asd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_power_spectral_density_interpolated_from_psd_array(self):
         expected = np.array([25.0])
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
         self.assertEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_array(self):
@@ -81,11 +69,10 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
     def test_repr(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
-        )
-        expected = "PowerSpectralDensity(frequency_array={}, psd_array={}, asd_array={})".format(
-            self.frequency_array, self.psd_array, self.asd_array
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_array=self.psd_array)
+        expected = (
+            f"PowerSpectralDensity(frequency_array={self.frequency_array}, "
+            f"psd_array={self.psd_array}, asd_array={self.asd_array})"
         )
         self.assertEqual(expected, repr(psd))
 
@@ -94,12 +81,8 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
     def setUp(self):
         self.dir = os.path.join(os.path.dirname(__file__), "noise_curves")
         os.mkdir(self.dir)
-        self.asd_file = os.path.join(
-            os.path.dirname(__file__), "noise_curves", "asd_test_file.txt"
-        )
-        self.psd_file = os.path.join(
-            os.path.dirname(__file__), "noise_curves", "psd_test_file.txt"
-        )
+        self.asd_file = os.path.join(os.path.dirname(__file__), "noise_curves", "asd_test_file.txt")
+        self.psd_file = os.path.join(os.path.dirname(__file__), "noise_curves", "psd_test_file.txt")
         with open(self.asd_file, "w") as f:
             f.write("1.\t1.0e-21\n2.\t2.0e-21\n3.\t3.0e-21")
         with open(self.psd_file, "w") as f:
@@ -119,34 +102,26 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         del self.psd_file
 
     def test_init_with_psd_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_file=self.psd_file
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
 
     def test_init_with_asd_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, asd_file=self.asd_file
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
 
     def test_setting_psd_array_after_init(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.psd_file = self.psd_file
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
 
     def test_init_with_asd_array_after_init(self):
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array)
         psd.asd_file = self.asd_file
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
@@ -154,34 +129,22 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
 
     def test_power_spectral_density_interpolated_from_asd_file(self):
         expected = np.array([4.0e-42])
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, asd_file=self.asd_file
-        )
-        self.assertTrue(
-            np.allclose(
-                expected, psd.power_spectral_density_interpolated(2), atol=1e-60
-            )
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, asd_file=self.asd_file)
+        self.assertTrue(np.allclose(expected, psd.power_spectral_density_interpolated(2), atol=1e-60))
 
     def test_power_spectral_density_interpolated_from_psd_file(self):
         expected = np.array([4.0e-42])
-        psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_file=self.psd_file
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity(frequency_array=self.frequency_array, psd_file=self.psd_file)
         self.assertAlmostEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(
-            asd_file=self.asd_file
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(asd_file=self.asd_file)
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
         self.assertTrue(np.array_equal(self.asd_array, psd.asd_array))
 
     def test_from_power_spectral_density_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_file(
-            psd_file=self.psd_file
-        )
+        psd = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_file(psd_file=self.psd_file)
         self.assertEqual(self.psd_file, psd.psd_file)
         self.assertTrue(np.array_equal(self.psd_array, psd.psd_array))
         self.assertTrue(np.allclose(self.asd_array, psd.asd_array, atol=1e-30))
@@ -218,26 +181,18 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
     def test_from_frame_file(self):
         expected_frequency_array = np.array([1.0, 2.0, 3.0])
         expected_psd_array = np.array([16.0, 25.0, 36.0])
-        with mock.patch(
-            "bilby.gw.detector.InterferometerStrainData.set_from_frame_file"
-        ) as _:
-            with mock.patch(
-                "bilby.gw.detector.InterferometerStrainData.create_power_spectral_density"
-            ) as n:
+        with mock.patch("bilby.gw.detector.InterferometerStrainData.set_from_frame_file") as _:
+            with mock.patch("bilby.gw.detector.InterferometerStrainData.create_power_spectral_density") as n:
                 n.return_value = expected_frequency_array, expected_psd_array
                 psd = bilby.gw.detector.PowerSpectralDensity.from_frame_file(
                     frame_file=self.asd_file, psd_start_time=0, psd_duration=4
                 )
-                self.assertTrue(
-                    np.array_equal(expected_frequency_array, psd.frequency_array)
-                )
+                self.assertTrue(np.array_equal(expected_frequency_array, psd.frequency_array))
                 self.assertTrue(np.array_equal(expected_psd_array, psd.psd_array))
 
     def test_repr(self):
         psd = bilby.gw.detector.PowerSpectralDensity(psd_file=self.psd_file)
-        expected = "PowerSpectralDensity(psd_file='{}', asd_file='{}')".format(
-            self.psd_file, None
-        )
+        expected = f"PowerSpectralDensity(psd_file='{self.psd_file}', asd_file='{None}')"
         self.assertEqual(expected, repr(psd))
 
 

@@ -1,23 +1,26 @@
-import os
 import copy
-import shutil
-import unittest
-import inspect
 import importlib
+import inspect
+import os
+import shutil
 import sys
 import time
-import bilby
-from bilby.bilby_mcmc.chain import Chain, Sample
-from bilby.bilby_mcmc import proposals
-from bilby.bilby_mcmc.utils import LOGLKEY, LOGPKEY
+import unittest
+
 import numpy as np
 import pytest
 
+import bilby
+from bilby.bilby_mcmc import proposals
+from bilby.bilby_mcmc.chain import Chain, Sample
+from bilby.bilby_mcmc.utils import LOGLKEY, LOGPKEY
+
 
 class GivenProposal(proposals.BaseProposal):
-    """ A simple proposal class used for testing """
+    """A simple proposal class used for testing"""
+
     def __init__(self, priors, weight=1, subset=None, sigma=0.01):
-        super(GivenProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
 
     def propose(self, chain):
         log_factor = 0
@@ -26,10 +29,9 @@ class GivenProposal(proposals.BaseProposal):
 
 class TestBaseProposals(unittest.TestCase):
     def create_priors(self, ndim=2, boundary=None):
-        priors = bilby.core.prior.PriorDict({
-            f'x{i}': bilby.core.prior.Uniform(-10, 10, name=f'x{i}', boundary=boundary)
-            for i in range(ndim)
-        })
+        priors = bilby.core.prior.PriorDict(
+            {f"x{i}": bilby.core.prior.Uniform(-10, 10, name=f"x{i}", boundary=boundary) for i in range(ndim)}
+        )
         priors["fixedA"] = bilby.core.prior.DeltaFunction(1)
         priors["infinite_support"] = bilby.core.prior.Normal(0, 1)
         priors["half_infinite_support"] = bilby.core.prior.HalfNormal(1)
@@ -110,9 +112,7 @@ class TestProposals(TestBaseProposals):
             shutil.rmtree(self.outdir)
 
     def get_simple_proposals(self):
-        clsmembers = inspect.getmembers(
-            sys.modules[proposals.__name__], inspect.isclass
-        )
+        clsmembers = inspect.getmembers(sys.modules[proposals.__name__], inspect.isclass)
         clsmembers_clean = []
         for name, cls in clsmembers:
             a = "Proposal" in name
@@ -130,7 +130,7 @@ class TestProposals(TestBaseProposals):
 
     def proposal_check(self, prop, ndim=2, N=100):
         chain = self.create_chain(ndim=ndim)
-        if getattr(prop, 'needs_likelihood_and_priors', False):
+        if getattr(prop, "needs_likelihood_and_priors", False):
             return
 
         print(f"Testing {prop.__class__.__name__}")

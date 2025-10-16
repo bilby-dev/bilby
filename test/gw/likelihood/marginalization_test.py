@@ -1,16 +1,17 @@
 import itertools
 import os
-import pytest
 import unittest
 from copy import deepcopy
 from itertools import product
-from parameterized import parameterized
 
 import numpy as np
-import bilby
-from bilby.gw.detector import calibration
+import pytest
+from parameterized import parameterized
 from scipy.integrate import trapezoid
 from scipy.special import logsumexp
+
+import bilby
+from bilby.gw.detector import calibration
 
 
 class TestMarginalizedLikelihood(unittest.TestCase):
@@ -166,6 +167,7 @@ class TestMarginalizations(unittest.TestCase):
     For time, this is strongly dependent on the specific time grid used.
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
+
     _parameters = product(
         ["regular", "roq", "relbin", "multiband"],
         ["luminosity_distance", "geocent_time", "phase"],
@@ -218,16 +220,13 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
-        self.interferometers.inject_signal(
-            parameters=self.parameters, waveform_generator=self.waveform_generator
-        )
+        self.interferometers.inject_signal(parameters=self.parameters, waveform_generator=self.waveform_generator)
 
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors["geocent_time"] = bilby.prior.Uniform(
-            minimum=self.parameters["geocent_time"] - 0.1,
-            maximum=self.parameters["geocent_time"] + 0.1
+            minimum=self.parameters["geocent_time"] - 0.1, maximum=self.parameters["geocent_time"] + 0.1
         )
 
         trial_roq_paths = [
@@ -253,7 +252,7 @@ class TestMarginalizations(unittest.TestCase):
                 waveform_approximant="IMRPhenomPv2",
                 frequency_nodes_linear=np.load(f"{roq_dir}/fnodes_linear.npy"),
                 frequency_nodes_quadratic=np.load(f"{roq_dir}/fnodes_quadratic.npy"),
-            )
+            ),
         )
         self.roq_linear_matrix_file = f"{roq_dir}/B_linear.npy"
         self.roq_quadratic_matrix_file = f"{roq_dir}/B_quadratic.npy"
@@ -267,7 +266,7 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
 
         self.multiband_waveform_generator = bilby.gw.WaveformGenerator(
@@ -278,7 +277,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
 
     def tearDown(self):
@@ -316,11 +315,13 @@ class TestMarginalizations(unittest.TestCase):
             priors=priors,
         )
         if kind == "roq":
-            kwargs.update(dict(
-                linear_matrix=self.roq_linear_matrix_file,
-                quadratic_matrix=self.roq_quadratic_matrix_file,
-                waveform_generator=self.roq_waveform_generator,
-            ))
+            kwargs.update(
+                dict(
+                    linear_matrix=self.roq_linear_matrix_file,
+                    quadratic_matrix=self.roq_quadratic_matrix_file,
+                    waveform_generator=self.roq_waveform_generator,
+                )
+            )
             if os.path.exists(self.__class__.path_to_roq_weights):
                 kwargs["weights"] = self.__class__.path_to_roq_weights
         elif kind == "relbin":
@@ -328,19 +329,13 @@ class TestMarginalizations(unittest.TestCase):
             kwargs["waveform_generator"] = self.relbin_waveform_generator
         elif kind == "multiband":
             kwargs["waveform_generator"] = self.multiband_waveform_generator
-            kwargs["reference_chirp_mass"] = (
-                (self.parameters["mass_1"] * self.parameters["mass_2"])**0.6 /
-                (self.parameters["mass_1"] + self.parameters["mass_2"])**0.2
-            )
+            kwargs["reference_chirp_mass"] = (self.parameters["mass_1"] * self.parameters["mass_2"]) ** 0.6 / (
+                self.parameters["mass_1"] + self.parameters["mass_2"]
+            ) ** 0.2
         return kwargs
 
     def get_likelihood(
-        self,
-        kind,
-        time_marginalization=False,
-        phase_marginalization=False,
-        distance_marginalization=False,
-        priors=None
+        self, kind, time_marginalization=False, phase_marginalization=False, distance_marginalization=False, priors=None
     ):
         kwargs = self.likelihood_kwargs(
             kind, time_marginalization, phase_marginalization, distance_marginalization, priors
@@ -382,18 +377,14 @@ class TestMarginalizations(unittest.TestCase):
         like = np.exp(ln_likes - max(ln_likes))
 
         marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
-        self.assertAlmostEqual(
-            marg_like, marginalized.log_likelihood_ratio(), delta=0.5
-        )
+        self.assertAlmostEqual(marg_like, marginalized.log_likelihood_ratio(), delta=0.5)
 
     @parameterized.expand(
         _parameters,
         name_func=lambda func, num, param: (
-            f"{func.__name__}_{num}__{param.args[0]}_{param.args[1]}_" + "_".join([
-                ["D", "T", "P"][ii] for ii, val
-                in enumerate(param.args[-3:]) if val
-            ])
-        )
+            f"{func.__name__}_{num}__{param.args[0]}_{param.args[1]}_"
+            + "_".join([["D", "T", "P"][ii] for ii, val in enumerate(param.args[-3:]) if val])
+        ),
     )
     def test_marginalisation(self, kind, key, distance, time, phase):
         if all([distance, time, phase]):
@@ -437,11 +428,9 @@ class TestMarginalizations(unittest.TestCase):
     @parameterized.expand(
         itertools.product(["regular", "roq", "relbin", "multiband"], *itertools.repeat([True, False], 3)),
         name_func=lambda func, num, param: (
-            f"{func.__name__}_{num}__{param.args[0]}_" + "_".join([
-                ["D", "P", "T"][ii] for ii, val
-                in enumerate(param.args[1:]) if val
-            ])
-        )
+            f"{func.__name__}_{num}__{param.args[0]}_"
+            + "_".join([["D", "P", "T"][ii] for ii, val in enumerate(param.args[1:]) if val])
+        ),
     )
     def test_marginalization_reconstruction(self, kind, distance, phase, time):
         marginalizations = dict(
@@ -470,12 +459,9 @@ class TestMarginalizations(unittest.TestCase):
 
 
 class CalibrationMarginalization(unittest.TestCase):
-
     def setUp(self):
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        self.ifos.set_strain_data_from_power_spectral_densities(
-            duration=4, sampling_frequency=1024
-        )
+        self.ifos.set_strain_data_from_power_spectral_densities(duration=4, sampling_frequency=1024)
         self.ifos[0].calibration_model = calibration.CubicSpline(
             prefix="recalib_H1_",
             minimum_frequency=20,
@@ -492,14 +478,16 @@ class CalibrationMarginalization(unittest.TestCase):
         )
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors["geocent_time"] = bilby.core.prior.Uniform(0, 4)
-        self.priors.update(bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
-            amplitude_sigma=0.1,
-            phase_sigma=0.1,
-            minimum_frequency=20,
-            maximum_frequency=512,
-            n_nodes=5,
-            label="H1",
-        ))
+        self.priors.update(
+            bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+                amplitude_sigma=0.1,
+                phase_sigma=0.1,
+                minimum_frequency=20,
+                maximum_frequency=512,
+                n_nodes=5,
+                label="H1",
+            )
+        )
         self.wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,

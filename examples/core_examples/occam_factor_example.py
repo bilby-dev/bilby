@@ -30,6 +30,7 @@ Note - the code uses a course 100-point estimation for speed, results can be
 improved by increasing this to say 500 or 1000.
 
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -56,7 +57,7 @@ ax.plot(time, np.polyval(coeffs, time), label="true signal", color="C1")
 ax.set_xlabel("time")
 ax.set_ylabel("y")
 ax.legend()
-fig.savefig("{}/{}_data.png".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_data.png")
 
 
 class Polynomial(bilby.Likelihood):
@@ -73,7 +74,7 @@ class Polynomial(bilby.Likelihood):
         n: int
             The degree of the polynomial to fit.
         """
-        self.keys = ["c{}".format(k) for k in range(n)]
+        self.keys = [f"c{k}" for k in range(n)]
         super().__init__()
         self.x = x
         self.y = y
@@ -87,17 +88,14 @@ class Polynomial(bilby.Likelihood):
 
     def log_likelihood(self, parameters):
         res = self.y - self.polynomial(self.x, parameters)
-        return -0.5 * (
-            np.sum((res / self.sigma) ** 2)
-            + self.N * np.log(2 * np.pi * self.sigma**2)
-        )
+        return -0.5 * (np.sum((res / self.sigma) ** 2) + self.N * np.log(2 * np.pi * self.sigma**2))
 
 
 def fit(n):
     likelihood = Polynomial(time, data, sigma, n)
     priors = {}
     for i in range(n):
-        k = "c{}".format(i)
+        k = f"c{i}"
         priors[k] = bilby.core.prior.Uniform(0, 10, k)
 
     result = bilby.run_sampler(
@@ -137,4 +135,4 @@ ax2.tick_params("y", colors="C1")
 ax2.set_ylabel("Occam factor", color="C1")
 ax1.set_xlabel("Degree of polynomial")
 
-fig.savefig("{}/{}_test".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_test")

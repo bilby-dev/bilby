@@ -7,6 +7,7 @@ This example estimates the masses using a uniform prior in chirp mass,
 mass ratio and redshift.
 The cosmology is according to the Planck 2015 data release.
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed
@@ -60,9 +61,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 
 # Set up prior
 # Note it is possible to sample in different parameters to those that were
@@ -75,9 +74,7 @@ priors["symmetric_mass_ratio"] = bilby.prior.Uniform(
 )
 
 del priors["luminosity_distance"]
-priors["redshift"] = bilby.prior.Uniform(
-    name="redshift", latex_label="$z$", minimum=0, maximum=0.5
-)
+priors["redshift"] = bilby.prior.Uniform(name="redshift", latex_label="$z$", minimum=0, maximum=0.5)
 # These parameters will not be sampled
 for key in [
     "a_1",
@@ -98,9 +95,7 @@ priors["cos_theta_jn"] = np.cos(injection_parameters["theta_jn"])
 print(priors)
 
 # Initialise GravitationalWaveTransient
-likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator
-)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler
 # Note we've added a post-processing conversion function, this will generate

@@ -39,6 +39,7 @@ specify which method is being used as :code:`"data"` for :math:`\eta` or
     :code:`"data"` convention.
 
 """
+
 import copy
 import os
 
@@ -46,8 +47,8 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
-from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
+from ...core.utils.log import logger
 from ..prior import CalibrationPriorDict
 
 
@@ -64,18 +65,13 @@ def _check_calibration_correction_type(correction_type):
         correction_type = "data"
     if correction_type.lower() not in ["data", "template"]:
         raise ValueError(
-            "Calibration envelope correction should be one of 'data' or "
-            f"'template', found {correction_type}."
+            f"Calibration envelope correction should be one of 'data' or 'template', found {correction_type}."
         )
-    logger.debug(
-        f"Supplied calibration correction will be applied to the {correction_type}"
-    )
+    logger.debug(f"Supplied calibration correction will be applied to the {correction_type}")
     return correction_type
 
 
-def read_calibration_file(
-    filename, frequency_array, number_of_response_curves, starting_index=0, correction_type=None
-):
+def read_calibration_file(filename, frequency_array, number_of_response_curves, starting_index=0, correction_type=None):
     r"""
     Function to read the hdf5 files from the calibration group containing the
     physical calibration response curves.
@@ -112,21 +108,21 @@ def read_calibration_file(
     correction_type = _check_calibration_correction_type(correction_type=correction_type)
 
     logger.info(f"Reading calibration draws from {filename}")
-    with h5py.File(filename, 'r') as calibration_file:
+    with h5py.File(filename, "r") as calibration_file:
         try:
-            dr = calibration_file['deltaR']
+            dr = calibration_file["deltaR"]
         except KeyError:
             raise KeyError(f"File {filename} does not contain 'deltaR' group.")
 
         # slice draws according to starting_index and number_of_response_curves
-        calibration_amplitude = dr['draws_amp_rel'][starting_index: starting_index + number_of_response_curves]
-        calibration_phase = dr['draws_phase'][starting_index: starting_index + number_of_response_curves]
-        calibration_frequencies = dr['freq'][:]
+        calibration_amplitude = dr["draws_amp_rel"][starting_index : starting_index + number_of_response_curves]
+        calibration_phase = dr["draws_phase"][starting_index : starting_index + number_of_response_curves]
+        calibration_frequencies = dr["freq"][:]
 
         # read parameter draws if present; stored under CalParams/table as a structured dataset
         parameter_draws = None
-        if 'CalParams' in calibration_file and 'table' in calibration_file['CalParams']:
-            table_ds = calibration_file['CalParams']['table']
+        if "CalParams" in calibration_file and "table" in calibration_file["CalParams"]:
+            table_ds = calibration_file["CalParams"]["table"]
             try:
                 rec = np.array(table_ds)
                 # convert structured array to DataFrame
@@ -138,8 +134,8 @@ def read_calibration_file(
     # combine into complex responses and interpolate to requested frequency array
     calibration_draws = calibration_amplitude * np.exp(1j * calibration_phase)
     calibration_draws = interp1d(
-        calibration_frequencies, calibration_draws, kind='cubic',
-        bounds_error=False, fill_value=1)(frequency_array)
+        calibration_frequencies, calibration_draws, kind="cubic", bounds_error=False, fill_value=1
+    )(frequency_array)
     if correction_type == "data":
         calibration_draws = 1 / calibration_draws
 
@@ -183,31 +179,30 @@ def write_calibration_file(
 
     logger.info(f"Writing calibration draws to {filename}")
     # overwrite/create the file
-    with h5py.File(filename, 'w') as calibration_file:
-        deltaR_group = calibration_file.create_group('deltaR')
+    with h5py.File(filename, "w") as calibration_file:
+        deltaR_group = calibration_file.create_group("deltaR")
 
         # Save output: amplitude and phase arrays
         amp = np.abs(calibration_draws)
         phase = np.angle(calibration_draws)
-        deltaR_group.create_dataset('draws_amp_rel', data=amp, dtype=np.float64, compression='gzip')
-        deltaR_group.create_dataset('draws_phase', data=phase, dtype=np.float64, compression='gzip')
-        deltaR_group.create_dataset('freq', data=frequency_array, dtype=np.float64)
+        deltaR_group.create_dataset("draws_amp_rel", data=amp, dtype=np.float64, compression="gzip")
+        deltaR_group.create_dataset("draws_phase", data=phase, dtype=np.float64, compression="gzip")
+        deltaR_group.create_dataset("freq", data=frequency_array, dtype=np.float64)
 
         # Save calibration parameter draws (DataFrame) if provided. Store as a structured
         # dataset under CalParams/table so it can be read back into a DataFrame.
         if calibration_parameter_draws is not None:
-            cp_group = calibration_file.create_group('CalParams')
+            cp_group = calibration_file.create_group("CalParams")
             # convert DataFrame to a numpy recarray / structured array
             rec = calibration_parameter_draws.to_records(index=False)
             # create dataset
-            cp_group.create_dataset('table', data=rec, compression='gzip')
+            cp_group.create_dataset("table", data=rec, compression="gzip")
 
 
-class Recalibrate(object):
+class Recalibrate:
+    name = "none"
 
-    name = 'none'
-
-    def __init__(self, prefix='recalib_'):
+    def __init__(self, prefix="recalib_"):
         """
         Base calibration object. This applies no transformation
 
@@ -220,7 +215,7 @@ class Recalibrate(object):
         self.prefix = prefix
 
     def __repr__(self):
-        return self.__class__.__name__ + '(prefix=\'{}\')'.format(self.prefix)
+        return self.__class__.__name__ + f"(prefix='{self.prefix}')"
 
     def get_calibration_factor(self, frequency_array, **params):
         """Apply calibration model
@@ -243,16 +238,14 @@ class Recalibrate(object):
         return np.ones_like(frequency_array)
 
     def set_calibration_parameters(self, **params):
-        self.params.update({key[len(self.prefix):]: params[key] for key in params
-                            if self.prefix in key})
+        self.params.update({key[len(self.prefix) :]: params[key] for key in params if self.prefix in key})
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
 
 class CubicSpline(Recalibrate):
-
-    name = 'cubic_spline'
+    name = "cubic_spline"
 
     def __init__(self, prefix, minimum_frequency, maximum_frequency, n_points):
         """
@@ -274,14 +267,13 @@ class CubicSpline(Recalibrate):
         n_points: int
             number of spline points
         """
-        super(CubicSpline, self).__init__(prefix=prefix)
+        super().__init__(prefix=prefix)
         if n_points < 4:
-            raise ValueError('Cubic spline calibration requires at least 4 spline nodes.')
+            raise ValueError("Cubic spline calibration requires at least 4 spline nodes.")
         self.n_points = n_points
         self.minimum_frequency = minimum_frequency
         self.maximum_frequency = maximum_frequency
-        self._log_spline_points = np.linspace(
-            np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
+        self._log_spline_points = np.linspace(np.log10(minimum_frequency), np.log10(maximum_frequency), n_points)
 
     @property
     def delta_log_spline_points(self):
@@ -325,8 +317,11 @@ class CubicSpline(Recalibrate):
         return self._log_spline_points
 
     def __repr__(self):
-        return self.__class__.__name__ + '(prefix=\'{}\', minimum_frequency={}, maximum_frequency={}, n_points={})'\
-            .format(self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points)
+        return (
+            self.__class__.__name__
+            + f"(prefix='{self.prefix}', minimum_frequency={self.minimum_frequency}, "
+            + f"maximum_frequency={self.maximum_frequency}, n_points={self.n_points})"
+        )
 
     def _evaluate_spline(self, kind, a, b, c, d, previous_nodes):
         """Evaluate Eq. (1) in https://dcc.ligo.org/LIGO-T2300140"""
@@ -358,9 +353,7 @@ class CubicSpline(Recalibrate):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        log10f_per_deltalog10f = (
-            np.log10(frequency_array) - self.log_spline_points[0]
-        ) / self.delta_log_spline_points
+        log10f_per_deltalog10f = (np.log10(frequency_array) - self.log_spline_points[0]) / self.delta_log_spline_points
         previous_nodes = np.clip(np.floor(log10f_per_deltalog10f).astype(int), a_min=0, a_max=self.n_points - 2)
         b = log10f_per_deltalog10f - previous_nodes
         a = 1 - b
@@ -377,7 +370,6 @@ class CubicSpline(Recalibrate):
 
 
 class Precomputed(Recalibrate):
-
     name = "precomputed"
 
     def __init__(self, label, curves, frequency_array, parameters=None):
@@ -399,7 +391,7 @@ class Precomputed(Recalibrate):
         self.curves = curves
         self.frequency_array = frequency_array
         self.parameters = parameters
-        super(Precomputed, self).__init__(prefix=f"recalib_index_{self.label}")
+        super().__init__(prefix=f"recalib_index_{self.label}")
 
     def get_calibration_factor(self, frequency_array, **params):
         idx = int(params.get(self.prefix, None))
@@ -410,9 +402,7 @@ class Precomputed(Recalibrate):
         return self.curves[idx]
 
     @classmethod
-    def constant_uncertainty_spline(
-        cls, amplitude_sigma, phase_sigma, frequency_array, n_nodes, label, n_curves
-    ):
+    def constant_uncertainty_spline(cls, amplitude_sigma, phase_sigma, frequency_array, n_nodes, label, n_curves):
         priors = CalibrationPriorDict.constant_uncertainty_spline(
             amplitude_sigma=amplitude_sigma,
             phase_sigma=phase_sigma,
@@ -423,11 +413,7 @@ class Precomputed(Recalibrate):
         )
         parameters = pd.DataFrame(priors.sample(n_curves))
         curves = curves_from_spline_and_prior(
-            label=label,
-            frequency_array=frequency_array,
-            n_points=n_nodes,
-            parameters=parameters,
-            n_curves=n_curves
+            label=label, frequency_array=frequency_array, n_points=n_nodes, parameters=parameters, n_curves=n_curves
         )
         return cls(
             label=label,
@@ -437,9 +423,7 @@ class Precomputed(Recalibrate):
         )
 
     @classmethod
-    def from_envelope_file(
-        cls, envelope, frequency_array, n_nodes, label, n_curves, correction_type
-    ):
+    def from_envelope_file(cls, envelope, frequency_array, n_nodes, label, n_curves, correction_type):
         priors = CalibrationPriorDict.from_envelope_file(
             envelope_file=envelope,
             minimum_frequency=frequency_array[0],
@@ -517,10 +501,7 @@ def build_calibration_lookup(
             parameters[name][model.prefix] = idxs
         else:
             if priors is None:
-                raise ValueError(
-                    "Priors must be passed to generate calibration response curves "
-                    "for cubic spline."
-                )
+                raise ValueError("Priors must be passed to generate calibration response curves for cubic spline.")
             draws[name], parameters[name] = _generate_calibration_draws(
                 interferometer=interferometer,
                 priors=priors,
@@ -544,13 +525,15 @@ def _generate_calibration_draws(interferometer, priors, n_curves):
 
     parameters = pd.DataFrame(calibration_priors.sample(n_curves))
 
-    draws = np.array(curves_from_spline_and_prior(
-        parameters=parameters,
-        label=name,
-        n_points=interferometer.calibration_model.n_points,
-        frequency_array=frequencies,
-        n_curves=n_curves,
-    ))
+    draws = np.array(
+        curves_from_spline_and_prior(
+            parameters=parameters,
+            label=name,
+            n_points=interferometer.calibration_model.n_points,
+            frequency_array=frequencies,
+            n_curves=n_curves,
+        )
+    )
     return draws, parameters
 
 
@@ -563,8 +546,5 @@ def curves_from_spline_and_prior(parameters, label, n_points, frequency_array, n
     )
     curves = list()
     for ii in range(n_curves):
-        curves.append(spline.get_calibration_factor(
-            frequency_array=frequency_array,
-            **parameters.iloc[ii]
-        ))
+        curves.append(spline.get_calibration_factor(frequency_array=frequency_array, **parameters.iloc[ii]))
     return curves

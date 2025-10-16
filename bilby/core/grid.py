@@ -5,15 +5,19 @@ import numpy as np
 
 from .likelihood import _safe_likelihood_call
 from .prior import Prior, PriorDict
-from .utils import (
-    logtrapzexp, check_directory_exists_and_if_not_mkdir, logger,
-    BilbyJsonEncoder, load_json, move_old_file
-)
 from .result import FileMovedError
+from .utils import (
+    BilbyJsonEncoder,
+    check_directory_exists_and_if_not_mkdir,
+    load_json,
+    logger,
+    logtrapzexp,
+    move_old_file,
+)
 
 
 def grid_file_name(outdir, label, gzip=False):
-    """ Returns the standard filename used for a grid file
+    """Returns the standard filename used for a grid file
 
     Parameters
     ==========
@@ -29,15 +33,15 @@ def grid_file_name(outdir, label, gzip=False):
     str: File name of the output file
     """
     if gzip:
-        return os.path.join(outdir, '{}_grid.json.gz'.format(label))
+        return os.path.join(outdir, f"{label}_grid.json.gz")
     else:
-        return os.path.join(outdir, '{}_grid.json'.format(label))
+        return os.path.join(outdir, f"{label}_grid.json")
 
 
-class Grid(object):
-
-    def __init__(self, likelihood=None, priors=None, grid_size=101,
-                 save=False, label='no_label', outdir='.', gzip=False):
+class Grid:
+    def __init__(
+        self, likelihood=None, priors=None, grid_size=101, save=False, label="no_label", outdir=".", gzip=False
+    ):
         """
 
         Parameters
@@ -72,9 +76,8 @@ class Grid(object):
         # evaluate the prior on the grid points
         if self.n_dims > 0:
             self._ln_prior = self.priors.ln_prob(
-                {key: self.mesh_grid[i].flatten() for i, key in
-                 enumerate(self.parameter_names)}, axis=0).reshape(
-                self.mesh_grid[0].shape)
+                {key: self.mesh_grid[i].flatten() for i, key in enumerate(self.parameter_names)}, axis=0
+            ).reshape(self.mesh_grid[0].shape)
         self._ln_likelihood = None
 
         # evaluate the likelihood on the grid points
@@ -179,8 +182,7 @@ class Grid(object):
         """
 
         if name not in self.parameter_names:
-            raise ValueError("'{}' is not a recognised "
-                             "parameter".format(name))
+            raise ValueError(f"'{name}' is not a recognised parameter")
 
         if non_marg_names is None:
             non_marg_names = list(self.parameter_names)
@@ -192,9 +194,7 @@ class Grid(object):
 
         if len(places) > 1:
             dx = np.diff(places)
-            out = np.apply_along_axis(
-                logtrapzexp, axis, log_array, dx
-            )
+            out = np.apply_along_axis(logtrapzexp, axis, log_array, dx)
         else:
             # no marginalisation required, just remove the singleton dimension
             z = log_array.shape
@@ -233,8 +233,7 @@ class Grid(object):
         array-like:
             The marginalized ln likelihood.
         """
-        return self.marginalize(self.ln_likelihood, parameters=parameters,
-                                not_parameters=not_parameters)
+        return self.marginalize(self.ln_likelihood, parameters=parameters, not_parameters=not_parameters)
 
     def marginalize_ln_posterior(self, parameters=None, not_parameters=None):
         """
@@ -254,8 +253,7 @@ class Grid(object):
         array-like:
             The marginalized ln posterior.
         """
-        return self.marginalize(self.ln_posterior, parameters=parameters,
-                                not_parameters=not_parameters)
+        return self.marginalize(self.ln_posterior, parameters=parameters, not_parameters=not_parameters)
 
     def marginalize_likelihood(self, parameters=None, not_parameters=None):
         """
@@ -275,8 +273,7 @@ class Grid(object):
         array-like:
             The marginalized likelihood.
         """
-        ln_like = self.marginalize(self.ln_likelihood, parameters=parameters,
-                                   not_parameters=not_parameters)
+        ln_like = self.marginalize(self.ln_likelihood, parameters=parameters, not_parameters=not_parameters)
         # NOTE: the output will not be properly normalised
         return np.exp(ln_like - np.max(ln_like))
 
@@ -298,8 +295,7 @@ class Grid(object):
         array-like:
             The marginalized posterior.
         """
-        ln_post = self.marginalize(self.ln_posterior, parameters=parameters,
-                                   not_parameters=not_parameters)
+        ln_post = self.marginalize(self.ln_posterior, parameters=parameters, not_parameters=not_parameters)
         # NOTE: the output will not be properly normalised
         return np.exp(ln_post - np.max(ln_post))
 
@@ -310,12 +306,10 @@ class Grid(object):
 
     def _evaluate_recursion(self, dimension, parameters):
         if dimension == self.n_dims:
-            current_point = tuple([[int(np.where(
-                parameters[name] ==
-                self.sample_points[name])[0])] for name in self.parameter_names])
-            self._ln_likelihood[current_point] = _safe_likelihood_call(
-                self.likelihood, parameters
+            current_point = tuple(
+                [[int(np.where(parameters[name] == self.sample_points[name])[0])] for name in self.parameter_names]
             )
+            self._ln_likelihood[current_point] = _safe_likelihood_call(self.likelihood, parameters)
         else:
             name = self.parameter_names[dimension]
             for ii in range(self._ln_likelihood.shape[dimension]):
@@ -326,40 +320,42 @@ class Grid(object):
         for ii, key in enumerate(self.parameter_names):
             if isinstance(self.priors[key], Prior):
                 if isinstance(grid_size, int):
-                    self.sample_points[key] = self.priors[key].rescale(
-                        np.linspace(0, 1, grid_size))
+                    self.sample_points[key] = self.priors[key].rescale(np.linspace(0, 1, grid_size))
                 elif isinstance(grid_size, list):
                     if isinstance(grid_size[ii], int):
-                        self.sample_points[key] = self.priors[key].rescale(
-                            np.linspace(0, 1, grid_size[ii]))
+                        self.sample_points[key] = self.priors[key].rescale(np.linspace(0, 1, grid_size[ii]))
                     else:
                         self.sample_points[key] = grid_size[ii]
                 elif isinstance(grid_size, dict):
                     if isinstance(grid_size[key], int):
-                        self.sample_points[key] = self.priors[key].rescale(
-                            np.linspace(0, 1, grid_size[key]))
+                        self.sample_points[key] = self.priors[key].rescale(np.linspace(0, 1, grid_size[key]))
                     else:
                         self.sample_points[key] = grid_size[key]
                 else:
                     raise TypeError("Unrecognized 'grid_size' type")
 
         # set the mesh of points
-        self.mesh_grid = np.meshgrid(
-            *(self.sample_points[key] for key in self.parameter_names),
-            indexing='ij')
+        self.mesh_grid = np.meshgrid(*(self.sample_points[key] for key in self.parameter_names), indexing="ij")
 
     def _get_save_data_dictionary(self):
         # This list defines all the parameters saved in the grid object
         save_attrs = [
-            'label', 'outdir', 'parameter_names', 'n_dims', 'priors',
-            'sample_points', 'ln_likelihood', 'ln_evidence',
-            'ln_noise_evidence']
+            "label",
+            "outdir",
+            "parameter_names",
+            "n_dims",
+            "priors",
+            "sample_points",
+            "ln_likelihood",
+            "ln_evidence",
+            "ln_noise_evidence",
+        ]
         dictionary = dict()
         for attr in save_attrs:
             try:
                 dictionary[attr] = getattr(self, attr)
             except ValueError as e:
-                logger.debug("Unable to save {}, message: {}".format(attr, e))
+                logger.debug(f"Unable to save {attr}, message: {e}")
                 pass
         return dictionary
 
@@ -369,14 +365,15 @@ class Grid(object):
         try:
             check_directory_exists_and_if_not_mkdir(outdir)
         except PermissionError:
-            raise FileMovedError("Can not write in the out directory.\n"
-                                 "Did you move the here file from another system?\n"
-                                 "Try calling " + caller_func.__name__ + " with the 'outdir' "
-                                 "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
+            raise FileMovedError(
+                "Can not write in the out directory.\n"
+                "Did you move the here file from another system?\n"
+                "Try calling " + caller_func.__name__ + " with the 'outdir' "
+                "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')"
+            )
         return outdir
 
-    def save_to_file(self, filename=None, overwrite=False, outdir=None,
-                     gzip=False):
+    def save_to_file(self, filename=None, overwrite=False, outdir=None, gzip=False):
         """
         Writes the Grid to a file.
 
@@ -406,22 +403,22 @@ class Grid(object):
 
         try:
             dictionary["priors"] = dictionary["priors"]._get_json_dict()
-            if gzip or (os.path.splitext(filename)[-1] == '.gz'):
+            if gzip or (os.path.splitext(filename)[-1] == ".gz"):
                 import gzip
+
                 # encode to a string
-                json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
-                with gzip.GzipFile(filename, 'w') as file:
+                json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode("utf-8")
+                with gzip.GzipFile(filename, "w") as file:
                     file.write(json_str)
             else:
-                with open(filename, 'w') as file:
+                with open(filename, "w") as file:
                     json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
         except Exception as e:
-            logger.error("\n\n Saving the data has failed with the "
-                         "following message:\n {} \n\n".format(e))
+            logger.error(f"\n\n Saving the data has failed with the following message:\n {e} \n\n")
 
     @classmethod
     def read(cls, filename=None, outdir=None, label=None, gzip=False):
-        """ Read in a saved .json grid file
+        """Read in a saved .json grid file
 
         Parameters
         ==========
@@ -454,16 +451,20 @@ class Grid(object):
         if os.path.isfile(filename):
             dictionary = load_json(filename, gzip)
             try:
-                grid = cls(likelihood=None, priors=dictionary['priors'],
-                           grid_size=dictionary['sample_points'],
-                           label=dictionary['label'], outdir=dictionary['outdir'])
+                grid = cls(
+                    likelihood=None,
+                    priors=dictionary["priors"],
+                    grid_size=dictionary["sample_points"],
+                    label=dictionary["label"],
+                    outdir=dictionary["outdir"],
+                )
 
                 # set the likelihood
-                grid._ln_likelihood = dictionary['ln_likelihood']
-                grid.ln_noise_evidence = dictionary['ln_noise_evidence']
+                grid._ln_likelihood = dictionary["ln_likelihood"]
+                grid.ln_noise_evidence = dictionary["ln_noise_evidence"]
 
                 return grid
             except TypeError as e:
-                raise IOError("Unable to load dictionary, error={}".format(e))
+                raise OSError(f"Unable to load dictionary, error={e}")
         else:
-            raise IOError("No result '{}' found".format(filename))
+            raise OSError(f"No result '{filename}' found")

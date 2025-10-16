@@ -9,6 +9,7 @@ see [1] for information on how to access data on the LIGO Data Grid instead.
 
 [1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
 """
+
 import bilby
 from gwpy.timeseries import TimeSeries
 
@@ -63,17 +64,15 @@ psd_end_time = start_time
 # We now use gwpy to obtain analysis and psd data and create the ifo_list
 ifo_list = bilby.gw.detector.InterferometerList([])
 for det in detectors:
-    logger.info("Downloading analysis data for ifo {}".format(det))
+    logger.info(f"Downloading analysis data for ifo {det}")
     ifo = bilby.gw.detector.get_empty_interferometer(det)
     data = TimeSeries.fetch_open_data(det, start_time, end_time)
     ifo.strain_data.set_from_gwpy_timeseries(data)
 
-    logger.info("Downloading psd data for ifo {}".format(det))
+    logger.info(f"Downloading psd data for ifo {det}")
     psd_data = TimeSeries.fetch_open_data(det, psd_start_time, psd_end_time)
     psd_alpha = 2 * roll_off / duration
-    psd = psd_data.psd(
-        fftlength=duration, overlap=0, window=("tukey", psd_alpha), method="median"
-    )
+    psd = psd_data.psd(fftlength=duration, overlap=0, window=("tukey", psd_alpha), method="median")
     ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(
         frequency_array=psd.frequencies.value, psd_array=psd.value
     )
@@ -81,7 +80,7 @@ for det in detectors:
     ifo.minimum_frequency = minimum_frequency
     ifo_list.append(ifo)
 
-logger.info("Saving data plots to {}".format(outdir))
+logger.info(f"Saving data plots to {outdir}")
 bilby.core.utils.check_directory_exists_and_if_not_mkdir(outdir)
 ifo_list.plot_data(outdir=outdir, label=label)
 
@@ -94,9 +93,7 @@ priors = bilby.gw.prior.BBHPriorDict(filename="GW190425.prior")
 priors["fiducial"] = 0
 
 # Add the geocent time prior
-priors["geocent_time"] = bilby.core.prior.Uniform(
-    trigger_time - 0.1, trigger_time + 0.1, name="geocent_time"
-)
+priors["geocent_time"] = bilby.core.prior.Uniform(trigger_time - 0.1, trigger_time + 0.1, name="geocent_time")
 
 # In this step we define a `waveform_generator`. This is the object which
 # creates the frequency-domain strain. In this instance, we are using the

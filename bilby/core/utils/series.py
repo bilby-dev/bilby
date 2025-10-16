@@ -25,7 +25,7 @@ def get_sampling_frequency(time_array):
     if np.ptp(np.diff(time_array)) > tol:
         raise ValueError("Your time series was not evenly sampled")
     else:
-        return np.round(1. / (time_array[1] - time_array[0]), decimals=_TOL)
+        return np.round(1.0 / (time_array[1] - time_array[0]), decimals=_TOL)
 
 
 def get_sampling_frequency_and_duration_from_time_array(time_array):
@@ -83,7 +83,7 @@ def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
     return sampling_frequency, duration
 
 
-def create_time_series(sampling_frequency, duration, starting_time=0.):
+def create_time_series(sampling_frequency, duration, starting_time=0.0):
     """
 
     Parameters
@@ -99,13 +99,13 @@ def create_time_series(sampling_frequency, duration, starting_time=0.):
     """
     _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
     number_of_samples = int(duration * sampling_frequency)
-    return np.linspace(start=starting_time,
-                       stop=duration + starting_time - 1 / sampling_frequency,
-                       num=number_of_samples)
+    return np.linspace(
+        start=starting_time, stop=duration + starting_time - 1 / sampling_frequency, num=number_of_samples
+    )
 
 
 def create_frequency_series(sampling_frequency, duration):
-    """ Create a frequency series with the correct length and spacing.
+    """Create a frequency series with the correct length and spacing.
 
     Parameters
     ==========
@@ -121,13 +121,11 @@ def create_frequency_series(sampling_frequency, duration):
     number_of_samples = int(np.round(duration * sampling_frequency))
     number_of_frequencies = int(np.round(number_of_samples / 2) + 1)
 
-    return np.linspace(start=0,
-                       stop=sampling_frequency / 2,
-                       num=number_of_frequencies)
+    return np.linspace(start=0, stop=sampling_frequency / 2, num=number_of_frequencies)
 
 
 def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
-    """ By convention, sampling_frequency and duration have to multiply to an integer
+    """By convention, sampling_frequency and duration have to multiply to an integer
 
     This will check if the product of both parameters multiplies reasonably close
     to an integer.
@@ -139,19 +137,17 @@ def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
 
     """
     num = sampling_frequency * duration
-    if np.abs(num - np.round(num)) > 10**(-_TOL):
+    if np.abs(num - np.round(num)) > 10 ** (-_TOL):
         raise IllegalDurationAndSamplingFrequencyException(
-            '\nYour sampling frequency and duration must multiply to a number'
-            'up to (tol = {}) decimals close to an integer number. '
-            '\nBut sampling_frequency={} and  duration={} multiply to {}'.format(
-                _TOL, sampling_frequency, duration,
-                sampling_frequency * duration
-            )
+            "\nYour sampling frequency and duration must multiply to a number"
+            f"up to (tol = {_TOL}) decimals close to an integer number. "
+            f"\nBut sampling_frequency={sampling_frequency} and  duration={duration} "
+            f"multiply to {sampling_frequency * duration}"
         )
 
 
 def create_white_noise(sampling_frequency, duration):
-    """ Create white_noise which is then coloured by a given PSD
+    """Create white_noise which is then coloured by a given PSD
 
     Parameters
     ==========
@@ -189,7 +185,7 @@ def create_white_noise(sampling_frequency, duration):
 
 
 def nfft(time_domain_strain, sampling_frequency):
-    """ Perform an FFT while keeping track of the frequency bins. Assumes input
+    """Perform an FFT while keeping track of the frequency bins. Assumes input
         time series is real (positive frequencies only).
 
     Parameters
@@ -209,14 +205,13 @@ def nfft(time_domain_strain, sampling_frequency):
     frequency_domain_strain = np.fft.rfft(time_domain_strain)
     frequency_domain_strain /= sampling_frequency
 
-    frequency_array = np.linspace(
-        0, sampling_frequency / 2, len(frequency_domain_strain))
+    frequency_array = np.linspace(0, sampling_frequency / 2, len(frequency_domain_strain))
 
     return frequency_domain_strain, frequency_array
 
 
 def infft(frequency_domain_strain, sampling_frequency):
-    """ Inverse FFT for use in conjunction with nfft.
+    """Inverse FFT for use in conjunction with nfft.
 
     Parameters
     ==========

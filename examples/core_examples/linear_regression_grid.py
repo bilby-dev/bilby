@@ -5,6 +5,7 @@ fitting a linear function to data with background Gaussian noise.
 This will compare the output of using a stochastic sampling method
 to evaluating the posterior on a grid.
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,7 +48,7 @@ ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
 ax.set_xlabel("time")
 ax.set_ylabel("y")
 ax.legend()
-fig.savefig("{}/{}_data.png".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_data.png")
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it
 # the time, data and signal model
@@ -93,8 +94,8 @@ axes[2].contour(
     np.exp(grid.ln_posterior - np.max(grid.ln_posterior)),
 )
 
-fig.savefig("{}/{}_corner.png".format(outdir, label), dpi=300)
+fig.savefig(f"{outdir}/{label}_corner.png", dpi=300)
 
 # compare evidences
-print("Dynesty log(evidence): {}".format(result.log_evidence))
-print("Grid log(evidence): {}".format(grid_evidence))
+print(f"Dynesty log(evidence): {result.log_evidence}")
+print(f"Grid log(evidence): {grid_evidence}")

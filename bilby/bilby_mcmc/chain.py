@@ -7,7 +7,7 @@ from ..core.utils import logger
 from .utils import LOGLKEY, LOGLLATEXKEY, LOGPKEY, LOGPLATEXKEY
 
 
-class Chain(object):
+class Chain:
     def __init__(
         self,
         initial_sample,
@@ -84,9 +84,7 @@ class Chain(object):
         return np.zeros((self.block_length, self.ndim + 2), dtype=np.float64)
 
     def _extend_chain_array(self):
-        self._chain_array = np.concatenate(
-            (self._chain_array, self._get_zero_chain_array()), axis=0
-        )
+        self._chain_array = np.concatenate((self._chain_array, self._get_zero_chain_array()), axis=0)
         self._chain_array_length = len(self._chain_array)
 
     @property
@@ -259,11 +257,7 @@ class Chain(object):
         if self.position in self.max_tau_dict:
             # If we have the ACT at the current position, return it
             return self.max_tau_dict[self.position]
-        elif (
-            self.tau_last < np.inf
-            and self.cached_tau_count < 50
-            and self.nsamples_last > 50
-        ):
+        elif self.tau_last < np.inf and self.cached_tau_count < 50 and self.nsamples_last > 50:
             # If we have a recent ACT return it
             self.cached_tau_count += 1
             return self.tau_last
@@ -312,9 +306,7 @@ class Chain(object):
         # Choose minimimum index for the ACT calculation
         last_tau = self.tau_last
         if self.tau_window is not None and last_tau < np.inf:
-            minimum_index_for_act = max(
-                minimum_index, int(self.position - self.tau_window * last_tau)
-            )
+            minimum_index_for_act = max(minimum_index, int(self.position - self.tau_window * last_tau))
         else:
             minimum_index_for_act = minimum_index
 
@@ -364,9 +356,7 @@ class Chain(object):
     def plot(self, outdir=".", label="label", priors=None, all_samples=None):
         import matplotlib.pyplot as plt
 
-        fig, axes = plt.subplots(
-            nrows=self.ndim + 3, ncols=2, figsize=(8, 9 + 3 * (self.ndim))
-        )
+        fig, axes = plt.subplots(nrows=self.ndim + 3, ncols=2, figsize=(8, 9 + 3 * (self.ndim)))
         scatter_kwargs = dict(
             lw=0,
             marker="o",
@@ -386,7 +376,7 @@ class Chain(object):
         position_indexes = np.arange(self.position + 1)
 
         # Plot the traceplots
-        for (start, stop, thin, color, alpha, ms) in plot_setups:
+        for start, stop, thin, color, alpha, ms in plot_setups:
             for ax, key in zip(axes[:, 0], self.keys):
                 xx = position_indexes[start:stop:thin] / K
                 yy = self.get_1d_array(key)[start:stop:thin]
@@ -415,16 +405,12 @@ class Chain(object):
             if all_samples is not None:
                 yy_all = all_samples[key]
                 if np.any(np.isinf(yy_all)):
-                    logger.warning(
-                        f"Could not plot histogram for parameter {key} due to infinite values"
-                    )
+                    logger.warning(f"Could not plot histogram for parameter {key} due to infinite values")
                 else:
                     ax.hist(yy_all, bins=50, alpha=0.6, density=True, color="k")
             yy = self.get_1d_array(key)[nburn : self.position : self.thin]
             if np.any(np.isinf(yy)):
-                logger.warning(
-                    f"Could not plot histogram for parameter {key} due to infinite values"
-                )
+                logger.warning(f"Could not plot histogram for parameter {key} due to infinite values")
             else:
                 ax.hist(yy, bins=50, alpha=0.8, density=True)
                 ax.set_xlabel(self._get_plot_label_by_key(key, priors))
@@ -441,16 +427,13 @@ class Chain(object):
 
         axes[-1, 1].set_axis_off()
 
-        filename = "{}/{}_checkpoint_trace.png".format(outdir, label)
+        filename = f"{outdir}/{label}_checkpoint_trace.png"
         msg = [
             r"Maximum $\tau$" + f"={self.tau:0.1f} ",
             r"$n_{\rm samples}=$" + f"{self.nsamples} ",
         ]
         if self.thin_by_nact != 1:
-            msg += [
-                r"$n_{\rm samples}^{\rm eff}=$"
-                + f"{int(self.nsamples * self.thin_by_nact)} "
-            ]
+            msg += [r"$n_{\rm samples}^{\rm eff}=$" + f"{int(self.nsamples * self.thin_by_nact)} "]
         fig.suptitle(
             "| ".join(msg),
             y=1,
@@ -471,7 +454,7 @@ class Chain(object):
             return key
 
 
-class Sample(object):
+class Sample:
     def __init__(self, sample_dict):
         """A single sample
 

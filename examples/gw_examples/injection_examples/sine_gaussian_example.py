@@ -3,6 +3,7 @@
 Tutorial to demonstrate running parameter estimation on a sine gaussian
 injected signal.
 """
+
 import bilby
 from bilby.core.utils.random import seed
 
@@ -66,9 +67,7 @@ priors["hrss"] = bilby.core.prior.Uniform(1e-23, 1e-21, "hrss")
 
 # Initialise the likelihood by passing in the interferometer data (IFOs) and
 # the waveoform generator
-likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator
-)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.core.sampler.run_sampler(

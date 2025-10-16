@@ -7,6 +7,7 @@ This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance
 between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
+
 from copy import deepcopy
 
 import bilby
@@ -78,9 +79,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 
 # Set up a PriorDict, which inherits from dict.
 # By default we will sample all terms in the signal models.  However, this will
@@ -117,9 +116,7 @@ priors.validate_prior(duration, minimum_frequency)
 fiducial_parameters = injection_parameters.copy()
 m1 = fiducial_parameters.pop("mass_1")
 m2 = fiducial_parameters.pop("mass_2")
-fiducial_parameters["chirp_mass"] = bilby.gw.conversion.component_masses_to_chirp_mass(
-    m1, m2
-)
+fiducial_parameters["chirp_mass"] = bilby.gw.conversion.component_masses_to_chirp_mass(m1, m2)
 fiducial_parameters["mass_ratio"] = m2 / m1
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
@@ -161,14 +158,9 @@ alt_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
 likelihood.distance_marginalization = False
 weights = list()
 for parameters in tqdm(result.posterior.to_dict(orient="records")):
-    weights.append(
-        alt_likelihood.log_likelihood_ratio(parameters)
-        - likelihood.log_likelihood_ratio(parameters)
-    )
+    weights.append(alt_likelihood.log_likelihood_ratio(parameters) - likelihood.log_likelihood_ratio(parameters))
 weights = np.exp(weights)
-print(
-    f"Reweighting efficiency is {np.mean(weights)**2 / np.mean(weights**2) * 100:.2f}%"
-)
+print(f"Reweighting efficiency is {np.mean(weights) ** 2 / np.mean(weights**2) * 100:.2f}%")
 print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 
 # Generate result object with the posterior for the regular likelihood using

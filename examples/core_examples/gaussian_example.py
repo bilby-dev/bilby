@@ -3,6 +3,7 @@
 An example of how to use bilby to perform parameter estimation for
 non-gravitational wave data consisting of a Gaussian with a mean and variance
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils import random
@@ -40,9 +41,7 @@ class SimpleGaussianLikelihood(bilby.Likelihood):
     def log_likelihood(self, parameters):
         sigma = parameters["sigma"]
         res = self.data - parameters["mu"]
-        return -0.5 * (
-            np.sum((res / sigma) ** 2) + self.N * np.log(2 * np.pi * sigma**2)
-        )
+        return -0.5 * (np.sum((res / sigma) ** 2) + self.N * np.log(2 * np.pi * sigma**2))
 
 
 likelihood = SimpleGaussianLikelihood(data)

@@ -1,12 +1,20 @@
+# ruff: noqa: F403
+
+import numpy as np
+
+from ...core.utils import logger
+from .. import utils
 from ..conversion import convert_to_lal_binary_black_hole_parameters
 from .calibration import *
 from .interferometer import *
+from .interferometer import get_empty_interferometer
 from .networks import *
-from .psd import *
+from .psd import PowerSpectralDensity
 from .strain_data import *
 
+
 def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
-    """ Calculate the safe signal duration, given the parameters
+    """Calculate the safe signal duration, given the parameters
 
     Parameters
     ==========
@@ -24,15 +32,17 @@ def get_safe_signal_duration(mass_1, mass_2, a_1, a_2, tilt_1, tilt_2, flow=10):
     """
     from lal import MSUN_SI
     from lalsimulation import SimInspiralChirpTimeBound
+
     chirp_time = SimInspiralChirpTimeBound(
-        flow, mass_1 * MSUN_SI, mass_2 * MSUN_SI,
-        a_1 * np.cos(tilt_1), a_2 * np.cos(tilt_2))
-    return max(2**(int(np.log2(chirp_time)) + 1), 4)
+        flow, mass_1 * MSUN_SI, mass_2 * MSUN_SI, a_1 * np.cos(tilt_1), a_2 * np.cos(tilt_2)
+    )
+    return max(2 ** (int(np.log2(chirp_time)) + 1), 4)
 
 
 def inject_signal_into_gwpy_timeseries(
-        data, waveform_generator, parameters, det, power_spectral_density=None, outdir=None, label=None):
-    """ Inject a signal into a gwpy timeseries
+    data, waveform_generator, parameters, det, power_spectral_density=None, outdir=None, label=None
+):
+    """Inject a signal into a gwpy timeseries
 
     Parameters
     ==========
@@ -57,8 +67,8 @@ def inject_signal_into_gwpy_timeseries(
         A dictionary of meta data about the injection
 
     """
-    from gwpy.timeseries import TimeSeries
     from gwpy.plot import Plot
+    from gwpy.timeseries import TimeSeries
 
     ifo = get_empty_interferometer(det)
 
@@ -67,19 +77,16 @@ def inject_signal_into_gwpy_timeseries(
     elif power_spectral_density is not None:
         raise TypeError(
             "Input power_spectral_density should be bilby.gw.detector.psd.PowerSpectralDensity "
-            "object or None, received {}.".format(type(power_spectral_density))
+            f"object or None, received {type(power_spectral_density)}."
         )
 
     ifo.strain_data.set_from_gwpy_timeseries(data)
 
     parameters_check, _ = convert_to_lal_binary_black_hole_parameters(parameters)
-    parameters_check = {key: parameters_check[key] for key in
-                        ['mass_1', 'mass_2', 'a_1', 'a_2', 'tilt_1', 'tilt_2']}
+    parameters_check = {key: parameters_check[key] for key in ["mass_1", "mass_2", "a_1", "a_2", "tilt_1", "tilt_2"]}
     safe_time = get_safe_signal_duration(**parameters_check)
     if data.duration.value < safe_time:
-        ValueError(
-            "Injecting a signal with safe-duration {} longer than the data {}"
-            .format(safe_time, data.duration.value))
+        ValueError(f"Injecting a signal with safe-duration {safe_time} longer than the data {data.duration.value}")
 
     waveform_polarizations = waveform_generator.time_domain_strain(parameters)
 
@@ -87,36 +94,29 @@ def inject_signal_into_gwpy_timeseries(
 
     for mode in waveform_polarizations.keys():
         det_response = ifo.antenna_response(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'],
-            parameters['psi'], mode)
+            parameters["ra"], parameters["dec"], parameters["geocent_time"], parameters["psi"], mode
+        )
         signal += waveform_polarizations[mode] * det_response
-    time_shift = ifo.time_delay_from_geocenter(
-        parameters['ra'], parameters['dec'], parameters['geocent_time'])
+    time_shift = ifo.time_delay_from_geocenter(parameters["ra"], parameters["dec"], parameters["geocent_time"])
 
-    dt = parameters['geocent_time'] + time_shift - data.times[0].value
+    dt = parameters["geocent_time"] + time_shift - data.times[0].value
     n_roll = dt * data.sample_rate.value
     n_roll = int(np.round(n_roll))
-    signal_shifted = TimeSeries(
-        data=np.roll(signal, n_roll), times=data.times, unit=data.unit)
+    signal_shifted = TimeSeries(data=np.roll(signal, n_roll), times=data.times, unit=data.unit)
 
     signal_and_data = data.inject(signal_shifted)
 
     if outdir is not None and label is not None:
         fig = Plot(signal_shifted)
-        fig.savefig('{}/{}_{}_time_domain_injected_signal'.format(
-            outdir, ifo.name, label))
+        fig.savefig(f"{outdir}/{ifo.name}_{label}_time_domain_injected_signal")
 
     meta_data = dict(name=det)
-    frequency_domain_signal, _ = utils.nfft(
-        signal_shifted.value, waveform_generator.sampling_frequency
-    )
-    frequency_domain_data, _ = utils.nfft(
-        signal_and_data.value, waveform_generator.sampling_frequency
-    )
-    meta_data['optimal_SNR'] = (
-        np.sqrt(ifo.optimal_snr_squared(signal=frequency_domain_signal)).real)
+    frequency_domain_signal, _ = utils.nfft(signal_shifted.value, waveform_generator.sampling_frequency)
+    frequency_domain_data, _ = utils.nfft(signal_and_data.value, waveform_generator.sampling_frequency)
+    meta_data["optimal_SNR"] = np.sqrt(ifo.optimal_snr_squared(signal=frequency_domain_signal)).real
     from ..utils import matched_filter_snr
-    meta_data['matched_filter_SNR'] = matched_filter_snr(
+
+    meta_data["matched_filter_SNR"] = matched_filter_snr(
         frequency_domain_signal,
         frequency_domain_data,
         ifo.power_spectral_density_array,
@@ -124,20 +124,30 @@ def inject_signal_into_gwpy_timeseries(
     )
     meta_data["parameters"] = parameters
 
-    logger.info("Injected signal in {}:".format(ifo.name))
-    logger.info("  optimal SNR = {:.2f}".format(meta_data['optimal_SNR']))
-    logger.info("  matched filter SNR = {:.2f}".format(meta_data['matched_filter_SNR']))
+    logger.info(f"Injected signal in {ifo.name}:")
+    logger.info("  optimal SNR = {:.2f}".format(meta_data["optimal_SNR"]))
+    logger.info("  matched filter SNR = {:.2f}".format(meta_data["matched_filter_SNR"]))
     for key in parameters:
-        logger.info('  {} = {}'.format(key, parameters[key]))
+        logger.info(f"  {key} = {parameters[key]}")
 
     return signal_and_data, meta_data
 
 
 def get_interferometer_with_fake_noise_and_injection(
-        name, injection_parameters, injection_polarizations=None,
-        waveform_generator=None, sampling_frequency=4096, duration=4,
-        start_time=None, outdir='outdir', label=None, plot=True, save=True,
-        zero_noise=False, raise_error=True):
+    name,
+    injection_parameters,
+    injection_polarizations=None,
+    waveform_generator=None,
+    sampling_frequency=4096,
+    duration=4,
+    start_time=None,
+    outdir="outdir",
+    label=None,
+    plot=True,
+    save=True,
+    zero_noise=False,
+    raise_error=True,
+):
     """
     Helper function to obtain an Interferometer instance with appropriate
     power spectral density and data, given an center_time.
@@ -186,27 +196,27 @@ def get_interferometer_with_fake_noise_and_injection(
     utils.check_directory_exists_and_if_not_mkdir(outdir)
 
     if start_time is None:
-        start_time = injection_parameters['geocent_time'] + 2 - duration
+        start_time = injection_parameters["geocent_time"] + 2 - duration
 
     interferometer = get_empty_interferometer(name)
     interferometer.power_spectral_density = PowerSpectralDensity.from_aligo()
     if zero_noise:
         interferometer.set_strain_data_from_zero_noise(
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time)
+            sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
+        )
     else:
         interferometer.set_strain_data_from_power_spectral_density(
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time)
+            sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
+        )
 
     injection_polarizations = interferometer.inject_signal(
         parameters=injection_parameters,
         injection_polarizations=injection_polarizations,
         waveform_generator=waveform_generator,
-        raise_error=raise_error)
+        raise_error=raise_error,
+    )
 
-    signal = interferometer.get_detector_response(
-        injection_polarizations, injection_parameters)
+    signal = interferometer.get_detector_response(injection_polarizations, injection_parameters)
 
     if plot:
         interferometer.plot_data(signal=signal, outdir=outdir, label=label)
@@ -218,10 +228,18 @@ def get_interferometer_with_fake_noise_and_injection(
 
 
 def load_data_from_cache_file(
-        cache_file, start_time, segment_duration, psd_duration, psd_start_time,
-        channel_name=None, sampling_frequency=4096, roll_off=0.2,
-        overlap=0, outdir=None):
-    """ Helper routine to generate an interferometer from a cache file
+    cache_file,
+    start_time,
+    segment_duration,
+    psd_duration,
+    psd_start_time,
+    channel_name=None,
+    sampling_frequency=4096,
+    roll_off=0.2,
+    overlap=0,
+    outdir=None,
+):
+    """Helper routine to generate an interferometer from a cache file
 
     Parameters
     ==========
@@ -250,71 +268,78 @@ def load_data_from_cache_file(
         appropriate data in the cache file and a PSD.
     """
     import lal
+
     data_set = False
     psd_set = False
 
-    with open(cache_file, 'r') as ff:
+    with open(cache_file) as ff:
         lines = ff.readlines()
-        if len(lines)>1:
-            raise ValueError('This method cannot handle cache files with'
-                             ' multiple frames. Use `load_data_by_channel_name'
-                             ' instead.')
+        if len(lines) > 1:
+            raise ValueError(
+                "This method cannot handle cache files with multiple frames. Use `load_data_by_channel_name instead."
+            )
         else:
             line = lines[0]
             cache = lal.utils.cache.CacheEntry(line)
-            data_in_cache = (
-                (cache.segment[0].gpsSeconds < start_time) &
-                (cache.segment[1].gpsSeconds > start_time + segment_duration))
-            psd_in_cache = (
-                (cache.segment[0].gpsSeconds < psd_start_time) &
-                (cache.segment[1].gpsSeconds > psd_start_time + psd_duration))
-            ifo = get_empty_interferometer(
-                "{}1".format(cache.observatory))
+            data_in_cache = (cache.segment[0].gpsSeconds < start_time) & (
+                cache.segment[1].gpsSeconds > start_time + segment_duration
+            )
+            psd_in_cache = (cache.segment[0].gpsSeconds < psd_start_time) & (
+                cache.segment[1].gpsSeconds > psd_start_time + psd_duration
+            )
+            ifo = get_empty_interferometer(f"{cache.observatory}1")
             if not data_in_cache:
-                raise ValueError('The specified data segment does not exist in' 
-                                 ' this frame.')
+                raise ValueError("The specified data segment does not exist in this frame.")
             if not psd_in_cache:
-                raise ValueError('The specified PSD data segment does not exist' 
-                                 ' in this frame.')
+                raise ValueError("The specified PSD data segment does not exist in this frame.")
             if (not data_set) & data_in_cache:
                 ifo.set_strain_data_from_frame_file(
                     frame_file=cache.path,
                     sampling_frequency=sampling_frequency,
                     duration=segment_duration,
                     start_time=start_time,
-                    channel=channel_name, buffer_time=0)
+                    channel=channel_name,
+                    buffer_time=0,
+                )
                 data_set = True
             if (not psd_set) & psd_in_cache:
-                ifo.power_spectral_density = \
-                    PowerSpectralDensity.from_frame_file(
-                        cache.path,
-                        psd_start_time=psd_start_time,
-                        psd_duration=psd_duration,
-                        fft_length=segment_duration,
-                        sampling_frequency=sampling_frequency,
-                        roll_off=roll_off,
-                        overlap=overlap,
-                        channel=channel_name,
-                        name=cache.observatory,
-                        outdir=outdir,
-                        analysis_segment_start_time=start_time)
+                ifo.power_spectral_density = PowerSpectralDensity.from_frame_file(
+                    cache.path,
+                    psd_start_time=psd_start_time,
+                    psd_duration=psd_duration,
+                    fft_length=segment_duration,
+                    sampling_frequency=sampling_frequency,
+                    roll_off=roll_off,
+                    overlap=overlap,
+                    channel=channel_name,
+                    name=cache.observatory,
+                    outdir=outdir,
+                    analysis_segment_start_time=start_time,
+                )
                 psd_set = True
     if data_set and psd_set:
         return ifo
     elif not data_set:
-        raise ValueError('Data not loaded for {}'.format(ifo.name))
+        raise ValueError(f"Data not loaded for {ifo.name}")
     elif not psd_set:
-        raise ValueError('PSD not created for {}'.format(ifo.name))
+        raise ValueError(f"PSD not created for {ifo.name}")
 
 
 def load_data_by_channel_name(
-        channel_name, start_time, segment_duration, psd_duration, psd_start_time,
-        sampling_frequency=4096, roll_off=0.2,
-        overlap=0, outdir=None):
-    """ Helper routine to generate an interferometer from a channel name
-    This function creates an empty interferometer specified in the name 
-    of the channel. It calls `ifo.set_strain_data_from_channel_name` to 
-    set the data and PSD in the interferometer using data retrieved from 
+    channel_name,
+    start_time,
+    segment_duration,
+    psd_duration,
+    psd_start_time,
+    sampling_frequency=4096,
+    roll_off=0.2,
+    overlap=0,
+    outdir=None,
+):
+    """Helper routine to generate an interferometer from a channel name
+    This function creates an empty interferometer specified in the name
+    of the channel. It calls `ifo.set_strain_data_from_channel_name` to
+    set the data and PSD in the interferometer using data retrieved from
     the specified channel using gwpy.TimeSeries.get()
 
     Parameters
@@ -342,27 +367,25 @@ def load_data_by_channel_name(
         appropriate data fetched from the specified channel and a PSD.
     """
     try:
-        det = channel_name.split(':')[-2]
+        det = channel_name.split(":")[-2]
     except IndexError:
         raise IndexError("Channel name must be of the format `IFO:Channel`")
     ifo = get_empty_interferometer(det)
 
     ifo.set_strain_data_from_channel_name(
-        channel=channel_name,
-        sampling_frequency=sampling_frequency,
-        duration=segment_duration,
-        start_time=start_time)
+        channel=channel_name, sampling_frequency=sampling_frequency, duration=segment_duration, start_time=start_time
+    )
 
-    ifo.power_spectral_density = \
-        PowerSpectralDensity.from_channel_name(
-            channel=channel_name,
-            psd_start_time=psd_start_time,
-            psd_duration=psd_duration,
-            fft_length=segment_duration,
-            sampling_frequency=sampling_frequency,
-            roll_off=roll_off,
-            overlap=overlap,
-            name=det,
-            outdir=outdir,
-            analysis_segment_start_time=start_time)
+    ifo.power_spectral_density = PowerSpectralDensity.from_channel_name(
+        channel=channel_name,
+        psd_start_time=psd_start_time,
+        psd_duration=psd_duration,
+        fft_length=segment_duration,
+        sampling_frequency=sampling_frequency,
+        roll_off=roll_off,
+        overlap=overlap,
+        name=det,
+        outdir=outdir,
+        analysis_segment_start_time=start_time,
+    )
     return ifo

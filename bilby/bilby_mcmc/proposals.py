@@ -13,7 +13,7 @@ from ..core.utils import logger, random, reflect
 from ..gw.source import PARAMETER_SETS
 
 
-class ProposalCycle(object):
+class ProposalCycle:
     def __init__(self, proposal_list):
         self.proposal_list = proposal_list
         self.weights = [prop.weight for prop in self.proposal_list]
@@ -45,7 +45,7 @@ class ProposalCycle(object):
         return string
 
 
-class BaseProposal(object):
+class BaseProposal:
     _accepted = 0
     _rejected = 0
     __metaclass__ = ABCMeta
@@ -134,7 +134,6 @@ class BaseProposal(object):
         return minimum + width * val_normalised_reflected
 
     def __call__(self, chain, likelihood=None, priors=None):
-
         if getattr(self, "needs_likelihood_and_priors", False):
             sample, log_factor = self.propose(chain, likelihood, priors)
         else:
@@ -203,7 +202,7 @@ class FixedGaussianProposal(BaseProposal):
     """
 
     def __init__(self, priors, weight=1, subset=None, sigma=0.01):
-        super(FixedGaussianProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.sigmas = {}
         for key in self.parameters:
             if np.isinf(self.prior_width_dict[key]):
@@ -235,7 +234,7 @@ class AdaptiveGaussianProposal(BaseProposal):
         stop=1e5,
         target_facc=0.234,
     ):
-        super(AdaptiveGaussianProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.sigmas = {}
         for key in self.parameters:
             if np.isinf(self.prior_width_dict[key]):
@@ -299,7 +298,7 @@ class DifferentialEvolutionProposal(BaseProposal):
     """
 
     def __init__(self, priors, weight=1, subset=None, mode_hopping_frac=0.5):
-        super(DifferentialEvolutionProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.mode_hopping_frac = mode_hopping_frac
 
     def propose(self, chain):
@@ -340,16 +339,14 @@ class UniformProposal(BaseProposal):
     """
 
     def __init__(self, priors, weight=1, subset=None):
-        super(UniformProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
 
     def propose(self, chain):
         sample = chain.current_sample
         for key in self.parameters:
             width = self.prior_width_dict[key]
             if np.isinf(width) is False:
-                sample[key] = random.rng.uniform(
-                    self.prior_minimum_dict[key], self.prior_maximum_dict[key]
-                )
+                sample[key] = random.rng.uniform(self.prior_minimum_dict[key], self.prior_maximum_dict[key])
             else:
                 # Unable to generate a uniform sample on infinite support
                 pass
@@ -376,7 +373,7 @@ class PriorProposal(BaseProposal):
     """
 
     def __init__(self, priors, weight=1, subset=None):
-        super(PriorProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.priors = PriorDict({key: priors[key] for key in self.parameters})
 
     def propose(self, chain):
@@ -426,7 +423,7 @@ class DensityEstimateProposal(BaseProposal):
         fallback=AdaptiveGaussianProposal,
         scale_fits=1,
     ):
-        super(DensityEstimateProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.nsamples_for_density = nsamples_for_density
         self.fallback = fallback(priors, weight, subset)
         self.fit_multiplier = fit_multiplier * scale_fits
@@ -490,9 +487,7 @@ class DensityEstimateProposal(BaseProposal):
                 fail_parameters.append(key)
 
         if len(fail_parameters) > 0:
-            logger.debug(
-                f"{self.density_name} construction failed verification and is discarded"
-            )
+            logger.debug(f"{self.density_name} construction failed verification and is discarded")
             self.density = current_density
         else:
             self.trained = True
@@ -565,9 +560,7 @@ class GMMProposal(DensityEstimateProposal):
     def check_dependencies(warn=True):
         if importlib.util.find_spec("sklearn") is None:
             if warn:
-                logger.warning(
-                    "Unable to utilise GMMProposal as sklearn is not installed"
-                )
+                logger.warning("Unable to utilise GMMProposal as sklearn is not installed")
             return False
         else:
             return True
@@ -598,7 +591,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
         js_factor=10,
         fallback=AdaptiveGaussianProposal,
     ):
-        super(NormalizingFlowProposal, self).__init__(
+        super().__init__(
             priors=priors,
             weight=weight,
             subset=subset,
@@ -690,19 +683,14 @@ class NormalizingFlowProposal(DensityEstimateProposal):
 
             # Draw from the current flow
             self.flow.eval()
-            training_samples_draw = (
-                self.flow.sample(self.nsamples_for_density).detach().numpy()
-            )
+            training_samples_draw = self.flow.sample(self.nsamples_for_density).detach().numpy()
             self.flow.train()
 
             if np.mod(epoch, 10) == 0:
-                max_js_bits = self._calculate_js(
-                    validation_samples, training_samples_draw
-                )
+                max_js_bits = self._calculate_js(validation_samples, training_samples_draw)
                 if max_js_bits < max_js_threshold:
                     logger.debug(
-                        f"Training complete after {epoch} steps, "
-                        f"max_js_bits={max_js_bits:0.5f}<{max_js_threshold}"
+                        f"Training complete after {epoch} steps, max_js_bits={max_js_bits:0.5f}<{max_js_threshold}"
                     )
                     break
 
@@ -740,9 +728,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
         theta_prime_T = self.flow.sample(1)
 
         logp_theta_prime = self.flow.log_prob(theta_prime_T).detach().numpy()[0]
-        theta_T = torch.tensor(
-            np.atleast_2d([theta[key] for key in self.parameters]), dtype=torch.float32
-        )
+        theta_T = torch.tensor(np.atleast_2d([theta[key] for key in self.parameters]), dtype=torch.float32)
         logp_theta = self.flow.log_prob(theta_T).detach().numpy()[0]
         log_factor = logp_theta - logp_theta_prime
 
@@ -756,9 +742,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
     def check_dependencies(warn=True):
         if importlib.util.find_spec("glasflow") is None:
             if warn:
-                logger.warning(
-                    "Unable to utilise NormalizingFlowProposal as glasflow is not installed"
-                )
+                logger.warning("Unable to utilise NormalizingFlowProposal as glasflow is not installed")
             return False
         else:
             return True
@@ -766,7 +750,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
 
 class FixedJumpProposal(BaseProposal):
     def __init__(self, priors, jumps=1, subset=None, weight=1, scale=1e-4):
-        super(FixedJumpProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.scale = scale
         if isinstance(jumps, (int, float)):
             self.jumps = {key: jumps for key in self.parameters}
@@ -808,9 +792,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
         fd_eps=1e-4,
         adapt=False,
     ):
-        super(FisherMatrixProposal, self).__init__(
-            priors, weight, subset, scale_init=scale_init
-        )
+        super().__init__(priors, weight, subset, scale_init=scale_init)
         self.update_interval = update_interval
         self.steps_since_update = update_interval
         self.adapt = adapt
@@ -822,9 +804,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
         if self.adapt:
             self.update_scale(chain)
         if self.steps_since_update >= self.update_interval:
-            fmp = FisherMatrixPosteriorEstimator(
-                likelihood, priors, parameters=self.parameters, fd_eps=self.fd_eps
-            )
+            fmp = FisherMatrixPosteriorEstimator(likelihood, priors, parameters=self.parameters, fd_eps=self.fd_eps)
             try:
                 self.iFIM = fmp.calculate_iFIM(sample.dict)
             except (RuntimeError, ValueError, np.linalg.LinAlgError) as e:
@@ -834,9 +814,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
                     return sample, 0
             self.steps_since_update = 0
 
-        jump = self.scale * random.rng.multivariate_normal(
-            self.mean, self.iFIM, check_valid="ignore"
-        )
+        jump = self.scale * random.rng.multivariate_normal(self.mean, self.iFIM, check_valid="ignore")
 
         for key, val in zip(self.parameters, jump):
             sample[key] += val
@@ -848,9 +826,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
 
 class BaseGravitationalWaveTransientProposal(BaseProposal):
     def __init__(self, priors, weight=1):
-        super(BaseGravitationalWaveTransientProposal, self).__init__(
-            priors, weight=weight
-        )
+        super().__init__(priors, weight=weight)
         if "phase" in priors:
             self.phase_key = "phase"
         elif "delta_phase" in priors:
@@ -888,7 +864,7 @@ class BaseGravitationalWaveTransientProposal(BaseProposal):
 
 class CorrelatedPolarisationPhaseJump(BaseGravitationalWaveTransientProposal):
     def __init__(self, priors, weight=1):
-        super(CorrelatedPolarisationPhaseJump, self).__init__(priors, weight=weight)
+        super().__init__(priors, weight=weight)
 
     def propose(self, chain):
         sample = chain.current_sample
@@ -918,13 +894,11 @@ class CorrelatedPolarisationPhaseJump(BaseGravitationalWaveTransientProposal):
 
 class PhaseReversalProposal(BaseGravitationalWaveTransientProposal):
     def __init__(self, priors, weight=1, fuzz=True, fuzz_sigma=1e-1):
-        super(PhaseReversalProposal, self).__init__(priors, weight)
+        super().__init__(priors, weight)
         self.fuzz = fuzz
         self.fuzz_sigma = fuzz_sigma
         if self.phase_key is None:
-            raise SamplerError(
-                f"{type(self).__name__} initialised without a phase prior"
-            )
+            raise SamplerError(f"{type(self).__name__} initialised without a phase prior")
 
     def propose(self, chain):
         sample = chain.current_sample
@@ -943,9 +917,7 @@ class PhaseReversalProposal(BaseGravitationalWaveTransientProposal):
 
 class PolarisationReversalProposal(PhaseReversalProposal):
     def __init__(self, priors, weight=1, fuzz=True, fuzz_sigma=1e-3):
-        super(PolarisationReversalProposal, self).__init__(
-            priors, weight, fuzz, fuzz_sigma
-        )
+        super().__init__(priors, weight, fuzz, fuzz_sigma)
         self.fuzz = fuzz
 
     def propose(self, chain):
@@ -958,16 +930,12 @@ class PolarisationReversalProposal(PhaseReversalProposal):
 
 class PhasePolarisationReversalProposal(PhaseReversalProposal):
     def __init__(self, priors, weight=1, fuzz=True, fuzz_sigma=1e-1):
-        super(PhasePolarisationReversalProposal, self).__init__(
-            priors, weight, fuzz, fuzz_sigma
-        )
+        super().__init__(priors, weight, fuzz, fuzz_sigma)
         self.fuzz = fuzz
 
     def propose(self, chain):
         sample = chain.current_sample
-        sample[self.phase_key] = np.mod(
-            sample[self.phase_key] + np.pi + self.epsilon, 2 * np.pi
-        )
+        sample[self.phase_key] = np.mod(sample[self.phase_key] + np.pi + self.epsilon, 2 * np.pi)
         sample["psi"] = np.mod(sample["psi"] + np.pi / 2 + self.epsilon, np.pi)
         log_factor = 0
         return sample, log_factor
@@ -987,7 +955,7 @@ class StretchProposal(BaseProposal):
     """
 
     def __init__(self, priors, weight=1, subset=None, scale=2):
-        super(StretchProposal, self).__init__(priors, weight, subset)
+        super().__init__(priors, weight, subset)
         self.scale = scale
 
     def propose(self, chain):
@@ -1016,7 +984,7 @@ class EnsembleProposal(BaseProposal):
     """Base EnsembleProposal class for ensemble-based swap proposals"""
 
     def __init__(self, priors, weight=1):
-        super(EnsembleProposal, self).__init__(priors, weight)
+        super().__init__(priors, weight)
 
     def __call__(self, chain, chain_complement):
         sample, log_factor = self.propose(chain, chain_complement)
@@ -1039,17 +1007,13 @@ class EnsembleStretch(EnsembleProposal):
     """
 
     def __init__(self, priors, weight=1, scale=2):
-        super(EnsembleStretch, self).__init__(priors, weight)
+        super().__init__(priors, weight)
         self.scale = scale
 
     def propose(self, chain, chain_complement):
         sample = chain.current_sample
-        completement = chain_complement[
-            random.rng.integers(len(chain_complement))
-        ].current_sample
-        return _stretch_move(
-            sample, completement, self.scale, self.ndim, self.parameters
-        )
+        completement = chain_complement[random.rng.integers(len(chain_complement))].current_sample
+        return _stretch_move(sample, completement, self.scale, self.ndim, self.parameters)
 
 
 def get_default_ensemble_proposal_cycle(priors):
@@ -1063,60 +1027,40 @@ def get_proposal_cycle(string, priors, L1steps=1, warn=True):
 
     if "gwA" in string:
         # Parameters for learning proposals
-        learning_kwargs = dict(
-            first_fit=1000, nsamples_for_density=10000, fit_multiplier=2
-        )
+        learning_kwargs = dict(first_fit=1000, nsamples_for_density=10000, fit_multiplier=2)
 
         all_but_cal = [key for key in priors if "recalib" not in key]
         plist = [
             AdaptiveGaussianProposal(priors, weight=small_weight, subset=all_but_cal),
-            DifferentialEvolutionProposal(
-                priors, weight=small_weight, subset=all_but_cal
-            ),
+            DifferentialEvolutionProposal(priors, weight=small_weight, subset=all_but_cal),
         ]
 
         if GMMProposal.check_dependencies(warn=warn) is False:
-            raise SamplerError(
-                "the gwA proposal_cycle required the GMMProposal dependencies"
-            )
+            raise SamplerError("the gwA proposal_cycle required the GMMProposal dependencies")
 
         if priors.intrinsic:
             intrinsic = PARAMETER_SETS["intrinsic"]
             plist += [
                 AdaptiveGaussianProposal(priors, weight=small_weight, subset=intrinsic),
-                DifferentialEvolutionProposal(
-                    priors, weight=small_weight, subset=intrinsic
-                ),
-                KDEProposal(
-                    priors, weight=small_weight, subset=intrinsic, **learning_kwargs
-                ),
-                GMMProposal(
-                    priors, weight=small_weight, subset=intrinsic, **learning_kwargs
-                ),
+                DifferentialEvolutionProposal(priors, weight=small_weight, subset=intrinsic),
+                KDEProposal(priors, weight=small_weight, subset=intrinsic, **learning_kwargs),
+                GMMProposal(priors, weight=small_weight, subset=intrinsic, **learning_kwargs),
             ]
 
         if priors.extrinsic:
             extrinsic = PARAMETER_SETS["extrinsic"]
             plist += [
                 AdaptiveGaussianProposal(priors, weight=small_weight, subset=extrinsic),
-                DifferentialEvolutionProposal(
-                    priors, weight=small_weight, subset=extrinsic
-                ),
-                KDEProposal(
-                    priors, weight=small_weight, subset=extrinsic, **learning_kwargs
-                ),
-                GMMProposal(
-                    priors, weight=small_weight, subset=extrinsic, **learning_kwargs
-                ),
+                DifferentialEvolutionProposal(priors, weight=small_weight, subset=extrinsic),
+                KDEProposal(priors, weight=small_weight, subset=extrinsic, **learning_kwargs),
+                GMMProposal(priors, weight=small_weight, subset=extrinsic, **learning_kwargs),
             ]
 
         if priors.mass:
             mass = PARAMETER_SETS["mass"]
             plist += [
                 DifferentialEvolutionProposal(priors, weight=small_weight, subset=mass),
-                GMMProposal(
-                    priors, weight=small_weight, subset=mass, **learning_kwargs
-                ),
+                GMMProposal(priors, weight=small_weight, subset=mass, **learning_kwargs),
                 FisherMatrixProposal(
                     priors,
                     weight=small_weight,
@@ -1128,9 +1072,7 @@ def get_proposal_cycle(string, priors, L1steps=1, warn=True):
             spin = PARAMETER_SETS["spin"]
             plist += [
                 DifferentialEvolutionProposal(priors, weight=small_weight, subset=spin),
-                GMMProposal(
-                    priors, weight=small_weight, subset=spin, **learning_kwargs
-                ),
+                GMMProposal(priors, weight=small_weight, subset=spin, **learning_kwargs),
                 FisherMatrixProposal(
                     priors,
                     weight=big_weight,
@@ -1140,9 +1082,7 @@ def get_proposal_cycle(string, priors, L1steps=1, warn=True):
         if priors.measured_spin:
             measured_spin = PARAMETER_SETS["measured_spin"]
             plist += [
-                AdaptiveGaussianProposal(
-                    priors, weight=small_weight, subset=measured_spin
-                ),
+                AdaptiveGaussianProposal(priors, weight=small_weight, subset=measured_spin),
                 FisherMatrixProposal(
                     priors,
                     weight=small_weight,
@@ -1153,17 +1093,13 @@ def get_proposal_cycle(string, priors, L1steps=1, warn=True):
         if priors.mass and priors.spin:
             primary_spin_and_q = PARAMETER_SETS["primary_spin_and_q"]
             plist += [
-                DifferentialEvolutionProposal(
-                    priors, weight=small_weight, subset=primary_spin_and_q
-                ),
+                DifferentialEvolutionProposal(priors, weight=small_weight, subset=primary_spin_and_q),
             ]
 
         if getattr(priors, "tidal", False):
             tidal = PARAMETER_SETS["tidal"]
             plist += [
-                DifferentialEvolutionProposal(
-                    priors, weight=small_weight, subset=tidal
-                ),
+                DifferentialEvolutionProposal(priors, weight=small_weight, subset=tidal),
                 PriorProposal(priors, weight=small_weight, subset=tidal),
             ]
         if priors.phase:

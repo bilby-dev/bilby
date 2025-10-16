@@ -1,16 +1,15 @@
-import os
 import logging
+import os
 import unittest
 
 import pandas as pd
-from parameterized import parameterized, parameterized_class
 import pytest
+from parameterized import parameterized, parameterized_class
 
 import bilby
 
 
 class BaseCBCResultTest(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -27,9 +26,7 @@ class BaseCBCResultTest(unittest.TestCase):
                 distance_marginalization=False,
                 time_marginalization=True,
                 frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-                waveform_arguments=dict(
-                    reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"
-                ),
+                waveform_arguments=dict(reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"),
                 interferometers=dict(
                     H1=dict(optimal_SNR=1, parameters=injection_parameters),
                     L1=dict(optimal_SNR=1, parameters=injection_parameters),
@@ -62,7 +59,6 @@ class BaseCBCResultTest(unittest.TestCase):
 
 
 class TestCBCResult(BaseCBCResultTest):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -107,9 +103,7 @@ class TestCBCResult(BaseCBCResultTest):
         )
 
     def test_reference_frequency_unset(self):
-        self.result.meta_data["likelihood"]["waveform_arguments"].pop(
-            "reference_frequency"
-        )
+        self.result.meta_data["likelihood"]["waveform_arguments"].pop("reference_frequency")
         with self.assertRaises(AttributeError):
             self.result.reference_frequency
 
@@ -133,9 +127,7 @@ class TestCBCResult(BaseCBCResultTest):
             self.result.duration
 
     def test_start_time(self):
-        self.assertEqual(
-            self.result.start_time, self.meta_data["likelihood"]["start_time"]
-        )
+        self.assertEqual(self.result.start_time, self.meta_data["likelihood"]["start_time"])
 
     def test_start_time_unset(self):
         self.result.meta_data["likelihood"].pop("start_time")
@@ -149,9 +141,7 @@ class TestCBCResult(BaseCBCResultTest):
         )
 
     def test_waveform_approximant_unset(self):
-        self.result.meta_data["likelihood"]["waveform_arguments"].pop(
-            "waveform_approximant"
-        )
+        self.result.meta_data["likelihood"]["waveform_arguments"].pop("waveform_approximant")
         with self.assertRaises(AttributeError):
             self.result.waveform_approximant
 
@@ -207,16 +197,11 @@ class TestCBCResult(BaseCBCResultTest):
         )
 
     def test_detector_injection_properties_no_injection(self):
-        self.assertEqual(
-            self.result.detector_injection_properties("not_a_detector"), None
-        )
+        self.assertEqual(self.result.detector_injection_properties("not_a_detector"), None)
 
 
-@parameterized_class(
-    ["include_global_meta_data"], [["True"], ["False"]]
-)
+@parameterized_class(["include_global_meta_data"], [["True"], ["False"]])
 class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -251,12 +236,8 @@ class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
             assert "not containing global meta data" in str(self._caplog.text)
 
 
-@parameterized_class(
-    ["cosmology_name"],
-    [["Planck15"], ["Planck15_LAL"]]
-)
+@parameterized_class(["cosmology_name"], [["Planck15"], ["Planck15_LAL"]])
 class TestCBCResultSaveAndLoad(BaseCBCResultTest):
-
     def setUp(self):
         self.orig_cosmology = bilby.gw.cosmology.get_cosmology()
         bilby.gw.cosmology.set_cosmology(self.cosmology_name)

@@ -108,7 +108,7 @@ class Pymc(MCMCSampler):
         self.default_step_kwargs = {m.__name__.lower(): None for m in STEP_METHODS}
         self.default_kwargs.update(self.default_step_kwargs)
 
-        super(Pymc, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -234,9 +234,7 @@ class Pymc(MCMCSampler):
         prior_map["Cosine"] = {"internal": self._cosine_prior}
         prior_map["PowerLaw"] = {"internal": self._powerlaw_prior}
         prior_map["LogUniform"] = {"internal": self._powerlaw_prior}
-        prior_map["MultivariateGaussian"] = {
-            "internal": self._multivariate_normal_prior
-        }
+        prior_map["MultivariateGaussian"] = {"internal": self._multivariate_normal_prior}
         prior_map["MultivariateNormal"] = {"internal": self._multivariate_normal_prior}
 
     def _deltafunction_prior(self, key, **kwargs):
@@ -270,15 +268,12 @@ class Pymc(MCMCSampler):
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = tt.cos(lower) - tt.cos(upper)
                     self.mean = (
-                        tt.sin(upper)
-                        + lower * tt.cos(lower)
-                        - tt.sin(lower)
-                        - upper * tt.cos(upper)
+                        tt.sin(upper) + lower * tt.cos(lower) - tt.sin(lower) - upper * tt.cos(upper)
                     ) / self.norm
 
                     transform = pymc.distributions.transforms.interval(lower, upper)
 
-                    super(PymcSine, self).__init__(transform=transform)
+                    super().__init__(transform=transform)
 
                 def logp(self, value):
                     upper = self.upper
@@ -289,9 +284,7 @@ class Pymc(MCMCSampler):
                         value <= upper,
                     )
 
-            return PymcSine(
-                key, lower=self.priors[key].minimum, upper=self.priors[key].maximum
-            )
+            return PymcSine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
             raise ValueError(f"Prior for '{key}' is not a Sine")
 
@@ -314,15 +307,12 @@ class Pymc(MCMCSampler):
                     self.upper = upper = tt.as_tensor_variable(floatX(upper))
                     self.norm = tt.sin(upper) - tt.sin(lower)
                     self.mean = (
-                        upper * tt.sin(upper)
-                        + tt.cos(upper)
-                        - lower * tt.sin(lower)
-                        - tt.cos(lower)
+                        upper * tt.sin(upper) + tt.cos(upper) - lower * tt.sin(lower) - tt.cos(lower)
                     ) / self.norm
 
                     transform = pymc.distributions.transforms.interval(lower, upper)
 
-                    super(PymcCosine, self).__init__(transform=transform)
+                    super().__init__(transform=transform)
 
                 def logp(self, value):
                     upper = self.upper
@@ -333,9 +323,7 @@ class Pymc(MCMCSampler):
                         value <= upper,
                     )
 
-            return PymcCosine(
-                key, lower=self.priors[key].minimum, upper=self.priors[key].maximum
-            )
+            return PymcCosine(key, lower=self.priors[key].minimum, upper=self.priors[key].maximum)
         else:
             raise ValueError(f"Prior for '{key}' is not a Cosine")
 
@@ -348,7 +336,6 @@ class Pymc(MCMCSampler):
         pymc, _, floatX = self._import_external_sampler()
         _, tt, _ = self._import_tensor()
         if isinstance(self.priors[key], PowerLaw):
-
             # check power law is set
             if not hasattr(self.priors[key], "alpha"):
                 raise AttributeError("No 'alpha' attribute set for PowerLaw prior")
@@ -373,16 +360,11 @@ class Pymc(MCMCSampler):
                             self.norm = 1.0 / (tt.log(self.upper / self.lower))
                         else:
                             beta = 1.0 + self.alpha
-                            self.norm = 1.0 / (
-                                beta
-                                * (tt.pow(self.upper, beta) - tt.pow(self.lower, beta))
-                            )
+                            self.norm = 1.0 / (beta * (tt.pow(self.upper, beta) - tt.pow(self.lower, beta)))
 
                         transform = pymc.distributions.transforms.interval(lower, upper)
 
-                        super(PymcPowerLaw, self).__init__(
-                            transform=transform, testval=testval
-                        )
+                        super().__init__(transform=transform, testval=testval)
 
                     def logp(self, value):
                         upper = self.upper
@@ -499,9 +481,7 @@ class Pymc(MCMCSampler):
             elif isinstance(self.step_method, dict):
                 for key in self.step_method:
                     if key not in self._search_parameter_keys:
-                        raise ValueError(
-                            f"Setting a step method for an unknown parameter '{key}'"
-                        )
+                        raise ValueError(f"Setting a step method for an unknown parameter '{key}'")
                     else:
                         # check if using a compound step (a list of step
                         # methods for a particular parameter)
@@ -511,9 +491,7 @@ class Pymc(MCMCSampler):
                             sms = [self.step_method[key]]
                         for sm in sms:
                             if sm.lower() not in step_methods:
-                                raise ValueError(
-                                    f"Using invalid step method '{self.step_method[key]}'"
-                                )
+                                raise ValueError(f"Using invalid step method '{self.step_method[key]}'")
             else:
                 # check if using a compound step (a list of step
                 # methods for a particular parameter)
@@ -615,9 +593,7 @@ class Pymc(MCMCSampler):
                     for sms in self.step_method:
                         curmethod = sms.lower()
                         methodslist.append(curmethod)
-                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(
-                            curmethod, nuts_kwargs, step_kwargs
-                        )
+                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(curmethod, nuts_kwargs, step_kwargs)
                         compound.append(pymc.__dict__[step_methods[curmethod]](**args))
                         self.kwargs["step"] = compound
                 else:
@@ -625,12 +601,8 @@ class Pymc(MCMCSampler):
                     if self.step_method is not None:
                         curmethod = self.step_method.lower()
                         methodslist.append(curmethod)
-                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(
-                            curmethod, nuts_kwargs, step_kwargs
-                        )
-                        self.kwargs["step"] = pymc.__dict__[step_methods[curmethod]](
-                            **args
-                        )
+                        args, nuts_kwargs = self._create_args_and_nuts_kwargs(curmethod, nuts_kwargs, step_kwargs)
+                        self.kwargs["step"] = pymc.__dict__[step_methods[curmethod]](**args)
 
         # check whether only NUTS step method has been assigned
         if np.all([sm.lower() == "nuts" for sm in methodslist]):
@@ -653,9 +625,7 @@ class Pymc(MCMCSampler):
 
         posterior = trace.posterior.to_dataframe().reset_index()
         self.result.samples = posterior[self.search_parameter_keys]
-        self.result.log_likelihood_evaluations = np.sum(
-            trace.log_likelihood.likelihood.values, axis=-1
-        ).flatten()
+        self.result.log_likelihood_evaluations = np.sum(trace.log_likelihood.likelihood.values, axis=-1).flatten()
         self.result.sampler_output = np.nan
         self.calculate_autocorrelation(self.result.samples)
         self.result.log_evidence = np.nan
@@ -670,9 +640,7 @@ class Pymc(MCMCSampler):
             args = step_kwargs.get(curmethod, {})
         return args, nuts_kwargs
 
-    def _create_nuts_kwargs(
-        self, curmethod, key, nuts_kwargs, pymc, step_kwargs, step_methods
-    ):
+    def _create_nuts_kwargs(self, curmethod, key, nuts_kwargs, pymc, step_kwargs, step_methods):
         if curmethod == "nuts":
             args, nuts_kwargs = self._get_nuts_args(nuts_kwargs, step_kwargs)
         else:
@@ -680,9 +648,7 @@ class Pymc(MCMCSampler):
                 args = step_kwargs.get(curmethod, {})
             else:
                 args = {}
-        self.kwargs["step"].append(
-            pymc.__dict__[step_methods[curmethod]](vars=[self.pymc_priors[key]], **args)
-        )
+        self.kwargs["step"].append(pymc.__dict__[step_methods[curmethod]](vars=[self.pymc_priors[key]], **args))
         return nuts_kwargs
 
     @staticmethod
@@ -721,46 +687,30 @@ class Pymc(MCMCSampler):
                     try:
                         self.pymc_priors[key] = self.priors[key].ln_prob(sampler=self)
                     except RuntimeError:
-                        raise RuntimeError((f"Problem setting PyMC prior for '{key}'"))
+                        raise RuntimeError(f"Problem setting PyMC prior for '{key}'")
                 else:
                     # use Prior distribution name
                     distname = self.priors[key].__class__.__name__
 
                     if distname in self.prior_map:
                         # check if we have a predefined PyMC distribution
-                        if (
-                            "pymc" in self.prior_map[distname]
-                            and "argmap" in self.prior_map[distname]
-                        ):
+                        if "pymc" in self.prior_map[distname] and "argmap" in self.prior_map[distname]:
                             # check the required arguments for the PyMC distribution
                             pymcdistname = self.prior_map[distname]["pymc"]
 
                             if pymcdistname not in pymc.__dict__:
-                                raise ValueError(
-                                    f"Prior '{pymcdistname}' is not a known PyMC distribution."
-                                )
+                                raise ValueError(f"Prior '{pymcdistname}' is not a known PyMC distribution.")
 
-                            reqargs = infer_args_from_method(
-                                pymc.__dict__[pymcdistname].dist
-                            )
+                            reqargs = infer_args_from_method(pymc.__dict__[pymcdistname].dist)
 
                             # set keyword arguments
                             priorkwargs = {}
-                            for (targ, parg) in self.prior_map[distname][
-                                "argmap"
-                            ].items():
+                            for targ, parg in self.prior_map[distname]["argmap"].items():
                                 if hasattr(self.priors[key], targ):
                                     if parg in reqargs:
                                         if "argtransform" in self.prior_map[distname]:
-                                            if (
-                                                targ
-                                                in self.prior_map[distname][
-                                                    "argtransform"
-                                                ]
-                                            ):
-                                                tfunc = self.prior_map[distname][
-                                                    "argtransform"
-                                                ][targ]
+                                            if targ in self.prior_map[distname]["argtransform"]:
+                                                tfunc = self.prior_map[distname]["argtransform"][targ]
                                             else:
 
                                                 def tfunc(x):
@@ -771,29 +721,19 @@ class Pymc(MCMCSampler):
                                             def tfunc(x):
                                                 return x
 
-                                        priorkwargs[parg] = tfunc(
-                                            getattr(self.priors[key], targ)
-                                        )
+                                        priorkwargs[parg] = tfunc(getattr(self.priors[key], targ))
                                     else:
                                         raise ValueError(f"Unknown argument {parg}")
                                 else:
                                     if parg in reqargs:
                                         priorkwargs[parg] = None
-                            self.pymc_priors[key] = pymc.__dict__[pymcdistname](
-                                key, **priorkwargs
-                            )
+                            self.pymc_priors[key] = pymc.__dict__[pymcdistname](key, **priorkwargs)
                         elif "internal" in self.prior_map[distname]:
-                            self.pymc_priors[key] = self.prior_map[distname][
-                                "internal"
-                            ](key)
+                            self.pymc_priors[key] = self.prior_map[distname]["internal"](key)
                         else:
-                            raise ValueError(
-                                f"Prior '{distname}' is not a known distribution."
-                            )
+                            raise ValueError(f"Prior '{distname}' is not a known distribution.")
                     else:
-                        raise ValueError(
-                            f"Prior '{distname}' is not a known distribution."
-                        )
+                        raise ValueError(f"Prior '{distname}' is not a known distribution.")
 
     def set_likelihood(self):
         """
@@ -805,7 +745,6 @@ class Pymc(MCMCSampler):
         _, tt, _ = self._import_tensor()
 
         class LogLike(tt.Op):
-
             itypes = [tt.dvector]
             otypes = [tt.dscalar]
 
@@ -819,18 +758,14 @@ class Pymc(MCMCSampler):
                     if isinstance(self.priors[key], float):
                         self.parameters[key] = self.priors[key]
 
-                self.logpgrad = LogLikeGrad(
-                    self.parameters, self.likelihood, self.priors
-                )
+                self.logpgrad = LogLikeGrad(self.parameters, self.likelihood, self.priors)
 
             def perform(self, node, inputs, outputs):
                 (theta,) = inputs
                 for i, key in enumerate(self.parameters):
                     self.parameters[key] = theta[i]
 
-                logl = _safe_likelihood_call(
-                    self.likelihood.log_likelihood, self.parameters
-                )
+                logl = _safe_likelihood_call(self.likelihood.log_likelihood, self.parameters)
                 outputs[0][0] = np.array(logl)
 
             def grad(self, inputs, g):
@@ -839,7 +774,6 @@ class Pymc(MCMCSampler):
 
         # create Op for calculating the gradient of the log likelihood
         class LogLikeGrad(tt.Op):
-
             itypes = [tt.dvector]
             otypes = [tt.dvector]
 
@@ -861,14 +795,10 @@ class Pymc(MCMCSampler):
                 def lnlike(values):
                     for i, key in enumerate(self.parameters):
                         self.parameters[key] = values[i]
-                    return _safe_likelihood_call(
-                        self.likelihood.log_likelihood, self.parameters
-                    )
+                    return _safe_likelihood_call(self.likelihood.log_likelihood, self.parameters)
 
                 # calculate gradients
-                grads = derivatives(
-                    theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2
-                )
+                grads = derivatives(theta, lnlike, abseps=1e-5, mineps=1e-12, reltol=1e-2)
 
                 outputs[0][0] = grads
 
@@ -881,9 +811,7 @@ class Pymc(MCMCSampler):
                     or not hasattr(self.likelihood, "x")
                     or not hasattr(self.likelihood, "y")
                 ):
-                    raise ValueError(
-                        "Gaussian Likelihood does not have all the correct attributes!"
-                    )
+                    raise ValueError("Gaussian Likelihood does not have all the correct attributes!")
 
                 if "sigma" in self.pymc_priors:
                     # if sigma is suppled use that value
@@ -907,12 +835,8 @@ class Pymc(MCMCSampler):
                 )
             elif isinstance(self.likelihood, PoissonLikelihood):
                 # check required attributes exist
-                if not hasattr(self.likelihood, "x") or not hasattr(
-                    self.likelihood, "y"
-                ):
-                    raise ValueError(
-                        "Poisson Likelihood does not have all the correct attributes!"
-                    )
+                if not hasattr(self.likelihood, "x") or not hasattr(self.likelihood, "y"):
+                    raise ValueError("Poisson Likelihood does not have all the correct attributes!")
 
                 for key in self.pymc_priors:
                     if key not in self.likelihood.function_keys:
@@ -925,12 +849,8 @@ class Pymc(MCMCSampler):
                 pymc.Poisson("likelihood", mu=model, observed=self.likelihood.y)
             elif isinstance(self.likelihood, ExponentialLikelihood):
                 # check required attributes exist
-                if not hasattr(self.likelihood, "x") or not hasattr(
-                    self.likelihood, "y"
-                ):
-                    raise ValueError(
-                        "Exponential Likelihood does not have all the correct attributes!"
-                    )
+                if not hasattr(self.likelihood, "x") or not hasattr(self.likelihood, "y"):
+                    raise ValueError("Exponential Likelihood does not have all the correct attributes!")
 
                 for key in self.pymc_priors:
                     if key not in self.likelihood.function_keys:
@@ -940,9 +860,7 @@ class Pymc(MCMCSampler):
                 model = self.likelihood.func(self.likelihood.x, **self.pymc_priors)
 
                 # set the distribution
-                pymc.Exponential(
-                    "likelihood", lam=1.0 / model, observed=self.likelihood.y
-                )
+                pymc.Exponential("likelihood", lam=1.0 / model, observed=self.likelihood.y)
             elif isinstance(self.likelihood, StudentTLikelihood):
                 # check required attributes exist
                 if (
@@ -951,9 +869,7 @@ class Pymc(MCMCSampler):
                     or not hasattr(self.likelihood, "nu")
                     or not hasattr(self.likelihood, "sigma")
                 ):
-                    raise ValueError(
-                        "StudentT Likelihood does not have all the correct attributes!"
-                    )
+                    raise ValueError("StudentT Likelihood does not have all the correct attributes!")
 
                 if "nu" in self.pymc_priors:
                     # if nu is suppled use that value
@@ -981,24 +897,18 @@ class Pymc(MCMCSampler):
                 (GravitationalWaveTransient, BasicGravitationalWaveTransient),
             ):
                 # set theano Op - pass _search_parameter_keys, which only contains non-fixed variables
-                logl = LogLike(
-                    self._search_parameter_keys, self.likelihood, self.pymc_priors
-                )
+                logl = LogLike(self._search_parameter_keys, self.likelihood, self.pymc_priors)
 
                 parameters = dict()
                 for key in self._search_parameter_keys:
                     try:
                         parameters[key] = self.pymc_priors[key]
                     except KeyError:
-                        raise KeyError(
-                            f"Unknown key '{key}' when setting GravitationalWaveTransient likelihood"
-                        )
+                        raise KeyError(f"Unknown key '{key}' when setting GravitationalWaveTransient likelihood")
 
                 # convert to tensor variable
                 values = tt.as_tensor_variable(list(parameters.values()))
 
-                pymc.DensityDist(
-                    "likelihood", lambda v: logl(v), observed={"v": values}
-                )
+                pymc.DensityDist("likelihood", lambda v: logl(v), observed={"v": values})
             else:
                 raise ValueError("Unknown likelihood has been provided")

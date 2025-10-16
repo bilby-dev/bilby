@@ -14,6 +14,16 @@ from ..utils import (
 from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
 
+__all__ = [
+    proposal,
+    Sampler,
+    "ImplementedSamplers",
+    "IMPLEMENTED_SAMPLERS",
+    "get_implemented_samplers",
+    "get_sampler_class",
+    "run_sampler",
+]
+
 
 class ImplementedSamplers:
     """Dictionary-like object that contains implemented samplers.
@@ -67,10 +77,7 @@ class ImplementedSamplers:
         elif f"bilby.{key}" in self._samplers:
             return self._samplers[f"bilby.{key}"]
         else:
-            raise ValueError(
-                f"Sampler {key} is not implemented! "
-                f"Available samplers are: {list(self.keys())}"
-            )
+            raise ValueError(f"Sampler {key} is not implemented! Available samplers are: {list(self.keys())}")
 
     def __contains__(self, value):
         return value in self.valid_keys()
@@ -130,10 +137,7 @@ if command_line_args.sampler_help:
         print(sampler_class.__doc__)
     else:
         if sampler == "None":
-            print(
-                "For help with a specific sampler, call sampler-help with "
-                "the name of the sampler"
-            )
+            print("For help with a specific sampler, call sampler-help with the name of the sampler")
         else:
             print(f"Requested sampler {sampler} not implemented")
         print(f"Available samplers = {get_implemented_samplers()}")
@@ -235,14 +239,12 @@ def run_sampler(
     if command_line_args.clean:
         kwargs["resume"] = False
 
-    from . import IMPLEMENTED_SAMPLERS
-
     if priors is None:
         priors = dict()
 
     _check_marginalized_parameters_not_sampled(likelihood, priors)
 
-    if type(priors) == dict:
+    if type(priors) is dict:
         priors = PriorDict(priors)
     elif isinstance(priors, PriorDict):
         pass
@@ -298,8 +300,7 @@ def run_sampler(
         )
     else:
         raise ValueError(
-            "Provided sampler should be a Sampler object or name of a known "
-            f"sampler: {get_implemented_samplers()}."
+            f"Provided sampler should be a Sampler object or name of a known sampler: {get_implemented_samplers()}."
         )
 
     if sampler.cached_result:
@@ -333,9 +334,7 @@ def run_sampler(
             result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
         if None not in [result.injection_parameters, conversion_function]:
-            result.injection_parameters = conversion_function(
-                result.injection_parameters
-            )
+            result.injection_parameters = conversion_function(result.injection_parameters)
 
         # Initial save of the sampler in case of failure in samples_to_posterior
         if save:

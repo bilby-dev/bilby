@@ -1,12 +1,12 @@
 from numbers import Number
+
 import numpy as np
 
-from .base import Prior
 from ..utils import logger
+from .base import Prior
 
 
 class SlabSpikePrior(Prior):
-
     def __init__(self, slab, spike_location=None, spike_height=0):
         """'Slab-and-spike' prior, see e.g. https://arxiv.org/abs/1812.07259
         This prior is composed of a `slab`, i.e. any common prior distribution,
@@ -31,15 +31,21 @@ class SlabSpikePrior(Prior):
 
         """
         self.slab = slab
-        super().__init__(name=self.slab.name, latex_label=self.slab.latex_label, unit=self.slab.unit,
-                         minimum=self.slab.minimum, maximum=self.slab.maximum,
-                         check_range_nonzero=self.slab.check_range_nonzero, boundary=self.slab.boundary)
+        super().__init__(
+            name=self.slab.name,
+            latex_label=self.slab.latex_label,
+            unit=self.slab.unit,
+            minimum=self.slab.minimum,
+            maximum=self.slab.maximum,
+            check_range_nonzero=self.slab.check_range_nonzero,
+            boundary=self.slab.boundary,
+        )
         self.spike_location = spike_location
         self.spike_height = spike_height
         try:
             self.inverse_cdf_below_spike = self._find_inverse_cdf_fraction_before_spike()
         except Exception as e:
-            logger.warning("Disregard the following warning when running tests:\n {}".format(e))
+            logger.warning(f"Disregard the following warning when running tests:\n {e}")
 
     @property
     def spike_location(self):
@@ -50,7 +56,7 @@ class SlabSpikePrior(Prior):
         if spike_loc is None:
             spike_loc = self.minimum
         if not self.minimum <= spike_loc <= self.maximum:
-            raise ValueError("Spike location {} not within prior domain ".format(spike_loc))
+            raise ValueError(f"Spike location {spike_loc} not within prior domain ")
         self._spike_loc = spike_loc
 
     @property
@@ -62,11 +68,11 @@ class SlabSpikePrior(Prior):
         if 0 <= spike_height <= 1:
             self._spike_height = spike_height
         else:
-            raise ValueError("Spike height must be between 0 and 1, but is {}".format(spike_height))
+            raise ValueError(f"Spike height must be between 0 and 1, but is {spike_height}")
 
     @property
     def slab_fraction(self):
-        """ Relative prior weight of the slab. """
+        """Relative prior weight of the slab."""
         return 1 - self.spike_height
 
     def _find_inverse_cdf_fraction_before_spike(self):
@@ -90,8 +96,8 @@ class SlabSpikePrior(Prior):
 
         lower_indices = val < self.inverse_cdf_below_spike
         intermediate_indices = np.logical_and(
-            self.inverse_cdf_below_spike <= val,
-            val <= (self.inverse_cdf_below_spike + self.spike_height))
+            self.inverse_cdf_below_spike <= val, val <= (self.inverse_cdf_below_spike + self.spike_height)
+        )
         higher_indices = val > (self.inverse_cdf_below_spike + self.spike_height)
 
         res = np.zeros(len(val))
@@ -102,8 +108,10 @@ class SlabSpikePrior(Prior):
             try:
                 res = res[0]
             except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+                logger.warning(
+                    "Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed"
+                )
         return res
 
     def _contracted_rescale(self, val):
@@ -142,8 +150,10 @@ class SlabSpikePrior(Prior):
             try:
                 res = res[0]
             except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+                logger.warning(
+                    "Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed"
+                )
         return res
 
     def ln_prob(self, val):
@@ -166,12 +176,14 @@ class SlabSpikePrior(Prior):
             try:
                 res = res[0]
             except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+                logger.warning(
+                    "Based on inputs, a number should be output\
+                               but this could not be accessed from what was computed"
+                )
         return res
 
     def cdf(self, val):
-        """ Return the CDF of the prior.
+        """Return the CDF of the prior.
         This calls to the slab CDF and adds a discrete step
         at the spike location.
 

@@ -8,7 +8,7 @@ from ..utils import logger
 from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrapper
 
 
-class _DNest4Model(object):
+class _DNest4Model:
     msg = (
         "The DNest4 sampler interface in bilby is deprecated and will"
         " be removed in future release. Please use the `dnest4-bilby`"
@@ -16,9 +16,7 @@ class _DNest4Model(object):
     )
     warnings.warn(msg, FutureWarning)
 
-    def __init__(
-        self, log_likelihood_func, from_prior_func, widths, centers, highs, lows
-    ):
+    def __init__(self, log_likelihood_func, from_prior_func, widths, centers, highs, lows):
         """Initialize the DNest4 model.
         Args:
             log_likelihood_func: function
@@ -64,14 +62,11 @@ class _DNest4Model(object):
     @staticmethod
     def wrap(x, minimum, maximum):
         if maximum <= minimum:
-            raise ValueError(
-                f"maximum {maximum} <= minimum {minimum}, when trying to wrap coordinates"
-            )
+            raise ValueError(f"maximum {maximum} <= minimum {minimum}, when trying to wrap coordinates")
         return (x - minimum) % (maximum - minimum) + minimum
 
 
 class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
-
     """
     Bilby wrapper of DNest4
 
@@ -139,7 +134,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         temporary_directory=True,
         **kwargs,
     ):
-        super(DNest4, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -199,9 +194,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         import dnest4
 
         if self._backend == "csv":
-            return dnest4.backends.CSVBackend(
-                f"{self.outdir}/dnest4{self.label}/", sep=" "
-            )
+            return dnest4.backends.CSVBackend(f"{self.outdir}/dnest4{self.label}/", sep=" ")
         else:
             return dnest4.backends.MemoryBackend()
 
@@ -222,9 +215,7 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
         self.start_time = time.time()
 
         self.sampler = dnest4.DNest4Sampler(self._dnest4_model, backend=backend)
-        out = self.sampler.sample(
-            self.max_num_levels, num_particles=self.num_particles, **self.dnest4_kwargs
-        )
+        out = self.sampler.sample(self.max_num_levels, num_particles=self.num_particles, **self.dnest4_kwargs)
 
         for i, sample in enumerate(out):
             if self._verbose and ((i + 1) % 100 == 0):
@@ -257,4 +248,4 @@ class DNest4(_TemporaryFileSamplerMixin, NestedSampler):
 
     def _verify_kwargs_against_default_kwargs(self):
         self.outputfiles_basename = self.kwargs.pop("outputfiles_basename", None)
-        super(DNest4, self)._verify_kwargs_against_default_kwargs()
+        super()._verify_kwargs_against_default_kwargs()

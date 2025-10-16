@@ -67,7 +67,7 @@ class Zeus(Emcee):
         burn_in_act=3,
         **kwargs,
     ):
-        super(Zeus, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -84,7 +84,7 @@ class Zeus(Emcee):
         )
 
     def _translate_kwargs(self, kwargs):
-        super(Zeus, self)._translate_kwargs(kwargs=kwargs)
+        super()._translate_kwargs(kwargs=kwargs)
 
         # check if using emcee-style arguments
         if "start" not in kwargs:
@@ -104,11 +104,7 @@ class Zeus(Emcee):
 
     @property
     def sampler_init_kwargs(self):
-        init_kwargs = {
-            key: value
-            for key, value in self.kwargs.items()
-            if key not in self.sampler_function_kwargs
-        }
+        init_kwargs = {key: value for key, value in self.kwargs.items() if key not in self.sampler_function_kwargs}
 
         init_kwargs["logprob_fn"] = _evaluator.call_emcee
         init_kwargs["ndim"] = self.ndim
@@ -117,7 +113,7 @@ class Zeus(Emcee):
 
     def write_current_state(self):
         self._sampler.distribute = map
-        super(Zeus, self).write_current_state()
+        super().write_current_state()
         self._sampler.distribute = getattr(self._sampler.pool, "map", map)
 
     def _initialise_sampler(self):
@@ -152,9 +148,7 @@ class Zeus(Emcee):
         sampler_function_kwargs["start"] = self.pos0
 
         # main iteration loop
-        for sample in self.sampler.sample(
-            iterations=iterations, **sampler_function_kwargs
-        ):
+        for sample in self.sampler.sample(iterations=iterations, **sampler_function_kwargs):
             self.write_chains_to_file(sample)
         self._close_pool()
         self.write_current_state()
@@ -178,9 +172,7 @@ class Zeus(Emcee):
                 f"`nburn < nsteps` ({self.result.nburn} < {self.nsteps})."
                 " Try increasing the number of steps."
             )
-        blobs = np.array(self.sampler.get_blobs(flat=True, discard=self.nburn)).reshape(
-            (-1, 2)
-        )
+        blobs = np.array(self.sampler.get_blobs(flat=True, discard=self.nburn)).reshape((-1, 2))
         log_likelihoods, log_priors = blobs.T
         self.result.log_likelihood_evaluations = log_likelihoods
         self.result.log_prior_evaluations = log_priors

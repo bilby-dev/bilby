@@ -1,41 +1,46 @@
 import datetime
 import inspect
 import json
+import multiprocessing
 import os
 from collections import namedtuple
 from copy import copy
+from functools import partial
 from importlib import import_module
 from itertools import product
-import multiprocessing
-from functools import partial
+
 import numpy as np
 import pandas as pd
 import scipy.stats
 
 from . import utils
 from .likelihood import _safe_likelihood_call
+from .prior import ConditionalDeltaFunction, DeltaFunction, Prior, PriorDict
 from .utils import (
-    logger, infer_parameters_from_function,
+    BilbyJsonEncoder,
     check_directory_exists_and_if_not_mkdir,
-    latex_plot_format, safe_save_figure,
-    BilbyJsonEncoder, load_json,
-    move_old_file, get_version_information,
-    decode_bilby_json, docstring,
-    recursively_save_dict_contents_to_group,
-    recursively_load_dict_contents_from_group,
-    recursively_decode_bilby_json,
-    safe_file_dump,
+    decode_bilby_json,
+    docstring,
+    get_version_information,
+    infer_parameters_from_function,
+    latex_plot_format,
+    load_json,
+    logger,
+    move_old_file,
     random,
+    recursively_decode_bilby_json,
+    recursively_load_dict_contents_from_group,
+    recursively_save_dict_contents_to_group,
+    safe_file_dump,
+    safe_save_figure,
     string_to_boolean,
 )
-from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
-
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
 
 
-def result_file_name(outdir, label, extension='json', gzip=False):
-    """ Returns the standard filename used for a result file
+def result_file_name(outdir, label, extension="json", gzip=False):
+    """Returns the standard filename used for a result file
 
     Parameters
     ==========
@@ -52,19 +57,19 @@ def result_file_name(outdir, label, extension='json', gzip=False):
     =======
     str: File name of the output file
     """
-    if extension == 'pickle':
-        extension = 'pkl'
-    if extension in ['json', 'hdf5', 'pkl']:
-        if extension == 'json' and gzip:
-            return os.path.join(outdir, '{}_result.{}.gz'.format(label, extension))
+    if extension == "pickle":
+        extension = "pkl"
+    if extension in ["json", "hdf5", "pkl"]:
+        if extension == "json" and gzip:
+            return os.path.join(outdir, f"{label}_result.{extension}.gz")
         else:
-            return os.path.join(outdir, '{}_result.{}'.format(label, extension))
+            return os.path.join(outdir, f"{label}_result.{extension}")
     else:
-        raise ValueError("Extension type {} not understood".format(extension))
+        raise ValueError(f"Extension type {extension} not understood")
 
 
 def _determine_file_name(filename, outdir, label, extension, gzip):
-    """ Helper method to determine the filename """
+    """Helper method to determine the filename"""
     if filename is not None:
         if isinstance(filename, os.PathLike):
             # convert PathLike object to string
@@ -79,7 +84,7 @@ def _determine_file_name(filename, outdir, label, extension, gzip):
 
 
 def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=False, result_class=None):
-    """ Reads in a stored bilby result object
+    """Reads in a stored bilby result object
 
     Parameters
     ==========
@@ -97,9 +102,7 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
         but objects which inherit from this class can be given providing
         additional methods.
     """
-    filename = _determine_file_name(
-        filename, outdir, label, extension or "json", gzip
-    )
+    filename = _determine_file_name(filename, outdir, label, extension or "json", gzip)
 
     if result_class is None:
         result_class = Result
@@ -110,24 +113,22 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
     if extension is None:
         ext = os.path.splitext(filename)[1][1:]
         extension = ext if ext else None
-    if extension == 'gz':  # gzipped file
-        extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip('.')
+    if extension == "gz":  # gzipped file
+        extension = os.path.splitext(os.path.splitext(filename)[0])[1].lstrip(".")
 
     if extension is None:
         raise ValueError("No filetype extension provided and could not be inferred from filename")
 
     extension = extension.lower()
     read_functions = {
-        'json': result_class.from_json,
-        'hdf5': result_class.from_hdf5,
-        'h5': result_class.from_hdf5,
-        'pkl': result_class.from_pickle,
-        'pickle': result_class.from_pickle,
+        "json": result_class.from_json,
+        "hdf5": result_class.from_hdf5,
+        "h5": result_class.from_hdf5,
+        "pkl": result_class.from_pickle,
+        "pickle": result_class.from_pickle,
     }
     if extension not in read_functions:
-        raise ValueError(
-            f"Filetype {extension} not understood, known types are {list(read_functions.keys())}"
-        )
+        raise ValueError(f"Filetype {extension} not understood, known types are {list(read_functions.keys())}")
 
     func = read_functions[extension]
 
@@ -135,8 +136,8 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
     # Catch all other exceptions and raise a FileLoadError
     try:
         result = func(filename=filename)
-    except IOError as e:
-        raise IOError(
+    except OSError as e:
+        raise OSError(
             f"Failed to read in file {filename} using "
             f"`{result_class.__name__}.{func.__name__}` "
             f"(extension={extension}). "
@@ -153,7 +154,7 @@ def read_in_result(filename=None, outdir=None, label=None, extension=None, gzip=
 
 
 def read_in_result_list(filename_list, invalid="warning"):
-    """ Read in a set of results
+    """Read in a set of results
 
     Parameters
     ==========
@@ -169,15 +170,9 @@ def read_in_result_list(filename_list, invalid="warning"):
     """
     results_list = []
     for filename in filename_list:
-        if (
-            not os.path.exists(filename)
-            and os.path.exists(f"{os.path.splitext(filename)[0]}.pkl")
-        ):
+        if not os.path.exists(filename) and os.path.exists(f"{os.path.splitext(filename)[0]}.pkl"):
             pickle_path = f"{os.path.splitext(filename)[0]}.pkl"
-            logger.warning(
-                f"Result file {filename} doesn't exist but {pickle_path} does. "
-                f"Using {pickle_path}."
-            )
+            logger.warning(f"Result file {filename} doesn't exist but {pickle_path} does. Using {pickle_path}.")
             filename = pickle_path
         try:
             results_list.append(read_in_result(filename=filename))
@@ -191,9 +186,16 @@ def read_in_result_list(filename_list, invalid="warning"):
 
 
 def get_weights_for_reweighting(
-        result, new_likelihood=None, new_prior=None, old_likelihood=None,
-        old_prior=None, resume_file=None, n_checkpoint=5000, npool=1):
-    """ Calculate the weights for reweight()
+    result,
+    new_likelihood=None,
+    new_prior=None,
+    old_likelihood=None,
+    old_prior=None,
+    resume_file=None,
+    n_checkpoint=5000,
+    npool=1,
+):
+    """Calculate the weights for reweight()
 
     See bilby.core.result.reweight() for help with the inputs
 
@@ -226,33 +228,35 @@ def get_weights_for_reweighting(
     starting_index = 0
 
     if (resume_file is not None) and os.path.exists(resume_file):
-        old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = \
-            np.genfromtxt(resume_file)
+        old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = np.genfromtxt(
+            resume_file
+        )
 
         starting_index = np.argmin(np.abs(old_log_likelihood_array))
-        logger.info(f'Checkpoint resuming from {starting_index}.')
+        logger.info(f"Checkpoint resuming from {starting_index}.")
     elif resume_file is not None:
         basedir = os.path.split(resume_file)[0]
         check_directory_exists_and_if_not_mkdir(basedir)
 
-    dict_samples = [{key: sample[key] for key in result.posterior}
-                    for _, sample in result.posterior.iterrows()]
+    dict_samples = [{key: sample[key] for key in result.posterior} for _, sample in result.posterior.iterrows()]
     n = len(dict_samples) - starting_index
 
     # Helper function to compute likelihoods in parallel
     def eval_pool(this_logl):
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100, n // (2 * npool))
-            return list(tqdm(
-                pool.imap(partial(_safe_likelihood_call, this_logl),
-                        dict_samples[starting_index:], chunksize=chunksize),
-                desc='Computing likelihoods',
-                total=n)
+            return list(
+                tqdm(
+                    pool.imap(
+                        partial(_safe_likelihood_call, this_logl), dict_samples[starting_index:], chunksize=chunksize
+                    ),
+                    desc="Computing likelihoods",
+                    total=n,
+                )
             )
 
     if old_likelihood is None:
-        old_log_likelihood_array[starting_index:] = \
-            result.posterior["log_likelihood"][starting_index:].to_numpy()
+        old_log_likelihood_array[starting_index:] = result.posterior["log_likelihood"][starting_index:].to_numpy()
     else:
         old_log_likelihood_array[starting_index:] = eval_pool(old_likelihood)
 
@@ -263,10 +267,9 @@ def get_weights_for_reweighting(
         new_log_likelihood_array[starting_index:] = eval_pool(new_likelihood)
 
     # Compute priors
-    for ii, sample in enumerate(tqdm(dict_samples[starting_index:],
-                                     desc='Computing priors',
-                                     total=n),
-                                start=starting_index):
+    for ii, sample in enumerate(
+        tqdm(dict_samples[starting_index:], desc="Computing priors", total=n), start=starting_index
+    ):
         # prior calculation needs to not have prior or likelihood keys
         ln_prior = sample.pop("log_prior", np.nan)
         if "log_likelihood" in sample:
@@ -285,19 +288,19 @@ def get_weights_for_reweighting(
 
         if (ii % (n_checkpoint) == 0) and (resume_file is not None):
             checkpointed_index = np.argmin(np.abs(old_log_likelihood_array))
-            logger.info(f'Checkpointing with {checkpointed_index} samples')
+            logger.info(f"Checkpointing with {checkpointed_index} samples")
             np.savetxt(
                 resume_file,
-                [old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array])
+                [old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array],
+            )
 
-    ln_weights = (
-        new_log_likelihood_array + new_log_prior_array - old_log_likelihood_array - old_log_prior_array)
+    ln_weights = new_log_likelihood_array + new_log_prior_array - old_log_likelihood_array - old_log_prior_array
 
     return ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array
 
 
 def rejection_sample(posterior, weights):
-    """ Perform rejection sampling on a posterior using weights
+    """Perform rejection sampling on a posterior using weights
 
     Parameters
     ==========
@@ -316,11 +319,21 @@ def rejection_sample(posterior, weights):
     return posterior[keep]
 
 
-def reweight(result, label=None, new_likelihood=None, new_prior=None,
-             old_likelihood=None, old_prior=None, conversion_function=None, npool=1,
-             verbose_output=False, resume_file=None, n_checkpoint=5000,
-             use_nested_samples=False):
-    """ Reweight a result to a new likelihood/prior using rejection sampling
+def reweight(
+    result,
+    label=None,
+    new_likelihood=None,
+    new_prior=None,
+    old_likelihood=None,
+    old_prior=None,
+    conversion_function=None,
+    npool=1,
+    verbose_output=False,
+    resume_file=None,
+    n_checkpoint=5000,
+    use_nested_samples=False,
+):
+    """Reweight a result to a new likelihood/prior using rejection sampling
 
     Parameters
     ==========
@@ -376,13 +389,20 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
         result.posterior = result.nested_samples
 
     nposterior = len(result.posterior)
-    logger.info("Reweighting posterior with {} samples".format(nposterior))
+    logger.info(f"Reweighting posterior with {nposterior} samples")
 
-    ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array =\
+    ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array = (
         get_weights_for_reweighting(
-            result, new_likelihood=new_likelihood, new_prior=new_prior,
-            old_likelihood=old_likelihood, old_prior=old_prior,
-            resume_file=resume_file, n_checkpoint=n_checkpoint, npool=npool)
+            result,
+            new_likelihood=new_likelihood,
+            new_prior=new_prior,
+            old_likelihood=old_likelihood,
+            old_prior=old_prior,
+            resume_file=resume_file,
+            n_checkpoint=n_checkpoint,
+            npool=npool,
+        )
+    )
 
     if use_nested_samples:
         ln_weights += np.log(result.posterior["weights"])
@@ -395,7 +415,7 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
 
     result.posterior = rejection_sample(result.posterior, weights=weights)
     result.posterior = result.posterior.reset_index(drop=True)
-    logger.info("Rejection sampling resulted in {} samples".format(len(result.posterior)))
+    logger.info(f"Rejection sampling resulted in {len(result.posterior)} samples")
     result.meta_data["reweighted_using_rejection_sampling"] = True
 
     if use_nested_samples:
@@ -421,28 +441,52 @@ def reweight(result, label=None, new_likelihood=None, new_prior=None,
         result.label += "_reweighted"
 
     if verbose_output:
-        return result, weights, new_log_likelihood_array, \
-            new_log_prior_array, old_log_likelihood_array, old_log_prior_array
+        return (
+            result,
+            weights,
+            new_log_likelihood_array,
+            new_log_prior_array,
+            old_log_likelihood_array,
+            old_log_prior_array,
+        )
     else:
         return result
 
 
-class Result(object):
-    def __init__(self, label='no_label', outdir='.', sampler=None,
-                 search_parameter_keys=None, fixed_parameter_keys=None,
-                 constraint_parameter_keys=None, priors=None,
-                 sampler_kwargs=None, injection_parameters=None,
-                 meta_data=None, posterior=None, samples=None,
-                 nested_samples=None, log_evidence=np.nan,
-                 log_evidence_err=np.nan, information_gain=np.nan,
-                 log_noise_evidence=np.nan, log_bayes_factor=np.nan,
-                 log_likelihood_evaluations=None,
-                 log_prior_evaluations=None, sampling_time=None, nburn=None,
-                 num_likelihood_evaluations=None, walkers=None,
-                 max_autocorrelation_time=None, use_ratio=None,
-                 parameter_labels=None, parameter_labels_with_unit=None,
-                 version=None):
-        """ A class to store the results of the sampling run
+class Result:
+    def __init__(
+        self,
+        label="no_label",
+        outdir=".",
+        sampler=None,
+        search_parameter_keys=None,
+        fixed_parameter_keys=None,
+        constraint_parameter_keys=None,
+        priors=None,
+        sampler_kwargs=None,
+        injection_parameters=None,
+        meta_data=None,
+        posterior=None,
+        samples=None,
+        nested_samples=None,
+        log_evidence=np.nan,
+        log_evidence_err=np.nan,
+        information_gain=np.nan,
+        log_noise_evidence=np.nan,
+        log_bayes_factor=np.nan,
+        log_likelihood_evaluations=None,
+        log_prior_evaluations=None,
+        sampling_time=None,
+        nburn=None,
+        num_likelihood_evaluations=None,
+        walkers=None,
+        max_autocorrelation_time=None,
+        use_ratio=None,
+        parameter_labels=None,
+        parameter_labels_with_unit=None,
+        version=None,
+    ):
+        """A class to store the results of the sampling run
 
         Parameters
         ==========
@@ -570,8 +614,9 @@ class Result(object):
     @staticmethod
     @docstring(_load_doctstring.format(format="pickle"))
     def from_pickle(filename=None, outdir=None, label=None):
-        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
+        filename = _determine_file_name(filename, outdir, label, "hdf5", False)
         import dill
+
         with open(filename, "rb") as ff:
             return dill.load(ff)
 
@@ -579,19 +624,16 @@ class Result(object):
     @docstring(_load_doctstring.format(format="hdf5"))
     def from_hdf5(cls, filename=None, outdir=None, label=None):
         import h5py
-        filename = _determine_file_name(filename, outdir, label, 'hdf5', False)
+
+        filename = _determine_file_name(filename, outdir, label, "hdf5", False)
         with h5py.File(filename, "r") as ff:
-            data = recursively_load_dict_contents_from_group(ff, '/')
+            data = recursively_load_dict_contents_from_group(ff, "/")
         data["posterior"] = pd.DataFrame(data["posterior"])
-        data["priors"] = PriorDict._get_from_json_dict(
-            json.loads(data["priors"], object_hook=decode_bilby_json)
-        )
+        data["priors"] = PriorDict._get_from_json_dict(json.loads(data["priors"], object_hook=decode_bilby_json))
         try:
-            cls = getattr(import_module(data['__module__']), data['__name__'])
+            cls = getattr(import_module(data["__module__"]), data["__name__"])
         except ImportError:
-            logger.debug(
-                "Module {}.{} not found".format(data["__module__"], data["__name__"])
-            )
+            logger.debug("Module {}.{} not found".format(data["__module__"], data["__name__"]))
         except KeyError:
             logger.debug("No class specified, using base Result.")
         for key in ["__module__", "__name__"]:
@@ -604,39 +646,37 @@ class Result(object):
     def from_json(cls, filename=None, outdir=None, label=None, gzip=False):
         from json.decoder import JSONDecodeError
 
-        filename = _determine_file_name(filename, outdir, label, 'json', gzip)
+        filename = _determine_file_name(filename, outdir, label, "json", gzip)
 
         if os.path.isfile(filename):
             try:
                 dictionary = load_json(filename, gzip)
             except JSONDecodeError as e:
-                raise IOError(
-                    "JSON failed to decode {} with message {}".format(filename, e)
-                )
+                raise OSError(f"JSON failed to decode {filename} with message {e}")
             try:
                 return cls(**dictionary)
             except TypeError as e:
-                raise IOError("Unable to load dictionary, error={}".format(e))
+                raise OSError(f"Unable to load dictionary, error={e}")
         else:
-            raise IOError("No result '{}' found".format(filename))
+            raise OSError(f"No result '{filename}' found")
 
     def __str__(self):
-        """Print a summary """
-        if getattr(self, 'posterior', None) is not None:
-            if getattr(self, 'log_noise_evidence', None) is not None:
-                return ("nsamples: {:d}\n"
-                        "ln_noise_evidence: {:6.3f}\n"
-                        "ln_evidence: {:6.3f} +/- {:6.3f}\n"
-                        "ln_bayes_factor: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.posterior), self.log_noise_evidence, self.log_evidence,
-                                self.log_evidence_err, self.log_bayes_factor,
-                                self.log_evidence_err))
+        """Print a summary"""
+        if getattr(self, "posterior", None) is not None:
+            if getattr(self, "log_noise_evidence", None) is not None:
+                return (
+                    f"nsamples: {len(self.posterior):d}\n"
+                    f"ln_noise_evidence: {self.log_noise_evidence:6.3f}\n"
+                    f"ln_evidence: {self.log_evidence:6.3f} +/- {self.log_evidence_err:6.3f}\n"
+                    f"ln_bayes_factor: {self.log_bayes_factor:6.3f} +/- {self.log_evidence_err:6.3f}\n"
+                )
             else:
-                return ("nsamples: {:d}\n"
-                        "ln_evidence: {:6.3f} +/- {:6.3f}\n"
-                        .format(len(self.posterior), self.log_evidence, self.log_evidence_err))
+                return (
+                    f"nsamples: {len(self.posterior):d}\n"
+                    f"ln_evidence: {self.log_evidence:6.3f} +/- {self.log_evidence_err:6.3f}\n"
+                )
         else:
-            return ''
+            return ""
 
     @property
     def meta_data(self):
@@ -654,7 +694,7 @@ class Result(object):
         if self._priors is not None:
             return self._priors
         else:
-            raise ValueError('Result object has no priors')
+            raise ValueError("Result object has no priors")
 
     @priors.setter
     def priors(self, priors):
@@ -664,12 +704,11 @@ class Result(object):
             else:
                 self._priors = PriorDict(priors)
             if self.parameter_labels is None:
-                self.parameter_labels = [self.priors[k].latex_label for k in
-                                         self.search_parameter_keys]
+                self.parameter_labels = [self.priors[k].latex_label for k in self.search_parameter_keys]
             if self.parameter_labels_with_unit is None:
                 self.parameter_labels_with_unit = [
-                    self.priors[k].latex_label_with_unit for k in
-                    self.search_parameter_keys]
+                    self.priors[k].latex_label_with_unit for k in self.search_parameter_keys
+                ]
         elif priors is None:
             self._priors = priors
             self.parameter_labels = self.search_parameter_keys
@@ -679,7 +718,7 @@ class Result(object):
 
     @property
     def samples(self):
-        """ An array of samples """
+        """An array of samples"""
         if self._samples is not None:
             return self._samples
         else:
@@ -691,7 +730,7 @@ class Result(object):
 
     @property
     def num_likelihood_evaluations(self):
-        """ number of likelihood evaluations """
+        """number of likelihood evaluations"""
         if self._num_likelihood_evaluations is not None:
             return self._num_likelihood_evaluations
         else:
@@ -703,7 +742,7 @@ class Result(object):
 
     @property
     def nested_samples(self):
-        """" An array of unweighted samples """
+        """ " An array of unweighted samples"""
         if self._nested_samples is not None:
             return self._nested_samples
         else:
@@ -715,7 +754,7 @@ class Result(object):
 
     @property
     def walkers(self):
-        """" An array of the ensemble walkers """
+        """ " An array of the ensemble walkers"""
         if self._walkers is not None:
             return self._walkers
         else:
@@ -727,7 +766,7 @@ class Result(object):
 
     @property
     def nburn(self):
-        """" An array of the ensemble walkers """
+        """ " An array of the ensemble walkers"""
         if self._nburn is not None:
             return self._nburn
         else:
@@ -739,7 +778,7 @@ class Result(object):
 
     @property
     def posterior(self):
-        """ A pandas data frame of the posterior """
+        """A pandas data frame of the posterior"""
         if self._posterior is not None:
             return self._posterior
         else:
@@ -772,33 +811,52 @@ class Result(object):
     @version.setter
     def version(self, version):
         if version is None:
-            self._version = 'bilby={}'.format(utils.get_version_information())
+            self._version = f"bilby={utils.get_version_information()}"
         else:
             self._version = version
 
     def _get_save_data_dictionary(self):
         # This list defines all the parameters saved in the result object
         save_attrs = [
-            'label', 'outdir', 'sampler', 'log_evidence', 'log_evidence_err',
-            'log_noise_evidence', 'log_bayes_factor', 'priors', 'posterior',
-            'injection_parameters', 'meta_data', 'search_parameter_keys',
-            'fixed_parameter_keys', 'constraint_parameter_keys',
-            'sampling_time', 'sampler_kwargs', 'use_ratio', 'information_gain',
-            'log_likelihood_evaluations', 'log_prior_evaluations',
-            'num_likelihood_evaluations', 'samples', 'nested_samples',
-            'walkers', 'nburn', 'parameter_labels', 'parameter_labels_with_unit',
-            'version']
+            "label",
+            "outdir",
+            "sampler",
+            "log_evidence",
+            "log_evidence_err",
+            "log_noise_evidence",
+            "log_bayes_factor",
+            "priors",
+            "posterior",
+            "injection_parameters",
+            "meta_data",
+            "search_parameter_keys",
+            "fixed_parameter_keys",
+            "constraint_parameter_keys",
+            "sampling_time",
+            "sampler_kwargs",
+            "use_ratio",
+            "information_gain",
+            "log_likelihood_evaluations",
+            "log_prior_evaluations",
+            "num_likelihood_evaluations",
+            "samples",
+            "nested_samples",
+            "walkers",
+            "nburn",
+            "parameter_labels",
+            "parameter_labels_with_unit",
+            "version",
+        ]
         dictionary = dict()
         for attr in save_attrs:
             try:
                 dictionary[attr] = getattr(self, attr)
             except ValueError as e:
-                logger.debug("Unable to save {}, message: {}".format(attr, e))
+                logger.debug(f"Unable to save {attr}, message: {e}")
                 pass
         return dictionary
 
-    def save_to_file(self, filename=None, overwrite=False, outdir=None,
-                     extension=None, gzip=False):
+    def save_to_file(self, filename=None, overwrite=False, outdir=None, extension=None, gzip=False):
         """
         Writes the Result to a file.
 
@@ -836,20 +894,16 @@ class Result(object):
             if ext in EXTENSIONS:
                 if extension is None:
                     logger.debug(
-                        f"Inferred extension '{ext}' from filename '{filename}'. "
-                        "Using this extension for saving."
+                        f"Inferred extension '{ext}' from filename '{filename}'. Using this extension for saving."
                     )
                     extension = ext
                 elif ext != extension:
-                    message = (
-                        f"The specified extension '{ext}' "
-                        f"does not match the provided extension '{extension}'. "
-                    )
+                    message = f"The specified extension '{ext}' does not match the provided extension '{extension}'. "
                     logger.warning(message)
 
         if extension is None:
             logger.info("No extension given, defaulting to JSON.")
-            extension = 'json'
+            extension = "json"
 
         if extension is True:
             message = (
@@ -858,7 +912,7 @@ class Result(object):
                 "This behaviour is deprecated and will be removed. "
             )
             logger.warning(message)
-            extension = 'json'
+            extension = "json"
 
         outdir = _outdir if outdir is None else outdir
         outdir = self._safe_outdir_creation(outdir, self.save_to_file)
@@ -873,31 +927,33 @@ class Result(object):
         dictionary = self._get_save_data_dictionary()
 
         # Convert callable sampler_kwargs to strings
-        if dictionary.get('sampler_kwargs', None) is not None:
-            for key in dictionary['sampler_kwargs']:
-                if hasattr(dictionary['sampler_kwargs'][key], '__call__'):
-                    dictionary['sampler_kwargs'][key] = str(dictionary['sampler_kwargs'])
+        if dictionary.get("sampler_kwargs", None) is not None:
+            for key in dictionary["sampler_kwargs"]:
+                if hasattr(dictionary["sampler_kwargs"][key], "__call__"):
+                    dictionary["sampler_kwargs"][key] = str(dictionary["sampler_kwargs"])
 
         try:
             # convert priors to JSON dictionary for both JSON and hdf5 files
-            if extension == 'json':
+            if extension == "json":
                 dictionary["priors"] = dictionary["priors"]._get_json_dict()
                 if gzip:
                     import gzip
+
                     # encode to a string
-                    json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode('utf-8')
-                    with gzip.GzipFile(output_path, 'w') as file:
+                    json_str = json.dumps(dictionary, cls=BilbyJsonEncoder).encode("utf-8")
+                    with gzip.GzipFile(output_path, "w") as file:
                         file.write(json_str)
                 else:
-                    with open(output_path, 'w') as file:
+                    with open(output_path, "w") as file:
                         json.dump(dictionary, file, indent=2, cls=BilbyJsonEncoder)
-            elif extension in ['hdf5', 'h5']:
+            elif extension in ["hdf5", "h5"]:
                 import h5py
+
                 dictionary["__module__"] = self.__module__
                 dictionary["__name__"] = self.__class__.__name__
-                with h5py.File(output_path, 'w') as h5file:
-                    recursively_save_dict_contents_to_group(h5file, '/', dictionary)
-            elif extension in ['pkl', 'pickle']:
+                with h5py.File(output_path, "w") as h5file:
+                    recursively_save_dict_contents_to_group(h5file, "/", dictionary)
+            elif extension in ["pkl", "pickle"]:
                 safe_file_dump(self, output_path, "dill")
             else:
                 raise ValueError(f"Extension type {extension} not understood")
@@ -910,7 +966,7 @@ class Result(object):
             )
 
     def save_posterior_samples(self, filename=None, outdir=None, label=None):
-        """ Saves posterior samples to a file
+        """Saves posterior samples to a file
 
         Generates a .dat file containing the posterior samples and auxiliary
         data saved in the posterior. Note, strings in the posterior are
@@ -930,7 +986,7 @@ class Result(object):
             if label is None:
                 label = self.label
             outdir = self._safe_outdir_creation(outdir, self.save_posterior_samples)
-            filename = '{}/{}_posterior_samples.dat'.format(outdir, label)
+            filename = f"{outdir}/{label}_posterior_samples.dat"
         else:
             outdir = os.path.dirname(filename)
             self._safe_outdir_creation(outdir, self.save_posterior_samples)
@@ -945,11 +1001,11 @@ class Result(object):
                 df.loc[:, key + "_abs"] = np.abs(complex_term)
                 df.loc[:, key + "_angle"] = np.angle(complex_term)
 
-        logger.info("Writing samples file to {}".format(filename))
-        df.to_csv(filename, index=False, header=True, sep=' ')
+        logger.info(f"Writing samples file to {filename}")
+        df.to_csv(filename, index=False, header=True, sep=" ")
 
     def get_latex_labels_from_parameter_keys(self, keys):
-        """ Returns a list of latex_labels corresponding to the given keys
+        """Returns a list of latex_labels corresponding to the given keys
 
         Parameters
         ==========
@@ -970,9 +1026,7 @@ class Result(object):
                 label = key
             else:
                 label = None
-                logger.debug(
-                    'key {} not a parameter label or latex label'.format(key)
-                )
+                logger.debug(f"key {key} not a parameter label or latex label")
             if label is None:
                 label = key.replace("_", " ")
             latex_labels.append(label)
@@ -980,26 +1034,25 @@ class Result(object):
 
     @property
     def covariance_matrix(self):
-        """ The covariance matrix of the samples the posterior """
+        """The covariance matrix of the samples the posterior"""
         samples = self.posterior[self.search_parameter_keys].values
         return np.cov(samples.T)
 
     @property
     def posterior_volume(self):
-        """ The posterior volume """
+        """The posterior volume"""
         if self.covariance_matrix.ndim == 0:
             return np.sqrt(self.covariance_matrix)
         else:
-            return 1 / np.sqrt(np.abs(np.linalg.det(
-                1 / self.covariance_matrix)))
+            return 1 / np.sqrt(np.abs(np.linalg.det(1 / self.covariance_matrix)))
 
     @staticmethod
     def prior_volume(priors):
-        """ The prior volume, given a set of priors """
+        """The prior volume, given a set of priors"""
         return np.prod([priors[k].maximum - priors[k].minimum for k in priors])
 
     def occam_factor(self, priors):
-        """ The Occam factor,
+        """The Occam factor,
 
         See Chapter 28, `Mackay "Information Theory, Inference, and Learning
         Algorithms" <http://www.inference.org.uk/itprnn/book.html>`_ Cambridge
@@ -1010,7 +1063,7 @@ class Result(object):
 
     @property
     def bayesian_model_dimensionality(self):
-        """ Characterises how many parameters are effectively constraint by the data
+        """Characterises how many parameters are effectively constraint by the data
 
         See <https://arxiv.org/abs/1903.06682>
 
@@ -1018,12 +1071,10 @@ class Result(object):
         =======
         float: The model dimensionality
         """
-        return 2 * (np.mean(self.posterior['log_likelihood']**2) -
-                    np.mean(self.posterior['log_likelihood'])**2)
+        return 2 * (np.mean(self.posterior["log_likelihood"] ** 2) - np.mean(self.posterior["log_likelihood"]) ** 2)
 
-    def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
-                                                 quantiles=(0.16, 0.84)):
-        """ Calculate the median and error bar for a given key
+    def get_one_dimensional_median_and_error_bar(self, key, fmt=".2f", quantiles=(0.16, 0.84)):
+        """Calculate the median and error bar for a given key
 
         Parameters
         ==========
@@ -1041,7 +1092,7 @@ class Result(object):
             An object with attributes, median, lower, upper and string
 
         """
-        summary = namedtuple('summary', ['median', 'lower', 'upper', 'string'])
+        summary = namedtuple("summary", ["median", "lower", "upper", "string"])
 
         if len(quantiles) != 2:
             raise ValueError("quantiles must be of length 2")
@@ -1052,18 +1103,28 @@ class Result(object):
         summary.plus = quants[2] - summary.median
         summary.minus = summary.median - quants[0]
 
-        fmt = "{{0:{0}}}".format(fmt).format
+        fmt = f"{{0:{fmt}}}".format
         string_template = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
-        summary.string = string_template.format(
-            fmt(summary.median), fmt(summary.minus), fmt(summary.plus))
+        summary.string = string_template.format(fmt(summary.median), fmt(summary.minus), fmt(summary.plus))
         return summary
 
     @latex_plot_format
-    def plot_single_density(self, key, prior=None, cumulative=False,
-                            title=None, truth=None, save=True,
-                            file_base_name=None, bins=50, label_fontsize=16,
-                            title_fontsize=16, quantiles=(0.16, 0.84), dpi=300):
-        """ Plot a 1D marginal density, either probability or cumulative.
+    def plot_single_density(
+        self,
+        key,
+        prior=None,
+        cumulative=False,
+        title=None,
+        truth=None,
+        save=True,
+        file_base_name=None,
+        bins=50,
+        label_fontsize=16,
+        title_fontsize=16,
+        quantiles=(0.16, 0.84),
+        dpi=300,
+    ):
+        """Plot a 1D marginal density, either probability or cumulative.
 
         Parameters
         ==========
@@ -1104,52 +1165,58 @@ class Result(object):
             A matplotlib figure object
         """
         import matplotlib.pyplot as plt
-        logger.info('Plotting {} marginal distribution'.format(key))
+
+        logger.info(f"Plotting {key} marginal distribution")
         label = self.get_latex_labels_from_parameter_keys([key])[0]
         label = sanity_check_labels([label])[0]
         fig, ax = plt.subplots()
         try:
-            ax.hist(self.posterior[key].values, bins=bins, density=True,
-                    histtype='step', cumulative=cumulative)
+            ax.hist(self.posterior[key].values, bins=bins, density=True, histtype="step", cumulative=cumulative)
         except ValueError as e:
-            logger.info(
-                'Failed to generate 1d plot for {}, error message: {}'
-                .format(key, e))
+            logger.info(f"Failed to generate 1d plot for {key}, error message: {e}")
             return
         ax.set_xlabel(label, fontsize=label_fontsize)
         if truth is not None:
-            ax.axvline(truth, ls='-', color='orange')
+            ax.axvline(truth, ls="-", color="orange")
 
-        summary = self.get_one_dimensional_median_and_error_bar(
-            key, quantiles=quantiles)
-        ax.axvline(summary.median - summary.minus, ls='--', color='C0')
-        ax.axvline(summary.median + summary.plus, ls='--', color='C0')
+        summary = self.get_one_dimensional_median_and_error_bar(key, quantiles=quantiles)
+        ax.axvline(summary.median - summary.minus, ls="--", color="C0")
+        ax.axvline(summary.median + summary.plus, ls="--", color="C0")
         if title:
             ax.set_title(summary.string, fontsize=title_fontsize)
 
         if isinstance(prior, Prior):
             theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
             if cumulative is False:
-                ax.plot(theta, prior.prob(theta), color='C2')
+                ax.plot(theta, prior.prob(theta), color="C2")
             else:
-                ax.plot(theta, prior.cdf(theta), color='C2')
+                ax.plot(theta, prior.cdf(theta), color="C2")
 
         if save:
             fig.tight_layout()
             if cumulative:
-                file_name = file_base_name + key + '_cdf'
+                file_name = file_base_name + key + "_cdf"
             else:
-                file_name = file_base_name + key + '_pdf'
+                file_name = file_base_name + key + "_pdf"
             safe_save_figure(fig=fig, filename=file_name, dpi=dpi)
             plt.close(fig)
         else:
             return fig
 
-    def plot_marginals(self, parameters=None, priors=None, titles=True,
-                       file_base_name=None, bins=50, label_fontsize=16,
-                       title_fontsize=16, quantiles=(0.16, 0.84), dpi=300,
-                       outdir=None):
-        """ Plot 1D marginal distributions
+    def plot_marginals(
+        self,
+        parameters=None,
+        priors=None,
+        titles=True,
+        file_base_name=None,
+        bins=50,
+        label_fontsize=16,
+        title_fontsize=16,
+        quantiles=(0.16, 0.84),
+        dpi=300,
+        outdir=None,
+    ):
+        """Plot 1D marginal distributions
 
         Parameters
         ==========
@@ -1201,17 +1268,17 @@ class Result(object):
 
         if file_base_name is None:
             outdir = self._safe_outdir_creation(outdir, self.plot_marginals)
-            file_base_name = '{}/{}_1d/'.format(outdir, self.label)
+            file_base_name = f"{outdir}/{self.label}_1d/"
             check_directory_exists_and_if_not_mkdir(file_base_name)
 
         if priors is True:
-            priors = getattr(self, 'priors', dict())
+            priors = getattr(self, "priors", dict())
         elif isinstance(priors, dict):
             pass
         elif priors in [False, None]:
             priors = dict()
         else:
-            raise ValueError('Input priors={} not understood'.format(priors))
+            raise ValueError(f"Input priors={priors} not understood")
 
         for i, key in enumerate(plot_parameter_keys):
             if not isinstance(self.posterior[key].values[0], float):
@@ -1220,15 +1287,23 @@ class Result(object):
             truth = truths.get(key, None)
             for cumulative in [False, True]:
                 self.plot_single_density(
-                    key, prior=prior, cumulative=cumulative, title=titles,
-                    truth=truth, save=True, file_base_name=file_base_name,
-                    bins=bins, label_fontsize=label_fontsize, dpi=dpi,
-                    title_fontsize=title_fontsize, quantiles=quantiles)
+                    key,
+                    prior=prior,
+                    cumulative=cumulative,
+                    title=titles,
+                    truth=truth,
+                    save=True,
+                    file_base_name=file_base_name,
+                    bins=bins,
+                    label_fontsize=label_fontsize,
+                    dpi=dpi,
+                    title_fontsize=title_fontsize,
+                    quantiles=quantiles,
+                )
 
     @latex_plot_format
-    def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
-                    filename=None, dpi=300, **kwargs):
-        """ Plot a corner-plot
+    def plot_corner(self, parameters=None, priors=None, titles=True, save=True, filename=None, dpi=300, **kwargs):
+        """Plot a corner-plot
 
         Parameters
         ==========
@@ -1282,16 +1357,22 @@ class Result(object):
             return
 
         defaults_kwargs = dict(
-            bins=50, smooth=0.9,
-            title_kwargs=dict(fontsize=16), color='#0072C1',
-            truth_color='tab:orange', quantiles=[0.16, 0.84],
-            levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.)),
-            plot_density=False, plot_datapoints=True, fill_contours=True,
-            max_n_ticks=3)
+            bins=50,
+            smooth=0.9,
+            title_kwargs=dict(fontsize=16),
+            color="#0072C1",
+            truth_color="tab:orange",
+            quantiles=[0.16, 0.84],
+            levels=(1 - np.exp(-0.5), 1 - np.exp(-2), 1 - np.exp(-9 / 2.0)),
+            plot_density=False,
+            plot_datapoints=True,
+            fill_contours=True,
+            max_n_ticks=3,
+        )
 
-        if 'lionize' in kwargs and kwargs['lionize'] is True:
-            defaults_kwargs['truth_color'] = 'tab:blue'
-            defaults_kwargs['color'] = '#FF8C00'
+        if "lionize" in kwargs and kwargs["lionize"] is True:
+            defaults_kwargs["truth_color"] = "tab:blue"
+            defaults_kwargs["color"] = "#FF8C00"
 
         label_kwargs_defaults = dict(fontsize=16)
         hist_kwargs_defaults = dict(density=True)
@@ -1309,59 +1390,52 @@ class Result(object):
         kwargs["hist_kwargs"] = hist_kwargs_defaults
 
         # Handle if truths was passed in
-        if 'truth' in kwargs:
-            kwargs['truths'] = kwargs.pop('truth')
+        if "truth" in kwargs:
+            kwargs["truths"] = kwargs.pop("truth")
         if "truths" in kwargs:
-            truths = kwargs.get('truths')
+            truths = kwargs.get("truths")
             if isinstance(parameters, list) and isinstance(truths, list):
                 if len(parameters) != len(truths):
-                    raise ValueError(
-                        "Length of parameters and truths don't match")
+                    raise ValueError("Length of parameters and truths don't match")
             elif isinstance(truths, dict) and parameters is None:
-                parameters = kwargs.pop('truths')
+                parameters = kwargs.pop("truths")
             elif isinstance(truths, bool):
                 pass
             elif truths is None:
                 kwargs["truths"] = False
             else:
-                raise ValueError(
-                    "Combination of parameters and truths not understood")
+                raise ValueError("Combination of parameters and truths not understood")
 
         # If injection parameters where stored, use these as parameter values
         # but do not overwrite input parameters (or truths)
-        cond1 = getattr(self, 'injection_parameters', None) is not None
+        cond1 = getattr(self, "injection_parameters", None) is not None
         cond2 = parameters is None
         cond3 = bool(kwargs.get("truths", True))
         if cond1 and cond2 and cond3:
-            parameters = {
-                key: self.injection_parameters.get(key, np.nan)
-                for key in self.search_parameter_keys
-            }
+            parameters = {key: self.injection_parameters.get(key, np.nan) for key in self.search_parameter_keys}
 
         # If parameters is a dictionary, use the keys to determine which
         # parameters to plot and the values as truths.
         if isinstance(parameters, dict):
             plot_parameter_keys = list(parameters.keys())
-            kwargs['truths'] = list(parameters.values())
+            kwargs["truths"] = list(parameters.values())
         elif parameters is None:
             plot_parameter_keys = self.search_parameter_keys
         else:
             plot_parameter_keys = list(parameters)
 
         # Get latex formatted strings for the plot labels
-        kwargs['labels'] = kwargs.get(
-            'labels', self.get_latex_labels_from_parameter_keys(
-                plot_parameter_keys))
+        kwargs["labels"] = kwargs.get("labels", self.get_latex_labels_from_parameter_keys(plot_parameter_keys))
 
         kwargs["labels"] = sanity_check_labels(kwargs["labels"])
 
         # Unless already set, set the range to include all samples
         # This prevents ValueErrors being raised for parameters with no range
-        kwargs['range'] = kwargs.get('range', [1] * len(plot_parameter_keys))
+        kwargs["range"] = kwargs.get("range", [1] * len(plot_parameter_keys))
 
         # Remove truths if it is a bool
-        if isinstance(kwargs.get('truths'), bool):
-            kwargs.pop('truths')
+        if isinstance(kwargs.get("truths"), bool):
+            kwargs.pop("truths")
 
         # Create the data array to plot and pass everything to corner
         xs = self.posterior[plot_parameter_keys].values
@@ -1369,40 +1443,40 @@ class Result(object):
             fig = corner.corner(xs, **kwargs)
         else:
             ax = kwargs.get("ax", plt.subplot())
-            ax.hist(xs, bins=kwargs["bins"], color=kwargs["color"],
-                    histtype="step", **kwargs["hist_kwargs"])
+            ax.hist(xs, bins=kwargs["bins"], color=kwargs["color"], histtype="step", **kwargs["hist_kwargs"])
             ax.set_xlabel(kwargs["labels"][0])
             fig = plt.gcf()
 
         axes = fig.get_axes()
 
         #  Add the titles
-        if titles and kwargs.get('quantiles', None) is not None:
+        if titles and kwargs.get("quantiles", None) is not None:
             for i, par in enumerate(plot_parameter_keys):
                 ax = axes[i + i * len(plot_parameter_keys)]
-                if ax.title.get_text() == '':
-                    ax.set_title(self.get_one_dimensional_median_and_error_bar(
-                        par, quantiles=kwargs['quantiles']).string,
-                        **kwargs['title_kwargs'])
+                if ax.title.get_text() == "":
+                    ax.set_title(
+                        self.get_one_dimensional_median_and_error_bar(par, quantiles=kwargs["quantiles"]).string,
+                        **kwargs["title_kwargs"],
+                    )
 
         #  Add priors to the 1D plots
         if priors is True:
-            priors = getattr(self, 'priors', False)
+            priors = getattr(self, "priors", False)
         if isinstance(priors, dict):
             for i, par in enumerate(plot_parameter_keys):
                 ax = axes[i + i * len(plot_parameter_keys)]
                 theta = np.linspace(ax.get_xlim()[0], ax.get_xlim()[1], 300)
-                ax.plot(theta, priors[par].prob(theta), color='C2')
+                ax.plot(theta, priors[par].prob(theta), color="C2")
         elif priors in [False, None]:
             pass
         else:
-            raise ValueError('Input priors={} not understood'.format(priors))
+            raise ValueError(f"Input priors={priors} not understood")
 
         if save:
             if filename is None:
-                outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_corner)
-                filename = '{}/{}_corner.png'.format(outdir, self.label)
-            logger.debug('Saving corner plot to {}'.format(filename))
+                outdir = self._safe_outdir_creation(kwargs.get("outdir"), self.plot_corner)
+                filename = f"{outdir}/{self.label}_corner.png"
+            logger.debug(f"Saving corner plot to {filename}")
             safe_save_figure(fig=fig, filename=filename, dpi=dpi)
             plt.close(fig)
 
@@ -1410,9 +1484,10 @@ class Result(object):
 
     @latex_plot_format
     def plot_walkers(self, **kwargs):
-        """ Method to plot the trace of the walkers in an ensemble MCMC plot """
+        """Method to plot the trace of the walkers in an ensemble MCMC plot"""
         import matplotlib.pyplot as plt
-        if hasattr(self, 'walkers') is False:
+
+        if hasattr(self, "walkers") is False:
             logger.warning("Cannot plot_walkers as no walkers are saved")
             return
 
@@ -1425,28 +1500,39 @@ class Result(object):
         walkers = self.walkers[:, :, :]
         parameter_labels = sanity_check_labels(self.parameter_labels)
         for i, ax in enumerate(axes):
-            ax.plot(idxs[:self.nburn + 1], walkers[:, :self.nburn + 1, i].T,
-                    lw=0.1, color='r')
+            ax.plot(idxs[: self.nburn + 1], walkers[:, : self.nburn + 1, i].T, lw=0.1, color="r")
             ax.set_ylabel(parameter_labels[i])
 
         for i, ax in enumerate(axes):
-            ax.plot(idxs[self.nburn:], walkers[:, self.nburn:, i].T, lw=0.1,
-                    color='k')
+            ax.plot(idxs[self.nburn :], walkers[:, self.nburn :, i].T, lw=0.1, color="k")
             ax.set_ylabel(parameter_labels[i])
 
         fig.tight_layout()
-        outdir = self._safe_outdir_creation(kwargs.get('outdir'), self.plot_walkers)
-        filename = '{}/{}_walkers.png'.format(outdir, self.label)
-        logger.debug('Saving walkers plot to {}'.format('filename'))
+        outdir = self._safe_outdir_creation(kwargs.get("outdir"), self.plot_walkers)
+        filename = f"{outdir}/{self.label}_walkers.png"
+        logger.debug("Saving walkers plot to {}".format("filename"))
         safe_save_figure(fig=fig, filename=filename)
         plt.close(fig)
 
     @latex_plot_format
-    def plot_with_data(self, model, x, y, ndraws=1000, npoints=1000,
-                       xlabel=None, ylabel=None, data_label='data',
-                       data_fmt='o', draws_label=None, filename=None,
-                       maxl_label='max likelihood', dpi=300, outdir=None):
-        """ Generate a figure showing the data and fits to the data
+    def plot_with_data(
+        self,
+        model,
+        x,
+        y,
+        ndraws=1000,
+        npoints=1000,
+        xlabel=None,
+        ylabel=None,
+        data_label="data",
+        data_fmt="o",
+        draws_label=None,
+        filename=None,
+        maxl_label="max likelihood",
+        dpi=300,
+        outdir=None,
+    ):
+        """Generate a figure showing the data and fits to the data
 
         Parameters
         ==========
@@ -1484,20 +1570,17 @@ class Result(object):
 
         xsmooth = np.linspace(np.min(x), np.max(x), npoints)
         fig, ax = plt.subplots()
-        logger.info('Plotting {} draws'.format(ndraws))
+        logger.info(f"Plotting {ndraws} draws")
         for _ in range(ndraws):
-            s = model_posterior.sample().to_dict('records')[0]
-            ax.plot(xsmooth, model(xsmooth, **s), alpha=0.25, lw=0.1, color='r',
-                    label=draws_label)
+            s = model_posterior.sample().to_dict("records")[0]
+            ax.plot(xsmooth, model(xsmooth, **s), alpha=0.25, lw=0.1, color="r", label=draws_label)
         try:
             if all(~np.isnan(self.posterior.log_likelihood)):
-                logger.info('Plotting maximum likelihood')
+                logger.info("Plotting maximum likelihood")
                 s = model_posterior.iloc[self.posterior.log_likelihood.idxmax()]
-                ax.plot(xsmooth, model(xsmooth, **s), lw=1, color='k',
-                        label=maxl_label)
+                ax.plot(xsmooth, model(xsmooth, **s), lw=1, color="k", label=maxl_label)
         except (AttributeError, TypeError):
-            logger.debug(
-                "No log likelihood values stored, unable to plot max")
+            logger.debug("No log likelihood values stored, unable to plot max")
 
         ax.plot(x, y, data_fmt, markersize=2, label=data_label)
 
@@ -1513,7 +1596,7 @@ class Result(object):
         fig.tight_layout()
         if filename is None:
             outdir = self._safe_outdir_creation(outdir, self.plot_with_data)
-            filename = '{}/{}_plot_with_data'.format(outdir, self.label)
+            filename = f"{outdir}/{self.label}_plot_with_data"
         safe_save_figure(fig=fig, filename=filename, dpi=dpi)
         plt.close(fig)
 
@@ -1522,15 +1605,13 @@ class Result(object):
         if priors is None:
             return posterior
         for key in priors:
-            if isinstance(priors[key], DeltaFunction) and \
-                    not isinstance(priors[key], ConditionalDeltaFunction):
+            if isinstance(priors[key], DeltaFunction) and not isinstance(priors[key], ConditionalDeltaFunction):
                 posterior[key] = priors[key].peak
             elif isinstance(priors[key], float):
                 posterior[key] = priors[key]
         return posterior
 
-    def samples_to_posterior(self, likelihood=None, priors=None,
-                             conversion_function=None, npool=1):
+    def samples_to_posterior(self, likelihood=None, priors=None, conversion_function=None, npool=1):
         """
         Convert array of samples to posterior (a Pandas data frame)
 
@@ -1547,17 +1628,13 @@ class Result(object):
             should take the data_frame, likelihood and prior as arguments.
         """
 
-        data_frame = pd.DataFrame(
-            self.samples, columns=self.search_parameter_keys)
-        data_frame = self._add_prior_fixed_values_to_posterior(
-            data_frame, priors)
-        data_frame['log_likelihood'] = getattr(
-            self, 'log_likelihood_evaluations', np.nan)
+        data_frame = pd.DataFrame(self.samples, columns=self.search_parameter_keys)
+        data_frame = self._add_prior_fixed_values_to_posterior(data_frame, priors)
+        data_frame["log_likelihood"] = getattr(self, "log_likelihood_evaluations", np.nan)
         if self.log_prior_evaluations is None and priors is not None:
-            data_frame['log_prior'] = priors.ln_prob(
-                dict(data_frame[self.search_parameter_keys]), axis=0)
+            data_frame["log_prior"] = priors.ln_prob(dict(data_frame[self.search_parameter_keys]), axis=0)
         else:
-            data_frame['log_prior'] = self.log_prior_evaluations
+            data_frame["log_prior"] = self.log_prior_evaluations
 
         if conversion_function is not None:
             if "npool" in inspect.signature(conversion_function).parameters:
@@ -1581,8 +1658,7 @@ class Result(object):
                 if isinstance(priors[key], DeltaFunction):
                     continue
                 else:
-                    self.prior_values[key]\
-                        = priors[key].prob(self.posterior[key].values)
+                    self.prior_values[key] = priors[key].prob(self.posterior[key].values)
 
     def get_all_injection_credible_levels(self, keys=None, weights=None):
         """
@@ -1606,13 +1682,12 @@ class Result(object):
         if keys is None:
             keys = self.search_parameter_keys
         if self.injection_parameters is None:
-            raise TypeError(
-                "Result object has no 'injection_parameters'. "
-                "Cannot compute credible levels."
-            )
-        credible_levels = {key: self.get_injection_credible_level(key, weights=weights)
-                           for key in keys
-                           if isinstance(self.injection_parameters.get(key, None), float)}
+            raise TypeError("Result object has no 'injection_parameters'. Cannot compute credible levels.")
+        credible_levels = {
+            key: self.get_injection_credible_level(key, weights=weights)
+            for key in keys
+            if isinstance(self.injection_parameters.get(key, None), float)
+        }
         return credible_levels
 
     def get_injection_credible_level(self, parameter, weights=None):
@@ -1635,26 +1710,21 @@ class Result(object):
         float: credible level
         """
         if self.injection_parameters is None:
-            raise (
-                TypeError,
-                "Result object has no 'injection_parameters'. "
-                "Cannot copmute credible levels."
-            )
+            raise (TypeError, "Result object has no 'injection_parameters'. Cannot copmute credible levels.")
 
         if weights is None:
             weights = np.ones(len(self.posterior))
 
-        if parameter in self.posterior and\
-                parameter in self.injection_parameters:
-            credible_level =\
-                sum(np.array(self.posterior[parameter].values <
-                    self.injection_parameters[parameter]) * weights) / (sum(weights))
+        if parameter in self.posterior and parameter in self.injection_parameters:
+            credible_level = sum(
+                np.array(self.posterior[parameter].values < self.injection_parameters[parameter]) * weights
+            ) / (sum(weights))
             return credible_level
         else:
             return np.nan
 
     def _check_attribute_match_to_other_object(self, name, other_object):
-        """ Check attribute name exists in other_object and is the same
+        """Check attribute name exists in other_object and is the same
 
         Parameters
         ==========
@@ -1670,7 +1740,7 @@ class Result(object):
         """
         a = getattr(self, name, False)
         b = getattr(other_object, name, False)
-        logger.debug('Checking {} value: {}=={}'.format(name, a, b))
+        logger.debug(f"Checking {name} value: {a}=={b}")
         if (a is not False) and (b is not False):
             type_a = type(a)
             type_b = type(b)
@@ -1686,19 +1756,18 @@ class Result(object):
 
     @property
     def kde(self):
-        """ Kernel density estimate built from the stored posterior
+        """Kernel density estimate built from the stored posterior
 
         Uses `scipy.stats.gaussian_kde` to generate the kernel density
         """
         if self._kde:
             return self._kde
         else:
-            self._kde = scipy.stats.gaussian_kde(
-                self.posterior[self.search_parameter_keys].values.T)
+            self._kde = scipy.stats.gaussian_kde(self.posterior[self.search_parameter_keys].values.T)
             return self._kde
 
     def posterior_probability(self, sample):
-        """ Calculate the posterior probability for a new sample
+        """Calculate the posterior probability for a new sample
 
         This queries a Kernel Density Estimate of the posterior to calculate
         the posterior probability density for the new sample.
@@ -1718,8 +1787,7 @@ class Result(object):
         """
         if isinstance(sample, dict):
             sample = [sample]
-        ordered_sample = [[s[key] for key in self.search_parameter_keys]
-                          for s in sample]
+        ordered_sample = [[s[key] for key in self.search_parameter_keys] for s in sample]
         return self.kde(ordered_sample)
 
     def _safe_outdir_creation(self, outdir=None, caller_func=None):
@@ -1728,42 +1796,46 @@ class Result(object):
         try:
             utils.check_directory_exists_and_if_not_mkdir(outdir)
         except PermissionError:
-            raise FileMovedError("Can not write in the out directory.\n"
-                                 "Did you move the here file from another system?\n"
-                                 "Try calling " + caller_func.__name__ + " with the 'outdir' "
-                                 "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')")
+            raise FileMovedError(
+                "Can not write in the out directory.\n"
+                "Did you move the here file from another system?\n"
+                "Try calling " + caller_func.__name__ + " with the 'outdir' "
+                "keyword argument, e.g. " + caller_func.__name__ + "(outdir='.')"
+            )
         return outdir
 
     def get_weights_by_new_prior(self, old_prior, new_prior, prior_names=None):
-        """ Calculate a list of sample weights based on the ratio of new to old priors
+        """Calculate a list of sample weights based on the ratio of new to old priors
 
-            Parameters
-            ==========
-            old_prior: PriorDict,
-                The prior used in the generation of the original samples.
+        Parameters
+        ==========
+        old_prior: PriorDict,
+            The prior used in the generation of the original samples.
 
-            new_prior: PriorDict,
-                The prior to use to reweight the samples.
+        new_prior: PriorDict,
+            The prior to use to reweight the samples.
 
-            prior_names: list
-                A list of the priors to include in the ratio during reweighting.
+        prior_names: list
+            A list of the priors to include in the ratio during reweighting.
 
-            Returns
-            =======
-            weights: array-like,
-                A list of sample weights.
+        Returns
+        =======
+        weights: array-like,
+            A list of sample weights.
 
-                """
+        """
         weights = []
 
         # Shared priors - these will form a ratio
         if prior_names is not None:
-            shared_parameters = {key: self.posterior[key] for key in new_prior if
-                                 key in old_prior and key in prior_names}
+            shared_parameters = {
+                key: self.posterior[key] for key in new_prior if key in old_prior and key in prior_names
+            }
         else:
             shared_parameters = {key: self.posterior[key] for key in new_prior if key in old_prior}
-        parameters = [{key: self.posterior[key][i] for key in shared_parameters.keys()}
-                      for i in range(len(self.posterior))]
+        parameters = [
+            {key: self.posterior[key][i] for key in shared_parameters.keys()} for i in range(len(self.posterior))
+        ]
 
         for i in range(len(self.posterior)):
             weight = 1
@@ -1777,45 +1849,39 @@ class Result(object):
         return weights
 
     def to_arviz(self, prior=None):
-        """ Convert the Result object to an ArviZ InferenceData object.
+        """Convert the Result object to an ArviZ InferenceData object.
 
-            Parameters
-            ==========
-            prior: int
-                If a positive integer is given then that number of prior
-                samples will be drawn and stored in the ArviZ InferenceData
-                object.
+        Parameters
+        ==========
+        prior: int
+            If a positive integer is given then that number of prior
+            samples will be drawn and stored in the ArviZ InferenceData
+            object.
 
-            Returns
-            =======
-            azdata: InferenceData
-                The ArviZ InferenceData object.
+        Returns
+        =======
+        azdata: InferenceData
+            The ArviZ InferenceData object.
 
-            Raises
-            ======
-            RuntimeError: If ArviZ is not installed.
+        Raises
+        ======
+        RuntimeError: If ArviZ is not installed.
         """
 
         try:
             import arviz as az
         except ImportError:
-            raise ResultError(
-                "ArviZ is not installed, so cannot convert to InferenceData."
-            )
+            raise ResultError("ArviZ is not installed, so cannot convert to InferenceData.")
 
         posdict = {}
         for key in self.posterior:
             posdict[key] = self.posterior[key].values
 
         if "log_likelihood" in posdict:
-            loglikedict = {
-                "log_likelihood": posdict.pop("log_likelihood")
-            }
+            loglikedict = {"log_likelihood": posdict.pop("log_likelihood")}
         else:
             if self.log_likelihood_evaluations is not None:
-                loglikedict = {
-                    "log_likelihood": self.log_likelihood_evaluations
-                }
+                loglikedict = {"log_likelihood": self.log_likelihood_evaluations}
             else:
                 loglikedict = None
 
@@ -1823,8 +1889,7 @@ class Result(object):
         if prior is not None:
             if self.priors is None:
                 logger.warning(
-                    "No priors are in the Result object, so prior samples "
-                    "will not be included in the output."
+                    "No priors are in the Result object, so prior samples will not be included in the output."
                 )
             else:
                 priorsamples = self.priors.sample(size=prior)
@@ -1837,8 +1902,8 @@ class Result(object):
 
         # add attributes
         version = {
-            "inference_library": "bilby: {}".format(self.sampler),
-            "inference_library_version": get_version_information()
+            "inference_library": f"bilby: {self.sampler}",
+            "inference_library_version": get_version_information(),
         }
 
         azdata.posterior.attrs.update(version)
@@ -1851,9 +1916,8 @@ class Result(object):
 
 
 class ResultList(list):
-
     def __init__(self, results=None, consistency_level="warning"):
-        """ A class to store a list of :class:`bilby.core.result.Result` objects
+        """A class to store a list of :class:`bilby.core.result.Result` objects
         from equivalent runs on the same data. This provides methods for
         outputting combined results.
 
@@ -1868,7 +1932,7 @@ class ResultList(list):
             nothing.
 
         """
-        super(ResultList, self).__init__()
+        super().__init__()
         self.consistency_level = consistency_level
         for result in results:
             self.append(result)
@@ -1885,9 +1949,9 @@ class ResultList(list):
         """
 
         if isinstance(result, Result):
-            super(ResultList, self).append(result)
+            super().append(result)
         elif isinstance(result, (str, os.PathLike)):
-            super(ResultList, self).append(read_in_result(result))
+            super().append(read_in_result(result))
         else:
             raise TypeError("Could not append a non-Result type")
 
@@ -1923,7 +1987,7 @@ class ResultList(list):
             result = copy(self[0])
 
         if result.label is not None:
-            result.label += '_combined'
+            result.label += "_combined"
 
         self.check_consistent_sampler()
         self.check_consistent_data()
@@ -1970,17 +2034,18 @@ class ResultList(list):
             The result object with the combined evidences.
         """
         from scipy.special import logsumexp
+
         self.check_nested_samples()
 
         # Combine evidences
         log_evidences = np.array([res.log_evidence for res in self])
-        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+        result.log_evidence = logsumexp(log_evidences, b=1.0 / len(self))
         result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
         # Propagate uncertainty in combined evidence
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
-            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
+            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1.0 / len(self))
         else:
             result.log_evidence_err = np.nan
 
@@ -1988,7 +2053,7 @@ class ResultList(list):
         result_weights = np.exp(log_evidences - np.max(log_evidences))
         posteriors = list()
         for res, frac in zip(self, result_weights):
-            selected_samples = (random.rng.uniform(size=len(res.posterior)) < frac)
+            selected_samples = random.rng.uniform(size=len(res.posterior)) < frac
             posteriors.append(res.posterior[selected_samples])
 
         # remove original nested_samples
@@ -2020,13 +2085,13 @@ class ResultList(list):
 
         # Combine evidences
         log_evidences = np.array([res.log_evidence for res in self])
-        result.log_evidence = logsumexp(log_evidences, b=1. / len(self))
+        result.log_evidence = logsumexp(log_evidences, b=1.0 / len(self))
         result.log_bayes_factor = result.log_evidence - result.log_noise_evidence
 
         # Propagate uncertainty in combined evidence
         log_errs = [res.log_evidence_err for res in self if np.isfinite(res.log_evidence_err)]
         if len(log_errs) > 0:
-            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1. / len(self))
+            result.log_evidence_err = 0.5 * logsumexp(2 * np.array(log_errs), b=1.0 / len(self))
         else:
             result.log_evidence_err = np.nan
 
@@ -2084,10 +2149,19 @@ class ResultList(list):
 
 
 @latex_plot_format
-def plot_multiple(results, filename=None, labels=None, colours=None,
-                  save=True, evidences=False, corner_labels=None, linestyles=None,
-                  fig=None, **kwargs):
-    """ Generate a corner plot overlaying two sets of results
+def plot_multiple(
+    results,
+    filename=None,
+    labels=None,
+    colours=None,
+    save=True,
+    evidences=False,
+    corner_labels=None,
+    linestyles=None,
+    fig=None,
+    **kwargs,
+):
+    """Generate a corner plot overlaying two sets of results
 
     Parameters
     ==========
@@ -2127,33 +2201,33 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         A matplotlib figure instance
 
     """
-    import matplotlib.pyplot as plt
     import matplotlib.lines as mpllines
+    import matplotlib.pyplot as plt
 
-    kwargs['show_titles'] = False
-    kwargs['truths'] = None
+    kwargs["show_titles"] = False
+    kwargs["truths"] = None
     if corner_labels is not None:
-        kwargs['labels'] = corner_labels
+        kwargs["labels"] = corner_labels
 
     fig = results[0].plot_corner(fig=fig, save=False, **kwargs)
-    default_filename = '{}/{}'.format(results[0].outdir, 'combined')
+    default_filename = "{}/{}".format(results[0].outdir, "combined")
     lines = []
     default_labels = []
     for i, result in enumerate(results):
         if colours:
             c = colours[i]
         else:
-            c = 'C{}'.format(i)
+            c = f"C{i}"
         if linestyles is not None:
             linestyle = linestyles[i]
         else:
-            linestyle = 'solid'
-        hist_kwargs = kwargs.get('hist_kwargs', dict())
-        hist_kwargs['color'] = c
+            linestyle = "solid"
+        hist_kwargs = kwargs.get("hist_kwargs", dict())
+        hist_kwargs["color"] = c
         hist_kwargs["linestyle"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
         fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyles": linestyle}, **kwargs)
-        default_filename += '_{}'.format(result.label)
+        default_filename += f"_{result.label}"
         lines.append(mpllines.Line2D([0], [0], color=c, linestyle=linestyle))
         default_labels.append(result.label)
 
@@ -2169,9 +2243,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
     if evidences:
         if np.isnan(results[0].log_bayes_factor):
-            template = r'{label} $\mathrm{{ln}}(Z)={lnz:1.3g}$'
+            template = r"{label} $\mathrm{{ln}}(Z)={lnz:1.3g}$"
         else:
-            template = r'{label} $\mathrm{{ln}}(B)={lnbf:1.3g}$'
+            template = r"{label} $\mathrm{{ln}}(B)={lnbf:1.3g}$"
         labels = [
             template.format(
                 label=label,
@@ -2194,10 +2268,19 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
 
 
 @latex_plot_format
-def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0.95, 0.997],
-                 lines=None, legend_fontsize='x-small', keys=None, title=True,
-                 confidence_interval_alpha=0.1, weight_list=None,
-                 **kwargs):
+def make_pp_plot(
+    results,
+    filename=None,
+    save=True,
+    confidence_interval=[0.68, 0.95, 0.997],
+    lines=None,
+    legend_fontsize="x-small",
+    keys=None,
+    title=True,
+    confidence_interval_alpha=0.1,
+    weight_list=None,
+    **kwargs,
+):
     """
     Make a P-P plot for a set of runs with injected signals.
 
@@ -2243,15 +2326,13 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
 
     credible_levels = list()
     for i, result in enumerate(results):
-        credible_levels.append(
-            result.get_all_injection_credible_levels(keys, weights=weight_list[i])
-        )
+        credible_levels.append(result.get_all_injection_credible_levels(keys, weights=weight_list[i]))
     credible_levels = pd.DataFrame(credible_levels)
 
     if lines is None:
-        colors = ["C{}".format(i) for i in range(8)]
+        colors = [f"C{i}" for i in range(8)]
         linestyles = ["-", "--", ":"]
-        lines = ["{}{}".format(a, b) for a, b in product(linestyles, colors)]
+        lines = [f"{a}{b}" for a, b in product(linestyles, colors)]
     if len(lines) < len(credible_levels.keys()):
         raise ValueError("Larger number of parameters than unique linestyles")
 
@@ -2265,45 +2346,41 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     if isinstance(confidence_interval_alpha, float):
         confidence_interval_alpha = [confidence_interval_alpha] * len(confidence_interval)
     elif len(confidence_interval_alpha) != len(confidence_interval):
-        raise ValueError(
-            "confidence_interval_alpha must have the same length as confidence_interval")
+        raise ValueError("confidence_interval_alpha must have the same length as confidence_interval")
 
     for ci, alpha in zip(confidence_interval, confidence_interval_alpha):
-        edge_of_bound = (1. - ci) / 2.
+        edge_of_bound = (1.0 - ci) / 2.0
         lower = scipy.stats.binom.ppf(1 - edge_of_bound, N, x_values) / N
         upper = scipy.stats.binom.ppf(edge_of_bound, N, x_values) / N
         # The binomial point percent function doesn't always return 0 @ 0,
         # so set those bounds explicitly to be sure
         lower[0] = 0
         upper[0] = 0
-        ax.fill_between(x_values, lower, upper, alpha=alpha, color='k')
+        ax.fill_between(x_values, lower, upper, alpha=alpha, color="k")
 
     pvalues = []
     logger.info("Key: KS-test p-value")
     for ii, key in enumerate(credible_levels):
-        pp = np.array([sum(credible_levels[key].values < xx) /
-                       len(credible_levels) for xx in x_values])
-        pvalue = scipy.stats.kstest(credible_levels[key], 'uniform').pvalue
+        pp = np.array([sum(credible_levels[key].values < xx) / len(credible_levels) for xx in x_values])
+        pvalue = scipy.stats.kstest(credible_levels[key], "uniform").pvalue
         pvalues.append(pvalue)
-        logger.info("{}: {}".format(key, pvalue))
+        logger.info(f"{key}: {pvalue}")
 
         try:
             name = results[0].priors[key].latex_label
         except (AttributeError, KeyError):
             name = key
-        label = "{} ({:2.3f})".format(name, pvalue)
+        label = f"{name} ({pvalue:2.3f})"
         plt.plot(x_values, pp, lines[ii], label=label, **kwargs)
 
-    Pvals = namedtuple('pvals', ['combined_pvalue', 'pvalues', 'names'])
-    pvals = Pvals(combined_pvalue=scipy.stats.combine_pvalues(pvalues)[1],
-                  pvalues=pvalues,
-                  names=list(credible_levels.keys()))
-    logger.info(
-        "Combined p-value: {}".format(pvals.combined_pvalue))
+    Pvals = namedtuple("pvals", ["combined_pvalue", "pvalues", "names"])
+    pvals = Pvals(
+        combined_pvalue=scipy.stats.combine_pvalues(pvalues)[1], pvalues=pvalues, names=list(credible_levels.keys())
+    )
+    logger.info(f"Combined p-value: {pvals.combined_pvalue}")
 
     if title:
-        ax.set_title("N={}, p-value={:2.4f}".format(
-            len(results), pvals.combined_pvalue))
+        ax.set_title(f"N={len(results)}, p-value={pvals.combined_pvalue:2.4f}")
     ax.set_xlabel("C.I.")
     ax.set_ylabel("Fraction of events in C.I.")
     ax.legend(handlelength=2, labelspacing=0.25, fontsize=legend_fontsize)
@@ -2312,14 +2389,14 @@ def make_pp_plot(results, filename=None, save=True, confidence_interval=[0.68, 0
     fig.tight_layout()
     if save:
         if filename is None:
-            filename = 'outdir/pp.png'
+            filename = "outdir/pp.png"
         safe_save_figure(fig=fig, filename=filename, dpi=500)
 
     return fig, pvals
 
 
 def sanity_check_labels(labels):
-    """ Check labels for plotting to remove matplotlib errors """
+    """Check labels for plotting to remove matplotlib errors"""
     for ii, lab in enumerate(labels):
         if "_" in lab and "$" not in lab:
             lab = lab.replace("_", "-")
@@ -2328,16 +2405,16 @@ def sanity_check_labels(labels):
 
 
 class ResultError(Exception):
-    """ Base exception for all Result related errors """
+    """Base exception for all Result related errors"""
 
 
 class ResultListError(ResultError):
-    """ For Errors occurring during combining results. """
+    """For Errors occurring during combining results."""
 
 
 class FileMovedError(ResultError):
-    """ Exceptions that occur when files have been moved """
+    """Exceptions that occur when files have been moved"""
 
 
 class FileLoadError(ResultError):
-    """ Exceptions that occur when files cannot be loaded """
+    """Exceptions that occur when files cannot be loaded"""

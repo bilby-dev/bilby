@@ -51,7 +51,7 @@ class DynamicDynesty(Dynesty):
         pass
 
     def read_saved_state(self, continuing=False):
-        resume = super(DynamicDynesty, self).read_saved_state(continuing=continuing)
+        resume = super().read_saved_state(continuing=continuing)
         if not resume:
             return resume
         else:

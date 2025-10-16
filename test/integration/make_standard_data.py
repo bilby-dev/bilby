@@ -49,17 +49,13 @@ IFO = bilby.gw.detector.get_interferometer_with_fake_noise_and_injection(
 )
 
 hf_signal_and_noise = IFO.strain_data.frequency_domain_strain
-frequencies = bilby.core.utils.create_frequency_series(
-    sampling_frequency=sampling_frequency, duration=time_duration
-)
+frequencies = bilby.core.utils.create_frequency_series(sampling_frequency=sampling_frequency, duration=time_duration)
 
 if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.realpath(__file__))
     with open(dir_path + "/standard_data.txt", "w+") as f:
         np.savetxt(
             f,
-            np.column_stack(
-                [frequencies, hf_signal_and_noise.view(float).reshape(-1, 2)]
-            ),
+            np.column_stack([frequencies, hf_signal_and_noise.view(float).reshape(-1, 2)]),
             header="frequency hf_real hf_imag",
         )

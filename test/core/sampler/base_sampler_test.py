@@ -3,9 +3,9 @@ import os
 import shutil
 import unittest
 from unittest.mock import MagicMock
-from parameterized import parameterized
 
 import numpy as np
+from parameterized import parameterized
 
 import bilby
 from bilby.core import prior
@@ -38,7 +38,7 @@ class TestSampler(unittest.TestCase):
             outdir=test_directory,
             use_ratio=False,
             skip_import_verification=True,
-            soft_init=soft_init
+            soft_init=soft_init,
         )
 
     def tearDown(self):
@@ -50,15 +50,11 @@ class TestSampler(unittest.TestCase):
 
     def test_search_parameter_keys(self):
         expected_search_parameter_keys = ["c"]
-        self.assertListEqual(
-            self.sampler.search_parameter_keys, expected_search_parameter_keys
-        )
+        self.assertListEqual(self.sampler.search_parameter_keys, expected_search_parameter_keys)
 
     def test_fixed_parameter_keys(self):
         expected_fixed_parameter_keys = ["a"]
-        self.assertListEqual(
-            self.sampler.fixed_parameter_keys, expected_fixed_parameter_keys
-        )
+        self.assertListEqual(self.sampler.fixed_parameter_keys, expected_fixed_parameter_keys)
 
     def test_ndim(self):
         self.assertEqual(self.sampler.ndim, 1)
@@ -88,9 +84,7 @@ class TestSampler(unittest.TestCase):
 
     def test_prior_transform_does_not_transform_fixed_parameter_keys(self):
         self.sampler.prior_transform([0])
-        self.assertEqual(
-            self.sampler.priors["a"].peak, prior.DeltaFunction(peak=0).peak
-        )
+        self.assertEqual(self.sampler.priors["a"].peak, prior.DeltaFunction(peak=0).peak)
 
     def test_log_prior(self):
         self.assertEqual(self.sampler.log_prior({1}), 0.0)
@@ -120,40 +114,28 @@ class TestSampler(unittest.TestCase):
         self.sampler._check_bad_value(val=np.nan, warning=False, theta=None, label=None)
 
     def test_bad_value_np_abs_nan(self):
-        self.sampler._check_bad_value(
-            val=np.abs(np.nan), warning=False, theta=None, label=None
-        )
+        self.sampler._check_bad_value(val=np.abs(np.nan), warning=False, theta=None, label=None)
 
     def test_bad_value_abs_nan(self):
-        self.sampler._check_bad_value(
-            val=abs(np.nan), warning=False, theta=None, label=None
-        )
+        self.sampler._check_bad_value(val=abs(np.nan), warning=False, theta=None, label=None)
 
     def test_bad_value_pos_inf(self):
         self.sampler._check_bad_value(val=np.inf, warning=False, theta=None, label=None)
 
     def test_bad_value_neg_inf(self):
-        self.sampler._check_bad_value(
-            val=-np.inf, warning=False, theta=None, label=None
-        )
+        self.sampler._check_bad_value(val=-np.inf, warning=False, theta=None, label=None)
 
     def test_bad_value_pos_inf_nan_to_num(self):
-        self.sampler._check_bad_value(
-            val=np.nan_to_num(np.inf), warning=False, theta=None, label=None
-        )
+        self.sampler._check_bad_value(val=np.nan_to_num(np.inf), warning=False, theta=None, label=None)
 
     def test_bad_value_neg_inf_nan_to_num(self):
-        self.sampler._check_bad_value(
-            val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None
-        )
+        self.sampler._check_bad_value(val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None)
 
 
 def test_get_expected_outputs():
     outdir = os.path.join("some", "bilby_pipe", "dir")
     label = "par0"
-    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
-        outdir=outdir, label=label
-    )
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(outdir=outdir, label=label)
     assert len(filenames) == 0
     assert len(directories) == 1
     assert directories[0] == os.path.join(outdir, f"sampler_{label}", "")
@@ -163,9 +145,7 @@ def test_get_expected_outputs_abbreviation():
     outdir = os.path.join("some", "bilby_pipe", "dir")
     label = "par0"
     bilby.core.sampler.Sampler.abbreviation = "abbr"
-    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(
-        outdir=outdir, label=label
-    )
+    filenames, directories = bilby.core.sampler.Sampler.get_expected_outputs(outdir=outdir, label=label)
     assert len(filenames) == 0
     assert len(directories) == 1
     assert directories[0] == os.path.join(outdir, f"abbr_{label}", "")
@@ -208,9 +188,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):
-        sampler = loaded_samplers[sampler](
-            self.likelihood, self.priors, npool=2
-        )
+        sampler = loaded_samplers[sampler](self.likelihood, self.priors, npool=2)
         sampler._setup_pool()
         if hasattr(sampler, "setup_sampler"):
             sampler.setup_sampler()
@@ -230,12 +208,8 @@ class ReorderLikelihoodsTest(unittest.TestCase):
 
     def test_ordering(self):
         func = bilby.core.sampler.base_sampler.NestedSampler.reorder_loglikelihoods
-        sorted_ln_likelihoods = func(
-            self.unsorted_ln_likelihoods, self.unsorted_samples, self.sorted_samples
-        )
-        self.assertTrue(
-            np.array_equal(sorted_ln_likelihoods, self.sorted_ln_likelihoods)
-        )
+        sorted_ln_likelihoods = func(self.unsorted_ln_likelihoods, self.unsorted_samples, self.sorted_samples)
+        self.assertTrue(np.array_equal(sorted_ln_likelihoods, self.sorted_ln_likelihoods))
 
 
 if __name__ == "__main__":

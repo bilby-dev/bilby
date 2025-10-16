@@ -7,6 +7,8 @@ This example takes longer than most to run.
 Due to how cpnest creates parallel processes, the multiprocessing start method
 needs to be set on some operating systems.
 """
+# ruff: noqa: E402
+
 import multiprocessing
 
 multiprocessing.set_start_method("fork")  # noqa
@@ -62,15 +64,11 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 priors = bilby.gw.prior.BBHPriorDict()
 for key in ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl", "geocent_time"]:
     priors[key] = injection_parameters[key]
-likelihood = bilby.gw.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator
-)
+likelihood = bilby.gw.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 # Definition of the custom jump proposals. Define a JumpProposalCycle. The first argument is a list
 # of all allowed jump proposals. The second argument is a list of weights for the respective jump

@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+
 import bilby
 
 
@@ -57,8 +58,7 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
         self.assertTrue(
             np.all(
-                discrete_value_prior.prob([1.1, 2.2, 2.2, 300.0, 200.0])
-                == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
+                discrete_value_prior.prob([1.1, 2.2, 2.2, 300.0, 200.0]) == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
             )
         )
 
@@ -132,8 +132,12 @@ class TestCategoricalPrior(unittest.TestCase):
     def test_array_lnprobability(self):
         N = 3
         categorical_prior = bilby.core.prior.Categorical(N)
-        self.assertTrue(np.all(categorical_prior.ln_prob([0, 1, 1, 2, 3]) == np.array(
-            [-np.log(N), -np.log(N), -np.log(N), -np.log(N), -np.inf])))
+        self.assertTrue(
+            np.all(
+                categorical_prior.ln_prob([0, 1, 1, 2, 3])
+                == np.array([-np.log(N), -np.log(N), -np.log(N), -np.log(N), -np.inf])
+            )
+        )
 
 
 class TestWeightedCategoricalPrior(unittest.TestCase):
@@ -214,9 +218,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
         sample = categorical_prior.sample(size=10)
         original = np.asarray(sample)
-        new = np.array(categorical_prior.rescale(
-            categorical_prior.cdf(sample)
-        ))
+        new = np.array(categorical_prior.rescale(categorical_prior.cdf(sample)))
         np.testing.assert_array_equal(original, new)
 
 

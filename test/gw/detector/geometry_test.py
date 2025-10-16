@@ -191,17 +191,10 @@ class TestInterferometerGeometry(unittest.TestCase):
 
     def test_repr(self):
         expected = (
-            "InterferometerGeometry(length={}, latitude={}, longitude={}, elevation={}, xarm_azimuth={}, "
-            "yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})".format(
-                float(self.length),
-                float(self.latitude),
-                float(self.longitude),
-                float(self.elevation),
-                float(self.xarm_azimuth),
-                float(self.yarm_azimuth),
-                float(self.xarm_tilt),
-                float(self.yarm_tilt),
-            )
+            f"InterferometerGeometry(length={float(self.length)}, latitude={float(self.latitude)}, "
+            f"longitude={float(self.longitude)}, elevation={float(self.elevation)}, "
+            f"xarm_azimuth={float(self.xarm_azimuth)}, yarm_azimuth={float(self.yarm_azimuth)}, "
+            f"xarm_tilt={float(self.xarm_tilt)}, yarm_tilt={float(self.yarm_tilt)})"
         )
         self.assertEqual(expected, repr(self.geometry))
 

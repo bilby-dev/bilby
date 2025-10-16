@@ -6,6 +6,7 @@ estimation on an injected signal using time, phase and distance marginalisation.
 We also demonstrate how the posterior distribution for the marginalised
 parameter can be recovered in post-processing.
 """
+
 import bilby
 from bilby.core.utils.random import seed
 
@@ -52,9 +53,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 
 # Set up prior
 priors = bilby.gw.prior.BBHPriorDict()
