@@ -354,8 +354,8 @@ class DirichletElement(ConditionalBeta):
 
             .. math::
                 \begin{align}
-                    p(x_0)         &= 1 - x_0        ; & 0 \leq x_0 \leq 1       \\
-                    p(x_1\mid x_0) &= \frac{1}{1-x_0}; & 0 \leq x_1 \leq 1 - x_0
+                    p(x_0)         &= 1 - x_0          ; & 0 \leq x_0 \leq 1       \\
+                    p(x_1\mid x_0) &= \delta(1-x_0-x_1); & 0 \leq x_1 \leq 1 - x_0
                 \end{align}
 
     Parameters
