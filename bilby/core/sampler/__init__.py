@@ -351,7 +351,6 @@ def run_sampler(
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
         if npool_post_process is None:
-            from .base_sampler import Sampler
 
             for key in Sampler.npool_post_process_keys:
                 if key in kwargs:
