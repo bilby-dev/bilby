@@ -24,14 +24,12 @@ Code of Conduct](https://www.python.org/psf/codeofconduct/). Furthermore, member
 
 ## Code style
 
-During a code review (when you want to contribute changes to the code base),
-you may be asked to change your code to fit with the bilby style. This is based
-on a few python conventions and is generally maintained to ensure the code base
-remains consistent and readable to new users. Here we list some typical things
-to keep in mind ensuring the code review is as smooth as possible
+We apply [ruff](https://docs.astral.sh/ruff/) automated formatting to the
+entire codebase. This ensures that we have an objectively enforced and
+consistent style across the project. In addition to the automated test below
+are a few useful guidelines when writing code for Bilby.
 
-1. We follow the [standard python PEP8](https://www.python.org/dev/peps/pep-0008/) conventions for style. While the testing of this is largely automated (the C.I. pipeline tests check using [flake8](http://flake8.pycqa.org/en/latest/)), some more subjective things might slip the net. 
-2. New classes/functions/methods should have a docstring and following the [numpy docstring guide](https://numpydoc.readthedocs.io/en/latest/format.html), for example
+1. New classes/functions/methods should have a docstring and following the [numpy docstring guide](https://numpydoc.readthedocs.io/en/latest/format.html), for example
 ```python
 def my_new_function(x, y, print=False):
     """ A function to calculate the sum of two numbers
@@ -47,6 +45,7 @@ def my_new_function(x, y, print=False):
         print("Message!")
     return x + y
 ```
+2. Changes to existing functions and classes that change the functionality should generally be accompanied by a change in the docstring describing the change in behaviour and version the change was introduced.
 3. Avoid inline comments unless necessary. Ideally, the code should make it obvious what is going on, if not the docstring, only in subtle cases use comments
 4. Name variables sensibly. Avoid using single-letter variables, it is better to name something `power_spectral_density_array` than `psda`.
 5. Don't repeat yourself. If code is repeated in multiple places, wrap it up into a function. This also helps with the writing of robust unit tests (see below).
@@ -54,8 +53,9 @@ def my_new_function(x, y, print=False):
 
 ## Automated code checking
 
-In order to automate checking of the code quality, we use
-[pre-commit](https://pre-commit.com/). For more details, see the documentation,
+We use [pre-commit](https://pre-commit.com/) to apply the automated code checking.
+To maximize smoothness of the contributing process, we recommend that you install
+the pre-commit tests on your development machine. For more details, see the documentation,
 here we will give a quick-start guide:
 1. Install and configure:
 ```console
@@ -78,6 +78,14 @@ $ pre-commit install
 If you experience any issues with pre-commit, please ask for support on the
 usual help channels.
 
+You can additionally run the individual checks manually, e.g.,
+
+```console
+$ pip install ruff
+$ cd bilby
+$ ruff format
+$ ruff check --fix
+```
 
 ## Unit Testing
 

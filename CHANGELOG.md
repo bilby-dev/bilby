@@ -5,6 +5,8 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+* MAINT: switch to ruff for automated formatting
+
 ## [2.7.0]
 
 There are a few significant changes/additions in this release along with minor changes and removals.
