@@ -30,6 +30,7 @@ There are a few significant changes/additions in this release along with minor c
 * MAINT: update file extension logic by @mj-will in https://github.com/bilby-dev/bilby/pull/962
 * BUG: fix a bug with the dynesty v3 interface using dynesty native sampling by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/994
 * BUG: fix a bug where some priors fail to read due to missing conversion functions by @asb5468 https://github.com/bilby-dev/bilby/pull/940
+* BUG: fix how kwargs are passed to custom dynesty samplers by @ColmTalbot https://github.com/bilby-dev/bilby/pull/999
 
 ### Changes
 * ENH: plot_multiple: Allow plotting onto user-defined figure by @unkaktus in https://github.com/bilby-dev/bilby/pull/946
