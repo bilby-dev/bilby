@@ -5,9 +5,60 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
-### Deprecated
+## [2.7.0]
 
-- `dnest4` is no longer tested, the plugin package should be used instead.
+There are a few significant changes/additions in this release along with minor changes and removals.
+
+### Major changes
+
+* `Likelihood` instances can now be called as `likelihood.log_likelihood(parameters)`, see [here](https://bilby-dev.github.io/bilby/parameters.html) for more information.
+* Support the new API in [`dynesty=3`](https://github.com/joshspeagle/dynesty/releases/tag/v3.0.0)
+* Add a [new `WaveformGenerator`](https://bilby-dev.github.io/bilby/api/bilby.gw.waveform_generator.GWSignalWaveformGenerator.html) capable of using arbitrary waveform models implemented through the `gwsignal` waveform interface.
+
+### Additions
+* Added WeightedCategorical-Prior by @JasperMartins in https://github.com/bilby-dev/bilby/pull/893
+* ENH: Implement DiscreteValues prior by @unkaktus in https://github.com/bilby-dev/bilby/pull/947
+* ENH: Allow no parameters as state by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/941
+* ENH: add support for new dynesty api by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/950
+* FEAT: add gwsignal waveform generator by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/877
+
+### Fixes
+* BUG: Fix sampling efficiency warning by @fgittins in https://github.com/bilby-dev/bilby/pull/953
+* TYPO: fix random call in example by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/973
+* BUG: Fix matched filter SNR calculation in time domain injection by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/957
+* TST: mark whitened strain tests as flaky by @mj-will in https://github.com/bilby-dev/bilby/pull/987
+* MAINT: update file extension logic by @mj-will in https://github.com/bilby-dev/bilby/pull/962
+* BUG: fix a bug with the dynesty v3 interface using dynesty native sampling by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/994
+* BUG: fix a bug where some priors fail to read due to missing conversion functions by @asb5468 https://github.com/bilby-dev/bilby/pull/940
+* BUG: fix how kwargs are passed to custom dynesty samplers by @ColmTalbot https://github.com/bilby-dev/bilby/pull/999
+
+### Changes
+* ENH: plot_multiple: Allow plotting onto user-defined figure by @unkaktus in https://github.com/bilby-dev/bilby/pull/946
+* MAINT: change RNG imports by @mj-will in https://github.com/bilby-dev/bilby/pull/943
+* MAINT: np.trapz -> np.trapezoid by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/974
+* MAINT: define Planck15-LAL cosmology using LAL constants by @mj-will in https://github.com/bilby-dev/bilby/pull/932
+* DEV: make sure all priors return float when needed by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/979
+* Replace pytables with h5py by @duncanmmacleod in https://github.com/bilby-dev/bilby/pull/982
+
+### Deprecations
+* DEP: deprecate dnest4 interface by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/980
+
+### Removed
+* MAINT: remove unsupported roq json weight file format by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/945
+
+### Other changes
+* DOC: Fixed README link for opening bilby_pipe issues by @mick-wright in https://github.com/bilby-dev/bilby/pull/922
+* DOC: Correct docs for use_ratio argument of run_sampler by @mattpitkin in https://github.com/bilby-dev/bilby/pull/958
+* CI: add merge_group to enable merge queue by @mj-will in https://github.com/bilby-dev/bilby/pull/983
+* TST: remove dnest4 import test by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/984
+* BLD: migrate to pyproject.toml by @mj-will in https://github.com/bilby-dev/bilby/pull/952
+* BLD: use release branches by @mj-will in https://github.com/bilby-dev/bilby/pull/954
+
+### New Contributors
+* @fgittins made their first contribution in https://github.com/bilby-dev/bilby/pull/953
+* @duncanmmacleod made their first contribution in https://github.com/bilby-dev/bilby/pull/982
+
+**Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
 
 ## [2.6.0]
 
@@ -1184,7 +1235,9 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.5.2...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.7.0...main
+[2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/bilby-dev/bilby/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/bilby-dev/bilby/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/bilby-dev/bilby/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/bilby-dev/bilby/compare/v2.4.0...v2.5.0
