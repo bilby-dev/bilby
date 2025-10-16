@@ -327,22 +327,22 @@ class DirichletElement(ConditionalBeta):
 
     .. math::
         p(x_n\mid S_n) := \begin{cases}
-			\displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
+            \displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
             & n < N - 1 \\
-			\displaystyle\frac{1}{1-S_n} & n = N - 1
-		\end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
+            \displaystyle\frac{1}{1-S_n} & n = N - 1
+        \end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
 
     where,
 
-	.. math::
-		S_n := \begin{cases}
- 					0                                & n = N - 1 \\
-					\displaystyle\sum_{i=0}^{N-2}x_i & n < N - 1
-			   \end{cases}
+    .. math::
+        S_n := \begin{cases}
+                    0                                & n = N - 1 \\
+                    \displaystyle\sum_{i=0}^{N-2}x_i & n < N - 1
+                \end{cases}
 
     Examples
     ========
-    
+
         :code:`n_dimensions` = :math:`N = 1`:
 
             .. math::
