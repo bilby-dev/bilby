@@ -330,7 +330,7 @@ class DirichletElement(ConditionalBeta):
         p(x_n\mid S_n) := \begin{cases}
             \displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
             & n < N - 1 \\
-            \displaystyle\delta(1-S_{N-1}-x_{N-1}) & n = N - 1
+            \displaystyle\delta(1-S_N) & n = N - 1
         \end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
 
     where, :math:`\delta` is the Dirac delta function, :math:`N` is the total number of
