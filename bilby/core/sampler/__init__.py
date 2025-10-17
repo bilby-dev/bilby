@@ -352,7 +352,7 @@ def run_sampler(
     if getattr(result, "_posterior", None) is None:
         if npool_post_process is None:
 
-            for key in Sampler.npool_post_process_keys:
+            for key in Sampler.npool_equiv_kwargs:
                 if key in kwargs:
                     npool_post_process = kwargs[key]
                     break
