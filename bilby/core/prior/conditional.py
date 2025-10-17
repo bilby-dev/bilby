@@ -339,7 +339,7 @@ class DirichletElement(ConditionalBeta):
     .. math::
         S_n := \begin{cases}
                     0                                & n = N - 1 \\
-                    \displaystyle\sum_{i=0}^{N-2}x_i & n < N - 1
+                    \displaystyle\sum_{i=0}^{n-1}x_i & n < N - 1
                 \end{cases}
 
     Examples
