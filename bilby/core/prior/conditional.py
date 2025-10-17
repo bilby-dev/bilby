@@ -337,10 +337,7 @@ class DirichletElement(ConditionalBeta):
     dimensions and :math:`S_n` is the sum of all previous dimensions,
 
     .. math::
-        S_n := \begin{cases}
-                    0                                & n = N - 1 \\
-                    \displaystyle\sum_{i=0}^{n-1}x_i & n < N - 1
-                \end{cases}
+        S_n := \sum_{i=0}^{n-1}x_i & n < N
 
     Examples
     ========
