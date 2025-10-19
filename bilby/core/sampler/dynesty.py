@@ -282,23 +282,60 @@ class Dynesty(NestedSampler):
         # method. If we aren't we need to make sure the default "live" isn't set as
         # the bounding method
         if self.new_dynesty_api:
+            internal_kwargs = dict(
+                ndim=self.ndim,
+                nonbounded=self.kwargs.get("nonbounded", None),
+                periodic=self.kwargs.get("periodic", None),
+                reflective=self.kwargs.get("reflective", None),
+                maxmcmc=self.maxmcmc,
+            )
+
             from . import dynesty3_utils as dynesty_utils
 
             if kwargs["sample"] == "act-walk":
-                kwargs["sample"] = dynesty_utils.ACTTrackingEnsembleWalk(**kwargs)
-                kwargs["bound"] = "none"
+                internal_kwargs["nact"] = self.nact
+                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
+                    **internal_kwargs
+                )
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling tracking the "
+                    f"autocorrelation function and thinning by {internal_sampler.thin} with "
+                    f"maximum length {internal_sampler.thin * internal_sampler.maxmcmc}."
+                )
             elif kwargs["sample"] == "acceptance-walk":
-                kwargs["sample"] = dynesty_utils.EnsembleWalkSampler(**kwargs)
-                kwargs["bound"] = "none"
+                internal_kwargs["naccept"] = self.naccept
+                internal_kwargs["walks"] = self.kwargs["walks"]
+                internal_sampler = dynesty_utils.EnsembleWalkSampler(**internal_kwargs)
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling method with an "
+                    f"average of {internal_sampler.naccept} accepted steps up to chain "
+                    f"length {internal_sampler.maxmcmc}."
+                )
             elif kwargs["sample"] == "rwalk":
-                kwargs["sample"] = dynesty_utils.AcceptanceTrackingRWalk(**kwargs)
-                kwargs["bound"] = "none"
+                internal_kwargs["nact"] = self.nact
+                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(
+                    **internal_kwargs
+                )
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
+                    f"estimated chain length. An average of {2 * internal_sampler.nact} "
+                    f"steps will be accepted up to chain length {internal_sampler.maxmcmc}."
+                )
             elif kwargs["bound"] == "live":
                 logger.info(
                     "Live-point based bound method requested with dynesty sample "
                     f"'{kwargs['sample']}', overwriting to 'multi'"
                 )
-                kwargs["bound"] = "multi"
+                internal_sampler = kwargs["sample"]
+                bound = "multi"
+            else:
+                internal_sampler = kwargs["sample"]
+                bound = kwargs["bound"]
+            kwargs["sample"] = internal_sampler
+            kwargs["bound"] = bound
         return kwargs
 
     def _translate_kwargs(self, kwargs):
@@ -809,44 +846,47 @@ class Dynesty(NestedSampler):
             with open(self.resume_file, "rb") as file:
                 try:
                     sampler = dill.load(file)
+                    if isinstance(sampler, tuple):
+                        sampler, stored_versions, extras = sampler
+                    elif not hasattr(sampler, "versions"):
+                        logger.warning(
+                            f"The resume file {self.resume_file} is corrupted or "
+                            "the version of bilby has changed between runs. This "
+                            "resume file will be ignored."
+                        )
+                        return False
+                    else:
+                        stored_versions = sampler.versions
+                        extras = sampler.kwargs
+                        del sampler.versions
                 except EOFError:
                     sampler = None
-
-                if not hasattr(sampler, "versions"):
+                except ModuleNotFoundError as e:
                     logger.warning(
-                        f"The resume file {self.resume_file} is corrupted or "
-                        "the version of bilby has changed between runs. This "
-                        "resume file will be ignored."
+                        f"The resume file cannot be loaded with message: {e}. "
+                        "This is likely due to a change in the version of Bilby "
+                        "and/or dynesty. The resume file will be ignored."
                     )
                     return False
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
                     "Old version = {old}, new version = {new}."
                 )
                 for code in versions:
-                    if not versions[code] == sampler.versions.get(code, None):
+                    if not versions[code] == stored_versions.get(code, None):
                         logger.warning(
                             version_warning.format(
                                 code=code,
-                                old=sampler.versions.get(code, "None"),
+                                old=stored_versions.get(code, "None"),
                                 new=versions[code],
                             )
                         )
-                del sampler.versions
                 self.sampler = sampler
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                if hasattr(self.sampler, "_bilby_metadata"):
-                    extras = self.sampler._bilby_metadata
-                elif hasattr(self.sampler, "kwargs"):
-                    extras = self.sampler.kwargs
-                else:
-                    raise AttributeError(
-                        "Loaded sampler doesn't contain timing info, "
-                        "the checkpoint is probably corrupted."
-                    )
                 self.start_time = extras.pop("start_time")
                 self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
@@ -893,18 +933,20 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler._bilby_metadata = dict(
+            metadata = dict(
                 sampling_time=self.sampling_time,
                 start_time=self.start_time,
             )
-        self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
+        else:
+            metadata = dict()
+        versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         if self.new_dynesty_api:
             self.sampler.mapper = map
         else:
             self.sampler.M = map
         if dill.pickles(self.sampler):
-            safe_file_dump(self.sampler, self.resume_file, dill)
+            safe_file_dump((self.sampler, versions, metadata), self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
