@@ -80,7 +80,7 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_repr(self):
         expected = (
             f"BasicGravitationalWaveTransient(interferometers={self.interferometers},"
-            "\n\twaveform_generator={self.waveform_generator})"
+            f"\n\twaveform_generator={self.waveform_generator})"
         )
         self.assertEqual(expected, repr(self.likelihood))
 

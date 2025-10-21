@@ -95,8 +95,8 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
             f"start_time={self.waveform_generator.start_time}, "
             f"frequency_domain_source_model={frequency_domain_model}, "
             f"time_domain_source_model={time_domain_model}, "
-            f"parameter_conversion={conversion}",
-            f"waveform_arguments={self.waveform_generator.waveform_arguments})",
+            f"parameter_conversion={conversion}, "
+            f"waveform_arguments={self.waveform_generator.waveform_arguments})"
         )
         self.assertEqual(expected, repr(self.waveform_generator))
 
