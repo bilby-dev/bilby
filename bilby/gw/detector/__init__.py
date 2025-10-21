@@ -7,8 +7,8 @@ from .. import utils
 from ..conversion import convert_to_lal_binary_black_hole_parameters
 from .calibration import *
 from .interferometer import *
-from .interferometer import get_empty_interferometer
 from .networks import *
+from .networks import get_empty_interferometer
 from .psd import PowerSpectralDensity
 from .strain_data import *
 
