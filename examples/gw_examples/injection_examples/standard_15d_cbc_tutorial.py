@@ -121,19 +121,18 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 )
 
 # Run sampler. In this case we're going to use the `dynesty` sampler
-# Note that the `walks`, `nact`, and `maxmcmc` parameter are specified
+# Note that the `nlive`, `naccept`, and `sample` parameters are specified
 # to ensure sufficient convergence of the analysis.
-# We set `npool=4` to parallelize the analysis over four cores.
+# We set `npool=16` to parallelize the analysis over 16 cores.
 # The conversion function will determine the distance posterior in post processing
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
     sampler="dynesty",
     nlive=1000,
-    walks=20,
-    nact=50,
-    maxmcmc=2000,
-    npool=4,
+    naccept=60,
+    sample="acceptance-walk",
+    npool=16,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
