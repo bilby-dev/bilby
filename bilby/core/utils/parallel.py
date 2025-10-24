@@ -4,8 +4,19 @@ from contextlib import contextmanager
 from .log import logger
 
 
-def create_pool(likelihood, priors, use_ratio=None, search_parameter_keys=None, npool=None, pool=None):
+def create_pool(
+    likelihood,
+    priors,
+    use_ratio=None,
+    search_parameter_keys=None,
+    npool=None,
+    pool=None,
+    parameters=None,
+):
     from ...core.sampler.base_sampler import _initialize_global_variables
+
+    if parameters is None:
+        parameters = dict()
 
     _pool = None
     if pool == "mpi":
@@ -19,6 +30,7 @@ def create_pool(likelihood, priors, use_ratio=None, search_parameter_keys=None, 
             priors=priors,
             search_parameter_keys=search_parameter_keys,
             use_ratio=use_ratio,
+            parameters=parameters,
         )
         _pool = MPIPool(use_dill=True)
         if _pool.is_master():
@@ -29,7 +41,7 @@ def create_pool(likelihood, priors, use_ratio=None, search_parameter_keys=None, 
         _pool = multiprocessing.Pool(
             processes=npool,
             initializer=_initialize_global_variables,
-            initargs=(likelihood, priors, search_parameter_keys, use_ratio),
+            initargs=(likelihood, priors, search_parameter_keys, use_ratio, parameters),
         )
         logger.info(f"Created multiprocessing pool with size {npool}")
     else:
@@ -51,6 +63,7 @@ def bilby_pool(
     search_parameter_keys=None,
     npool=None,
     pool=None,
+    parameters=None,
 ):
     if hasattr(pool, "map"):
         user_pool = True
@@ -65,6 +78,7 @@ def bilby_pool(
             use_ratio=use_ratio,
             npool=npool,
             pool=pool,
+            parameters=parameters,
         )
         yield _pool
     finally:
