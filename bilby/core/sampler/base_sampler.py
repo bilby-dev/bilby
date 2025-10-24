@@ -20,6 +20,7 @@ from ..utils import (
     command_line_args,
     logger,
 )
+from ..utils.parallel import close_pool, create_pool
 from ..utils.random import seed as set_seed
 
 
@@ -769,7 +770,6 @@ class Sampler(object):
             getattr(self, "pool", None) is not None
             and not getattr(self, "_user_pool", True)
         ):
-            from ..utils.parallel import close_pool
             logger.info("Starting to close worker pool.")
             close_pool(self.pool)
             self.pool = None
@@ -777,28 +777,31 @@ class Sampler(object):
             logger.info("Finished closing worker pool.")
 
     def _setup_pool(self):
-        from ..utils.parallel import create_pool
-
         if hasattr(self.pool, "map"):
             self._user_pool = True
         else:
             self._user_pool = False
-
-        self.pool = create_pool(
-            likelihood=self.likelihood,
-            priors=self.priors,
-            search_parameter_keys=self._search_parameter_keys,
-            use_ratio=self.use_ratio,
-            npool=self.npool,
-            pool=self.pool,
-            parameters=deepcopy(self.parameters),
-        )
+            parameters = self.priors.sample()
+            self.pool = create_pool(
+                likelihood=self.likelihood,
+                priors=self.priors,
+                search_parameter_keys=self._search_parameter_keys,
+                use_ratio=self.use_ratio,
+                npool=self.npool,
+                pool=self.pool,
+                parameters=parameters,
+            )
+            if self.pool is not None:
+                logger.warning(
+                    "Setting up parallel pool in sampler is deprecated. Use "
+                    "bilby.utils.parallel.bilby_pool context instead."
+                )
         _initialize_global_variables(
             likelihood=self.likelihood,
             priors=self.priors,
             search_parameter_keys=self._search_parameter_keys,
             use_ratio=self.use_ratio,
-            parameters=deepcopy(self.parameters),
+            parameters=parameters,
         )
         self.kwargs["pool"] = self.pool
 
