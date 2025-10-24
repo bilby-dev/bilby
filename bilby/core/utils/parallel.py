@@ -52,8 +52,6 @@ def create_pool(
 def close_pool(pool):
     if hasattr(pool, "close"):
         pool.close()
-    else:
-        import IPython; IPython.embed()
     if hasattr(pool, "join"):
         pool.join()
 
