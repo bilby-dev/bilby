@@ -5,11 +5,13 @@ import signal
 import sys
 import tempfile
 import time
+from copy import deepcopy
 
 import attr
 import numpy as np
 from pandas import DataFrame
 
+from ..likelihood import _safe_likelihood_call
 from ..prior import Constraint, DeltaFunction, Prior, PriorDict
 from ..result import Result, read_in_result
 from ..utils import (
@@ -42,6 +44,7 @@ class _SamplingContainer:
     priors = attr.ib(default=None)
     search_parameter_keys = attr.ib(default=None)
     use_ratio = attr.ib(default=False)
+    parameters = attr.ib(default=None)
 
 
 _sampling_convenience_dump = _SamplingContainer()
@@ -52,6 +55,7 @@ def _initialize_global_variables(
     priors,
     search_parameter_keys,
     use_ratio,
+    parameters,
 ):
     """
     Store a global copy of the likelihood, priors, and search keys for
@@ -61,6 +65,7 @@ def _initialize_global_variables(
     _sampling_convenience_dump.priors = priors
     _sampling_convenience_dump.search_parameter_keys = search_parameter_keys
     _sampling_convenience_dump.use_ratio = use_ratio
+    _sampling_convenience_dump.parameters = deepcopy(parameters)
 
 
 def signal_wrapper(method):
@@ -184,7 +189,7 @@ class Sampler(object):
     ======
     TypeError:
         If external_sampler is neither a string nor an instance of this class
-        If not all likelihood.parameters have been defined
+        If not all required parameters have been defined
     ImportError:
         If the external_sampler string does not refer to a sampler that is
         installed on this system
@@ -233,6 +238,7 @@ class Sampler(object):
         **kwargs,
     ):
         self.likelihood = likelihood
+        self.parameters = dict()
         if isinstance(priors, PriorDict):
             self.priors = priors
         else:
@@ -364,7 +370,7 @@ class Sampler(object):
             elif isinstance(self.priors[key], Constraint):
                 self._constraint_parameter_keys.append(key)
             elif isinstance(self.priors[key], DeltaFunction):
-                self.likelihood.parameters[key] = self.priors[key].sample()
+                self.parameters[key] = self.priors[key].sample()
                 self._fixed_parameter_keys.append(key)
 
     def _log_information_about_priors_and_likelihood(self):
@@ -431,9 +437,13 @@ class Sampler(object):
         try:
             self.log_likelihood(theta)
         except TypeError as e:
+            params = deepcopy(self.parameters)
+            params.update(
+                {key: val for key, val in zip(self.search_parameter_keys, theta)}
+            )
             raise TypeError(
                 f"Likelihood evaluation failed with message: \n'{e}'\n"
-                f"Have you specified all the parameters:\n{self.likelihood.parameters}"
+                f"Have you specified all the parameters:\n{params}"
             )
 
     def _time_likelihood(self, n_evaluations=100):
@@ -484,7 +494,12 @@ class Sampler(object):
             logger.debug("use_ratio set to False")
             return
 
-        ratio_is_nan = np.isnan(self.likelihood.log_likelihood_ratio())
+        parameters = deepcopy(self.parameters)
+        parameters.update(self.priors.sample())
+
+        ratio_is_nan = np.isnan(
+            _safe_likelihood_call(self.likelihood, parameters, use_ratio=True)
+        )
 
         if self.use_ratio is True and ratio_is_nan:
             logger.warning(
@@ -544,12 +559,12 @@ class Sampler(object):
                 self.likelihood_count.increment()
             except AttributeError:
                 pass
-        params = {key: t for key, t in zip(self._search_parameter_keys, theta)}
-        self.likelihood.parameters.update(params)
-        if self.use_ratio:
-            return self.likelihood.log_likelihood_ratio()
-        else:
-            return self.likelihood.log_likelihood()
+
+        params = deepcopy(self.parameters)
+        params.update({key: t for key, t in zip(self._search_parameter_keys, theta)})
+        return _safe_likelihood_call(
+            self.likelihood, parameters=params, use_ratio=self.use_ratio
+        )
 
     def get_random_draw_from_prior(self):
         """Get a random draw from the prior distribution
@@ -776,12 +791,14 @@ class Sampler(object):
             use_ratio=self.use_ratio,
             npool=self.npool,
             pool=self.pool,
+            parameters=deepcopy(self.parameters),
         )
         _initialize_global_variables(
             likelihood=self.likelihood,
             priors=self.priors,
             search_parameter_keys=self._search_parameter_keys,
             use_ratio=self.use_ratio,
+            parameters=deepcopy(self.parameters),
         )
         self.kwargs["pool"] = self.pool
 

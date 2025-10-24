@@ -87,6 +87,11 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
     This version is only intended to be used with `SEOBNRv5HM` and `SEOBNRv5PHM` and
     does not have full functionality for other waveform models.
     """
+    logger.warning(
+        "bilby.gw.source.gwsignal_binary_black_hole is deprecated and will be removed "
+        "in a future release, use bilby.gw.waveform_generator.GWSignalWaveformGenerator"
+        " instead."
+    )
 
     from lalsimulation.gwsignal import GenerateFDWaveform
     from lalsimulation.gwsignal.models import gwsignal_get_waveform_generator
@@ -716,7 +721,7 @@ def binary_neutron_star_roq(
 
 def lal_binary_black_hole_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, fiducial, **kwargs):
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
     """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
 
     All parameters are the same as in the usual source models, except `fiducial`
@@ -726,6 +731,7 @@ def lal_binary_black_hole_relative_binning(
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
     """
+    fiducial = kwargs.pop("fiducial", 0)
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
@@ -755,8 +761,7 @@ def lal_binary_black_hole_relative_binning(
 
 def lal_binary_neutron_star_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
-        fiducial, **kwargs):
+        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase, **kwargs):
     """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
 
     All parameters are the same as in the usual source models, except `fiducial`
@@ -766,6 +771,7 @@ def lal_binary_neutron_star_relative_binning(
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
     """
+    fiducial = kwargs.pop("fiducial", 0)
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,

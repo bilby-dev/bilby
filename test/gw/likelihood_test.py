@@ -4,6 +4,7 @@ import tempfile
 from itertools import product
 from parameterized import parameterized
 import pytest
+from copy import deepcopy
 
 import h5py
 import numpy as np
@@ -35,10 +36,10 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4
         )
-        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+        self.waveform_generator = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
             duration=4,
             sampling_frequency=2048,
-            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomPv2"),
         )
 
         self.likelihood = bilby.gw.likelihood.BasicGravitationalWaveTransient(
@@ -244,6 +245,10 @@ class TestGWTransient(unittest.TestCase):
             geocent_time=parameters["geocent_time"],
             ifos=bilby.gw.detector.InterferometerList(["H1", "L1"])
         )
+        self.assertEqual(
+            new_likelihood.log_likelihood_ratio(parameters),
+            self.likelihood.log_likelihood_ratio(parameters)
+        )
         new_likelihood.parameters.update(parameters)
         self.likelihood.parameters.update(parameters)
         self.assertEqual(
@@ -266,6 +271,10 @@ class TestGWTransient(unittest.TestCase):
         )
         parameters = self.parameters.copy()
         parameters["H1_time"] = parameters["geocent_time"] + time_delay
+        self.assertEqual(
+            new_likelihood.log_likelihood_ratio(parameters),
+            self.likelihood.log_likelihood_ratio(parameters)
+        )
         new_likelihood.parameters.update(parameters)
         self.likelihood.parameters.update(parameters)
         self.assertEqual(
@@ -406,6 +415,13 @@ class TestROQLikelihood(unittest.TestCase):
         )
 
     def test_matches_non_roq(self):
+        self.assertLess(
+            abs(
+                self.non_roq.log_likelihood_ratio(self.test_parameters)
+                - self.roq.log_likelihood_ratio(self.test_parameters)
+            ) / self.non_roq.log_likelihood_ratio(self.test_parameters),
+            1e-3,
+        )
         self.non_roq.parameters.update(self.test_parameters)
         self.roq.parameters.update(self.test_parameters)
         self.assertLess(
@@ -415,8 +431,10 @@ class TestROQLikelihood(unittest.TestCase):
         )
 
     def test_time_prior_out_of_bounds_returns_zero(self):
-        self.roq.parameters.update(self.test_parameters)
-        self.roq.parameters["geocent_time"] = -5
+        parameters = deepcopy(self.test_parameters)
+        parameters["geocent_time"] = -5
+        self.assertEqual(self.roq.log_likelihood_ratio(parameters), -np.inf)
+        self.roq.parameters.update(parameters)
         self.assertEqual(self.roq.log_likelihood_ratio(), -np.inf)
 
     def test_create_roq_weights_with_params(self):
@@ -427,6 +445,10 @@ class TestROQLikelihood(unittest.TestCase):
             roq_params=self.params_file,
             quadratic_matrix=self.quadratic_matrix_file,
             priors=self.priors,
+        )
+        self.assertEqual(
+            roq.log_likelihood_ratio(self.test_parameters),
+            self.roq.log_likelihood_ratio(self.test_parameters)
         )
         roq.parameters.update(self.test_parameters)
         self.roq.parameters.update(self.test_parameters)
@@ -915,6 +937,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         for mc in np.linspace(self.priors["chirp_mass"].minimum, self.priors["chirp_mass"].maximum, 11):
             parameters = self.injection_parameters.copy()
             parameters["chirp_mass"] = mc
+            llr = likelihood.log_likelihood_ratio(parameters)
+            llr_roq = likelihood_roq.log_likelihood_ratio(parameters)
+            self.assertLess(np.abs(llr - llr_roq), max_llr_error)
             likelihood.parameters.update(parameters)
             likelihood_roq.parameters.update(parameters)
             llr = likelihood.log_likelihood_ratio()
@@ -1053,6 +1078,12 @@ class TestInOutROQWeights(unittest.TestCase):
         likelihood.save_weights(filename, format=format)
         self.assertTrue(os.path.exists(filename))
 
+    def test_saving_wrong_format_fails(self):
+        likelihood = self.create_likelihood_single_basis()
+        filename = 'weights.json'
+        with self.assertRaises(IOError):
+            likelihood.save_weights(filename, format='json')
+
     @parameterized.expand(['npz', 'hdf5'])
     def test_in_single_basis(self, format):
         likelihood = self.create_likelihood_single_basis()
@@ -1068,18 +1099,16 @@ class TestInOutROQWeights(unittest.TestCase):
 
     @parameterized.expand([(False, ), (True, )])
     def test_out_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         self.assertTrue(os.path.exists(filename))
 
     @parameterized.expand([(False, ), (True, )])
     def test_in_multiple_bases(self, multiband):
-        format = 'hdf5'
-        filename = f'weights.{format}'
+        filename = 'weights.hdf5'
         likelihood = self.create_likelihood_multiple_bases(multiband)
-        likelihood.save_weights(filename, format=format)
+        likelihood.save_weights(filename, format='hdf5')
         likelihood_from_weights = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=likelihood.interferometers,
             priors=likelihood.priors,
@@ -1088,15 +1117,15 @@ class TestInOutROQWeights(unittest.TestCase):
         )
         self.check_weights_are_same(likelihood, likelihood_from_weights)
 
-    @parameterized.expand(product(['npz', 'json'], [False, True]))
-    def test_out_multiple_bases_inconsistent_format(self, format, multiband):
-        "npz or json format is not compatible with multiple bases"
+    @parameterized.expand([(False, ), (True, )])
+    def test_out_multiple_bases_inconsistent_format(self, multiband):
+        "npz format is not compatible with multiple bases"
         likelihood = self.create_likelihood_multiple_bases(multiband)
         with self.assertRaises(ValueError):
-            likelihood.save_weights('weights', format=format)
+            likelihood.save_weights('weights', format="npz")
 
     def tearDown(self):
-        for format in ['npz', 'json', 'hdf5']:
+        for format in ['npz', 'hdf5']:
             filename = f'weights.{format}'
             if os.path.exists(filename):
                 os.remove(filename)
@@ -1348,11 +1377,15 @@ class TestMBLikelihood(unittest.TestCase):
             priors=self.priors.copy(), linear_interpolation=linear_interpolation,
             highest_mode=highest_mode
         )
-        likelihood.parameters.update(self.test_parameters)
-        likelihood_mb.parameters.update(self.test_parameters)
+        parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
-            likelihood.parameters.update(self.calibration_parameters)
-            likelihood_mb.parameters.update(self.calibration_parameters)
+            parameters.update(self.calibration_parameters)
+        self.assertLess(
+            abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
+            tolerance
+        )
+        likelihood.parameters.update(parameters)
+        likelihood_mb.parameters.update(parameters)
         self.assertLess(
             abs(likelihood.log_likelihood_ratio() - likelihood_mb.log_likelihood_ratio()),
             tolerance
@@ -1391,6 +1424,16 @@ class TestMBLikelihood(unittest.TestCase):
             interferometers=self.ifos, waveform_generator=wfg_mb,
             reference_chirp_mass=self.test_parameters['chirp_mass'],
             priors=self.priors.copy(), accuracy_factor=50
+        )
+        self.assertLess(
+            abs(
+                likelihood.log_likelihood_ratio(self.test_parameters)
+                - likelihood_mb_more_accurate.log_likelihood_ratio(self.test_parameters)
+            ),
+            abs(
+                likelihood.log_likelihood_ratio(self.test_parameters)
+                - likelihood_mb.log_likelihood_ratio(self.test_parameters)
+            ) / 2
         )
         likelihood.parameters.update(self.test_parameters)
         likelihood_mb.parameters.update(self.test_parameters)
@@ -1509,8 +1552,8 @@ class TestMBLikelihood(unittest.TestCase):
                 interferometers=self.ifos, waveform_generator=wfg_mb, weights=filepath
             )
 
-        likelihood_mb_from_weights.parameters.update(self.test_parameters)
-        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio()
+        # likelihood_mb_from_weights.parameters.update(self.test_parameters)
+        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1559,8 +1602,8 @@ class TestMBLikelihood(unittest.TestCase):
         likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg_mb, weights=weights
         )
-        likelihood_mb_from_weights.parameters.update(self.test_parameters)
-        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio()
+        # likelihood_mb_from_weights.parameters.update(self.test_parameters)
+        llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1603,11 +1646,15 @@ class TestMBLikelihood(unittest.TestCase):
             priors=self.priors.copy(), linear_interpolation=linear_interpolation,
             highest_mode=highest_mode
         )
-        likelihood.parameters.update(self.test_parameters)
-        likelihood_mb.parameters.update(self.test_parameters)
+        parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
-            likelihood.parameters.update(self.calibration_parameters)
-            likelihood_mb.parameters.update(self.calibration_parameters)
+            parameters.update(self.calibration_parameters)
+        self.assertLess(
+            abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
+            tolerance
+        )
+        likelihood.parameters.update(parameters)
+        likelihood_mb.parameters.update(parameters)
         self.assertLess(
             abs(likelihood.log_likelihood_ratio() - likelihood_mb.log_likelihood_ratio()),
             tolerance

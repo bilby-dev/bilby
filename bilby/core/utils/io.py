@@ -291,19 +291,25 @@ def decode_bilby_json(dct):
     if dct.get("__prior__", False):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
-        except AttributeError:
-            logger.warning(
-                "Unknown prior class for parameter {}, defaulting to base Prior object".format(
+            obj = cls(**dct["kwargs"])
+        except (AttributeError, ValueError) as e:
+            if type(e).__name__ == 'AttributeError':
+                warning_message = "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
-            )
+            elif type(e).__name__ == 'ValueError':
+                warning_message = (
+                    f"Unable to load prior {cls} with arguments {dct['kwargs']}, "
+                    "defaulting to base Prior object"
+                )
+            logger.warning(warning_message)
             from ..prior import Prior
 
             for key in list(dct["kwargs"].keys()):
                 if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
                     dct["kwargs"].pop(key)
             cls = Prior
-        obj = cls(**dct["kwargs"])
+            obj = cls(**dct["kwargs"])
         return obj
     if dct.get("__numpy_random_generator__", False):
         return decode_numpy_random_generator(dct)
@@ -323,7 +329,14 @@ def decode_bilby_json(dct):
         return pd.Series(dct["content"])
     if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
-        return getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        try:
+            cls = getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        except ModuleNotFoundError:
+            logger.warning(
+                f"Cannot load module {dct['__module__']}, returning function name as string"
+            )
+            cls = default
+        return cls
     if dct.get("__timedelta__", False):
         return timedelta(seconds=dct["__total_seconds__"])
     return dct

@@ -6,7 +6,6 @@ gravitational-wave sources.
 import os
 import sys
 import pickle
-from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -1635,11 +1634,6 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
 
-    if likelihood is not None:
-        # make a copy of the state of the likelihood so that changes during
-        # e.g., marginalized posterior reconstruction don't get retained
-        initial_likelihood_parameters = deepcopy(likelihood.parameters)
-
     waveform_defaults = defaults
     for key in waveform_defaults:
         try:
@@ -1705,10 +1699,6 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
 
-    if likelihood is not None:
-        likelihood.parameters.clear()
-        likelihood.parameters.update(initial_likelihood_parameters)
-
     return output_sample
 
 
@@ -1763,11 +1753,6 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1, p
         Dictionary of prior objects, used to fill in non-sampled parameters.
     npool: int, (default=1)
         If given, perform generation (where possible) using a multiprocessing pool
-
-    .. versionchanged:: 2.5.1
-       To ensure that internal state of :code:`likelihood` is not changed by
-       this function, the initial value of :code:`likelihood.parameters` are
-       saved and reset at the end of the function.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'TaylorF2',
@@ -2242,10 +2227,9 @@ def compute_snrs(sample, likelihood, npool=1, pool=None):
     """
     if likelihood is not None:
         if isinstance(sample, dict):
-            likelihood.parameters.update(sample)
-            signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(likelihood.parameters.copy())
+            signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(sample.copy())
             for ifo in likelihood.interferometers:
-                per_detector_snr = likelihood.calculate_snrs(signal_polarizations, ifo)
+                per_detector_snr = likelihood.calculate_snrs(signal_polarizations, ifo, parameters=sample)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
                     per_detector_snr.complex_matched_filter_snr
                 sample['{}_optimal_snr'.format(ifo.name)] = \
@@ -2283,13 +2267,14 @@ def _compute_snrs(args):
     likelihood = _sampling_convenience_dump.likelihood
     ii, sample = args
     sample = dict(sample).copy()
-    likelihood.parameters.update(sample)
     signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(
-        likelihood.parameters.copy()
+        sample.copy()
     )
     snrs = list()
     for ifo in likelihood.interferometers:
-        snrs.append(likelihood.calculate_snrs(signal_polarizations, ifo, return_array=False))
+        snrs.append(likelihood.calculate_snrs(
+            signal_polarizations, ifo, return_array=False, parameters=sample
+        ))
     return snrs
 
 
@@ -2319,8 +2304,7 @@ def compute_per_detector_log_likelihoods(samples, likelihood, npool=1, block=10,
             return samples
 
         if isinstance(samples, dict):
-            likelihood.parameters.update(samples)
-            samples = likelihood.compute_per_detector_log_likelihood()
+            samples = likelihood.compute_per_detector_log_likelihood(samples)
             return samples
 
         elif not isinstance(samples, DataFrame):
@@ -2378,10 +2362,9 @@ def _compute_per_detector_log_likelihoods(args):
     """A wrapper of computing the per-detector log likelihoods to enable multiprocessing"""
     from ..core.sampler.base_sampler import _sampling_convenience_dump
     likelihood = _sampling_convenience_dump.likelihood
-    ii, sample = args
+    _, sample = args
     sample = dict(sample).copy()
-    likelihood.parameters.update(dict(sample).copy())
-    new_sample = likelihood.compute_per_detector_log_likelihood()
+    new_sample = likelihood.compute_per_detector_log_likelihood(sample)
     return tuple((new_sample[key] for key in
                   [f'{ifo.name}_log_likelihood' for ifo in likelihood.interferometers]))
 
@@ -2498,8 +2481,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
 
 def generate_sky_frame_parameters(samples, likelihood):
     if isinstance(samples, dict):
-        likelihood.parameters.update(samples)
-        samples.update(likelihood.get_sky_frame_parameters())
+        samples.update(likelihood.get_sky_frame_parameters(samples))
         return
     elif not isinstance(samples, DataFrame):
         raise ValueError
@@ -2509,8 +2491,7 @@ def generate_sky_frame_parameters(samples, likelihood):
     new_samples = list()
     for ii in tqdm(range(len(samples)), file=sys.stdout):
         sample = dict(samples.iloc[ii]).copy()
-        likelihood.parameters.update(sample)
-        new_samples.append(likelihood.get_sky_frame_parameters())
+        new_samples.append(likelihood.get_sky_frame_parameters(sample))
     new_samples = DataFrame(new_samples)
     for key in new_samples:
         samples[key] = new_samples[key]
@@ -2520,13 +2501,12 @@ def fill_sample(args):
     from ..core.sampler.base_sampler import _sampling_convenience_dump
     from ..core.utils.random import seed
 
-    ii, sample, rseed = args
+    _, sample, rseed = args
     seed(rseed)
     likelihood = _sampling_convenience_dump.likelihood
     marginalized_parameters = getattr(likelihood, "_marginalized_parameters", list())
     sample = dict(sample).copy()
-    likelihood.parameters.update(dict(sample).copy())
-    new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood()
+    new_sample = likelihood.generate_posterior_sample_from_marginalized_likelihood(sample)
     return tuple((new_sample[key] for key in marginalized_parameters))
 
 

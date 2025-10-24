@@ -12,21 +12,21 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
-# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
+# Sets bilby's random number generator seed to ensure reproducibility
 seed(123)
 
 duration = 64
 sampling_frequency = 256
 
 outdir = "outdir"
-label = "eccentric_GW150914"
+label = "eccentric"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
-
 
 injection_parameters = dict(
     mass_1=35.0,
     mass_2=30.0,
     eccentricity=0.1,
+    mean_per_ano=0.0,
     luminosity_distance=440.0,
     theta_jn=0.4,
     psi=0.1,
@@ -40,24 +40,24 @@ waveform_arguments = dict(
     waveform_approximant="EccentricFD", reference_frequency=10.0, minimum_frequency=10.0
 )
 
-# Create the waveform_generator using the LAL eccentric black hole no spins
-# source function
-waveform_generator = bilby.gw.WaveformGenerator(
+# Create the waveform_generator using the GWSignal interface, this allows us
+# to specify what physics is included in the model
+waveform_generator = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
+    eccentric=True,
+    spinning=False,
     duration=duration,
     sampling_frequency=sampling_frequency,
-    frequency_domain_source_model=bilby.gw.source.lal_eccentric_binary_black_hole_no_spins,
     parameters=injection_parameters,
     waveform_arguments=waveform_arguments,
 )
 
+minimum_frequency = 10.0
+maximum_frequency = 128.0
 
 # Setting up three interferometers (LIGO-Hanford (H1), LIGO-Livingston (L1), and
 # Virgo (V1)) at their design sensitivities. The maximum frequency is set just
 # prior to the point at which the waveform model terminates. This is to avoid
 # any biases introduced from using a sharply terminating waveform model.
-minimum_frequency = 10.0
-maximum_frequency = 128.0
-
 ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
 for ifo in ifos:
     ifo.minimum_frequency = minimum_frequency
@@ -102,18 +102,20 @@ priors["geocent_time"] = bilby.core.prior.Uniform(
     name="geocent_time",
     unit="s",
 )
+priors["mean_per_ano"] = 0.0
 
-# Initialising the likelihood function.
+# We create the likelihood function by passing the data (ifos) and the signal
+# model (waveform_generator). We additionally pass the priors to the likelihood
+# to enable marginalization over distance and phase.
 likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
     interferometers=ifos,
     waveform_generator=waveform_generator,
     priors=priors,
-    time_marginalization=True,
     distance_marginalization=True,
     phase_marginalization=True,
 )
 
-# Now we run sampler (PyMultiNest in our case).
+# Now we run the sampler.
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,

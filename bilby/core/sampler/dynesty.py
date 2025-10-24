@@ -4,10 +4,12 @@ import os
 import sys
 import time
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame
 
+from ..likelihood import _safe_likelihood_call
 from ..result import rejection_sample
 from ..utils import (
     check_directory_exists_and_if_not_mkdir,
@@ -45,15 +47,20 @@ def _log_likelihood_wrapper(theta):
             for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
         }
     ):
-        params = {
-            key: t
-            for key, t in zip(_sampling_convenience_dump.search_parameter_keys, theta)
-        }
-        _sampling_convenience_dump.likelihood.parameters.update(params)
-        if _sampling_convenience_dump.use_ratio:
-            return _sampling_convenience_dump.likelihood.log_likelihood_ratio()
-        else:
-            return _sampling_convenience_dump.likelihood.log_likelihood()
+        params = deepcopy(_sampling_convenience_dump.parameters)
+        params.update(
+            {
+                key: t
+                for key, t in zip(
+                    _sampling_convenience_dump.search_parameter_keys, theta
+                )
+            }
+        )
+        return _safe_likelihood_call(
+            _sampling_convenience_dump.likelihood,
+            params,
+            _sampling_convenience_dump.use_ratio,
+        )
     else:
         return np.nan_to_num(-np.inf)
 
@@ -189,6 +196,15 @@ class Dynesty(NestedSampler):
         kwargs["seed"] = None
         return kwargs
 
+    @property
+    def new_dynesty_api(self):
+        try:
+            import dynesty.internal_samplers  # noqa
+
+            return True
+        except ImportError:
+            return False
+
     def __init__(
         self,
         likelihood,
@@ -261,7 +277,66 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init_kwargs(self):
-        return {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        kwargs = {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        # if we're using a Bilby implemented sampling method we need to register the
+        # method. If we aren't we need to make sure the default "live" isn't set as
+        # the bounding method
+        if self.new_dynesty_api:
+            internal_kwargs = dict(
+                ndim=self.ndim,
+                nonbounded=self.kwargs.get("nonbounded", None),
+                periodic=self.kwargs.get("periodic", None),
+                reflective=self.kwargs.get("reflective", None),
+                maxmcmc=self.maxmcmc,
+            )
+
+            from . import dynesty3_utils as dynesty_utils
+
+            if kwargs["sample"] == "act-walk":
+                internal_kwargs["nact"] = self.nact
+                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
+                    **internal_kwargs
+                )
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling tracking the "
+                    f"autocorrelation function and thinning by {internal_sampler.thin} with "
+                    f"maximum length {internal_sampler.thin * internal_sampler.maxmcmc}."
+                )
+            elif kwargs["sample"] == "acceptance-walk":
+                internal_kwargs["naccept"] = self.naccept
+                internal_kwargs["walks"] = self.kwargs["walks"]
+                internal_sampler = dynesty_utils.EnsembleWalkSampler(**internal_kwargs)
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling method with an "
+                    f"average of {internal_sampler.naccept} accepted steps up to chain "
+                    f"length {internal_sampler.maxmcmc}."
+                )
+            elif kwargs["sample"] == "rwalk":
+                internal_kwargs["nact"] = self.nact
+                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(
+                    **internal_kwargs
+                )
+                bound = "none"
+                logger.info(
+                    f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
+                    f"estimated chain length. An average of {2 * internal_sampler.nact} "
+                    f"steps will be accepted up to chain length {internal_sampler.maxmcmc}."
+                )
+            elif kwargs["bound"] == "live":
+                logger.info(
+                    "Live-point based bound method requested with dynesty sample "
+                    f"'{kwargs['sample']}', overwriting to 'multi'"
+                )
+                internal_sampler = kwargs["sample"]
+                bound = "multi"
+            else:
+                internal_sampler = kwargs["sample"]
+                bound = kwargs["bound"]
+            kwargs["sample"] = internal_sampler
+            kwargs["bound"] = bound
+        return kwargs
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
@@ -429,7 +504,7 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init(self):
-        from dynesty import NestedSampler
+        from dynesty.dynesty import NestedSampler
 
         return NestedSampler
 
@@ -450,6 +525,9 @@ class Dynesty(NestedSampler):
         Additionally, some combinations of bound/sample/proposals are not
         compatible and so we either warn the user or raise an error.
         """
+        if self.new_dynesty_api:
+            return
+
         import dynesty
 
         _set_sampling_kwargs((self.nact, self.maxmcmc, self.proposals, self.naccept))
@@ -595,6 +673,10 @@ class Dynesty(NestedSampler):
         more times than we have processes.
         """
         super(Dynesty, self)._setup_pool()
+
+        if self.new_dynesty_api:
+            return
+
         if self.pool is not None:
             args = (
                 [(self.nact, self.maxmcmc, self.proposals, self.naccept)]
@@ -764,43 +846,59 @@ class Dynesty(NestedSampler):
             with open(self.resume_file, "rb") as file:
                 try:
                     sampler = dill.load(file)
+                    if isinstance(sampler, tuple):
+                        sampler, stored_versions, extras = sampler
+                    elif not hasattr(sampler, "versions"):
+                        logger.warning(
+                            f"The resume file {self.resume_file} is corrupted or "
+                            "the version of bilby has changed between runs. This "
+                            "resume file will be ignored."
+                        )
+                        return False
+                    else:
+                        stored_versions = sampler.versions
+                        extras = sampler.kwargs
+                        del sampler.versions
                 except EOFError:
                     sampler = None
-
-                if not hasattr(sampler, "versions"):
+                except ModuleNotFoundError as e:
                     logger.warning(
-                        f"The resume file {self.resume_file} is corrupted or "
-                        "the version of bilby has changed between runs. This "
-                        "resume file will be ignored."
+                        f"The resume file cannot be loaded with message: {e}. "
+                        "This is likely due to a change in the version of Bilby "
+                        "and/or dynesty. The resume file will be ignored."
                     )
                     return False
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
                     "Old version = {old}, new version = {new}."
                 )
                 for code in versions:
-                    if not versions[code] == sampler.versions.get(code, None):
+                    if not versions[code] == stored_versions.get(code, None):
                         logger.warning(
                             version_warning.format(
                                 code=code,
-                                old=sampler.versions.get(code, "None"),
+                                old=stored_versions.get(code, "None"),
                                 new=versions[code],
                             )
                         )
-                del sampler.versions
                 self.sampler = sampler
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                self.start_time = self.sampler.kwargs.pop("start_time")
-                self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                self.start_time = extras.pop("start_time")
+                self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
-                    self.sampler.M = self.pool.map
+                    mapper = self.pool.map
                 else:
-                    self.sampler.M = map
+                    mapper = map
+                if self.new_dynesty_api:
+                    self.sampler.mapper = mapper
+                else:
+                    self.sampler.M = mapper
             return True
         else:
             logger.info(f"Resume file {self.resume_file} does not exist.")
@@ -835,13 +933,20 @@ class Dynesty(NestedSampler):
         check_directory_exists_and_if_not_mkdir(self.outdir)
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler.kwargs["sampling_time"] = self.sampling_time
-            self.sampler.kwargs["start_time"] = self.start_time
-        self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
+            metadata = dict(
+                sampling_time=self.sampling_time,
+                start_time=self.start_time,
+            )
+        else:
+            metadata = dict()
+        versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
-        self.sampler.M = map
+        if self.new_dynesty_api:
+            self.sampler.mapper = map
+        else:
+            self.sampler.M = map
         if dill.pickles(self.sampler):
-            safe_file_dump(self.sampler, self.resume_file, dill)
+            safe_file_dump((self.sampler, versions, metadata), self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
@@ -850,7 +955,10 @@ class Dynesty(NestedSampler):
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
-            self.sampler.M = self.sampler.pool.map
+            if self.new_dynesty_api:
+                self.sampler.mapper = self.sampler.pool.map
+            else:
+                self.sampler.M = self.sampler.pool.map
 
     def dump_samples_to_dat(self):
         """

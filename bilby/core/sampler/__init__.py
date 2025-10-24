@@ -250,7 +250,7 @@ def run_sampler(
     else:
         raise ValueError("Input priors not understood should be dict or PriorDict")
 
-    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
+    priors.fill_priors()
 
     # Generate the meta-data if not given and append the likelihood meta_data
     if meta_data is None:

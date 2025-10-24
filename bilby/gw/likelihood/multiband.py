@@ -11,6 +11,7 @@ from ...core.utils import (
     recursively_load_dict_contents_from_group,
     recursively_save_dict_contents_to_group
 )
+from ...core.likelihood import _fallback_to_parameters
 from ..prior import CBCPriorDict
 from ..utils import ln_i0
 
@@ -724,7 +725,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
         ) / 2
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True):
+    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
         """
         Compute the snrs
 
@@ -745,27 +746,28 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             An object containing the SNR quantities.
 
         """
+        parameters = _fallback_to_parameters(self, parameters)
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
         else:
-            time_ref = self.parameters['geocent_time']
+            time_ref = parameters['geocent_time']
 
         strain = np.zeros(len(self.banded_frequency_points), dtype=complex)
         for mode in waveform_polarizations:
             response = interferometer.antenna_response(
-                self.parameters['ra'], self.parameters['dec'],
-                time_ref, self.parameters['psi'], mode
+                parameters['ra'], parameters['dec'],
+                time_ref, parameters['psi'], mode
             )
             strain += waveform_polarizations[mode][self.unique_to_original_frequencies] * response
 
         dt = interferometer.time_delay_from_geocenter(
-            self.parameters['ra'], self.parameters['dec'], time_ref)
-        dt_geocent = self.parameters['geocent_time'] - interferometer.strain_data.start_time
+            parameters['ra'], parameters['dec'], time_ref)
+        dt_geocent = parameters['geocent_time'] - interferometer.strain_data.start_time
         ifo_time = dt_geocent + dt
         strain *= np.exp(-1j * 2. * np.pi * self.banded_frequency_points * ifo_time)
 
         strain *= interferometer.calibration_model.get_calibration_factor(
-            self.banded_frequency_points, prefix='recalib_{}_'.format(interferometer.name), **self.parameters)
+            self.banded_frequency_points, prefix='recalib_{}_'.format(interferometer.name), **parameters)
 
         d_inner_h = np.conj(np.dot(strain, self.linear_coeffs[interferometer.name]))
 
@@ -817,11 +819,12 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         for mode in signal:
             signal[mode] *= self._ref_dist / new_distance
 
-    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None):
-        self.parameters.update(self.get_sky_frame_parameters())
+    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, parameters=None):
+        parameters = _fallback_to_parameters(self, parameters)
+        parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         if signal_polarizations is None:
             signal_polarizations = \
-                self.waveform_generator.frequency_domain_strain(self.parameters)
+                self.waveform_generator.frequency_domain_strain(parameters)
 
         snrs = self._CalculatedSNRs()
 
@@ -843,7 +846,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         times = self._times
         if self.jitter_time:
-            times = times + self.parameters["time_jitter"]
+            times = times + parameters["time_jitter"]
         time_prior_array = self.priors['geocent_time'].prob(times)
         time_post = np.exp(time_log_like - max(time_log_like)) * time_prior_array
         time_post /= np.sum(time_post)

@@ -4,13 +4,16 @@ import json
 import os
 from collections import namedtuple
 from copy import copy
+from functools import partial
 from importlib import import_module
 from itertools import product
+
 import numpy as np
 import pandas as pd
 import scipy.stats
 
 from . import utils
+from .likelihood import _safe_likelihood_call
 from .utils import (
     logger, infer_parameters_from_function,
     check_directory_exists_and_if_not_mkdir,
@@ -29,14 +32,6 @@ from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
-
-
-def __eval_l(sample):
-    from ..core.sampler.base_sampler import _sampling_convenience_dump
-    likelihood = _sampling_convenience_dump.likelihood
-    sample = dict(sample).copy()
-    likelihood.parameters.update(dict(sample).copy())
-    return likelihood.log_likelihood()
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -223,6 +218,13 @@ def get_weights_for_reweighting(
 
     nposterior = len(result.posterior)
 
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    starting_index = 0
+
     if (resume_file is not None) and os.path.exists(resume_file):
         old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = \
             np.genfromtxt(resume_file)
@@ -232,13 +234,6 @@ def get_weights_for_reweighting(
     elif resume_file is not None:
         basedir = os.path.split(resume_file)[0]
         check_directory_exists_and_if_not_mkdir(basedir)
-    else:
-        old_log_likelihood_array = np.zeros(nposterior)
-        old_log_prior_array = np.zeros(nposterior)
-        new_log_likelihood_array = np.zeros(nposterior)
-        new_log_prior_array = np.zeros(nposterior)
-
-        starting_index = 0
 
     dict_samples = result.posterior.to_dict(orient="records")
     n = len(dict_samples) - starting_index
@@ -255,7 +250,7 @@ def get_weights_for_reweighting(
             map_fn = my_pool.imap
     
         log_l = list(tqdm(
-            map_fn(__eval_l, dict_samples[starting_index:], chunksize=chunksize),
+            map_fn(partial(_safe_likelihood_call, this_logl), dict_samples[starting_index:], chunksize=chunksize),
             desc='Computing likelihoods',
             total=n,
         ))

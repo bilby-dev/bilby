@@ -69,9 +69,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model.__name__,
-                self.waveform_generator.time_domain_source_model,
-                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -88,9 +88,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model,
-                self.waveform_generator.time_domain_source_model.__name__,
-                bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters),
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -108,9 +108,9 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
                 self.waveform_generator.duration,
                 self.waveform_generator.sampling_frequency,
                 self.waveform_generator.start_time,
-                self.waveform_generator.frequency_domain_source_model.__name__,
-                self.waveform_generator.time_domain_source_model,
-                conversion_func.__name__,
+                bilby.core.utils.get_function_path(self.waveform_generator.frequency_domain_source_model),
+                bilby.core.utils.get_function_path(self.waveform_generator.time_domain_source_model),
+                bilby.core.utils.get_function_path(conversion_func),
                 self.waveform_generator.waveform_arguments,
             )
         )
@@ -693,6 +693,237 @@ def _test_caching_different_domain(func1, func2, params1, params2):
     for key in original_waveform:
         output &= np.array_equal(original_waveform[key], new_waveform[key])
     return output
+
+
+class TestGWSignalGenerator(unittest.TestCase):
+
+    def get_wfgen(self, **kwargs):
+        default_kwargs = dict(
+            duration=4,
+            sampling_frequency=256,
+            waveform_arguments=dict(waveform_approximant=kwargs.pop("waveform_approximant", "IMRPhenomXP")),
+        )
+        default_kwargs.update(kwargs)
+        return bilby.gw.waveform_generator.GWSignalWaveformGenerator(**default_kwargs)
+
+    def _test_defaults(self, kind, keys):
+        # test included parameters are not in the defaults
+        kwargs = {kind: True}
+        wfg = self.get_wfgen(**kwargs)
+        defaults = wfg.defaults
+        for key in keys:
+            assert key not in defaults
+
+        # test omitted parameters are in the defaults
+        kwargs = {kind: False}
+        wfg = self.get_wfgen(**kwargs)
+        defaults = wfg.defaults
+        for key in keys:
+            assert key in defaults
+
+        # test an error is raised when the requested parameters aren't provided
+        kwargs = {kind: True}
+        wfg = self.get_wfgen(**kwargs)
+        parameters = dict(
+            mass_1=10,
+            mass_2=10,
+            theta_jn=1,
+            luminosity_distance=1,
+            phase=0,
+        )
+        with self.assertRaises(KeyError):
+            wfg.frequency_domain_strain(parameters)
+
+    def test_spin_defaults(self):
+        spin_parameters = ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
+        self._test_defaults("spinning", spin_parameters)
+
+    def test_eccentric_defaults(self):
+        eccentric_parameters = ["eccentricity", "mean_per_ano"]
+        self._test_defaults("eccentric", eccentric_parameters)
+
+    def test_tidal_defaults(self):
+        tidal_parameters = ["lambda_1", "lambda_2"]
+        self._test_defaults("tidal", tidal_parameters)
+
+    def test_default_parameters_are_ignored(self):
+        wfg = self.get_wfgen(spinning=False)
+        parameters_1 = dict(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+        parameters_2 = dict(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            a_1=0.99,
+        )
+        wf_1 = wfg.frequency_domain_strain(parameters_1)
+        wf_2 = wfg.frequency_domain_strain(parameters_2)
+        np.testing.assert_equal(wf_1["plus"], wf_2["plus"])
+
+    def test_eccentric_parameters_work(self):
+        wfg = self.get_wfgen(
+            eccentric=True, spinning=False, waveform_approximant="EccentricFD",
+        )
+        parameters_1 = dict(
+            mass_1=10,
+            mass_2=10,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            eccentricity=0.0,
+            mean_per_ano=0.0,
+        )
+        parameters_2 = dict(
+            mass_1=10,
+            mass_2=10,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            eccentricity=0.3,
+            mean_per_ano=1.0,
+        )
+        wf_1 = wfg.frequency_domain_strain(parameters_1)
+        wf_2 = wfg.frequency_domain_strain(parameters_2)
+        assert not all(wf_1["plus"] == wf_2["plus"])
+
+    def test_tidal_parameters_work(self):
+        wfg = self.get_wfgen(
+            tidal=True, spinning=False, waveform_approximant="IMRPhenomD_NRTidalv2",
+            sampling_frequency=16384,
+        )
+        parameters_1 = dict(
+            mass_1=1.4,
+            mass_2=1.3,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            lambda_1=0.0,
+            lambda_2=0.0,
+        )
+        parameters_2 = dict(
+            mass_1=1.4,
+            mass_2=1.3,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            lambda_1=10000.0,
+            lambda_2=1000.0,
+        )
+        wf_1 = wfg.frequency_domain_strain(parameters_1)
+        wf_2 = wfg.frequency_domain_strain(parameters_2)
+        assert not all(wf_1["plus"] == wf_2["plus"])
+
+    def test_bilby_to_gwsignal_parameters(self):
+        from astropy import units as u
+
+        wfg = self.get_wfgen(spinning=False)
+        expected = dict(
+            mass1=10.0 * u.M_sun,
+            mass2=10.0 * u.M_sun,
+            spin1x=0.0 * u.dimensionless_unscaled,
+            spin1y=0.0 * u.dimensionless_unscaled,
+            spin1z=0.0 * u.dimensionless_unscaled,
+            spin2x=0.0 * u.dimensionless_unscaled,
+            spin2y=0.0 * u.dimensionless_unscaled,
+            spin2z=0.0 * u.dimensionless_unscaled,
+            lambda1=0.0 * u.dimensionless_unscaled,
+            lambda2=0.0 * u.dimensionless_unscaled,
+            deltaF=0.25 * u.Hz,
+            deltaT=1 / 256 * u.s,
+            f22_start=20 * u.Hz,
+            f_max=128 * u.Hz,
+            f22_ref=50.0 * u.Hz,
+            phi_ref=0 * u.rad,
+            distance=1 * u.Mpc,
+            inclination=1 * u.rad,
+            eccentricity=0 * u.dimensionless_unscaled,
+            meanPerAno=0 * u.rad,
+            condition=0,
+        )
+        parameters = wfg._from_bilby_parameters(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+        print(parameters)
+        print(expected)
+        assert expected == parameters
+
+    def test_gwsignal_generator_matches_base(self):
+        base = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=4,
+            sampling_frequency=256,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomXP"),
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+        )
+        wfg = self.get_wfgen()
+
+        parameters = dict(
+            mass_1=10.0,
+            mass_2=8.0,
+            a_1=0.6,
+            a_2=0.4,
+            tilt_1=3.0,
+            tilt_2=1.2,
+            phi_12=0.2,
+            phi_jl=1.2,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+
+        base_wf = base.frequency_domain_strain(parameters)
+        new_wf = wfg.frequency_domain_strain(parameters)
+        assert base_wf.keys() == new_wf.keys()
+        for key in base_wf:
+            np.testing.assert_almost_equal(base_wf[key], new_wf[key])
+
+        base_wf = base.time_domain_strain(parameters)
+        new_wf = wfg.time_domain_strain(parameters)
+        assert base_wf.keys() == new_wf.keys()
+        for key in base_wf:
+            np.testing.assert_almost_equal(base_wf[key], new_wf[key])
+
+    def test_raises_error_with_extra_kwargs(self):
+        wfg = self.get_wfgen(
+            waveform_arguments=dict(waveform_approximant="IMRPhenomD", foo="bar"),
+            spinning=False,
+        )
+        parameters = dict(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+
+        with self.assertRaises(TypeError):
+            wfg.frequency_domain_strain(parameters)
+
+    def test_caught_error_return_none(self):
+        wfg = self.get_wfgen(
+            spinning=False,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomD", catch_waveform_errors=True),
+        )
+        parameters = dict(
+            mass_1=10.0,
+            mass_2=-10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+
+        assert wfg.frequency_domain_strain(parameters) is None
 
 
 if __name__ == "__main__":

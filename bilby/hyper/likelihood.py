@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 
-from ..core.likelihood import Likelihood
+from ..core.likelihood import Likelihood, _fallback_to_parameters
 from .model import Model
 from ..core.prior import PriorDict
 
@@ -51,7 +51,7 @@ class HyperparameterLikelihood(Likelihood):
         self.hyper_prior = hyper_prior
         self.sampling_prior = sampling_prior
         self.max_samples = max_samples
-        super(HyperparameterLikelihood, self).__init__(hyper_prior.parameters)
+        super(HyperparameterLikelihood, self).__init__()
 
         self.data = self.resample_posteriors()
         self.n_posteriors = len(self.posteriors)
@@ -59,9 +59,9 @@ class HyperparameterLikelihood(Likelihood):
         self.samples_factor =\
             - self.n_posteriors * np.log(self.samples_per_posterior)
 
-    def log_likelihood_ratio(self):
-        self.hyper_prior.parameters.update(self.parameters)
-        log_l = np.sum(np.log(np.sum(self.hyper_prior.prob(self.data) /
+    def log_likelihood_ratio(self, parameters=None):
+        parameters = _fallback_to_parameters(self, parameters)
+        log_l = np.sum(np.log(np.sum(self.hyper_prior.prob(self.data, **parameters) /
                        self.data['prior'], axis=-1)))
         log_l += self.samples_factor
         return np.nan_to_num(log_l)
@@ -69,8 +69,8 @@ class HyperparameterLikelihood(Likelihood):
     def noise_log_likelihood(self):
         return self.evidence_factor
 
-    def log_likelihood(self):
-        return self.noise_log_likelihood() + self.log_likelihood_ratio()
+    def log_likelihood(self, parameters=None):
+        return self.noise_log_likelihood() + self.log_likelihood_ratio(parameters=parameters)
 
     def resample_posteriors(self, max_samples=None):
         """
