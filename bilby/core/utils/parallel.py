@@ -52,6 +52,8 @@ def create_pool(
 def close_pool(pool):
     if hasattr(pool, "close"):
         pool.close()
+    else:
+        import IPython; IPython.embed()
     if hasattr(pool, "join"):
         pool.join()
 
@@ -82,5 +84,5 @@ def bilby_pool(
         )
         yield _pool
     finally:
-        if not user_pool:
+        if not user_pool and "_pool" in locals():
             close_pool(_pool)
