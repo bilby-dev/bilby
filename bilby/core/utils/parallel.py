@@ -1,4 +1,3 @@
-import multiprocessing
 from contextlib import contextmanager
 
 from .log import logger
@@ -38,6 +37,8 @@ def create_pool(
     elif pool is not None:
         _pool = pool
     elif npool is not None:
+        import multiprocessing
+
         _pool = multiprocessing.Pool(
             processes=npool,
             initializer=_initialize_global_variables,
