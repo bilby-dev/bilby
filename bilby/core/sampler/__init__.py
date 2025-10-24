@@ -158,6 +158,7 @@ def run_sampler(
     gzip=False,
     result_class=None,
     npool=1,
+    pool=None,
     **kwargs,
 ):
     """
@@ -281,6 +282,7 @@ def run_sampler(
             plot=plot,
             result_class=result_class,
             npool=npool,
+            pool=pool,
             **kwargs,
         )
     elif inspect.isclass(sampler):
@@ -294,6 +296,7 @@ def run_sampler(
             injection_parameters=injection_parameters,
             meta_data=meta_data,
             npool=npool,
+            pool=pool,
             **kwargs,
         )
     else:
@@ -308,10 +311,20 @@ def run_sampler(
     else:
         # Run the sampler
         start_time = datetime.datetime.now()
-        if command_line_args.bilby_test_mode:
-            result = sampler._run_test()
-        else:
-            result = sampler.run_sampler()
+        from ..utils.parallel import bilby_pool
+        with bilby_pool(
+            likelihood,
+            priors,
+            use_ratio=sampler.use_ratio,
+            search_parameter_keys=sampler.search_parameter_keys,
+            npool=npool,
+            pool=pool,
+        ) as _pool:
+            sampler.pool = _pool
+            if command_line_args.bilby_test_mode:
+                result = sampler._run_test()
+            else:
+                result = sampler.run_sampler()
         end_time = datetime.datetime.now()
 
         # Some samplers calculate the sampling time internally
@@ -349,12 +362,21 @@ def run_sampler(
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:
-        result.samples_to_posterior(
-            likelihood=likelihood,
-            priors=result.priors,
-            conversion_function=conversion_function,
+        with bilby_pool(
+            likelihood,
+            priors,
+            use_ratio=sampler.use_ratio,
+            search_parameter_keys=sampler.search_parameter_keys,
             npool=npool,
-        )
+            pool=pool,
+        ) as _pool:
+            result.samples_to_posterior(
+                likelihood=likelihood,
+                priors=result.priors,
+                conversion_function=conversion_function,
+                npool=npool,
+                pool=_pool,
+            )
 
     if save:
         # The overwrite here ensures we overwrite the initially stored data
