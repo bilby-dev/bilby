@@ -2239,7 +2239,7 @@ def compute_snrs(sample, likelihood, npool=1, pool=None):
             logger.info('Computing SNRs for every sample.')
 
             fill_args = [(ii, row) for ii, row in sample.iterrows()]
-            with bilby_pool(likelihood=likelihood, npool=npool, pool=pool) as _pool:
+            with bilby_pool(likelihood=likelihood, priors=None, npool=npool, pool=pool) as _pool:
                 if _pool is not None:
                     new_samples = _pool.map(_compute_snrs, tqdm(fill_args, file=sys.stdout))
                 else:
@@ -2322,7 +2322,7 @@ def compute_per_detector_log_likelihoods(samples, likelihood, npool=1, block=10,
         fill_args = [(ii, row) for ii, row in samples.iterrows()]
         ii = 0
         pbar = tqdm(total=len(samples), file=sys.stdout)
-        with bilby_pool(likelihood=likelihood, npool=npool, pool=pool) as _pool:
+        with bilby_pool(likelihood=likelihood, priors=None, npool=npool, pool=pool) as _pool:
             while ii < len(samples):
                 if ii in cached_samples_dict:
                     ii += block
@@ -2448,7 +2448,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
     fill_args = [(ii, row, seed) for (ii, row), seed in zip(samples.iterrows(), seeds)]
     ii = 0
     pbar = tqdm(total=len(samples), file=sys.stdout)
-    with bilby_pool(likelihood=likelihood, npool=npool, pool=pool) as _pool:
+    with bilby_pool(likelihood=likelihood, priors=None, npool=npool, pool=pool) as _pool:
         while ii < len(samples):
             if ii in cached_samples_dict:
                 ii += block
