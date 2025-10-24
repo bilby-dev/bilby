@@ -418,7 +418,7 @@ class Ptemcee(MCMCSampler):
 
         if (
             os.path.isfile(self.resume_file)
-            and os.path.getsize(self.resume_file)
+            and os.path.getsize(self.resume_file) > 5
             and self.resume is True
         ):
             import dill
