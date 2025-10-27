@@ -32,9 +32,7 @@ trigger_time = bilby.gw.utils.get_event_time(label)
 minimum_frequency = 10  # Hz
 
 # Get frame caches
-candidate, frame_caches = bilby.gw.utils.get_gracedb(
-    gracedb, outdir, duration, calibration, detectors, query_types
-)
+candidate, frame_caches = bilby.gw.utils.get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types)
 
 # Set up interferometer objects from the cache files
 interferometers = bilby.gw.detector.InterferometerList([])

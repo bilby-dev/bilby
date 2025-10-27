@@ -25,14 +25,10 @@ result = run_sampler(
     injection_parameters=injection_parameters,
 )
 
-result.posterior[label + str(n_dim - 1)] = 1 - np.sum(
-    [result.posterior[key] for key in priors], axis=0
-)
+result.posterior[label + str(n_dim - 1)] = 1 - np.sum([result.posterior[key] for key in priors], axis=0)
 result.plot_corner(parameters=injection_parameters)
 
 samples = priors.sample(10000)
 samples[label + str(n_dim - 1)] = 1 - np.sum([samples[key] for key in samples], axis=0)
 result.posterior = pd.DataFrame(samples)
-result.plot_corner(
-    parameters=[key for key in samples], filename="outdir/dirichlet_prior_corner.png"
-)
+result.plot_corner(parameters=[key for key in samples], filename="outdir/dirichlet_prior_corner.png")

@@ -143,10 +143,7 @@ class Nessai(NestedSampler):
                 return self.log_prior(theta)
 
             def _update_bounds(self):
-                self.bounds = {
-                    key: [self.priors[key].minimum, self.priors[key].maximum]
-                    for key in self.names
-                }
+                self.bounds = {key: [self.priors[key].minimum, self.priors[key].maximum] for key in self.names}
 
             def new_point(self, N=1):
                 """Draw a point from the prior"""
@@ -212,9 +209,7 @@ class Nessai(NestedSampler):
         self.result.num_likelihood_evaluations = self.fs.ns.total_likelihood_evaluations
 
         self.result.sampling_time = self.fs.ns.sampling_time
-        self.result.samples = live_points_to_array(
-            self.fs.posterior_samples, self.search_parameter_keys
-        )
+        self.result.samples = live_points_to_array(self.fs.posterior_samples, self.search_parameter_keys)
         self.result.log_likelihood_evaluations = self.fs.posterior_samples["logL"]
         self.result.nested_samples = self.get_nested_samples()
         self.result.nested_samples["weights"] = self.get_posterior_weights()
@@ -291,9 +286,7 @@ class Nessai(NestedSampler):
             self.kwargs["plot"] = self.plot
 
         if not self.kwargs["output"]:
-            self.kwargs["output"] = os.path.join(
-                self.outdir, f"{self.label}_nessai", ""
-            )
+            self.kwargs["output"] = os.path.join(self.outdir, f"{self.label}_nessai", "")
 
         check_directory_exists_and_if_not_mkdir(self.kwargs["output"])
         NestedSampler._verify_kwargs_against_default_kwargs(self)

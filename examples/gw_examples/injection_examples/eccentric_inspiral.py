@@ -36,9 +36,7 @@ injection_parameters = dict(
     dec=5.73,
 )
 
-waveform_arguments = dict(
-    waveform_approximant="EccentricFD", reference_frequency=10.0, minimum_frequency=10.0
-)
+waveform_arguments = dict(waveform_approximant="EccentricFD", reference_frequency=10.0, minimum_frequency=10.0)
 
 # Create the waveform_generator using the GWSignal interface, this allows us
 # to specify what physics is included in the model
@@ -67,9 +65,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] + 2 - duration,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 
 # Now we set up the priors on each of the binary parameters.
 priors = bilby.core.prior.PriorDict()
@@ -79,23 +75,13 @@ priors["mass_1"] = bilby.core.prior.Uniform(
 priors["mass_2"] = bilby.core.prior.Uniform(
     name="mass_2", minimum=5, maximum=60, unit="$M_{\\odot}$", latex_label="$m_2$"
 )
-priors["eccentricity"] = bilby.core.prior.LogUniform(
-    name="eccentricity", latex_label="$e$", minimum=1e-4, maximum=0.4
-)
-priors["luminosity_distance"] = bilby.gw.prior.UniformSourceFrame(
-    name="luminosity_distance", minimum=1e2, maximum=2e3
-)
+priors["eccentricity"] = bilby.core.prior.LogUniform(name="eccentricity", latex_label="$e$", minimum=1e-4, maximum=0.4)
+priors["luminosity_distance"] = bilby.gw.prior.UniformSourceFrame(name="luminosity_distance", minimum=1e2, maximum=2e3)
 priors["dec"] = bilby.core.prior.Cosine(name="dec")
-priors["ra"] = bilby.core.prior.Uniform(
-    name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic"
-)
+priors["ra"] = bilby.core.prior.Uniform(name="ra", minimum=0, maximum=2 * np.pi, boundary="periodic")
 priors["theta_jn"] = bilby.core.prior.Sine(name="theta_jn")
-priors["psi"] = bilby.core.prior.Uniform(
-    name="psi", minimum=0, maximum=np.pi, boundary="periodic"
-)
-priors["phase"] = bilby.core.prior.Uniform(
-    name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic"
-)
+priors["psi"] = bilby.core.prior.Uniform(name="psi", minimum=0, maximum=np.pi, boundary="periodic")
+priors["phase"] = bilby.core.prior.Uniform(name="phase", minimum=0, maximum=2 * np.pi, boundary="periodic")
 priors["geocent_time"] = bilby.core.prior.Uniform(
     injection_parameters["geocent_time"] - 0.1,
     injection_parameters["geocent_time"] + 0.1,
