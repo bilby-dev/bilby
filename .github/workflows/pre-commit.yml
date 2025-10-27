@@ -23,7 +23,7 @@ jobs:
       with:
         python-version: '3.13'
         cache: 'pip'
-  name: Install jupyter
+    - name: Install jupyter
       run: |
         python -m pip install jupyterlab
     - uses: pre-commit/action@v3.0.1
