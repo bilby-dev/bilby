@@ -4,8 +4,8 @@ from .log import logger
 
 
 def create_pool(
-    likelihood,
-    priors,
+    likelihood=None,
+    priors=None,
     use_ratio=None,
     search_parameter_keys=None,
     npool=None,

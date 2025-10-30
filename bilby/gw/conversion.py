@@ -2330,13 +2330,17 @@ def compute_per_detector_log_likelihoods(samples, likelihood, npool=1, block=10,
                     continue
 
                 if _pool is not None:
-                    subset_samples = _pool.map(_compute_per_detector_log_likelihoods,
-                                            fill_args[ii: ii + block])
+                    subset_samples = _pool.map(
+                        _compute_per_detector_log_likelihoods,
+                        fill_args[ii: ii + block]
+                    )
                 else:
                     from ..core.sampler.base_sampler import _sampling_convenience_dump
                     _sampling_convenience_dump.likelihood = likelihood
-                    subset_samples = [list(_compute_per_detector_log_likelihoods(xx))
-                                    for xx in fill_args[ii: ii + block]]
+                    subset_samples = [
+                        list(_compute_per_detector_log_likelihoods(xx))
+                        for xx in fill_args[ii: ii + block]
+                    ]
 
                 cached_samples_dict[ii] = subset_samples
 

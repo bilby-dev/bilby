@@ -11,9 +11,9 @@ from ..utils import (
     loaded_modules_dict,
     logger,
 )
+from ..utils.parallel import bilby_pool
 from . import proposal
 from .base_sampler import Sampler, SamplingMarginalisedParameterError
-from ..utils.parallel import bilby_pool
 
 
 class ImplementedSamplers:
@@ -268,7 +268,7 @@ def run_sampler(
 
         likelihood = ZeroLikelihood(likelihood)
 
-    common_kwargs =dict(
+    common_kwargs = dict(
         likelihood=likelihood,
         priors=priors,
         outdir=outdir,
@@ -324,7 +324,11 @@ def run_sampler(
                 result = sampler.run_sampler()
             end_time = datetime.datetime.now()
             result = finalize_result(
-                result=result, likelihood=likelihood, start_time=start_time, end_time=end_time
+                result=result,
+                likelihood=likelihood,
+                use_ratio=sampler.use_ratio,
+                start_time=start_time,
+                end_time=end_time,
             )
 
             # Initial save of the sampler in case of failure in samples_to_posterior
@@ -349,7 +353,9 @@ def run_sampler(
     return result
 
 
-def apply_conversion_function(result, likelihood, conversion_function, npool=None, pool=None):
+def apply_conversion_function(
+    result, likelihood, conversion_function, npool=None, pool=None
+):
     """
     Apply the conversion function to the injected parameters and posterior if the
     posterior has not already been created from the stored samples.
@@ -385,7 +391,7 @@ def apply_conversion_function(result, likelihood, conversion_function, npool=Non
     return result
 
 
-def finalize_result(result, likelihood, start_time=None, end_time=None):
+def finalize_result(result, likelihood, use_ratio, start_time=None, end_time=None):
     # Some samplers calculate the sampling time internally
     if result.sampling_time is None and None not in [start_time, end_time]:
         result.sampling_time = end_time - start_time
@@ -396,7 +402,7 @@ def finalize_result(result, likelihood, start_time=None, end_time=None):
     # Convert sampling time into seconds
     result.sampling_time = result.sampling_time.total_seconds()
 
-    if sampler.use_ratio:
+    if use_ratio:
         result.log_noise_evidence = likelihood.noise_log_likelihood()
         result.log_bayes_factor = result.log_evidence
         result.log_evidence = result.log_bayes_factor + result.log_noise_evidence

@@ -766,9 +766,8 @@ class Sampler(object):
                 sys.exit(self.exit_code)
 
     def _close_pool(self):
-        if (
-            getattr(self, "pool", None) is not None
-            and not getattr(self, "_user_pool", True)
+        if getattr(self, "pool", None) is not None and not getattr(
+            self, "_user_pool", True
         ):
             logger.info("Starting to close worker pool.")
             close_pool(self.pool)
@@ -777,11 +776,14 @@ class Sampler(object):
             logger.info("Finished closing worker pool.")
 
     def _setup_pool(self):
+        parameters = self.priors.sample()
+
         if hasattr(self.pool, "map"):
             self._user_pool = True
+        elif self.npool in (1, None):
+            self._user_pool = False
         else:
             self._user_pool = False
-            parameters = self.priors.sample()
             self.pool = create_pool(
                 likelihood=self.likelihood,
                 priors=self.priors,
