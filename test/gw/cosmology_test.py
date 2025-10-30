@@ -49,6 +49,11 @@ class TestGetCosmology(unittest.TestCase):
     def test_getting_cosmology_with_default(self):
         self.assertEqual(cosmology.get_cosmology().name, "Planck15")
 
+    def test_getting_cosmology_non_standard_default(self):
+        cosmology.set_cosmology("WMAP9")
+        self.assertEqual(cosmology.get_cosmology().name, "WMAP9")
+        cosmology.set_cosmology("Planck15")
+
 
 class TestPlanck15LALCosmology(unittest.TestCase):
 
