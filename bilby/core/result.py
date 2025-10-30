@@ -8,8 +8,8 @@ from collections import namedtuple
 from copy import copy
 from importlib import import_module
 from itertools import product
-import multiprocessing
 from functools import partial
+
 import numpy as np
 import pandas as pd
 import scipy.stats
@@ -245,14 +245,22 @@ def get_weights_for_reweighting(
 
     # Helper function to compute likelihoods in parallel
     def eval_pool(this_logl):
-        with multiprocessing.Pool(processes=npool) as pool:
-            chunksize = max(100, n // (2 * npool))
-            return list(tqdm(
-                pool.imap(partial(__eval_l, this_logl),
-                        dict_samples[starting_index:], chunksize=chunksize),
-                desc='Computing likelihoods',
-                total=n)
-            )
+        from .utils.parallel import create_pool, close_pool
+
+        chunksize = max(100, n // (2 * npool))
+        my_pool = create_pool(likelihood=this_logl, npool=npool)
+        if my_pool is None:
+            map_fn = map
+        else:
+            map_fn = my_pool.imap
+
+        log_l = list(tqdm(
+            map_fn(partial(_safe_likelihood_call, this_logl), dict_samples[starting_index:], chunksize=chunksize),
+            desc='Computing likelihoods',
+            total=n,
+        ))
+        close_pool(my_pool)
+        return log_l
 
     if old_likelihood is None:
         old_log_likelihood_array[starting_index:] = \
