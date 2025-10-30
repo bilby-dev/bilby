@@ -36,7 +36,7 @@ def create_pool(
             logger.info(f"Created MPI pool with size {_pool.size}")
     elif pool is not None:
         _pool = pool
-    elif npool is not None:
+    elif npool not in (None, 1):
         import multiprocessing
 
         _pool = multiprocessing.Pool(
