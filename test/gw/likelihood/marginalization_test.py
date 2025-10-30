@@ -217,7 +217,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomXPHM",
             )
         )
         self.interferometers.inject_signal(
@@ -250,7 +250,7 @@ class TestMarginalizations(unittest.TestCase):
             start_time=1126259640,
             waveform_arguments=dict(
                 reference_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomXPHM",
                 frequency_nodes_linear=np.load(f"{roq_dir}/fnodes_linear.npy"),
                 frequency_nodes_quadratic=np.load(f"{roq_dir}/fnodes_quadratic.npy"),
             )
@@ -266,7 +266,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomXPHM",
             )
         )
 
@@ -277,7 +277,7 @@ class TestMarginalizations(unittest.TestCase):
             start_time=1126259640,
             waveform_arguments=dict(
                 reference_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
+                waveform_approximant="IMRPhenomXPHM",
             )
         )
 
