@@ -1,8 +1,22 @@
 import unittest
 
-from astropy.cosmology import WMAP9, Planck15
+from astropy.cosmology import WMAP9
 from bilby.gw import cosmology
 import lal
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def reset_cosmology():
+    # Reset cosmology before each test
+    cosmology.DEFAULT_COSMOLOGY = None
+    cosmology.COSMOLOGY = [None, str(None)]
+    try:
+        yield
+    finally:
+        # Reset cosmology after each test
+        cosmology.DEFAULT_COSMOLOGY = None
+        cosmology.COSMOLOGY = [None, str(None)]
 
 
 class TestSetCosmology(unittest.TestCase):
@@ -12,12 +26,11 @@ class TestSetCosmology(unittest.TestCase):
     def test_setting_cosmology_with_string(self):
         cosmology.set_cosmology("WMAP9")
         self.assertEqual(cosmology.COSMOLOGY[1], "WMAP9")
-        cosmology.set_cosmology("Planck15")
+        self.assertEqual(cosmology.DEFAULT_COSMOLOGY.name, "WMAP9")
 
     def test_setting_cosmology_with_astropy_object(self):
         cosmology.set_cosmology(WMAP9)
         self.assertEqual(cosmology.COSMOLOGY[1], "WMAP9")
-        cosmology.set_cosmology(Planck15)
 
     def test_setting_cosmology_with_default(self):
         cosmology.set_cosmology()
@@ -38,6 +51,15 @@ class TestSetCosmology(unittest.TestCase):
         cosmology.set_cosmology(cosmo_dict)
         self.assertEqual(cosmology.COSMOLOGY[1][:4], "wCDM")
 
+    def test_repeated_setting_cosmology(self):
+        cosmology.set_cosmology("WMAP9")
+        self.assertEqual(cosmology.COSMOLOGY[1], "WMAP9")
+        self.assertEqual(cosmology.DEFAULT_COSMOLOGY.name, "WMAP9")
+        cosmology.set_cosmology("Planck18")
+        self.assertEqual(cosmology.COSMOLOGY[1], "Planck18")
+        self.assertEqual(cosmology.DEFAULT_COSMOLOGY.name, "Planck18")
+        cosmology.set_cosmology("Planck15")
+
 
 class TestGetCosmology(unittest.TestCase):
     def setUp(self):
@@ -52,7 +74,6 @@ class TestGetCosmology(unittest.TestCase):
     def test_getting_cosmology_non_standard_default(self):
         cosmology.set_cosmology("WMAP9")
         self.assertEqual(cosmology.get_cosmology().name, "WMAP9")
-        cosmology.set_cosmology("Planck15")
 
 
 class TestPlanck15LALCosmology(unittest.TestCase):
