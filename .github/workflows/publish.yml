@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Fetch tags
+      run: git fetch --tags
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
