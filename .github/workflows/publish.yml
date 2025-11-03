@@ -35,7 +35,7 @@ jobs:
 
   pypi-publish:
     name: Upload release to PyPI
-    if: startsWith(github.ref, 'refs/tags/') && github.repository == 'bilby-dev/bilby'
+    if: github.event_name == 'release' && github.event.action == 'published' && github.repository == 'bilby-dev/bilby'
     needs:
       - build
     runs-on: ubuntu-latest
