@@ -804,9 +804,7 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
         if self.adapt:
             self.update_scale(chain)
         if self.steps_since_update >= self.update_interval:
-            fmp = FisherMatrixPosteriorEstimator(
-                likelihood, priors, parameters=self.parameters, fd_eps=self.fd_eps
-            )
+            fmp = FisherMatrixPosteriorEstimator(likelihood, priors, parameters=self.parameters, fd_eps=self.fd_eps)
             parameters = {key: priors[key].peak for key in priors.fixed_keys}
             parameters.update(sample.dict)
             try:

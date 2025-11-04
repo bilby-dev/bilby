@@ -648,7 +648,7 @@ class JointLikelihood(Likelihood):
         return sum([likelihood.log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
 
     def noise_log_likelihood(self):
-        """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
+        """This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
         return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
 
 
