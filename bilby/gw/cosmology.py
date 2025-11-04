@@ -110,6 +110,8 @@ def set_cosmology(cosmology=None):
     from ..core.utils.meta_data import global_meta_data
 
     cosmology = get_cosmology(cosmology)
+    global COSMOLOGY, DEFAULT_COSMOLOGY
+    DEFAULT_COSMOLOGY = cosmology
     COSMOLOGY[0] = cosmology
     if cosmology.name is not None:
         COSMOLOGY[1] = cosmology.name

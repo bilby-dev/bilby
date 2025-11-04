@@ -168,7 +168,7 @@ class ZeroLikelihood(Likelihood):
     def log_likelihood(self, parameters=None):
         return 0
 
-    def noise_log_likelihood(self, parameters=None):
+    def noise_log_likelihood(self):
         return 0
 
     def __getattr__(self, name):
@@ -647,9 +647,9 @@ class JointLikelihood(Likelihood):
         """This is just the sum of the log likelihoods of all parts of the joint likelihood"""
         return sum([likelihood.log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
 
-    def noise_log_likelihood(self, parameters=None):
-        """This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
-        return sum([likelihood.noise_log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
+    def noise_log_likelihood(self):
+        """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
+        return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
 
 
 def function_to_celerite_mean_model(func):
