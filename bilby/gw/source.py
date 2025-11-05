@@ -387,7 +387,8 @@ def cbc_plus_sine_gaussians(
         Orbital eccentricity.
     sine_gaussian_parameters : list[dict] or None, optional
         A list containing the parameters of each sine-Gaussian component. Each
-        dictionary must define ``hrss``, ``Q`` and ``frequency``.
+        dictionary must define ``hrss``, ``Q``, ``frequency``, ``time_offset`` and
+        ``phase_offset``.
     **kwargs
         Additional keyword arguments forwarded to the underlying CBC waveform
         generator.
@@ -446,11 +447,14 @@ def cbc_plus_sine_gaussians(
                 hrss = parameters['hrss']
                 quality_factor = parameters['Q']
                 peak_frequency = parameters['frequency']
+                time_offset = parameters['time_offset']
+                phase_offset = parameters['phase_offset']
             except KeyError as error:
                 missing_key = error.args[0]
                 raise KeyError(
                     "Missing '{}' for sine-Gaussian {}. Each sine-Gaussian "
-                    "requires 'hrss', 'Q', and 'frequency'.".format(
+                    "requires 'hrss', 'Q', 'frequency', 'time_offset', and "
+                    "'phase_offset'.".format(
                         missing_key, index
                     )
                 ) from error
@@ -460,8 +464,8 @@ def cbc_plus_sine_gaussians(
                 hrss=hrss,
                 Q=quality_factor,
                 frequency=peak_frequency,
-                time_offset=parameters.get('time_offset', 0.0),
-                phase_offset=parameters.get('phase_offset', 0.0),
+                time_offset=time_offset,
+                phase_offset=phase_offset,
             )
 
             h_plus += sine_gaussian_waveform['plus']

@@ -346,6 +346,7 @@ class TestConvertToLALParams(unittest.TestCase):
             sine_gaussian_1_hrss=2e-22,
             sine_gaussian_1_Q=8.0,
             sine_gaussian_1_frequency=180.0,
+            sine_gaussian_1_time_offset=-0.02,
             sine_gaussian_1_phase_offset=-0.3,
         )
 
@@ -353,7 +354,7 @@ class TestConvertToLALParams(unittest.TestCase):
 
         expected = [
             dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.01, phase_offset=1.2),
-            dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=0.0, phase_offset=-0.3),
+            dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=-0.02, phase_offset=-0.3),
         ]
 
         self.assertEqual(converted["sine_gaussian_parameters"], expected)
@@ -370,6 +371,8 @@ class TestConvertToLALParams(unittest.TestCase):
             sine_gaussian_0_hrss=1e-22,
             sine_gaussian_0_Q=10.0,
             sine_gaussian_0_frequency=150.0,
+            sine_gaussian_0_time_offset=0.0,
+            sine_gaussian_0_phase_offset=0.0,
         )
 
         converted = conversion.convert_to_cbc_plus_sine_gaussian_parameters_dict(parameters)
@@ -380,10 +383,24 @@ class TestConvertToLALParams(unittest.TestCase):
         self.assertEqual(component["hrss"], parameters["sine_gaussian_0_hrss"])
         self.assertEqual(component["Q"], parameters["sine_gaussian_0_Q"])
         self.assertEqual(component["frequency"], parameters["sine_gaussian_0_frequency"])
-        self.assertEqual(component["time_offset"], 0.0)
-        self.assertEqual(component["phase_offset"], 0.0)
+        self.assertEqual(component["time_offset"], parameters["sine_gaussian_0_time_offset"])
+        self.assertEqual(component["phase_offset"], parameters["sine_gaussian_0_phase_offset"])
         for field in ("hrss", "Q", "frequency", "time_offset", "phase_offset"):
             self.assertNotIn(f"sine_gaussian_0_{field}", converted)
+
+    def test_convert_to_cbc_plus_sine_gaussians_missing_offsets_raises(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            sine_gaussian_0_hrss=1e-22,
+            sine_gaussian_0_Q=10.0,
+            sine_gaussian_0_frequency=150.0,
+            sine_gaussian_0_phase_offset=0.5,
+        )
+
+        with self.assertRaisesRegex(KeyError, "time_offset"):
+            conversion.convert_to_cbc_plus_sine_gaussian_parameters(parameters)
 
     def test_bbh_zero_aligned_spin_to_spherical_with_magnitude(self):
         """
@@ -553,9 +570,11 @@ class TestGenerateAllParameters(unittest.TestCase):
             sine_gaussian_0_Q=9.0,
             sine_gaussian_0_frequency=120.0,
             sine_gaussian_0_time_offset=0.01,
+            sine_gaussian_0_phase_offset=0.1,
             sine_gaussian_1_hrss=2e-22,
             sine_gaussian_1_Q=8.0,
             sine_gaussian_1_frequency=180.0,
+            sine_gaussian_1_time_offset=-0.02,
             sine_gaussian_1_phase_offset=-0.5,
         )
 
@@ -574,8 +593,8 @@ class TestGenerateAllParameters(unittest.TestCase):
                 components = components.iloc[0]
             self.assertEqual(len(components), 2)
             for index, expected in enumerate((
-                dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.01, phase_offset=0.0),
-                dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=0.0, phase_offset=-0.5),
+                dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.01, phase_offset=0.1),
+                dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=-0.02, phase_offset=-0.5),
             )):
                 self.assertEqual(components[index], expected)
 

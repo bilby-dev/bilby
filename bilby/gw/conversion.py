@@ -296,7 +296,7 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
     parameters : dict
         Dictionary containing the standard CBC parameters as well as entries of
         the form ``sine_gaussian_<index>_<field>`` where ``field`` is one of
-        ``hrss``, ``Q`` or ``frequency``.
+        ``hrss``, ``Q``, ``frequency``, ``time_offset`` or ``phase_offset``.
 
     Returns
     -------
@@ -323,7 +323,7 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
 
     if grouped_parameters:
         sine_gaussian_parameters = []
-        required_fields = {"hrss", "Q", "frequency"}
+        required_fields = {"hrss", "Q", "frequency", "time_offset", "phase_offset"}
         for index in sorted(grouped_parameters):
             parameter_set = grouped_parameters[index]
             missing_fields = required_fields.difference(parameter_set)
@@ -337,8 +337,8 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
                 "hrss": parameter_set["hrss"],
                 "Q": parameter_set["Q"],
                 "frequency": parameter_set["frequency"],
-                "time_offset": parameter_set.get("time_offset", 0.0),
-                "phase_offset": parameter_set.get("phase_offset", 0.0),
+                "time_offset": parameter_set["time_offset"],
+                "phase_offset": parameter_set["phase_offset"],
             })
 
         converted_parameters["sine_gaussian_parameters"] = sine_gaussian_parameters

@@ -135,7 +135,7 @@ class TestCBCPlusSineGaussians(unittest.TestCase):
             reference_frequency=50.0,
             minimum_frequency=20.0,
         )
-        self.sine_gaussian = dict(hrss=1e-22, Q=9.0, frequency=120.0)
+        self.sine_gaussian = dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.0, phase_offset=0.0)
 
     def tearDown(self):
         del self.frequency_array
