@@ -325,6 +325,66 @@ class TestConvertToLALParams(unittest.TestCase):
             dict(a_1=a_1, tilt_1=tilt_1, phi_jl=phi_jl, phi_12=phi_12),
         )
 
+    def test_convert_to_cbc_plus_sine_gaussians(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            a_1=0.1,
+            tilt_1=0.2,
+            phi_12=0.3,
+            a_2=0.4,
+            tilt_2=0.5,
+            phi_jl=0.6,
+            theta_jn=0.7,
+            phase=0.8,
+            sine_gaussian_0_hrss=1e-22,
+            sine_gaussian_0_Q=9.0,
+            sine_gaussian_0_frequency=120.0,
+            sine_gaussian_0_time_offset=0.01,
+            sine_gaussian_0_phase_offset=1.2,
+            sine_gaussian_1_hrss=2e-22,
+            sine_gaussian_1_Q=8.0,
+            sine_gaussian_1_frequency=180.0,
+            sine_gaussian_1_phase_offset=-0.3,
+        )
+
+        converted, added_keys = conversion.convert_to_cbc_plus_sine_gaussian_parameters(parameters)
+
+        expected = [
+            dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.01, phase_offset=1.2),
+            dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=0.0, phase_offset=-0.3),
+        ]
+
+        self.assertEqual(converted["sine_gaussian_parameters"], expected)
+        for index in range(2):
+            for field in ("hrss", "Q", "frequency", "time_offset", "phase_offset"):
+                self.assertNotIn(f"sine_gaussian_{index}_{field}", converted)
+        self.assertIn("sine_gaussian_parameters", added_keys)
+
+    def test_convert_to_cbc_plus_sine_gaussians_dict_wrapper(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            sine_gaussian_0_hrss=1e-22,
+            sine_gaussian_0_Q=10.0,
+            sine_gaussian_0_frequency=150.0,
+        )
+
+        converted = conversion.convert_to_cbc_plus_sine_gaussian_parameters_dict(parameters)
+
+        self.assertIn("sine_gaussian_parameters", converted)
+        self.assertEqual(len(converted["sine_gaussian_parameters"]), 1)
+        component = converted["sine_gaussian_parameters"][0]
+        self.assertEqual(component["hrss"], parameters["sine_gaussian_0_hrss"])
+        self.assertEqual(component["Q"], parameters["sine_gaussian_0_Q"])
+        self.assertEqual(component["frequency"], parameters["sine_gaussian_0_frequency"])
+        self.assertEqual(component["time_offset"], 0.0)
+        self.assertEqual(component["phase_offset"], 0.0)
+        for field in ("hrss", "Q", "frequency", "time_offset", "phase_offset"):
+            self.assertNotIn(f"sine_gaussian_0_{field}", converted)
+
     def test_bbh_zero_aligned_spin_to_spherical_with_magnitude(self):
         """
         Test the the conversion returns the correct tilt angles when zero
@@ -486,6 +546,38 @@ class TestGenerateAllParameters(unittest.TestCase):
             bilby.gw.conversion.generate_all_bns_parameters,
             self.expected_bbh_keys + self.expected_tidal_keys,
         )
+
+    def test_generate_all_cbc_plus_sine_gaussian_parameters(self):
+        sg_parameters = dict(
+            sine_gaussian_0_hrss=1e-22,
+            sine_gaussian_0_Q=9.0,
+            sine_gaussian_0_frequency=120.0,
+            sine_gaussian_0_time_offset=0.01,
+            sine_gaussian_1_hrss=2e-22,
+            sine_gaussian_1_Q=8.0,
+            sine_gaussian_1_frequency=180.0,
+            sine_gaussian_1_phase_offset=-0.5,
+        )
+
+        for values in [self.parameters, self.data_frame]:
+            container = values.copy()
+            if isinstance(container, pd.DataFrame):
+                for key, value in sg_parameters.items():
+                    container[key] = value
+            else:
+                container.update(sg_parameters)
+            converted = bilby.gw.conversion.generate_all_cbc_plus_sine_gaussian_parameters(container)
+
+            self.assertIn("sine_gaussian_parameters", converted)
+            components = converted["sine_gaussian_parameters"]
+            if isinstance(converted, pd.DataFrame):
+                components = components.iloc[0]
+            self.assertEqual(len(components), 2)
+            for index, expected in enumerate((
+                dict(hrss=1e-22, Q=9.0, frequency=120.0, time_offset=0.01, phase_offset=0.0),
+                dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=0.0, phase_offset=-0.5),
+            )):
+                self.assertEqual(components[index], expected)
 
     def _generate(self, func, expected):
         for values in [self.parameters, self.data_frame]:

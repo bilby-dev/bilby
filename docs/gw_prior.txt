@@ -73,6 +73,40 @@ Precessing spins waveform with tides on
 .. literalinclude:: /../bilby/gw/prior_files/precessing_spins_bns.prior
 
 
+CBC waveform augmented with sine-Gaussian bursts
+------------------------------------------------
+
+To use the :func:`bilby.gw.source.cbc_plus_sine_gaussians` waveform in a
+configuration-driven analysis you need to instruct both the waveform generator
+and the prior dictionary to bundle the sine-Gaussian parameters correctly.  The
+following snippet shows the relevant entries for a configuration file using one
+additional sine-Gaussian component:
+
+.. code-block:: ini
+
+   [waveform_generator]
+   frequency_domain_source_model = bilby.gw.source.cbc_plus_sine_gaussians
+   parameter_conversion = bilby.gw.conversion.convert_to_cbc_plus_sine_gaussian_parameters
+
+   [prior]
+   conversion_function = bilby.gw.conversion.generate_all_cbc_plus_sine_gaussian_parameters
+   sine_gaussian_0_hrss = LogUniform(name='sine_gaussian_0_hrss', minimum=1e-24, maximum=1e-20)
+   sine_gaussian_0_Q = Uniform(name='sine_gaussian_0_Q', minimum=3, maximum=30)
+   sine_gaussian_0_frequency = Uniform(name='sine_gaussian_0_frequency', minimum=50, maximum=512)
+   # Optional offsets applied to the burst relative to the CBC peak
+   sine_gaussian_0_time_offset = Uniform(name='sine_gaussian_0_time_offset', minimum=-0.05, maximum=0.05)
+   sine_gaussian_0_phase_offset = Uniform(name='sine_gaussian_0_phase_offset', minimum=-3.141592653589793, maximum=3.141592653589793)
+
+Each additional burst is specified by increasing the index in the parameter
+name (e.g. :code:`sine_gaussian_1_hrss`, :code:`sine_gaussian_1_Q`,
+:code:`sine_gaussian_1_frequency`).  The conversion function assembles all
+entries that match this naming scheme into the
+:code:`sine_gaussian_parameters` list consumed by the waveform model.  The time
+and phase offsets are optional—if omitted they default to zero—so the priors
+above fully describe the additional burst while leaving the standard CBC priors
+unchanged.
+
+
 Modifying the prior
 -------------------
 

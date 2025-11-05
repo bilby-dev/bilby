@@ -7,6 +7,7 @@ import os
 import sys
 import multiprocessing
 import pickle
+import re
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -280,6 +281,97 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                   if key not in original_keys]
 
     return converted_parameters, added_keys
+
+
+def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
+    """Extend CBC parameters with sine-Gaussian burst specifications.
+
+    This helper wraps :func:`convert_to_lal_binary_black_hole_parameters` and
+    aggregates parameters describing additional sine-Gaussian components into a
+    list that can be consumed by
+    :func:`bilby.gw.source.cbc_plus_sine_gaussians`.
+
+    Parameters
+    ----------
+    parameters : dict
+        Dictionary containing the standard CBC parameters as well as entries of
+        the form ``sine_gaussian_<index>_<field>`` where ``field`` is one of
+        ``hrss``, ``Q`` or ``frequency``.
+
+    Returns
+    -------
+    tuple(dict, list)
+        The converted parameter dictionary and the list of keys appended during
+        conversion.
+    """
+
+    converted_parameters, added_keys = convert_to_lal_binary_black_hole_parameters(parameters)
+
+    sine_gaussian_pattern = re.compile(
+        r"sine_gaussian_(\d+)_(hrss|Q|frequency|time_offset|phase_offset)"
+    )
+    grouped_parameters = {}
+
+    for key in list(converted_parameters.keys()):
+        match = sine_gaussian_pattern.fullmatch(key)
+        if match is None:
+            continue
+
+        index = int(match.group(1))
+        field = match.group(2)
+        grouped_parameters.setdefault(index, {})[field] = converted_parameters.pop(key)
+
+    if grouped_parameters:
+        sine_gaussian_parameters = []
+        required_fields = {"hrss", "Q", "frequency"}
+        for index in sorted(grouped_parameters):
+            parameter_set = grouped_parameters[index]
+            missing_fields = required_fields.difference(parameter_set)
+            if missing_fields:
+                raise KeyError(
+                    "Sine-Gaussian {} is missing required parameters: {}".format(
+                        index, ", ".join(sorted(missing_fields))
+                    )
+                )
+            sine_gaussian_parameters.append({
+                "hrss": parameter_set["hrss"],
+                "Q": parameter_set["Q"],
+                "frequency": parameter_set["frequency"],
+                "time_offset": parameter_set.get("time_offset", 0.0),
+                "phase_offset": parameter_set.get("phase_offset", 0.0),
+            })
+
+        converted_parameters["sine_gaussian_parameters"] = sine_gaussian_parameters
+        added_keys = list(added_keys) + ["sine_gaussian_parameters"]
+
+    return converted_parameters, added_keys
+
+
+def convert_to_cbc_plus_sine_gaussian_parameters_dict(parameters):
+    """Return only the converted CBC + sine-Gaussian parameters.
+
+    The main conversion helper :func:`convert_to_cbc_plus_sine_gaussian_parameters`
+    returns both the converted dictionary and a list of keys appended during the
+    conversion.  When specifying a conversion function inside a prior
+    configuration file we often only want the dictionary.  This thin wrapper
+    performs the conversion and discards the metadata so that it can be used in
+    contexts that expect a single dictionary output.
+
+    Parameters
+    ----------
+    parameters : dict
+        Dictionary containing the standard CBC parameters as well as optional
+        ``sine_gaussian_*`` entries.
+
+    Returns
+    -------
+    dict
+        The converted parameter dictionary ready to be consumed by
+        :func:`bilby.gw.source.cbc_plus_sine_gaussians`.
+    """
+
+    converted_parameters, _ = convert_to_cbc_plus_sine_gaussian_parameters(parameters)
+    return converted_parameters
 
 
 def convert_to_lal_binary_neutron_star_parameters(parameters):
@@ -1730,6 +1822,50 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_black_hole_parameters,
         likelihood=likelihood, priors=priors, npool=npool)
+    return output_sample
+
+
+def generate_all_cbc_plus_sine_gaussian_parameters(sample, likelihood=None, priors=None, npool=1):
+    """Generate all CBC parameters including sine-Gaussian components.
+
+    This mirrors :func:`generate_all_bbh_parameters` while additionally
+    aggregating any ``sine_gaussian_*`` inputs into the structured list consumed
+    by :func:`bilby.gw.source.cbc_plus_sine_gaussians`.
+
+    Parameters
+    ----------
+    sample : dict or pandas.DataFrame
+        Samples to convert. Entries following the naming scheme
+        ``sine_gaussian_<index>_<field>`` are bundled into the
+        ``sine_gaussian_parameters`` list.
+    likelihood : bilby.gw.likelihood.GravitationalWaveTransient, optional
+        Likelihood used for sampling. Passed through to
+        :func:`_generate_all_cbc_parameters`.
+    priors : dict, optional
+        Priors to use when filling in fixed values.
+    npool : int, optional
+        Number of processes for any pool-based operations.
+
+    Returns
+    -------
+    dict or pandas.DataFrame
+        The converted samples augmented with the standard CBC parameters and a
+        ``sine_gaussian_parameters`` entry when applicable.
+    """
+
+    waveform_defaults = {
+        'reference_frequency': 50.0,
+        'waveform_approximant': 'IMRPhenomPv2',
+        'minimum_frequency': 20.0,
+    }
+    output_sample = _generate_all_cbc_parameters(
+        sample,
+        defaults=waveform_defaults,
+        base_conversion=convert_to_cbc_plus_sine_gaussian_parameters,
+        likelihood=likelihood,
+        priors=priors,
+        npool=npool,
+    )
     return output_sample
 
 
