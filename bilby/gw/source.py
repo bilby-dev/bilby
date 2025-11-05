@@ -1280,8 +1280,8 @@ def sinegaussian(
         hrss,
         Q,
         frequency,
-        time_offset=0.0,
-        phase_offset=0.0,
+        time_offset,
+        phase_offset,
         **kwargs):
     r"""
     A frequency-domain sine-Gaussian burst source model.
@@ -1313,14 +1313,13 @@ def sinegaussian(
         The quality factor of the burst, determines the decay time.
     frequency: float
         The peak frequency of the burst.
-    time_offset: float, optional
+    time_offset: float
         Relative time delay, in seconds, applied to the burst.  A positive value
         shifts the sine-Gaussian peak to later times with respect to the CBC
         waveform, corresponding to a multiplication by
-        :math:`e^{-2\pi i f t}` in the frequency domain.  Defaults to ``0``.
-    phase_offset: float, optional
+        :math:`e^{-2\pi i f t}` in the frequency domain.
+    phase_offset: float
         Additional phase rotation applied uniformly across the burst in radians.
-        Defaults to ``0``.
     kwargs: dict
         UNUSED
 

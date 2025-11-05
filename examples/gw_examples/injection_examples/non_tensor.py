@@ -32,7 +32,7 @@ def vector_tensor_sine_gaussian(frequency_array, hrss, Q, frequency, epsilon):
         Relative size of the vector modes compared to the tensor modes.
     """
     waveform_polarizations = bilby.gw.source.sinegaussian(
-        frequency_array, hrss, Q, frequency
+        frequency_array, hrss, Q, frequency, time_offset=0.0, phase_offset=0.0
     )
 
     waveform_polarizations["x"] = epsilon * waveform_polarizations["plus"]
