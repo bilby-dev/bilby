@@ -5,6 +5,18 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.7.1]
+
+### Fixes
+* The global cosmology was not being set properly by @mj-will in https://github.com/bilby-dev/bilby/pull/1005
+* The `noise_log_likelihood` method was erroneously given a `parameters` argument in several likelihood classes by @Hen42rik in https://github.com/bilby-dev/bilby/pull/1010
+* The Fisher matrix posterior estimator was not passed all needed parameters in `bilby_mcmc` by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1012
+
+### New Contributors
+* @Hen42rik made their first contribution in https://github.com/bilby-dev/bilby/pull/1010
+
+**Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
+
 ## [2.7.0]
 
 There are a few significant changes/additions in this release along with minor changes and removals.
@@ -1235,7 +1247,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.7.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.7.1...main
+[2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/bilby-dev/bilby/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/bilby-dev/bilby/compare/v2.5.1...v2.5.2
