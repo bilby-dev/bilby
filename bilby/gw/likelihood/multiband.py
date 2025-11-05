@@ -748,8 +748,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
         parameters = _fallback_to_parameters(self, parameters)
-        if self.time_marginalization:
-            parameters["geocent_time"] = self._beam_pattern_reference_time
 
         modes = {
             mode: value[self.unique_to_original_frequencies]
