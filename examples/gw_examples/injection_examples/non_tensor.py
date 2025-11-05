@@ -14,7 +14,15 @@ from bilby.core.utils.random import seed
 seed(123)
 
 
-def vector_tensor_sine_gaussian(frequency_array, hrss, Q, frequency, epsilon):
+def vector_tensor_sine_gaussian(
+    frequency_array,
+    hrss,
+    Q,
+    frequency,
+    time_offset,
+    phase_offset,
+    epsilon,
+):
     """
     Vector-Tensor sine-Gaussian burst model
 
@@ -28,11 +36,20 @@ def vector_tensor_sine_gaussian(frequency_array, hrss, Q, frequency, epsilon):
     hrss: float
     Q: float
     frequency: float
+    time_offset: float
+        Relative delay, in seconds, between the CBC-like peak and the burst.
+    phase_offset: float
+        Additional phase rotation applied in radians to the burst.
     epsilon: float
         Relative size of the vector modes compared to the tensor modes.
     """
     waveform_polarizations = bilby.gw.source.sinegaussian(
-        frequency_array, hrss, Q, frequency, time_offset=0.0, phase_offset=0.0
+        frequency_array,
+        hrss,
+        Q,
+        frequency,
+        time_offset,
+        phase_offset,
     )
 
     waveform_polarizations["x"] = epsilon * waveform_polarizations["plus"]
@@ -51,6 +68,8 @@ injection_parameters = dict(
     hrss=1e-22,
     Q=5.0,
     frequency=200.0,
+    time_offset=0.0,
+    phase_offset=0.0,
     ra=1.375,
     dec=-1.2108,
     geocent_time=1126259642.413,
@@ -77,7 +96,7 @@ ifos.inject_signal(
 )
 
 priors = bilby.core.prior.PriorDict()
-for key in ["psi", "geocent_time", "hrss", "Q", "frequency"]:
+for key in ["psi", "geocent_time", "hrss", "Q", "frequency", "time_offset", "phase_offset"]:
     priors[key] = injection_parameters[key]
 priors["ra"] = bilby.core.prior.Uniform(0, 2 * np.pi, latex_label="$\\alpha$")
 priors["dec"] = bilby.core.prior.Cosine(latex_label="$\\delta$")
