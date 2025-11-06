@@ -76,9 +76,9 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
         exit_code=77,
         skip_import_verification=False,
         temporary_directory=True,
-        **kwargs
+        **kwargs,
     ):
-        super(Pymultinest, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -88,7 +88,7 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
             skip_import_verification=skip_import_verification,
             exit_code=exit_code,
             temporary_directory=temporary_directory,
-            **kwargs
+            **kwargs,
         )
         self._apply_multinest_boundaries()
 
@@ -145,15 +145,13 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
             LogLikelihood=self.log_likelihood,
             Prior=self.prior_transform,
             n_dims=self.ndim,
-            **self.kwargs
+            **self.kwargs,
         )
         self._calculate_and_save_sampling_time()
 
         self._clean_up_run_directory()
 
-        post_equal_weights = os.path.join(
-            self.outputfiles_basename, "post_equal_weights.dat"
-        )
+        post_equal_weights = os.path.join(self.outputfiles_basename, "post_equal_weights.dat")
         post_equal_weights_data = np.loadtxt(post_equal_weights)
         self.result.log_likelihood_evaluations = post_equal_weights_data[:, -1]
         self.result.sampler_output = out
@@ -187,7 +185,6 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
 
         nested_samples = pd.DataFrame(
             np.vstack([dead_points, live_points]).copy(),
-            columns=self.search_parameter_keys
-            + ["log_likelihood", "log_prior_volume", "mode"],
+            columns=self.search_parameter_keys + ["log_likelihood", "log_prior_volume", "mode"],
         )
         return nested_samples

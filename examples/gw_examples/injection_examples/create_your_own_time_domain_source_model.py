@@ -93,9 +93,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - 0.5,
 )
-ifos.inject_signal(
-    waveform_generator=waveform, parameters=injection_parameters, raise_error=False
-)
+ifos.inject_signal(waveform_generator=waveform, parameters=injection_parameters, raise_error=False)
 
 #  create the priors
 prior = injection_parameters.copy()

@@ -1,9 +1,11 @@
 import unittest
-import bilby
-import numpy as np
-from bilby.gw.utils import overlap
+
 import lal
 import lalsimulation as lalsim
+import numpy as np
+
+import bilby
+from bilby.gw.utils import overlap
 
 
 class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
@@ -67,7 +69,6 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
         self.run_for_approximant(waveform_approximant, source="bns")
 
     def run_for_approximant(self, waveform_approximant, source):
-
         if source == "bbh":
             injection_parameters = self.BBH_precessing_injection_parameters
             frequency_domain_source_model = bilby.gw.source.lal_binary_black_hole
@@ -75,7 +76,7 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             injection_parameters = self.BNS_precessing_injection_parameters
             frequency_domain_source_model = bilby.gw.source.lal_binary_neutron_star
         else:
-            raise ValueError("Source can only be 'bbh' or 'bns', but was '{}'".format(source))
+            raise ValueError(f"Source can only be 'bbh' or 'bns', but was '{source}'")
 
         # create a waveform generator for bilby
         duration = 4.0
@@ -119,9 +120,7 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             waveform_arguments=waveform_arguments,
         )
 
-        bilby_strain = waveform_generator.frequency_domain_strain(
-            parameters=injection_parameters
-        )
+        bilby_strain = waveform_generator.frequency_domain_strain(parameters=injection_parameters)
 
         # LALSIM Waveform
 
@@ -144,16 +143,14 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             (waveform_generator.frequency_array)[-1],
             lambda_1,
             lambda_2,
-            **waveform_arguments
+            **waveform_arguments,
         )
 
         h_plus = get_lalsim_waveform["plus"]
         h_cross = get_lalsim_waveform["cross"]
 
         if waveform_approximant == "TaylorF2":
-            upper_freq = ISCO(
-                injection_parameters["mass_1"], injection_parameters["mass_2"]
-            )
+            upper_freq = ISCO(injection_parameters["mass_1"], injection_parameters["mass_2"])
 
         else:
             upper_freq = waveform_generator.frequency_array[-1]
@@ -164,9 +161,7 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
         f_len = int((2 * sampling_frequency) / delta_f)
 
         # PSD aLIGO
-        psd_aLIGO = generate_PSD(
-            psd_name="aLIGOZeroDetHighPower", length=f_len, delta_f=delta_f
-        )
+        psd_aLIGO = generate_PSD(psd_name="aLIGOZeroDetHighPower", length=f_len, delta_f=delta_f)
 
         norm_hp_bilby = normalize_strain(
             bilby_strain["plus"],
@@ -232,22 +227,7 @@ def ISCO(m1, m2):
 
 
 def lalsim_FD_waveform(
-    m1,
-    m2,
-    s1x,
-    s1y,
-    s1z,
-    s2x,
-    s2y,
-    s2z,
-    theta_jn,
-    phase,
-    duration,
-    dL,
-    fmax,
-    lambda_1=None,
-    lambda_2=None,
-    **kwarg
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, theta_jn, phase, duration, dL, fmax, lambda_1=None, lambda_2=None, **kwarg
 ):
     mass1 = m1 * lal.MSUN_SI
     mass2 = m2 * lal.MSUN_SI
@@ -275,13 +255,9 @@ def lalsim_FD_waveform(
     waveform_dictionary = lal.CreateDict()
 
     if lambda_1 is not None:
-        lalsim.SimInspiralWaveformParamsInsertTidalLambda1(
-            waveform_dictionary, float(lambda_1)
-        )
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, float(lambda_1))
     if lambda_2 is not None:
-        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(
-            waveform_dictionary, float(lambda_2)
-        )
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, float(lambda_2))
 
     hplus, hcross = lalsim.SimInspiralChooseFDWaveform(
         mass1,
@@ -331,18 +307,10 @@ def get_lalsim_psd_list():
     psd_list = []
     # Avoid the string 'SimNoisePSD'
     for name in lalsim.__dict__:
-        if (
-            name != PSD_prefix
-            and name.startswith(PSD_prefix)
-            and not name.endswith(PSD_suffix)
-        ):
+        if name != PSD_prefix and name.startswith(PSD_prefix) and not name.endswith(PSD_suffix):
             # if name in blacklist:
             name = name[len(PSD_prefix) :]
-            if (
-                name not in blacklist
-                and not name.startswith("iLIGO")
-                and not name.startswith("eLIGO")
-            ):
+            if name not in blacklist and not name.startswith("iLIGO") and not name.startswith("eLIGO"):
                 psd_list.append(name)
     return sorted(psd_list)
 
@@ -356,18 +324,14 @@ def generate_PSD(psd_name="aLIGOZeroDetHighPower", length=None, delta_f=None):
         # Function for PSD
         func = lalsim.__dict__["SimNoisePSD" + psd_name + "Ptr"]
         # Generate a lal frequency series
-        PSDseries = lal.CreateREAL8FrequencySeries(
-            "", lal.LIGOTimeGPS(0), 0, delta_f, lal.DimensionlessUnit, length
-        )
+        PSDseries = lal.CreateREAL8FrequencySeries("", lal.LIGOTimeGPS(0), 0, delta_f, lal.DimensionlessUnit, length)
         # func(PSDseries)
         lalsim.SimNoisePSD(PSDseries, 0, func)
     return PSDseries
 
 
 # Normalizing a waveform
-def normalize_strain(
-    signal, psd=None, delta_f=None, lower_cut_off=None, upper_cut_off=None
-):
+def normalize_strain(signal, psd=None, delta_f=None, lower_cut_off=None, upper_cut_off=None):
     low_index = int(lower_cut_off / delta_f)
     up_index = int(upper_cut_off / delta_f)
     integrand = np.conj(signal) * signal

@@ -1,23 +1,37 @@
-import numpy as np
 import unittest
 
+import numpy as np
+
 import bilby
+from bilby.core.prior.analytical import (
+    Beta,
+    Cauchy,
+    ChiSquared,
+    Cosine,
+    Exponential,
+    Gamma,
+    Gaussian,
+    HalfGaussian,
+    Logistic,
+    LogNormal,
+    LogUniform,
+    PowerLaw,
+    Sine,
+    StudentT,
+    TruncatedGaussian,
+    Uniform,
+)
 from bilby.core.prior.slabspike import SlabSpikePrior
-from bilby.core.prior.analytical import Uniform, PowerLaw, LogUniform, TruncatedGaussian, \
-    Beta, Gaussian, Cosine, Sine, HalfGaussian, LogNormal, Exponential, StudentT, Logistic, \
-    Cauchy, Gamma, ChiSquared
 
 
 class TestSlabSpikePrior(unittest.TestCase):
-
     def setUp(self):
         self.minimum = 0
         self.maximum = 1
         self.spike_loc = 0.5
         self.spike_height = 0.3
         self.slab = bilby.core.prior.Prior(minimum=self.minimum, maximum=self.maximum)
-        self.prior = SlabSpikePrior(
-            slab=self.slab, spike_location=self.spike_loc, spike_height=self.spike_height)
+        self.prior = SlabSpikePrior(slab=self.slab, spike_location=self.spike_loc, spike_height=self.spike_height)
 
     def tearDown(self):
         del self.minimum
@@ -61,7 +75,6 @@ class TestSlabSpikePrior(unittest.TestCase):
 
 
 class TestSlabSpikeClasses(unittest.TestCase):
-
     def setUp(self):
         self.minimum = 0.4
         self.maximum = 2.4
@@ -83,15 +96,20 @@ class TestSlabSpikeClasses(unittest.TestCase):
             StudentT(df=2),
             Logistic(mu=2, scale=1),
             Cauchy(alpha=1, beta=2),
-            Gamma(k=1, theta=1.),
-            ChiSquared(nu=2)]
-        self.slab_spikes = [SlabSpikePrior(slab, spike_height=self.spike_height, spike_location=self.spike_loc)
-                            for slab in self.slabs]
+            Gamma(k=1, theta=1.0),
+            ChiSquared(nu=2),
+        ]
+        self.slab_spikes = [
+            SlabSpikePrior(slab, spike_height=self.spike_height, spike_location=self.spike_loc) for slab in self.slabs
+        ]
         self.test_nodes_finite_support = np.linspace(self.minimum, self.maximum, 1000)
         self.test_nodes_infinite_support = np.linspace(-10, 10, 1000)
-        self.test_nodes = [self.test_nodes_finite_support
-                           if np.isinf(slab.minimum) or np.isinf(slab.maximum)
-                           else self.test_nodes_finite_support for slab in self.slabs]
+        self.test_nodes = [
+            self.test_nodes_finite_support
+            if np.isinf(slab.minimum) or np.isinf(slab.maximum)
+            else self.test_nodes_finite_support
+            for slab in self.slabs
+        ]
 
     def tearDown(self):
         del self.minimum
@@ -187,8 +205,9 @@ class TestSlabSpikeClasses(unittest.TestCase):
 
     def test_rescale_at_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
-            vals = np.linspace(slab_spike.inverse_cdf_below_spike,
-                               slab_spike.inverse_cdf_below_spike + slab_spike.spike_height, 1000)
+            vals = np.linspace(
+                slab_spike.inverse_cdf_below_spike, slab_spike.inverse_cdf_below_spike + slab_spike.spike_height, 1000
+            )
             expected = np.ones(len(vals)) * slab.rescale(vals[0] / slab_spike.slab_fraction)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
@@ -196,7 +215,6 @@ class TestSlabSpikeClasses(unittest.TestCase):
     def test_rescale_above_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
             vals = np.linspace(slab_spike.inverse_cdf_below_spike + self.spike_height, 1, 1000)
-            expected = np.ones(len(vals)) * slab.rescale(
-                (vals - self.spike_height) / slab_spike.slab_fraction)
+            expected = np.ones(len(vals)) * slab.rescale((vals - self.spike_height) / slab_spike.slab_fraction)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))

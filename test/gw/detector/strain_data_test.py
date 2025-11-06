@@ -30,16 +30,12 @@ class TestInterferometerStrainData(unittest.TestCase):
                 frequency_domain_strain=np.array([0, 1, 2]),
                 frequency_array=np.array([5, 15, 25]),
             )
-            self.assertTrue(
-                np.array_equal(self.ifosd.frequency_mask, [False, True, False])
-            )
+            self.assertTrue(np.array_equal(self.ifosd.frequency_mask, [False, True, False]))
 
     def test_frequency_mask_2(self):
-        strain_data = bilby.gw.detector.InterferometerStrainData(
-            minimum_frequency=20, maximum_frequency=512)
+        strain_data = bilby.gw.detector.InterferometerStrainData(minimum_frequency=20, maximum_frequency=512)
         strain_data.set_from_time_domain_strain(
-            time_domain_strain=np.random.normal(0, 1, 4096),
-            time_array=np.arange(0, 4, 4 / 4096)
+            time_domain_strain=np.random.normal(0, 1, 4096), time_array=np.arange(0, 4, 4 / 4096)
         )
 
         # Test from init
@@ -56,10 +52,10 @@ class TestInterferometerStrainData(unittest.TestCase):
 
     def test_notches_frequency_mask(self):
         strain_data = bilby.gw.detector.InterferometerStrainData(
-            minimum_frequency=20, maximum_frequency=512, notch_list=[(100, 101)])
+            minimum_frequency=20, maximum_frequency=512, notch_list=[(100, 101)]
+        )
         strain_data.set_from_time_domain_strain(
-            time_domain_strain=np.random.normal(0, 1, 4096),
-            time_array=np.arange(0, 4, 4 / 4096)
+            time_domain_strain=np.random.normal(0, 1, 4096), time_array=np.arange(0, 4, 4 / 4096)
         )
 
         # Test from init
@@ -81,9 +77,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         with mock.patch("bilby.core.utils.create_frequency_series") as m:
             m.return_value = [1, 2, 3]
             with self.assertRaises(ValueError):
-                self.ifosd.set_from_frequency_domain_strain(
-                    frequency_domain_strain=np.array([0, 1, 2])
-                )
+                self.ifosd.set_from_frequency_domain_strain(frequency_domain_strain=np.array([0, 1, 2]))
 
     def test_set_data_fails_too_much(self):
         with mock.patch("bilby.core.utils.create_frequency_series") as m:
@@ -124,12 +118,8 @@ class TestInterferometerStrainData(unittest.TestCase):
     def test_time_array_frequency_array_consistency(self):
         duration = 1
         sampling_frequency = 10
-        time_array = bilby.core.utils.create_time_series(
-            sampling_frequency=sampling_frequency, duration=duration
-        )
-        time_domain_strain = np.random.normal(
-            0, duration - 1 / sampling_frequency, len(time_array)
-        )
+        time_array = bilby.core.utils.create_time_series(sampling_frequency=sampling_frequency, duration=duration)
+        time_domain_strain = np.random.normal(0, duration - 1 / sampling_frequency, len(time_array))
         self.ifosd.roll_off = 0
         self.ifosd.set_from_time_domain_strain(
             time_domain_strain=time_domain_strain,
@@ -137,15 +127,10 @@ class TestInterferometerStrainData(unittest.TestCase):
             sampling_frequency=sampling_frequency,
         )
 
-        frequency_domain_strain, freqs = bilby.core.utils.nfft(
-            time_domain_strain, sampling_frequency
-        )
+        frequency_domain_strain, freqs = bilby.core.utils.nfft(time_domain_strain, sampling_frequency)
 
         self.assertTrue(
-            np.all(
-                self.ifosd.frequency_domain_strain
-                == frequency_domain_strain * self.ifosd.frequency_mask
-            )
+            np.all(self.ifosd.frequency_domain_strain == frequency_domain_strain * self.ifosd.frequency_mask)
         )
 
     def test_time_within_data_before(self):
@@ -169,11 +154,9 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd._time_domain_strain = np.array([3])
         self.ifosd.duration = 5
         self.ifosd.roll_off = 2
-        expected_window = scipy.signal.windows.tukey(
-            len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha
-        )
+        expected_window = scipy.signal.windows.tukey(len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha)
         self.assertEqual(expected_window, self.ifosd.time_domain_window())
-        self.assertEqual(np.mean(expected_window ** 2), self.ifosd.window_factor)
+        self.assertEqual(np.mean(expected_window**2), self.ifosd.window_factor)
 
     def test_time_domain_window_sets_roll_off_directly(self):
         self.ifosd._time_domain_strain = np.array([3])
@@ -217,9 +200,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.ifosd.duration = 4
         expected_strain = self.ifosd.frequency_array * self.ifosd.frequency_mask
         self.ifosd._frequency_domain_strain = expected_strain
-        self.assertTrue(
-            np.array_equal(expected_strain, self.ifosd.frequency_domain_strain)
-        )
+        self.assertTrue(np.array_equal(expected_strain, self.ifosd.frequency_domain_strain))
 
     @mock.patch("bilby.core.utils.nfft")
     def test_frequency_domain_strain_from_frequency_domain_strain(self, m):
@@ -394,7 +375,6 @@ class TestNotch(unittest.TestCase):
 
 
 class TestNotchList(unittest.TestCase):
-
     def test_init_single(self):
         notch_list_of_tuples = [(32, 34)]
         notch_list = bilby.gw.detector.strain_data.NotchList(notch_list_of_tuples)

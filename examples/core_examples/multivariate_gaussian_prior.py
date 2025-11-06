@@ -99,4 +99,4 @@ for i in range(nmodes):
     )
     axs[2].add_artist(ell)
 
-fig.savefig("{}/{}_corner.png".format(outdir, label), dpi=300)
+fig.savefig(f"{outdir}/{label}_corner.png", dpi=300)

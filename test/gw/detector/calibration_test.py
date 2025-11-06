@@ -1,8 +1,9 @@
 import os
 import unittest
-from parameterized import parameterized
 
 import numpy as np
+from parameterized import parameterized
+
 from bilby.core.prior import PriorDict
 from bilby.gw import calibration, detector, prior
 
@@ -37,11 +38,7 @@ class TestCubicSpline(unittest.TestCase):
             maximum_frequency=self.maximum_frequency,
             n_points=self.n_points,
         )
-        self.parameters = {
-            "recalib_{}_{}".format(param, ii): 0.0
-            for ii in range(5)
-            for param in ["amplitude", "phase"]
-        }
+        self.parameters = {f"recalib_{param}_{ii}": 0.0 for ii in range(5) for param in ["amplitude", "phase"]}
 
     def tearDown(self):
         del self.prefix
@@ -53,14 +50,13 @@ class TestCubicSpline(unittest.TestCase):
 
     def test_calibration_factor(self):
         frequency_array = np.linspace(20, 1024, 1000)
-        cal_factor = self.model.get_calibration_factor(
-            frequency_array, **self.parameters
-        )
+        cal_factor = self.model.get_calibration_factor(frequency_array, **self.parameters)
         assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
     def test_repr(self):
-        expected = "CubicSpline(prefix='{}', minimum_frequency={}, maximum_frequency={}, n_points={})".format(
-            self.prefix, self.minimum_frequency, self.maximum_frequency, self.n_points
+        expected = (
+            f"CubicSpline(prefix='{self.prefix}', minimum_frequency={self.minimum_frequency}, "
+            f"maximum_frequency={self.maximum_frequency}, n_points={self.n_points})"
         )
         actual = repr(self.model)
         self.assertEqual(expected, actual)
@@ -81,9 +77,7 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
         self.filename = "calibration_draws.h5"
         self.number_of_draws = 100
         self.ifo = detector.get_empty_interferometer("H1")
-        self.ifo.set_strain_data_from_power_spectral_density(
-            duration=1, sampling_frequency=512
-        )
+        self.ifo.set_strain_data_from_power_spectral_density(duration=1, sampling_frequency=512)
         self.ifo.calibration_model = calibration.CubicSpline(
             prefix="recalib_H1_",
             n_points=10,
@@ -104,17 +98,13 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
             os.remove(self.filename)
 
     def test_generate_draws(self):
-        draws, parameters = calibration._generate_calibration_draws(
-            self.ifo, self.priors, self.number_of_draws
-        )
+        draws, parameters = calibration._generate_calibration_draws(self.ifo, self.priors, self.number_of_draws)
         self.assertEqual(draws.shape, (self.number_of_draws, sum(self.ifo.frequency_mask)))
         self.assertListEqual(list(self.priors.keys()), list(parameters.keys()))
 
     @parameterized.expand([("template",), ("data",), (None,)])
     def test_read_write_matches(self, correction_type):
-        draws, parameters = calibration._generate_calibration_draws(
-            self.ifo, self.priors, self.number_of_draws
-        )
+        draws, parameters = calibration._generate_calibration_draws(self.ifo, self.priors, self.number_of_draws)
         frequencies = self.ifo.frequency_array[self.ifo.frequency_mask]
         calibration.write_calibration_file(
             filename=self.filename,
@@ -135,21 +125,21 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
 
     def test_build_calibration_lookup(self):
         ifos = detector.InterferometerList(["H1", "L1", "H1"])
-        ifos.set_strain_data_from_power_spectral_densities(
-            duration=4, sampling_frequency=1024
-        )
+        ifos.set_strain_data_from_power_spectral_densities(duration=4, sampling_frequency=1024)
         priors = PriorDict()
         for ifo in ifos:
             ifo.minimum_frequency = 20
             ifo.maximum_frequency = 1024
-            priors.update(prior.CalibrationPriorDict.constant_uncertainty_spline(
-                amplitude_sigma=0.1,
-                phase_sigma=0.1,
-                minimum_frequency=ifo.minimum_frequency,
-                maximum_frequency=ifo.maximum_frequency,
-                n_nodes=10,
-                label=ifo.name,
-            ))
+            priors.update(
+                prior.CalibrationPriorDict.constant_uncertainty_spline(
+                    amplitude_sigma=0.1,
+                    phase_sigma=0.1,
+                    minimum_frequency=ifo.minimum_frequency,
+                    maximum_frequency=ifo.maximum_frequency,
+                    n_nodes=10,
+                    label=ifo.name,
+                )
+            )
             ifo.calibration_model = calibration.CubicSpline(
                 prefix=f"recalib_{ifo.name}_",
                 n_points=10,

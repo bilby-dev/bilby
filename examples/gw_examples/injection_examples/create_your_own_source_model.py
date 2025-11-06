@@ -2,6 +2,7 @@
 """
 A script to demonstrate how to use your own source model
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed
@@ -57,9 +58,7 @@ def gaussian(frequency_array, amplitude, f0, tau, phi0):
 
 
 # We now define some parameters that we will inject
-injection_parameters = dict(
-    amplitude=1e-23, f0=100, tau=1, phi0=0, geocent_time=0, ra=0, dec=0, psi=0
-)
+injection_parameters = dict(amplitude=1e-23, f0=100, tau=1, phi0=0, geocent_time=0, ra=0, dec=0, psi=0)
 
 # Now we pass our source function to the WaveformGenerator
 waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -84,14 +83,10 @@ ifos.inject_signal(
 # Here we define the priors for the search. We use the injection parameters
 # except for the amplitude, f0, and geocent_time
 prior = injection_parameters.copy()
-prior["amplitude"] = bilby.core.prior.LogUniform(
-    minimum=1e-25, maximum=1e-21, latex_label="$\\mathcal{A}$"
-)
+prior["amplitude"] = bilby.core.prior.LogUniform(minimum=1e-25, maximum=1e-21, latex_label="$\\mathcal{A}$")
 prior["f0"] = bilby.core.prior.Uniform(90, 110, latex_label="$f_{0}$")
 
-likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
-    interferometers=ifos, waveform_generator=waveform_generator
-)
+likelihood = bilby.gw.likelihood.GravitationalWaveTransient(interferometers=ifos, waveform_generator=waveform_generator)
 
 result = bilby.core.sampler.run_sampler(
     likelihood,

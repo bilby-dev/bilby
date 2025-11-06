@@ -31,9 +31,7 @@ curve = gwinc.load_budget("Aplus").run()
 # Set up the detector as a four-kilometer detector in Gingin
 # The location of this detector is not defined in Bilby, so we need to add it
 AusIFO = bilby.gw.detector.Interferometer(
-    power_spectral_density=bilby.gw.detector.PowerSpectralDensity(
-        frequency_array=curve.freq, psd_array=curve.psd
-    ),
+    power_spectral_density=bilby.gw.detector.PowerSpectralDensity(frequency_array=curve.freq, psd_array=curve.psd),
     name="AusIFO",
     length=4,
     minimum_frequency=20,
@@ -48,9 +46,7 @@ AusIFO = bilby.gw.detector.Interferometer(
 # Set up two other detectors at Hanford and Livingston
 interferometers = bilby.gw.detector.InterferometerList(["H1", "L1"])
 for ifo in interferometers:
-    ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(
-        frequency_array=curve.freq, psd_array=curve.psd
-    )
+    ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(frequency_array=curve.freq, psd_array=curve.psd)
 
 # append the Australian detector to the list of other detectors
 interferometers.append(AusIFO)
@@ -94,17 +90,11 @@ start_time = injection_parameters["geocent_time"] + 2 - duration
 # inject the signal into the interferometers
 
 for ifo in interferometers:
-    ifo.set_strain_data_from_power_spectral_density(
-        sampling_frequency=sampling_frequency, duration=duration
-    )
-    ifo.inject_signal(
-        parameters=injection_parameters, waveform_generator=waveform_generator
-    )
+    ifo.set_strain_data_from_power_spectral_density(sampling_frequency=sampling_frequency, duration=duration)
+    ifo.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 
     # plot the data for sanity
-    signal = ifo.get_detector_response(
-        waveform_generator.frequency_domain_strain(), injection_parameters
-    )
+    signal = ifo.get_detector_response(waveform_generator.frequency_domain_strain(), injection_parameters)
     ifo.plot_data(signal=signal, outdir=outdir, label=label)
 
 # set up priors

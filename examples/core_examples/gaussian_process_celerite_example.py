@@ -56,9 +56,7 @@ dt = times[1] - times[0]
 duration = times[-1] - times[0]
 
 ys = (
-    amplitude
-    * np.sin(2 * np.pi * times / period)
-    * np.exp(-((times - 50) ** 2) / 2 / width**2)
+    amplitude * np.sin(2 * np.pi * times / period) * np.exp(-((times - 50) ** 2) / 2 / width**2)
     + random.rng.normal(scale=jitter, size=len(times))
     + linear_function(x=times, a=slope, b=offset)
 )
@@ -94,9 +92,7 @@ mean_model = LinearMeanModel(a=0, b=0)
 # of white noise during the inference process. Smaller values of `yerr`
 # cause the program to break. If you know the `yerr` in your problem,
 # you can pass them in as an array.
-likelihood = bilby.core.likelihood.CeleriteLikelihood(
-    kernel=kernel, mean_model=mean_model, t=times, y=ys, yerr=1e-6
-)
+likelihood = bilby.core.likelihood.CeleriteLikelihood(kernel=kernel, mean_model=mean_model, t=times, y=ys, yerr=1e-6)
 
 # Print the parameter names. This is useful if we have trouble figuring out
 # how `celerite` applies its naming scheme.
@@ -105,18 +101,10 @@ print(likelihood.gp.parameter_names)
 # Set up the priors. We know the name of the parameters from the print
 # statement in the line before.
 priors = bilby.core.prior.PriorDict()
-priors["kernel:terms[0]:log_S0"] = Uniform(
-    minimum=-10, maximum=30, name="log_S0", latex_label=r"$\ln S_0$"
-)
-priors["kernel:terms[0]:log_Q"] = Uniform(
-    minimum=-10, maximum=30, name="log_Q", latex_label=r"$\ln Q$"
-)
-priors["kernel:terms[0]:log_omega0"] = Uniform(
-    minimum=-5, maximum=5, name="log_omega0", latex_label=r"$\ln \omega_0$"
-)
-priors["kernel:terms[1]:log_sigma"] = Uniform(
-    minimum=-5, maximum=5, name="log sigma", latex_label=r"$\ln \sigma$"
-)
+priors["kernel:terms[0]:log_S0"] = Uniform(minimum=-10, maximum=30, name="log_S0", latex_label=r"$\ln S_0$")
+priors["kernel:terms[0]:log_Q"] = Uniform(minimum=-10, maximum=30, name="log_Q", latex_label=r"$\ln Q$")
+priors["kernel:terms[0]:log_omega0"] = Uniform(minimum=-5, maximum=5, name="log_omega0", latex_label=r"$\ln \omega_0$")
+priors["kernel:terms[1]:log_sigma"] = Uniform(minimum=-5, maximum=5, name="log sigma", latex_label=r"$\ln \sigma$")
 priors["mean:a"] = Uniform(minimum=-100, maximum=100, name="a", latex_label=r"$a$")
 priors["mean:b"] = Uniform(minimum=-100, maximum=100, name="b", latex_label=r"$b$")
 
@@ -186,9 +174,7 @@ else:
 plt.plot(x, trend, color="green", label="Mean")
 
 # Plot the mean model for ten other posterior samples.
-samples = [
-    result.posterior.iloc[random.rng.integers(len(result.posterior))] for _ in range(10)
-]
+samples = [result.posterior.iloc[random.rng.integers(len(result.posterior))] for _ in range(10)]
 for sample in samples:
     likelihood.set_parameters(sample)
     if not isinstance(likelihood.mean_model, (float, int)):

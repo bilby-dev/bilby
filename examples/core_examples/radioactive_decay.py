@@ -4,6 +4,7 @@ An example of how to use bilby to perform parameter estimation for
 non-gravitational wave data. In this case, fitting the half-life and
 initial radionuclide number for Polonium 214.
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,7 +76,7 @@ ax.semilogy(time[:-1], theoretical, "--r", label="signal")
 ax.set_xlabel("time")
 ax.set_ylabel("counts")
 ax.legend()
-fig.savefig("{}/{}_data.png".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_data.png")
 
 # Now lets instantiate a version of the Poisson Likelihood, giving it
 # the time intervals, counts and rate model
@@ -84,9 +85,7 @@ likelihood = PoissonLikelihood(delta_t, counts, decay_rate)
 # Make the prior
 priors = dict()
 priors["halflife"] = LogUniform(1e-5, 1e5, latex_label="$t_{1/2}$", unit="min")
-priors["n_init"] = LogUniform(
-    1e-25 / atto, 1e-10 / atto, latex_label="$N_0$", unit="attomole"
-)
+priors["n_init"] = LogUniform(1e-25 / atto, 1e-10 / atto, latex_label="$N_0$", unit="attomole")
 
 # And run sampler
 result = bilby.run_sampler(

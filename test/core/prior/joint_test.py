@@ -1,7 +1,8 @@
 import unittest
-import bilby
 
 import numpy as np
+
+import bilby
 
 
 class TestMultivariateGaussianDistFromRepr(unittest.TestCase):
@@ -34,9 +35,7 @@ MultivariateGaussianDist(
                 for d1, d2 in zip(fromstr.__getattribute__(key), item):
                     self.assertTrue(type(d1) == type(d2))  # noqa: E721
             elif isinstance(item, (list, tuple, np.ndarray)):
-                self.assertTrue(
-                    np.all(np.array(item) == np.array(fromstr.__getattribute__(key)))
-                )
+                self.assertTrue(np.all(np.array(item) == np.array(fromstr.__getattribute__(key))))
 
 
 class TestMultivariateGaussianDistParameterScales(unittest.TestCase):
@@ -49,10 +48,8 @@ class TestMultivariateGaussianDistParameterScales(unittest.TestCase):
         for i in np.ndindex(4, 4, 4):
             ln_prob_mus_sigmas_d_i = mvg.ln_prob(mus + sigmas * (d @ i))
             diff_ln_prob = ln_prob_mus - ln_prob_mus_sigmas_d_i
-            diff_ln_prob_expected = 0.5 * np.sum(np.array(i)**2)
-            self.assertTrue(
-                np.allclose(diff_ln_prob, diff_ln_prob_expected)
-            )
+            diff_ln_prob_expected = 0.5 * np.sum(np.array(i) ** 2)
+            self.assertTrue(np.allclose(diff_ln_prob, diff_ln_prob_expected))
 
     def test_mvg_unit_scales(self):
         # test using order-unity standard deviations and correlations
@@ -60,7 +57,7 @@ class TestMultivariateGaussianDistParameterScales(unittest.TestCase):
         corrcoefs = np.identity(3)
         mus = np.array([3, 1, 2])
         mvg = bilby.core.prior.MultivariateGaussianDist(
-            names=['a', 'b', 'c'],
+            names=["a", "b", "c"],
             mus=mus,
             sigmas=sigmas,
             corrcoefs=corrcoefs,
@@ -74,11 +71,13 @@ class TestMultivariateGaussianDistParameterScales(unittest.TestCase):
         # parameters of a continuous wave signal
         T = 365.25 * 86400
         rho = 10
-        sigmas = np.array([
-            5 * np.sqrt(3) / (2 * np.pi * T * rho),
-            6 * np.sqrt(5) / (np.pi * T**2 * rho),
-            60 * np.sqrt(7) / (np.pi * T**3 * rho)
-        ])
+        sigmas = np.array(
+            [
+                5 * np.sqrt(3) / (2 * np.pi * T * rho),
+                6 * np.sqrt(5) / (np.pi * T**2 * rho),
+                60 * np.sqrt(7) / (np.pi * T**3 * rho),
+            ]
+        )
         corrcoefs = np.identity(3)
         corrcoefs[0, 2] = corrcoefs[2, 0] = -np.sqrt(21) / 5
 

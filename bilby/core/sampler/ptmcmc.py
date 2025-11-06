@@ -87,8 +87,7 @@ class PTMCMCSampler(MCMCSampler):
         skip_import_verification=False,
         **kwargs,
     ):
-
-        super(PTMCMCSampler, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -113,9 +112,7 @@ class PTMCMCSampler(MCMCSampler):
         try:
             __import__(external_sampler_name)
         except (ImportError, SystemExit):
-            raise SamplerNotInstalledError(
-                f"Sampler {external_sampler_name} is not installed on this system"
-            )
+            raise SamplerNotInstalledError(f"Sampler {external_sampler_name} is not installed on this system")
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
@@ -193,9 +190,7 @@ class PTMCMCSampler(MCMCSampler):
         )
         if self.custom_proposals is not None:
             for proposal in self.custom_proposals:
-                logger.info(
-                    f"Adding {proposal} to proposals with weight {self.custom_proposals[proposal][1]}"
-                )
+                logger.info(f"Adding {proposal} to proposals with weight {self.custom_proposals[proposal][1]}")
                 sampler.addProposalToCycle(
                     self.custom_proposals[proposal][0],
                     self.custom_proposals[proposal][1],

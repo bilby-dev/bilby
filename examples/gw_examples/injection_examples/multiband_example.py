@@ -38,9 +38,7 @@ waveform_generator = bilby.gw.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-    waveform_arguments=dict(
-        waveform_approximant=approximant, reference_frequency=reference_frequency
-    ),
+    waveform_arguments=dict(waveform_approximant=approximant, reference_frequency=reference_frequency),
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
 )
 ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
@@ -49,9 +47,7 @@ ifos.set_strain_data_from_power_spectral_densities(
     duration=duration,
     start_time=injection_parameters["geocent_time"] - duration + 2,
 )
-ifos.inject_signal(
-    waveform_generator=waveform_generator, parameters=injection_parameters
-)
+ifos.inject_signal(waveform_generator=waveform_generator, parameters=injection_parameters)
 for ifo in ifos:
     ifo.minimum_frequency = minimum_frequency
 
@@ -60,9 +56,7 @@ search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
     duration=duration,
     sampling_frequency=sampling_frequency,
     frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
-    waveform_arguments=dict(
-        waveform_approximant=approximant, reference_frequency=reference_frequency
-    ),
+    waveform_arguments=dict(waveform_approximant=approximant, reference_frequency=reference_frequency),
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
 )
 
@@ -71,9 +65,7 @@ priors = bilby.gw.prior.BNSPriorDict()
 priors["chi_1"] = 0
 priors["chi_2"] = 0
 del priors["lambda_1"], priors["lambda_2"]
-priors["chirp_mass"] = bilby.core.prior.Uniform(
-    name="chirp_mass", minimum=1.15, maximum=1.25
-)
+priors["chirp_mass"] = bilby.core.prior.Uniform(name="chirp_mass", minimum=1.15, maximum=1.25)
 priors["geocent_time"] = bilby.core.prior.Uniform(
     injection_parameters["geocent_time"] - 0.1,
     injection_parameters["geocent_time"] + 0.1,

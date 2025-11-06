@@ -7,7 +7,6 @@ model for the tidal deformabilities.
 WARNING: The code is extremely slow.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 from bilby.gw.eos import EOSFamily, TabularEOS
@@ -90,9 +89,7 @@ for interferometer in interferometers:
 interferometers.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
 )
-interferometers.inject_signal(
-    parameters=injection_parameters, waveform_generator=waveform_generator
-)
+interferometers.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 
 # We're going to sample in chirp_mass, symmetric_mass_ratio, and
 # specific EoS model parameters. We're using a 4-parameter
@@ -114,24 +111,12 @@ for key in [
     priors[key] = injection_parameters[key]
 for key in ["mass_1", "mass_2", "lambda_1", "lambda_2", "mass_ratio"]:
     del priors[key]
-priors["chirp_mass"] = bilby.core.prior.Gaussian(
-    1.215, 0.1, name="chirp_mass", unit="$M_{\\odot}$"
-)
-priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(
-    0.1, 0.25, name="symmetric_mass_ratio"
-)
-priors["eos_spectral_gamma_0"] = bilby.core.prior.Uniform(
-    0.2, 2.0, name="gamma0", latex_label="$\\gamma_0"
-)
-priors["eos_spectral_gamma_1"] = bilby.core.prior.Uniform(
-    -1.6, 1.7, name="gamma1", latex_label="$\\gamma_1"
-)
-priors["eos_spectral_gamma_2"] = bilby.core.prior.Uniform(
-    -0.6, 0.6, name="gamma2", latex_label="$\\gamma_2"
-)
-priors["eos_spectral_gamma_3"] = bilby.core.prior.Uniform(
-    -0.02, 0.02, name="gamma3", latex_label="$\\gamma_3"
-)
+priors["chirp_mass"] = bilby.core.prior.Gaussian(1.215, 0.1, name="chirp_mass", unit="$M_{\\odot}$")
+priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(0.1, 0.25, name="symmetric_mass_ratio")
+priors["eos_spectral_gamma_0"] = bilby.core.prior.Uniform(0.2, 2.0, name="gamma0", latex_label="$\\gamma_0")
+priors["eos_spectral_gamma_1"] = bilby.core.prior.Uniform(-1.6, 1.7, name="gamma1", latex_label="$\\gamma_1")
+priors["eos_spectral_gamma_2"] = bilby.core.prior.Uniform(-0.6, 0.6, name="gamma2", latex_label="$\\gamma_2")
+priors["eos_spectral_gamma_3"] = bilby.core.prior.Uniform(-0.02, 0.02, name="gamma3", latex_label="$\\gamma_3")
 
 # The eos_check prior imposes several hard physical constraints on samples like
 # enforcing causality and monotinicity of the EoSs. In almost ever conceivable

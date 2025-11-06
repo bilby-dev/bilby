@@ -8,7 +8,6 @@ and also estimates the tidal deformabilities using a uniform prior in both
 tidal deformabilities
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 
@@ -73,9 +72,7 @@ for interferometer in interferometers:
 interferometers.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
 )
-interferometers.inject_signal(
-    parameters=injection_parameters, waveform_generator=waveform_generator
-)
+interferometers.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 
 # Load the default prior for binary neutron stars.
 # We're going to sample in chirp_mass, symmetric_mass_ratio, lambda_tilde, and
@@ -96,22 +93,12 @@ for key in [
 ]:
     priors[key] = injection_parameters[key]
 del priors["mass_ratio"], priors["lambda_1"], priors["lambda_2"]
-priors["chirp_mass"] = bilby.core.prior.Gaussian(
-    1.215, 0.1, name="chirp_mass", unit="$M_{\\odot}$"
-)
-priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(
-    0.1, 0.25, name="symmetric_mass_ratio"
-)
+priors["chirp_mass"] = bilby.core.prior.Gaussian(1.215, 0.1, name="chirp_mass", unit="$M_{\\odot}$")
+priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(0.1, 0.25, name="symmetric_mass_ratio")
 priors["lambda_tilde"] = bilby.core.prior.Uniform(0, 5000, name="lambda_tilde")
-priors["delta_lambda_tilde"] = bilby.core.prior.Uniform(
-    -500, 1000, name="delta_lambda_tilde"
-)
-priors["lambda_1"] = bilby.core.prior.Constraint(
-    name="lambda_1", minimum=0, maximum=10000
-)
-priors["lambda_2"] = bilby.core.prior.Constraint(
-    name="lambda_2", minimum=0, maximum=10000
-)
+priors["delta_lambda_tilde"] = bilby.core.prior.Uniform(-500, 1000, name="delta_lambda_tilde")
+priors["lambda_1"] = bilby.core.prior.Constraint(name="lambda_1", minimum=0, maximum=10000)
+priors["lambda_2"] = bilby.core.prior.Constraint(name="lambda_2", minimum=0, maximum=10000)
 
 
 # Initialise the likelihood by passing in the interferometer data (IFOs)

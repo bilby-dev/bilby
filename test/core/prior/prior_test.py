@@ -1,14 +1,15 @@
-import bilby
-import unittest
-import numpy as np
 import os
+import unittest
+
+import numpy as np
 import scipy.stats as ss
 from scipy.integrate import trapezoid
+
+import bilby
 
 
 class TestPriorClasses(unittest.TestCase):
     def setUp(self):
-
         # set multivariate Gaussian
         mvg = bilby.core.prior.MultivariateGaussianDist(
             names=["testa", "testb"],
@@ -26,9 +27,7 @@ class TestPriorClasses(unittest.TestCase):
             os.path.dirname(os.path.realpath(__file__)),
             "prior_files/GW150914_testing_skymap.fits",
         )
-        hp_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec"]
-        )
+        hp_dist = bilby.gw.prior.HealPixMapPriorDist(hp_map_file, names=["testra", "testdec"])
         hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
             hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
         )
@@ -40,25 +39,13 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.DeltaFunction(name="test", unit="unit", peak=1),
             bilby.core.prior.Gaussian(name="test", unit="unit", mu=0, sigma=1),
             bilby.core.prior.Normal(name="test", unit="unit", mu=0, sigma=1),
-            bilby.core.prior.PowerLaw(
-                name="test", unit="unit", alpha=0, minimum=0, maximum=1
-            ),
-            bilby.core.prior.PowerLaw(
-                name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1
-            ),
-            bilby.core.prior.PowerLaw(
-                name="test", unit="unit", alpha=2, minimum=1, maximum=1e2
-            ),
+            bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1),
+            bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1),
+            bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=2, minimum=1, maximum=1e2),
             bilby.core.prior.Uniform(name="test", unit="unit", minimum=0, maximum=1),
-            bilby.core.prior.LogUniform(
-                name="test", unit="unit", minimum=5e0, maximum=1e2
-            ),
-            bilby.gw.prior.UniformComovingVolume(
-                name="redshift", minimum=0.1, maximum=1.0
-            ),
-            bilby.gw.prior.UniformSourceFrame(
-                name="redshift", minimum=0.1, maximum=1.0
-            ),
+            bilby.core.prior.LogUniform(name="test", unit="unit", minimum=5e0, maximum=1e2),
+            bilby.gw.prior.UniformComovingVolume(name="redshift", minimum=0.1, maximum=1.0),
+            bilby.gw.prior.UniformSourceFrame(name="redshift", minimum=0.1, maximum=1.0),
             bilby.core.prior.Sine(name="test", unit="unit"),
             bilby.core.prior.Cosine(name="test", unit="unit"),
             bilby.core.prior.Interped(
@@ -69,12 +56,8 @@ class TestPriorClasses(unittest.TestCase):
                 minimum=3,
                 maximum=5,
             ),
-            bilby.core.prior.TruncatedGaussian(
-                name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
-            ),
-            bilby.core.prior.TruncatedNormal(
-                name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
-            ),
+            bilby.core.prior.TruncatedGaussian(name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1),
+            bilby.core.prior.TruncatedNormal(name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1),
             bilby.core.prior.HalfGaussian(name="test", unit="unit", sigma=1),
             bilby.core.prior.HalfNormal(name="test", unit="unit", sigma=1),
             bilby.core.prior.LogGaussian(name="test", unit="unit", mu=0, sigma=1),
@@ -91,16 +74,10 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.WeightedDiscreteValues(
                 name="test", unit="unit", values=[1, 2, 3, 4], weights=[1, 2, 3, 4]
             ),
-            bilby.core.prior.DiscreteValues(
-                name="test", unit="unit", values=[1, 2, 3, 4]
-            ),
-            bilby.core.prior.WeightedCategorical(
-                name="test", unit="unit", ncategories=4, weights=[1, 2, 3, 4]
-            ),
+            bilby.core.prior.DiscreteValues(name="test", unit="unit", values=[1, 2, 3, 4]),
+            bilby.core.prior.WeightedCategorical(name="test", unit="unit", ncategories=4, weights=[1, 2, 3, 4]),
             bilby.core.prior.Categorical(name="test", unit="unit", ncategories=5),
-            bilby.core.prior.SymmetricLogUniform(
-                name="test", unit="unit", minimum=1e-2, maximum=1e2
-            ),
+            bilby.core.prior.SymmetricLogUniform(name="test", unit="unit", minimum=1e-2, maximum=1e2),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
             bilby.gw.prior.AlignedSpin(
                 a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
@@ -113,9 +90,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
             bilby.core.prior.MultivariateNormal(dist=mvn, name="testa", unit="unit"),
             bilby.core.prior.MultivariateNormal(dist=mvn, name="testb", unit="unit"),
-            bilby.core.prior.ConditionalDeltaFunction(
-                condition_func=condition_func, name="test", unit="unit", peak=1
-            ),
+            bilby.core.prior.ConditionalDeltaFunction(condition_func=condition_func, name="test", unit="unit", peak=1),
             bilby.core.prior.ConditionalGaussian(
                 condition_func=condition_func, name="test", unit="unit", mu=0, sigma=1
             ),
@@ -184,12 +159,8 @@ class TestPriorClasses(unittest.TestCase):
             bilby.gw.prior.ConditionalUniformSourceFrame(
                 condition_func=condition_func, name="redshift", minimum=0.1, maximum=1.0
             ),
-            bilby.core.prior.ConditionalSine(
-                condition_func=condition_func, name="test", unit="unit"
-            ),
-            bilby.core.prior.ConditionalCosine(
-                condition_func=condition_func, name="test", unit="unit"
-            ),
+            bilby.core.prior.ConditionalSine(condition_func=condition_func, name="test", unit="unit"),
+            bilby.core.prior.ConditionalCosine(condition_func=condition_func, name="test", unit="unit"),
             bilby.core.prior.ConditionalTruncatedGaussian(
                 condition_func=condition_func,
                 name="test",
@@ -199,15 +170,11 @@ class TestPriorClasses(unittest.TestCase):
                 minimum=-1,
                 maximum=1,
             ),
-            bilby.core.prior.ConditionalHalfGaussian(
-                condition_func=condition_func, name="test", unit="unit", sigma=1
-            ),
+            bilby.core.prior.ConditionalHalfGaussian(condition_func=condition_func, name="test", unit="unit", sigma=1),
             bilby.core.prior.ConditionalLogNormal(
                 condition_func=condition_func, name="test", unit="unit", mu=0, sigma=1
             ),
-            bilby.core.prior.ConditionalExponential(
-                condition_func=condition_func, name="test", unit="unit", mu=1
-            ),
+            bilby.core.prior.ConditionalExponential(condition_func=condition_func, name="test", unit="unit", mu=1),
             bilby.core.prior.ConditionalStudentT(
                 condition_func=condition_func,
                 name="test",
@@ -229,19 +196,13 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.ConditionalCauchy(
                 condition_func=condition_func, name="test", unit="unit", alpha=0, beta=1
             ),
-            bilby.core.prior.ConditionalGamma(
-                condition_func=condition_func, name="test", unit="unit", k=1, theta=1
-            ),
-            bilby.core.prior.ConditionalChiSquared(
-                condition_func=condition_func, name="test", unit="unit", nu=2
-            ),
+            bilby.core.prior.ConditionalGamma(condition_func=condition_func, name="test", unit="unit", k=1, theta=1),
+            bilby.core.prior.ConditionalChiSquared(condition_func=condition_func, name="test", unit="unit", nu=2),
             bilby.gw.prior.HealPixPrior(dist=hp_dist, name="testra", unit="unit"),
             bilby.gw.prior.HealPixPrior(dist=hp_dist, name="testdec", unit="unit"),
             bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testra", unit="unit"),
             bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testdec", unit="unit"),
-            bilby.gw.prior.HealPixPrior(
-                dist=hp_3d_dist, name="testdistance", unit="unit"
-            ),
+            bilby.gw.prior.HealPixPrior(dist=hp_3d_dist, name="testdistance", unit="unit"),
         ]
 
     def tearDown(self):
@@ -288,16 +249,12 @@ class TestPriorClasses(unittest.TestCase):
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_rescale():
                     continue
-            self.assertTrue(
-                all((many_samples >= prior.minimum) & (many_samples <= prior.maximum))
-            )
+            self.assertTrue(all((many_samples >= prior.minimum) & (many_samples <= prior.maximum)))
 
     def test_least_recently_sampled(self):
         for prior in self.priors:
             least_recently_sampled_expected = prior.sample()
-            self.assertEqual(
-                least_recently_sampled_expected, prior.least_recently_sampled
-            )
+            self.assertEqual(least_recently_sampled_expected, prior.least_recently_sampled)
 
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -306,9 +263,7 @@ class TestPriorClasses(unittest.TestCase):
                 # SymmetricLogUniform has support down to -maximum
                 continue
             single_sample = prior.sample()
-            self.assertTrue(
-                (single_sample >= prior.minimum) & (single_sample <= prior.maximum)
-            )
+            self.assertTrue((single_sample >= prior.minimum) & (single_sample <= prior.maximum))
 
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -317,18 +272,13 @@ class TestPriorClasses(unittest.TestCase):
                 # SymmetricLogUniform has support down to -maximum
                 continue
             many_samples = prior.sample(5000)
-            self.assertTrue(
-                (all(many_samples >= prior.minimum))
-                & (all(many_samples <= prior.maximum))
-            )
+            self.assertTrue((all(many_samples >= prior.minimum)) & (all(many_samples <= prior.maximum)))
 
     def test_probability_above_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
             if prior.maximum != np.inf:
-                outside_domain = np.linspace(
-                    prior.maximum + 1, prior.maximum + 1e4, 1000
-                )
+                outside_domain = np.linspace(prior.maximum + 1, prior.maximum + 1e4, 1000)
                 if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                     if not prior.dist.filled_request():
                         prior.dist.requested_parameters[prior.name] = outside_domain
@@ -342,9 +292,7 @@ class TestPriorClasses(unittest.TestCase):
                 # SymmetricLogUniform has support down to -maximum
                 continue
             if prior.minimum != -np.inf:
-                outside_domain = np.linspace(
-                    prior.minimum - 1e4, prior.minimum - 1, 1000
-                )
+                outside_domain = np.linspace(prior.minimum - 1e4, prior.minimum - 1, 1000)
                 if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                     if not prior.dist.filled_request():
                         prior.dist.requested_parameters[prior.name] = outside_domain
@@ -362,9 +310,7 @@ class TestPriorClasses(unittest.TestCase):
             if not bilby.core.prior.JointPrior in prior.__class__.__mro__:  # noqa
                 # due to the way that the Multivariate Gaussian prior must sequentially call
                 # the prob and ln_prob functions, it must be ignored in this test.
-                self.assertAlmostEqual(
-                    np.log(prior.prob(sample)), prior.ln_prob(sample), 12
-                )
+                self.assertAlmostEqual(np.log(prior.prob(sample)), prior.ln_prob(sample), 12)
 
     def test_many_prob_and_many_ln_prob(self):
         for prior in self.priors:
@@ -400,9 +346,7 @@ class TestPriorClasses(unittest.TestCase):
     def test_cdf_one_above_domain(self):
         for prior in self.priors:
             if prior.maximum != np.inf:
-                outside_domain = np.linspace(
-                    prior.maximum + 1, prior.maximum + 1e4, 1000
-                )
+                outside_domain = np.linspace(prior.maximum + 1, prior.maximum + 1e4, 1000)
                 self.assertTrue(all(prior.cdf(outside_domain) == 1))
 
     def test_cdf_zero_below_domain(self):
@@ -410,15 +354,10 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
                 continue
-            if (
-                bilby.core.prior.JointPrior in prior.__class__.__mro__
-                and prior.maximum == np.inf
-            ):
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__ and prior.maximum == np.inf:
                 continue
             if prior.minimum != -np.inf:
-                outside_domain = np.linspace(
-                    prior.minimum - 1e4, prior.minimum - 1, 1000
-                )
+                outside_domain = np.linspace(prior.minimum - 1e4, prior.minimum - 1, 1000)
                 self.assertTrue(all(np.nan_to_num(prior.cdf(outside_domain)) == 0))
 
     def test_cdf_float_with_float_input(self):
@@ -439,10 +378,10 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_beta_fail(self):
         with self.assertRaises(ValueError):
-            bilby.core.prior.Beta(name="test", unit="unit", alpha=-2.0, beta=2.0),
+            (bilby.core.prior.Beta(name="test", unit="unit", alpha=-2.0, beta=2.0),)
 
         with self.assertRaises(ValueError):
-            bilby.core.prior.Beta(name="test", unit="unit", alpha=2.0, beta=-2.0),
+            (bilby.core.prior.Beta(name="test", unit="unit", alpha=2.0, beta=-2.0),)
 
     def test_multivariate_gaussian_fail(self):
         with self.assertRaises(ValueError):
@@ -450,19 +389,13 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateGaussianDist(["a", "b"], bounds=[(-1.0, 1.0)])
         with self.assertRaises(ValueError):
             # bounds has lower value greater than upper
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], bounds=[(-1.0, 1.0), (1.0, -1)]
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], bounds=[(-1.0, 1.0), (1.0, -1)])
         with self.assertRaises(TypeError):
             # bound is not a list/tuple
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], bounds=[(-1.0, 1.0), 2]
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], bounds=[(-1.0, 1.0), 2])
         with self.assertRaises(ValueError):
             # bound contains too many values
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], bounds=[(-1.0, 1.0, 4), 2]
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], bounds=[(-1.0, 1.0, 4), 2])
         with self.assertRaises(ValueError):
             # means is not a list
             bilby.core.prior.MultivariateGaussianDist(["a", "b"], mus=1.0)
@@ -480,19 +413,13 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.MultivariateGaussianDist(["a", "b"], weights=[0.5, 0.5])
         with self.assertRaises(ValueError):
             # not enough modes set
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], mus=[[1.0, 2.0]], nmodes=2
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], mus=[[1.0, 2.0]], nmodes=2)
         with self.assertRaises(ValueError):
             # covariance is the wrong shape
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], covs=np.array([[[1.0, 1.0], [1.0, 1.0]]])
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], covs=np.array([[[1.0, 1.0], [1.0, 1.0]]]))
         with self.assertRaises(ValueError):
             # covariance is the wrong shape
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], covs=np.array([[[1.0, 1.0]]])
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], covs=np.array([[[1.0, 1.0]]]))
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is the wrong shape
             bilby.core.prior.MultivariateGaussianDist(
@@ -502,9 +429,7 @@ class TestPriorClasses(unittest.TestCase):
             )
         with self.assertRaises(ValueError):
             # correlation coefficient matrix is the wrong shape
-            bilby.core.prior.MultivariateGaussianDist(
-                ["a", "b"], sigmas=[1.0, 1.0], corrcoefs=np.array([[[1.0, 1.0]]])
-            )
+            bilby.core.prior.MultivariateGaussianDist(["a", "b"], sigmas=[1.0, 1.0], corrcoefs=np.array([[[1.0, 1.0]]]))
         with self.assertRaises(ValueError):
             # correlation coefficient has non-unity diagonal value
             bilby.core.prior.MultivariateGaussianDist(
@@ -545,9 +470,7 @@ class TestPriorClasses(unittest.TestCase):
 
         corrcoef = np.array([[1.0, 0.5], [0.5, 1.0]])
         sigma = [2.0, 2.0]
-        mvg = bilby.core.prior.MultivariateGaussianDist(
-            ["a", "b"], corrcoefs=corrcoef, sigmas=sigma
-        )
+        mvg = bilby.core.prior.MultivariateGaussianDist(["a", "b"], corrcoefs=corrcoef, sigmas=sigma)
         self.assertTrue(np.allclose(mvg.corrcoefs[0], corrcoef))
         self.assertTrue(np.allclose(mvg.sigmas[0], sigma))
         self.assertTrue(np.allclose(np.diag(mvg.covs[0]), np.square(sigma)))
@@ -580,12 +503,8 @@ class TestPriorClasses(unittest.TestCase):
                 # SymmetricLogUniform has support down to -maximum
                 continue
             surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
-            indomain = (surround_domain >= prior.minimum) | (
-                surround_domain <= prior.maximum
-            )
-            outdomain = (surround_domain < prior.minimum) | (
-                surround_domain > prior.maximum
-            )
+            indomain = (surround_domain >= prior.minimum) | (surround_domain <= prior.maximum)
+            outdomain = (surround_domain < prior.minimum) | (surround_domain > prior.maximum)
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_request():
                     continue
@@ -667,9 +586,7 @@ class TestPriorClasses(unittest.TestCase):
                 scipy_lnprob = ss.t.logpdf(domain, 3, loc=0, scale=1)
                 scipy_cdf = ss.t.cdf(domain, 3, loc=0, scale=1)
                 scipy_rescale = ss.t.ppf(rescale_domain, 3, loc=0, scale=1)
-            elif isinstance(prior, bilby.core.prior.Gamma) and not isinstance(
-                prior, bilby.core.prior.ChiSquared
-            ):
+            elif isinstance(prior, bilby.core.prior.Gamma) and not isinstance(prior, bilby.core.prior.ChiSquared):
                 domain = np.linspace(0.0, 1e2, 5000)
                 scipy_prob = ss.gamma.pdf(domain, 1, loc=0, scale=1)
                 scipy_lnprob = ss.gamma.logpdf(domain, 1, loc=0, scale=1)
@@ -735,9 +652,7 @@ class TestPriorClasses(unittest.TestCase):
                 np.testing.assert_almost_equal(prior.prob(domain), scipy_prob)
                 np.testing.assert_almost_equal(prior.ln_prob(domain), scipy_lnprob)
                 np.testing.assert_almost_equal(prior.cdf(domain), scipy_cdf)
-                np.testing.assert_almost_equal(
-                    prior.rescale(rescale_domain), scipy_rescale
-                )
+                np.testing.assert_almost_equal(prior.rescale(rescale_domain), scipy_rescale)
 
     def test_unit_setting(self):
         for prior in self.priors:
@@ -755,21 +670,13 @@ class TestPriorClasses(unittest.TestCase):
                     self.assertNotEqual(self.priors[i], self.priors[j])
 
     def test_eq_other_condition(self):
-        prior_1 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1
-        )
-        prior_2 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1.5
-        )
+        prior_1 = bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1)
+        prior_2 = bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1.5)
         self.assertNotEqual(prior_1, prior_2)
 
     def test_eq_different_keys(self):
-        prior_1 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1
-        )
-        prior_2 = bilby.core.prior.PowerLaw(
-            name="test", unit="unit", alpha=0, minimum=0, maximum=1
-        )
+        prior_1 = bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1)
+        prior_2 = bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1)
         prior_2.other_key = 5
         self.assertNotEqual(prior_1, prior_2)
 

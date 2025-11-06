@@ -36,12 +36,10 @@ class Test(unittest.TestCase):
     """
 
     def test_make_standard_data(self):
-        " Load in the saved standard data and compare with new data "
+        "Load in the saved standard data and compare with new data"
 
         # Load in the saved standard data
-        frequencies_saved, hf_real_saved, hf_imag_saved = np.loadtxt(
-            self.dir_path + "/integration/standard_data.txt"
-        ).T
+        frequencies_saved, hf_real_saved, hf_imag_saved = np.loadtxt(self.dir_path + "/integration/standard_data.txt").T
         hf_signal_and_noise_saved = hf_real_saved + 1j * hf_imag_saved
 
         self.assertTrue(np.array_equal(self.msd["frequencies"], frequencies_saved))
@@ -52,9 +50,7 @@ class Test(unittest.TestCase):
         )
 
     def test_recover_luminosity_distance(self):
-        likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
-            [self.msd["IFO"]], self.msd["waveform_generator"]
-        )
+        likelihood = bilby.gw.likelihood.GravitationalWaveTransient([self.msd["IFO"]], self.msd["waveform_generator"])
 
         priors = {}
         for key in self.msd["simulation_parameters"]:
@@ -65,9 +61,7 @@ class Test(unittest.TestCase):
             name="luminosity_distance", minimum=dL - 10, maximum=dL + 10
         )
 
-        result = bilby.core.sampler.run_sampler(
-            likelihood, priors, sampler="dynesty", verbose=False, npoints=100
-        )
+        result = bilby.core.sampler.run_sampler(likelihood, priors, sampler="dynesty", verbose=False, npoints=100)
         self.assertAlmostEqual(
             np.mean(result.posterior.luminosity_distance),
             dL,

@@ -66,12 +66,8 @@ waveform_generator_rew = deepcopy(waveform_generator)
 # These default to their design sensitivity
 ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
 for ifo in ifos:
-    injection_parameters.update(
-        {f"recalib_{ifo.name}_amplitude_{ii}": 0.0 for ii in range(10)}
-    )
-    injection_parameters.update(
-        {f"recalib_{ifo.name}_phase_{ii}": 0.0 for ii in range(10)}
-    )
+    injection_parameters.update({f"recalib_{ifo.name}_amplitude_{ii}": 0.0 for ii in range(10)})
+    injection_parameters.update({f"recalib_{ifo.name}_phase_{ii}": 0.0 for ii in range(10)})
     ifo.calibration_model = bilby.gw.calibration.CubicSpline(
         prefix=f"recalib_{ifo.name}_",
         minimum_frequency=ifo.minimum_frequency,
@@ -81,9 +77,7 @@ for ifo in ifos:
 ifos.set_strain_data_from_power_spectral_densities(
     sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
 )
-ifos.inject_signal(
-    parameters=injection_parameters, waveform_generator=waveform_generator
-)
+ifos.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 ifos_rew = deepcopy(ifos)
 
 # Set up prior, which is a dictionary
@@ -126,15 +120,11 @@ result = bilby.run_sampler(
 
 # Setting the log likelihood to actually be the log likelihood and not the log likelihood ratio...
 # This is used the for reweighting
-result.posterior["log_likelihood"] = (
-    result.posterior["log_likelihood"] + result.log_noise_evidence
-)
+result.posterior["log_likelihood"] = result.posterior["log_likelihood"] + result.log_noise_evidence
 
 # Setting the priors we want on the calibration response curve parameters - as an example.
 for name in ["recalib_H1_amplitude_1", "recalib_H1_amplitude_4"]:
-    priors_rew[name] = bilby.prior.Gaussian(
-        mu=0, sigma=0.03, name=name, latex_label=f"H1 $A_{name[-1]}$"
-    )
+    priors_rew[name] = bilby.prior.Gaussian(mu=0, sigma=0.03, name=name, latex_label=f"H1 $A_{name[-1]}$")
 
 # Setting up the calibration marginalized likelihood.
 # We save the calibration response curve files into the output directory under {ifo.name}_calibration_file.h5
@@ -144,10 +134,7 @@ cal_likelihood = bilby.gw.GravitationalWaveTransient(
     calibration_marginalization=True,
     priors=priors_rew,
     number_of_response_curves=100,
-    calibration_lookup_table={
-        ifos[i].name: f"{outdir}/{ifos[i].name}_calibration_file.h5"
-        for i in range(len(ifos))
-    },
+    calibration_lookup_table={ifos[i].name: f"{outdir}/{ifos[i].name}_calibration_file.h5" for i in range(len(ifos))},
 )
 
 # Plot the magnitude of the curves to be used in the marginalization
@@ -170,9 +157,7 @@ result_rew = bilby.core.result.reweight(
 )
 
 # Plot distance posterior with and without the calibration
-for res, label in zip(
-    [result, result_rew], ["No calibration uncertainty", "Calibration uncertainty"]
-):
+for res, label in zip([result, result_rew], ["No calibration uncertainty", "Calibration uncertainty"]):
     plt.hist(
         res.posterior["luminosity_distance"],
         label=label,

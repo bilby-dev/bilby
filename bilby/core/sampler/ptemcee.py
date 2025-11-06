@@ -180,7 +180,7 @@ class Ptemcee(MCMCSampler):
         verbose=True,
         **kwargs,
     ):
-        super(Ptemcee, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -236,18 +236,10 @@ class Ptemcee(MCMCSampler):
         self.store_walkers = store_walkers
         self.pos0 = pos0
 
-        self._periodic = [
-            self.priors[key].boundary == "periodic"
-            for key in self.search_parameter_keys
-        ]
+        self._periodic = [self.priors[key].boundary == "periodic" for key in self.search_parameter_keys]
         self.priors.sample()
-        self._minima = np.array(
-            [self.priors[key].minimum for key in self.search_parameter_keys]
-        )
-        self._range = (
-            np.array([self.priors[key].maximum for key in self.search_parameter_keys])
-            - self._minima
-        )
+        self._minima = np.array([self.priors[key].minimum for key in self.search_parameter_keys])
+        self._range = np.array([self.priors[key].maximum for key in self.search_parameter_keys]) - self._minima
 
         self.log10beta_min = log10beta_min
         if self.log10beta_min is not None:
@@ -281,11 +273,7 @@ class Ptemcee(MCMCSampler):
     @property
     def sampler_init_kwargs(self):
         """Kwargs passed to initialize ptemcee.Sampler()"""
-        return {
-            key: value
-            for key, value in self.kwargs.items()
-            if key not in self.sampler_function_kwargs
-        }
+        return {key: value for key, value in self.kwargs.items() if key not in self.sampler_function_kwargs}
 
     def _translate_kwargs(self, kwargs):
         """Translate kwargs"""
@@ -306,10 +294,7 @@ class Ptemcee(MCMCSampler):
         """
         logger.info("Generating pos0 samples")
         return np.array(
-            [
-                [self.get_random_draw_from_prior() for _ in range(self.nwalkers)]
-                for _ in range(self.kwargs["ntemps"])
-            ]
+            [[self.get_random_draw_from_prior() for _ in range(self.nwalkers)] for _ in range(self.kwargs["ntemps"])]
         )
 
     def get_pos0_from_minimize(self, minimize_list=None):
@@ -349,10 +334,7 @@ class Ptemcee(MCMCSampler):
                 return +np.inf
 
         # Bounds used in the minimization
-        bounds = [
-            (self.priors[key].minimum, self.priors[key].maximum)
-            for key in minimize_list
-        ]
+        bounds = [(self.priors[key].minimum, self.priors[key].maximum) for key in minimize_list]
 
         # Run the minimization step several times to get a range of values
         trials = 0
@@ -361,9 +343,7 @@ class Ptemcee(MCMCSampler):
             draw = self.priors.sample()
             likelihood_copy.parameters.update(draw)
             x0 = [draw[key] for key in minimize_list]
-            res = minimize(
-                neg_log_like, x0, bounds=bounds, method="L-BFGS-B", tol=1e-15
-            )
+            res = minimize(neg_log_like, x0, bounds=bounds, method="L-BFGS-B", tol=1e-15)
             if res.success:
                 success.append(res.x)
             if trials > 100:
@@ -415,11 +395,7 @@ class Ptemcee(MCMCSampler):
             # This is a very ugly hack to support numpy>=1.24
             ptemcee.sampler.np.float = float
 
-        if (
-            os.path.isfile(self.resume_file)
-            and os.path.getsize(self.resume_file)
-            and self.resume is True
-        ):
+        if os.path.isfile(self.resume_file) and os.path.getsize(self.resume_file) and self.resume is True:
             import dill
 
             logger.info(f"Resume data {self.resume_file} found")
@@ -506,7 +482,7 @@ class Ptemcee(MCMCSampler):
             self.sampler.pool = None
         if "pool" in self.result.sampler_kwargs:
             del self.result.sampler_kwargs["pool"]
-        super(Ptemcee, self)._close_pool()
+        super()._close_pool()
 
     @signal_wrapper
     def run_sampler(self):
@@ -532,24 +508,16 @@ class Ptemcee(MCMCSampler):
                 )
 
             if self.iteration == self.chain_array.shape[1]:
-                self.chain_array = np.concatenate(
-                    (self.chain_array, self.get_zero_chain_array()), axis=1
-                )
-                self.log_likelihood_array = np.concatenate(
-                    (self.log_likelihood_array, self.get_zero_array()), axis=2
-                )
-                self.log_posterior_array = np.concatenate(
-                    (self.log_posterior_array, self.get_zero_array()), axis=2
-                )
+                self.chain_array = np.concatenate((self.chain_array, self.get_zero_chain_array()), axis=1)
+                self.log_likelihood_array = np.concatenate((self.log_likelihood_array, self.get_zero_array()), axis=2)
+                self.log_posterior_array = np.concatenate((self.log_posterior_array, self.get_zero_array()), axis=2)
 
             self.pos0 = pos0
 
             self.chain_array[:, self.iteration, :] = pos0[0, :, :]
             self.log_likelihood_array[:, :, self.iteration] = log_likelihood
             self.log_posterior_array[:, :, self.iteration] = log_posterior
-            self.mean_log_posterior = np.mean(
-                self.log_posterior_array[:, :, : self.iteration], axis=1
-            )
+            self.mean_log_posterior = np.mean(self.log_posterior_array[:, :, : self.iteration], axis=1)
 
             # (nwalkers, ntemps, iterations)
             # so mean_log_posterior is shaped (nwalkers, iterations)
@@ -567,9 +535,7 @@ class Ptemcee(MCMCSampler):
             logger.debug(f"Minimum iteration = {minimum_iteration}")
 
             # Calculate the maximum discard number
-            discard_max = np.max(
-                [self.convergence_inputs.burn_in_fixed_discard, minimum_iteration]
-            )
+            discard_max = np.max([self.convergence_inputs.burn_in_fixed_discard, minimum_iteration])
 
             if self.iteration > discard_max + self.nwalkers:
                 # If we have taken more than nwalkers steps after the discard
@@ -618,13 +584,13 @@ class Ptemcee(MCMCSampler):
         self.write_current_state(plot=self.check_point_plot)
 
         # Get 0-likelihood samples and store in the result
-        self.result.samples = self.chain_array[
-            :, self.discard + self.nburn : self.iteration : self.thin, :
-        ].reshape((-1, self.ndim))
+        self.result.samples = self.chain_array[:, self.discard + self.nburn : self.iteration : self.thin, :].reshape(
+            (-1, self.ndim)
+        )
         loglikelihood = self.log_likelihood_array[
             0, :, self.discard + self.nburn : self.iteration : self.thin
         ]  # nwalkers, nsteps
-        self.result.log_likelihood_evaluations = loglikelihood.reshape((-1))
+        self.result.log_likelihood_evaluations = loglikelihood.reshape(-1)
 
         if self.store_walkers:
             self.result.walkers = self.sampler.chain
@@ -644,9 +610,7 @@ class Ptemcee(MCMCSampler):
         self.result.log_evidence = log_evidence
         self.result.log_evidence_err = log_evidence_err
 
-        self.result.sampling_time = datetime.timedelta(
-            seconds=np.sum(self.time_per_check)
-        )
+        self.result.sampling_time = datetime.timedelta(seconds=np.sum(self.time_per_check))
 
         self._close_pool()
 
@@ -903,9 +867,8 @@ def check_iteration(
     # Calculate convergence boolean
     converged = gelman_rubin_statistic < ci.Q_tol and ci.nsamples < nsamples_effective
     logger.debug(
-        "Convergence: Q<Q_tol={}, nsamples<nsamples_effective={}".format(
-            gelman_rubin_statistic < ci.Q_tol, ci.nsamples < nsamples_effective
-        )
+        f"Convergence: Q<Q_tol={gelman_rubin_statistic < ci.Q_tol}, "
+        f"nsamples<nsamples_effective={ci.nsamples < nsamples_effective}"
     )
 
     GRAD_WINDOW_LENGTH = 2 * ((ndim + 1) // 2) + 1
@@ -916,19 +879,13 @@ def check_iteration(
     lower_tau_index = np.max([0, len(tau_list) - nsteps_to_check])
     check_taus = np.array(tau_list[lower_tau_index:])
     if not np.any(np.isnan(check_taus)) and check_taus.shape[0] > GRAD_WINDOW_LENGTH:
-        gradient_tau = get_max_gradient(
-            check_taus, axis=0, window_length=GRAD_WINDOW_LENGTH
-        )
+        gradient_tau = get_max_gradient(check_taus, axis=0, window_length=GRAD_WINDOW_LENGTH)
 
         if gradient_tau < ci.gradient_tau:
-            logger.debug(
-                f"tau usable as {gradient_tau} < gradient_tau={ci.gradient_tau}"
-            )
+            logger.debug(f"tau usable as {gradient_tau} < gradient_tau={ci.gradient_tau}")
             tau_usable = True
         else:
-            logger.debug(
-                f"tau not usable as {gradient_tau} > gradient_tau={ci.gradient_tau}"
-            )
+            logger.debug(f"tau not usable as {gradient_tau} > gradient_tau={ci.gradient_tau}")
             tau_usable = False
 
         check_mean_log_posterior = mean_log_posterior[:, -nsteps_to_check:]
@@ -1027,11 +984,7 @@ def get_max_gradient(x, axis=0, window_length=11, polyorder=2, smooth=False):
 
     if smooth:
         x = savgol_filter(x, axis=axis, window_length=window_length, polyorder=3)
-    return np.max(
-        savgol_filter(
-            x, axis=axis, window_length=window_length, polyorder=polyorder, deriv=1
-        )
-    )
+    return np.max(savgol_filter(x, axis=axis, window_length=window_length, polyorder=polyorder, deriv=1))
 
 
 def get_Q_convergence(samples):
@@ -1112,11 +1065,7 @@ def print_progress(
     tswap_acceptance_str = f"{np.min(tswap_acceptance_fraction):1.2f}-{np.max(tswap_acceptance_fraction):1.2f}"
 
     ave_time_per_check = np.mean(time_per_check[-3:])
-    time_left = (
-        (convergence_inputs.nsamples - nsamples_effective)
-        * ave_time_per_check
-        / samples_per_check
-    )
+    time_left = (convergence_inputs.nsamples - nsamples_effective) * ave_time_per_check / samples_per_check
     if time_left > 0:
         time_left = str(datetime.timedelta(seconds=int(time_left)))
     else:
@@ -1133,16 +1082,9 @@ def print_progress(
 
     Q_str = f"{Q:0.2f}"
 
-    evals_per_check = (
-        sampler.nwalkers * sampler.ntemps * convergence_inputs.niterations_per_check
-    )
+    evals_per_check = sampler.nwalkers * sampler.ntemps * convergence_inputs.niterations_per_check
 
-    approximate_ncalls = (
-        convergence_inputs.niterations_per_check
-        * iteration
-        * sampler.nwalkers
-        * sampler.ntemps
-    )
+    approximate_ncalls = convergence_inputs.niterations_per_check * iteration * sampler.nwalkers * sampler.ntemps
     ncalls = f"{approximate_ncalls:1.1e}"
     eval_timing = f"{1000.0 * ave_time_per_check / evals_per_check:1.2f}ms/ev"
 
@@ -1194,9 +1136,7 @@ def calculate_tau_array(samples, search_parameter_keys, ci):
                 if ci.ignore_keys_for_tau and ci.ignore_keys_for_tau in key:
                     continue
                 try:
-                    tau_array[ii, jj] = emcee.autocorr.integrated_time(
-                        samples[ii, :, jj], c=ci.autocorr_c, tol=0
-                    )[0]
+                    tau_array[ii, jj] = emcee.autocorr.integrated_time(samples[ii, :, jj], c=ci.autocorr_c, tol=0)[0]
                 except emcee.autocorr.AutocorrError:
                     tau_array[ii, jj] = np.inf
     return tau_array
@@ -1229,9 +1169,7 @@ def checkpoint(
     # Store the samples if possible
     if nsamples_effective > 0:
         filename = f"{outdir}/{label}_samples.txt"
-        samples = np.array(chain_array)[
-            :, discard + nburn : iteration : thin, :
-        ].reshape((-1, ndim))
+        samples = np.array(chain_array)[:, discard + nburn : iteration : thin, :].reshape((-1, ndim))
         df = pd.DataFrame(samples, columns=search_parameter_keys)
         df.to_csv(filename, index=False, header=True, sep=" ")
 
@@ -1305,9 +1243,7 @@ def plot_walkers(walkers, nburn, thin, parameter_labels, outdir, label, discard=
             color="C0",
             **scatter_kwargs,
         )
-        axh.hist(
-            walkers[:, discard + nburn :: thin, i].reshape((-1)), bins=50, alpha=0.8
-        )
+        axh.hist(walkers[:, discard + nburn :: thin, i].reshape(-1), bins=50, alpha=0.8)
 
     for i, (ax, axh) in enumerate(axes):
         axh.set_xlabel(parameter_labels[i])
@@ -1389,8 +1325,7 @@ def compute_evidence(
 
     if any(np.isinf(mean_lnlikes)):
         logger.warning(
-            "mean_lnlikes contains inf: recalculating without"
-            f" the {len(betas[np.isinf(mean_lnlikes)])} infs"
+            f"mean_lnlikes contains inf: recalculating without the {len(betas[np.isinf(mean_lnlikes)])} infs"
         )
         idxs = np.isinf(mean_lnlikes)
         mean_lnlikes = mean_lnlikes[~idxs]
@@ -1414,8 +1349,7 @@ def compute_evidence(
 
         ax2.semilogx(min_betas, evidence, "-o")
         ax2.set_ylabel(
-            r"$\int_{\beta_{min}}^{\beta=1}"
-            + r"\langle \log(\mathcal{L})\rangle d\beta$",
+            r"$\int_{\beta_{min}}^{\beta=1}" + r"\langle \log(\mathcal{L})\rangle d\beta$",
             size=16,
         )
         ax2.set_xlabel(r"$\beta_{min}$")
@@ -1431,7 +1365,7 @@ def do_nothing_function():
     pass
 
 
-class LikePriorEvaluator(object):
+class LikePriorEvaluator:
     """
     This class is copied and modified from ptemcee.LikePriorEvaluator, see
     https://github.com/willvousden/ptemcee for the original version
@@ -1448,15 +1382,10 @@ class LikePriorEvaluator(object):
     def _setup_periodic(self):
         priors = _sampling_convenience_dump.priors
         search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
-        self._periodic = [
-            priors[key].boundary == "periodic" for key in search_parameter_keys
-        ]
+        self._periodic = [priors[key].boundary == "periodic" for key in search_parameter_keys]
         priors.sample()
         self._minima = np.array([priors[key].minimum for key in search_parameter_keys])
-        self._range = (
-            np.array([priors[key].maximum for key in search_parameter_keys])
-            - self._minima
-        )
+        self._range = np.array([priors[key].maximum for key in search_parameter_keys]) - self._minima
         self.periodic_set = True
 
     def _wrap_periodic(self, array):
@@ -1478,9 +1407,7 @@ class LikePriorEvaluator(object):
         parameters = _sampling_convenience_dump.parameters.copy()
         parameters.update({key: v for key, v in zip(search_parameter_keys, v_array)})
         if priors.evaluate_constraints(parameters) > 0:
-            return _safe_likelihood_call(
-                likelihood, parameters, _sampling_convenience_dump.use_ratio
-            )
+            return _safe_likelihood_call(likelihood, parameters, _sampling_convenience_dump.use_ratio)
         else:
             return np.nan_to_num(-np.inf)
 

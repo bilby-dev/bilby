@@ -1,15 +1,15 @@
 import json
 import logging
-from pathlib import Path
 import subprocess
 import sys
 from importlib import metadata
+from pathlib import Path
 
-logger = logging.getLogger('bilby')
+logger = logging.getLogger("bilby")
 
 
-def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
-    """ Setup logging output: call at the start of the script to use
+def setup_logger(outdir=".", label=None, log_level="INFO", print_version=False):
+    """Setup logging output: call at the start of the script to use
 
     Parameters
     ==========
@@ -27,28 +27,28 @@ def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
         try:
             level = getattr(logging, log_level.upper())
         except AttributeError:
-            raise ValueError('log_level {} not understood'.format(log_level))
+            raise ValueError(f"log_level {log_level} not understood")
     else:
         level = int(log_level)
 
-    logger = logging.getLogger('bilby')
+    logger = logging.getLogger("bilby")
     logger.propagate = False
     logger.setLevel(level)
 
     if not any([isinstance(h, logging.StreamHandler) for h in logger.handlers]):
         stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(name)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+        stream_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(name)s %(levelname)-8s: %(message)s", datefmt="%H:%M")
+        )
         stream_handler.setLevel(level)
         logger.addHandler(stream_handler)
 
     if not any([isinstance(h, logging.FileHandler) for h in logger.handlers]):
         if label:
             Path(outdir).mkdir(parents=True, exist_ok=True)
-            log_file = '{}/{}.log'.format(outdir, label)
+            log_file = f"{outdir}/{label}.log"
             file_handler = logging.FileHandler(log_file)
-            file_handler.setFormatter(logging.Formatter(
-                '%(asctime)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
+            file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", datefmt="%H:%M"))
 
             file_handler.setLevel(level)
             logger.addHandler(file_handler)
@@ -58,11 +58,12 @@ def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
 
     if print_version:
         version = get_version_information()
-        logger.info('Running bilby version: {}'.format(version))
+        logger.info(f"Running bilby version: {version}")
 
 
 def get_version_information():
     from bilby import __version__
+
     return __version__
 
 
@@ -106,12 +107,7 @@ def env_package_list(as_dataframe=False):
     conda_detected = (Path(prefix) / "conda-meta").is_dir()
     if conda_detected:
         try:
-            pkgs = json.loads(subprocess.check_output([
-                "conda",
-                "list",
-                "--prefix", prefix,
-                "--json"
-            ]))
+            pkgs = json.loads(subprocess.check_output(["conda", "list", "--prefix", prefix, "--json"]))
         except (FileNotFoundError, subprocess.CalledProcessError):
             # When a conda env is in use but conda is unavailable
             conda_detected = False
@@ -126,15 +122,23 @@ def env_package_list(as_dataframe=False):
             modules = loaded_modules_dict()
             pkgs = [{"name": x, "version": y} for x, y in modules.items()]
         else:
-            pkgs = json.loads(subprocess.check_output([
-                sys.executable,
-                "-m", "pip",
-                "list", "installed",
-                "--format", "json",
-            ]))
+            pkgs = json.loads(
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "list",
+                        "installed",
+                        "--format",
+                        "json",
+                    ]
+                )
+            )
 
     # convert to recarray for storage
     if as_dataframe:
         from pandas import DataFrame
+
         return DataFrame(pkgs)
     return pkgs

@@ -50,7 +50,7 @@ ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
 ax.set_xlabel("time")
 ax.set_ylabel("y")
 ax.legend()
-fig.savefig("{}/{}_data.png".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_data.png")
 
 
 # Parameter estimation: we now define a Gaussian Likelihood class relevant for
@@ -73,7 +73,7 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
             will require a prior and will be sampled over (unless a fixed
             value is given).
         """
-        super(GaussianLikelihoodPyMC, self).__init__(x=x, y=y, func=func, sigma=sigma)
+        super().__init__(x=x, y=y, func=func, sigma=sigma)
 
     def log_likelihood(self, sampler=None, parameters=None):
         """
@@ -91,9 +91,7 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
         """
 
         if not isinstance(sampler, Pymc):
-            return super(GaussianLikelihoodPyMC, self).log_likelihood(
-                parameters=parameters
-            )
+            return super().log_likelihood(parameters=parameters)
 
         if not hasattr(sampler, "pymc_model"):
             raise AttributeError("Sampler has not PyMC model attribute")
@@ -119,9 +117,7 @@ class PyMCUniformPrior(bilby.core.prior.Uniform):
         """
         Uniform prior with bounds (should be equivalent to bilby.prior.Uniform)
         """
-        bilby.core.prior.Prior.__init__(
-            self, name, latex_label, minimum=minimum, maximum=maximum
-        )
+        bilby.core.prior.Prior.__init__(self, name, latex_label, minimum=minimum, maximum=maximum)
 
     def ln_prob(self, sampler=None):
         """
@@ -132,7 +128,7 @@ class PyMCUniformPrior(bilby.core.prior.Uniform):
         float or array to be passed to the superclass.
         """
         if not isinstance(sampler, Pymc):
-            return super(PyMCUniformPrior, self).ln_prob(sampler)
+            return super().ln_prob(sampler)
 
         return pm.Uniform(self.name, lower=self.minimum, upper=self.maximum)
 

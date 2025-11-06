@@ -4,12 +4,11 @@ import numpy as np
 import scipy.stats
 from scipy.special import erfinv
 
+from ..utils import get_dict_with_properties, infer_args_from_method, logger, random
 from .base import Prior, PriorException
-from ..utils import logger, infer_args_from_method, get_dict_with_properties
-from ..utils import random
 
 
-class BaseJointPriorDist(object):
+class BaseJointPriorDist:
     def __init__(self, names, bounds=None):
         """
         A class defining JointPriorDist that will be overwritten with child
@@ -43,9 +42,7 @@ class BaseJointPriorDist(object):
             for bound in bounds:
                 if isinstance(bounds, (list, tuple, np.ndarray)):
                     if len(bound) != 2:
-                        raise ValueError(
-                            "Bounds must contain an upper and lower value."
-                        )
+                        raise ValueError("Bounds must contain an upper and lower value.")
                     else:
                         if bound[1] <= bound[0]:
                             raise ValueError("Bounds are not properly set")
@@ -132,13 +129,8 @@ class BaseJointPriorDist(object):
         """
         dist_name = self.__class__.__name__
         instantiation_dict = self.get_instantiation_dict()
-        args = ", ".join(
-            [
-                "{}={}".format(key, repr(instantiation_dict[key]))
-                for key in instantiation_dict
-            ]
-        )
-        return "{}({})".format(dist_name, args)
+        args = ", ".join([f"{key}={repr(instantiation_dict[key])}" for key in instantiation_dict])
+        return f"{dist_name}({args})"
 
     @classmethod
     def from_repr(cls, string):
@@ -154,9 +146,7 @@ class BaseJointPriorDist(object):
         for key in kwargs:
             val = kwargs[key]
             if key not in subclass_args:
-                raise AttributeError(
-                    "Unknown argument {} for class {}".format(key, cls.__name__)
-                )
+                raise AttributeError(f"Unknown argument {key} for class {cls.__name__}")
             else:
                 kwargs[key.strip()] = Prior._parse_argument_string(val)
 
@@ -405,7 +395,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             A list of bounds on each parameter. The defaults are for bounds at
             +/- infinity.
         """
-        super(MultivariateGaussianDist, self).__init__(names=names, bounds=bounds)
+        super().__init__(names=names, bounds=bounds)
         for name in self.names:
             bound = self.bounds[name]
             if bound[0] != -np.inf or bound[1] != np.inf:
@@ -420,7 +410,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         self.covs = []
         self.corrcoefs = []
         self.sigmas = []
-        self.logprodsigmas = []   # log of product of sigmas, needed for "standard" multivariate normal
+        self.logprodsigmas = []  # log of product of sigmas, needed for "standard" multivariate normal
         self.weights = []
         self.eigvalues = []
         self.eigvectors = []
@@ -456,9 +446,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                     if len(np.shape(corrcoefs)) == 2:
                         corrcoefs = [np.array(corrcoefs)]
                     elif len(np.shape(corrcoefs)) != 3:
-                        raise TypeError(
-                            "List of correlation coefficients the wrong shape"
-                        )
+                        raise TypeError("List of correlation coefficients the wrong shape")
                 elif not isinstance(corrcoefs, list):
                     raise TypeError("Must pass a list of correlation coefficients")
             if weights is not None:
@@ -507,10 +495,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             if len(self.covs[-1].shape) != 2:
                 raise ValueError("Covariance matrix must be a 2d array")
 
-            if (
-                self.covs[-1].shape[0] != self.covs[-1].shape[1]
-                or self.covs[-1].shape[0] != self.num_vars
-            ):
+            if self.covs[-1].shape[0] != self.covs[-1].shape[1] or self.covs[-1].shape[0] != self.num_vars:
                 raise ValueError("Covariance shape is inconsistent")
 
             # check matrix is symmetric
@@ -527,17 +512,13 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             self.corrcoefs.append(np.asarray(corrcoef))
 
             if len(self.corrcoefs[-1].shape) != 2:
-                raise ValueError(
-                    "Correlation coefficient matrix must be a 2d array."
-                )
+                raise ValueError("Correlation coefficient matrix must be a 2d array.")
 
             if (
                 self.corrcoefs[-1].shape[0] != self.corrcoefs[-1].shape[1]
                 or self.corrcoefs[-1].shape[0] != self.num_vars
             ):
-                raise ValueError(
-                    "Correlation coefficient matrix shape is inconsistent"
-                )
+                raise ValueError("Correlation coefficient matrix shape is inconsistent")
 
             # check matrix is symmetric
             if not np.allclose(self.corrcoefs[-1], self.corrcoefs[-1].T):
@@ -553,10 +534,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 raise TypeError("'sigmas' must be a list")
 
             if len(self.sigmas[-1]) != self.num_vars:
-                raise ValueError(
-                    "Number of standard deviations must be the "
-                    "same as the number of parameters."
-                )
+                raise ValueError("Number of standard deviations must be the same as the number of parameters.")
 
             # convert correlation coefficients to covariance matrix
             D = self.sigmas[-1] * np.identity(self.corrcoefs[-1].shape[0])
@@ -576,15 +554,11 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             self.eigvalues.append(evals)
             self.eigvectors.append(evecs)
         except Exception as e:
-            raise RuntimeError(
-                "Problem getting eigenvalues and vectors: {}".format(e)
-            )
+            raise RuntimeError(f"Problem getting eigenvalues and vectors: {e}")
 
         # check eigenvalues are positive
         if np.any(self.eigvalues[-1] <= 0.0):
-            raise ValueError(
-                "Correlation coefficient matrix is not positive definite"
-            )
+            raise ValueError("Correlation coefficient matrix is not positive definite")
         self.sqeigvalues.append(np.sqrt(self.eigvalues[-1]))
 
         # set the weights
@@ -607,9 +581,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         # - this modifies the multivariate normal PDF as follows:
         #     multivariate_normal(mean=mus, cov=cov).logpdf(x)
         #     = multivariate_normal(mean=0, cov=corrcoefs).logpdf((x - mus)/sigmas) - logprodsigmas
-        self.mvn.append(
-            scipy.stats.multivariate_normal(mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1])
-        )
+        self.mvn.append(scipy.stats.multivariate_normal(mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1]))
 
     def _rescale(self, samp, **kwargs):
         try:
@@ -623,7 +595,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             else:
                 mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
 
-        samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
+        samp = erfinv(2.0 * samp - 1) * 2.0**0.5
 
         # rotate and scale to the multivariate normal shape
         samp = self.mus[mode] + self.sigmas[mode] * np.einsum(
@@ -645,10 +617,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                     mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
                 else:
                     # pick modes
-                    mode = [
-                        np.argwhere(self.cumweights - r > 0)[0][0]
-                        for r in random.rng.uniform(0, 1, size)
-                    ]
+                    mode = [np.argwhere(self.cumweights - r > 0)[0][0] for r in random.rng.uniform(0, 1, size)]
 
         samps = np.zeros((size, len(self)))
         for i in range(size):
@@ -697,9 +666,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if len(self.__dict__[key]) != len(other.__dict__[key]):
                     return False
                 for thismvn, othermvn in zip(self.__dict__[key], other.__dict__[key]):
-                    if not isinstance(
-                        thismvn, scipy.stats._multivariate.multivariate_normal_frozen
-                    ) or not isinstance(
+                    if not isinstance(thismvn, scipy.stats._multivariate.multivariate_normal_frozen) or not isinstance(
                         othermvn, scipy.stats._multivariate.multivariate_normal_frozen
                     ):
                         return False
@@ -742,17 +709,13 @@ class JointPrior(Prior):
             See superclass
         """
         if not isinstance(dist, BaseJointPriorDist):
-            raise TypeError(
-                "Must supply a JointPriorDist object instance to be shared by all joint params"
-            )
+            raise TypeError("Must supply a JointPriorDist object instance to be shared by all joint params")
 
         if name not in dist.names:
-            raise ValueError(
-                "'{}' is not a parameter in the JointPriorDist".format(name)
-            )
+            raise ValueError(f"'{name}' is not a parameter in the JointPriorDist")
 
         self.dist = dist
-        super(JointPrior, self).__init__(
+        super().__init__(
             name=name,
             latex_label=latex_label,
             unit=unit,
@@ -822,9 +785,7 @@ class JointPrior(Prior):
 
         if self.name in self.dist.sampled_parameters:
             logger.warning(
-                "You have already drawn a sample from parameter "
-                "'{}'. The same sample will be "
-                "returned".format(self.name)
+                f"You have already drawn a sample from parameter '{self.name}'. The same sample will be returned"
             )
 
         if len(self.dist.current_sample) == 0:
@@ -865,22 +826,12 @@ class JointPrior(Prior):
 
             # check for the same number of values for each parameter
             for i in range(len(self.dist) - 1):
-                if isinstance(values[i], (list, np.ndarray)) or isinstance(
-                    values[i + 1], (list, np.ndarray)
-                ):
-                    if isinstance(values[i], (list, np.ndarray)) and isinstance(
-                        values[i + 1], (list, np.ndarray)
-                    ):
+                if isinstance(values[i], (list, np.ndarray)) or isinstance(values[i + 1], (list, np.ndarray)):
+                    if isinstance(values[i], (list, np.ndarray)) and isinstance(values[i + 1], (list, np.ndarray)):
                         if len(values[i]) != len(values[i + 1]):
-                            raise ValueError(
-                                "Each parameter must have the same "
-                                "number of requested values."
-                            )
+                            raise ValueError("Each parameter must have the same number of requested values.")
                     else:
-                        raise ValueError(
-                            "Each parameter must have the same "
-                            "number of requested values."
-                        )
+                        raise ValueError("Each parameter must have the same number of requested values.")
 
             lnp = self.dist.ln_prob(np.asarray(values).T)
 
@@ -896,7 +847,7 @@ class JointPrior(Prior):
                     # check value has a length
                     len(val)
                 except Exception as e:
-                    raise TypeError("Invalid type for ln_prob: {}".format(e))
+                    raise TypeError(f"Invalid type for ln_prob: {e}")
 
                 if len(val) == 1:
                     return 0.0
@@ -923,12 +874,8 @@ class JointPrior(Prior):
 class MultivariateGaussian(JointPrior):
     def __init__(self, dist, name=None, latex_label=None, unit=None):
         if not isinstance(dist, MultivariateGaussianDist):
-            raise JointPriorDistError(
-                "dist object must be instance of MultivariateGaussianDist"
-            )
-        super(MultivariateGaussian, self).__init__(
-            dist=dist, name=name, latex_label=latex_label, unit=unit
-        )
+            raise JointPriorDistError("dist object must be instance of MultivariateGaussianDist")
+        super().__init__(dist=dist, name=name, latex_label=latex_label, unit=unit)
 
 
 class MultivariateNormal(MultivariateGaussian):

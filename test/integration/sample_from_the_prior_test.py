@@ -1,12 +1,13 @@
-import shutil
-import os
 import logging
-from packaging import version
-
+import os
+import shutil
 import unittest
-import bilby
+
 import scipy
+from packaging import version
 from scipy.stats import ks_2samp, kstest
+
+import bilby
 
 
 def ks_2samp_wrapper(data1, data2):
@@ -25,7 +26,7 @@ class Test(unittest.TestCase):
             try:
                 shutil.rmtree(self.outdir)
             except OSError:
-                logging.warning("{} not removed prior to tests".format(self.outdir))
+                logging.warning(f"{self.outdir} not removed prior to tests")
 
     @classmethod
     def tearDownClass(self):
@@ -33,7 +34,7 @@ class Test(unittest.TestCase):
             try:
                 shutil.rmtree(self.outdir)
             except OSError:
-                logging.warning("{} not removed prior to tests".format(self.outdir))
+                logging.warning(f"{self.outdir} not removed prior to tests")
 
     def test_fifteen_dimensional_cbc(self):
         duration = 4.0
@@ -69,9 +70,7 @@ class Test(unittest.TestCase):
             maximum=100.0,
             unit="$M_{\\odot}$",
         )
-        priors["mass_ratio"] = bilby.prior.Uniform(
-            name="mass_ratio", latex_label="$q$", minimum=0.5, maximum=1.0
-        )
+        priors["mass_ratio"] = bilby.prior.Uniform(name="mass_ratio", latex_label="$q$", minimum=0.5, maximum=1.0)
         priors["geocent_time"] = bilby.core.prior.Uniform(minimum=-0.1, maximum=0.1)
 
         likelihood = bilby.gw.GravitationalWaveTransient(
@@ -93,12 +92,10 @@ class Test(unittest.TestCase):
             nact=10,
             outdir=self.outdir,
             label=label,
-            save=False
+            save=False,
         )
         pvalues = [
-            ks_2samp_wrapper(
-                result.priors[key].sample(10000), result.posterior[key].values
-            ).pvalue
+            ks_2samp_wrapper(result.priors[key].sample(10000), result.posterior[key].values).pvalue
             for key in priors.keys()
         ]
         print("P values per parameter")

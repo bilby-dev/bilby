@@ -2,7 +2,7 @@ import numpy as np
 
 
 def ra_dec_to_theta_phi(ra, dec, gmst):
-    """ Convert from RA and DEC to polar coordinates on celestial sphere
+    """Convert from RA and DEC to polar coordinates on celestial sphere
 
     Parameters
     ==========

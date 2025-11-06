@@ -14,7 +14,6 @@ The reparameterization here uses a 3-piece dynamic polytrope model implemented i
 LALSimNeutronStarEOSDynamicPolytrope.c.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 
@@ -80,9 +79,7 @@ for interferometer in interferometers:
 interferometers.set_strain_data_from_zero_noise(
     sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
 )
-interferometers.inject_signal(
-    parameters=injection_parameters, waveform_generator=waveform_generator
-)
+interferometers.inject_signal(parameters=injection_parameters, waveform_generator=waveform_generator)
 
 # Load the default prior for binary neutron stars.
 # We're going to sample in chirp_mass, mass_ratio, and model parameters
@@ -96,15 +93,9 @@ priors["mass_ratio"] = bilby.gw.prior.Uniform(0.125, 1)
 
 # The following are dynamic polytrope model priors
 # They are required for EOS inference
-priors["eos_polytrope_gamma_0"] = bilby.core.prior.Uniform(
-    1.0, 5.0, name="Gamma0", latex_label="$\\Gamma_0$"
-)
-priors["eos_polytrope_gamma_1"] = bilby.core.prior.Uniform(
-    1.0, 5.0, name="Gamma1", latex_label="$\\Gamma_1$"
-)
-priors["eos_polytrope_gamma_2"] = bilby.core.prior.Uniform(
-    1.0, 5.0, name="Gamma2", latex_label="$\\Gamma_2$"
-)
+priors["eos_polytrope_gamma_0"] = bilby.core.prior.Uniform(1.0, 5.0, name="Gamma0", latex_label="$\\Gamma_0$")
+priors["eos_polytrope_gamma_1"] = bilby.core.prior.Uniform(1.0, 5.0, name="Gamma1", latex_label="$\\Gamma_1$")
+priors["eos_polytrope_gamma_2"] = bilby.core.prior.Uniform(1.0, 5.0, name="Gamma2", latex_label="$\\Gamma_2$")
 """
 One can run this model without the reparameterization using the following
 priors in place of the scaled pressure priors. The reparameterization approximates

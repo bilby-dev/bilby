@@ -1,11 +1,12 @@
+import os
 import unittest
 
-from bilby.core.likelihood import GaussianLikelihood
-from bilby.core.prior import Uniform, PriorDict
-from bilby.core.sampler.ptemcee import Ptemcee
-from bilby.core.sampler.base_sampler import MCMCSampler
 import numpy as np
-import os
+
+from bilby.core.likelihood import GaussianLikelihood
+from bilby.core.prior import PriorDict, Uniform
+from bilby.core.sampler.base_sampler import MCMCSampler
+from bilby.core.sampler.ptemcee import Ptemcee
 
 
 class TestPTEmcee(unittest.TestCase):
@@ -71,10 +72,7 @@ class TestPTEmcee(unittest.TestCase):
         """
         old = np.array(self.sampler.get_pos0())
         pos0 = np.moveaxis(old, -1, 0)
-        pos0 = {
-            key: points for key, points in
-            zip(self.sampler.search_parameter_keys, pos0)
-        }
+        pos0 = {key: points for key, points in zip(self.sampler.search_parameter_keys, pos0)}
         new_sampler = Ptemcee(*self._args, **self._kwargs, pos0=pos0)
         new = new_sampler.get_pos0()
         self.assertTrue(np.array_equal(new, old))
@@ -93,9 +91,7 @@ class TestPTEmcee(unittest.TestCase):
 def test_get_expected_outputs():
     label = "par0"
     outdir = os.path.join("some", "bilby_pipe", "dir")
-    filenames, directories = Ptemcee.get_expected_outputs(
-        outdir=outdir, label=label
-    )
+    filenames, directories = Ptemcee.get_expected_outputs(outdir=outdir, label=label)
     assert len(filenames) == 1
     assert len(directories) == 0
     assert os.path.join(outdir, f"{label}_checkpoint_resume.pickle") in filenames

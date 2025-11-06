@@ -3,7 +3,7 @@ import types
 
 
 def infer_parameters_from_function(func):
-    """ Infers the arguments of a function
+    """Infers the arguments of a function
     (except the first arg which is assumed to be the dep. variable).
 
     Throws out `*args` and `**kwargs` type arguments
@@ -40,7 +40,7 @@ def infer_parameters_from_function(func):
 
 
 def infer_args_from_method(method):
-    """ Infers all arguments of a method except for `self`
+    """Infers all arguments of a method except for `self`
 
     Throws out `*args` and `**kwargs` type arguments.
 
@@ -54,7 +54,7 @@ def infer_args_from_method(method):
 
 
 def infer_args_from_function_except_n_args(func, n=1):
-    """ Inspects a function to find its arguments, and ignoring the
+    """Inspects a function to find its arguments, and ignoring the
     first n of these, returns a list of arguments from the function's
     signature.
 
@@ -104,8 +104,7 @@ def _infer_args_from_function_except_for_first_arg(func):
 
 
 def get_dict_with_properties(obj):
-    property_names = [p for p in dir(obj.__class__)
-                      if isinstance(getattr(obj.__class__, p), property)]
+    property_names = [p for p in dir(obj.__class__) if isinstance(getattr(obj.__class__, p), property)]
     dict_with_properties = obj.__dict__.copy()
     for key in property_names:
         dict_with_properties[key] = getattr(obj, key)
@@ -114,12 +113,12 @@ def get_dict_with_properties(obj):
 
 def get_function_path(func):
     if hasattr(func, "__module__") and hasattr(func, "__name__"):
-        return "{}.{}".format(func.__module__, func.__name__)
+        return f"{func.__module__}.{func.__name__}"
     else:
         return func
 
 
-class PropertyAccessor(object):
+class PropertyAccessor:
     """
     Generic descriptor class that allows handy access of properties without long
     boilerplate code. The properties of Interferometer are defined as instances

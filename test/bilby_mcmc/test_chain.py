@@ -2,12 +2,13 @@ import os
 import shutil
 import unittest
 
+import numpy as np
+import pandas as pd
+
 import bilby
 from bilby.bilby_mcmc.chain import Chain, Sample, calculate_tau
 from bilby.bilby_mcmc.utils import LOGLKEY, LOGPKEY
 from bilby.core.sampler.base_sampler import SamplerError
-import numpy as np
-import pandas as pd
 
 
 class TestChain(unittest.TestCase):
@@ -22,12 +23,9 @@ class TestChain(unittest.TestCase):
             shutil.rmtree(self.outdir)
 
     def create_random_sample(self):
-        return Sample({
-            "a": np.random.normal(0, 1),
-            "b": np.random.normal(0, 1),
-            LOGLKEY: np.random.normal(0, 1),
-            LOGPKEY: -1
-        })
+        return Sample(
+            {"a": np.random.normal(0, 1), "b": np.random.normal(0, 1), LOGLKEY: np.random.normal(0, 1), LOGPKEY: -1}
+        )
 
     def create_chain(self, n=1000):
         chain = Chain(initial_sample=self.initial_sample)
@@ -43,7 +41,7 @@ class TestChain(unittest.TestCase):
         chain = Chain(initial_sample=self.initial_sample)
         chain.append(self.create_random_sample())
         self.assertEqual(chain.position, 1)
-        self.assertEqual(len(chain.get_1d_array('a')), 2)
+        self.assertEqual(len(chain.get_1d_array("a")), 2)
 
     def test_append_within_init_space(self):
         chain = Chain(initial_sample=self.initial_sample)
@@ -54,7 +52,7 @@ class TestChain(unittest.TestCase):
         self.assertEqual(chain.position, N)
 
         # N samples + 1 initial position
-        self.assertEqual(len(chain.get_1d_array('a')), N + 1)
+        self.assertEqual(len(chain.get_1d_array("a")), N + 1)
 
     def test_append_with_extending(self):
         block_length = 100
@@ -153,7 +151,7 @@ class TestChain(unittest.TestCase):
         chain.plot(outdir=self.outdir, label="test")
         self.assertTrue(os.path.exists(f"{self.outdir}/test_checkpoint_trace.png"))
         priors = dict(
-            a=bilby.core.prior.Uniform(-10, 10, latex_label='a'),
+            a=bilby.core.prior.Uniform(-10, 10, latex_label="a"),
             b=bilby.core.prior.Uniform(-10, 10),
         )
         chain.thin_by_nact = 0.5
@@ -180,18 +178,18 @@ class TestSample(unittest.TestCase):
     def test_list_access(self):
         s = Sample(self.sample_dict)
         slist = s.list
-        self.assertEqual(slist, [self.sample_dict['a'], self.sample_dict['b']])
+        self.assertEqual(slist, [self.sample_dict["a"], self.sample_dict["b"]])
 
     def test_setitem(self):
         s = Sample(self.sample_dict)
 
         # Set existing parameter
-        s['a'] = 100
-        self.assertEqual(s['a'], 100)
+        s["a"] = 100
+        self.assertEqual(s["a"], 100)
 
         # Add parameter
-        s['c'] = 100
-        self.assertEqual(s['c'], 100)
+        s["c"] = 100
+        self.assertEqual(s["c"], 100)
 
     def test_parameter_only_dict(self):
         s = Sample(self.sample_dict)
@@ -201,9 +199,9 @@ class TestSample(unittest.TestCase):
         sample_dict = dict(a=1, b=2)
         curr = Sample(sample_dict)
         prop = curr.copy()
-        prop['a'] = 200
-        self.assertEqual(prop['a'], 200)
-        self.assertEqual(curr['a'], 1)
+        prop["a"] = 200
+        self.assertEqual(prop["a"], 200)
+        self.assertEqual(curr["a"], 1)
 
 
 class TestACT(unittest.TestCase):

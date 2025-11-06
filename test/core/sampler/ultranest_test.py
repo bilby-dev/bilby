@@ -7,13 +7,12 @@ import bilby.core.sampler.ultranest
 
 
 class TestUltranest(unittest.TestCase):
-
     def setUp(self):
         self.maxDiff = None
         self.likelihood = MagicMock()
         self.priors = bilby.core.prior.PriorDict(
-            dict(a=bilby.core.prior.Uniform(0, 1),
-                 b=bilby.core.prior.Uniform(0, 1)))
+            dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
+        )
         self.priors["a"] = bilby.core.prior.Prior(boundary="periodic")
         self.priors["b"] = bilby.core.prior.Prior(boundary="reflective")
         self.sampler = bilby.core.sampler.ultranest.Ultranest(
@@ -98,7 +97,7 @@ class TestUltranest(unittest.TestCase):
         )
         for equiv in bilby.core.sampler.base_sampler.NestedSampler.npoints_equiv_kwargs:
             new_kwargs = self.sampler.kwargs.copy()
-            del new_kwargs['num_live_points']
+            del new_kwargs["num_live_points"]
             new_kwargs[equiv] = 123
             self.sampler.kwargs = new_kwargs
             self.sampler.kwargs["wrapped_params"] = None

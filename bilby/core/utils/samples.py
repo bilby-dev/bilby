@@ -2,8 +2,8 @@ import numpy as np
 from scipy.special import logsumexp
 
 
-class SamplesSummary(object):
-    """ Object to store a set of samples and calculate summary statistics
+class SamplesSummary:
+    """Object to store a set of samples and calculate summary statistics
 
     Parameters
     ==========
@@ -16,7 +16,8 @@ class SamplesSummary(object):
         The default confidence interval level, defaults t0 0.9
 
     """
-    def __init__(self, samples, average='median', confidence_level=.9):
+
+    def __init__(self, samples, average="median", confidence_level=0.9):
         self.samples = samples
         self.average = average
         self.confidence_level = confidence_level
@@ -42,18 +43,18 @@ class SamplesSummary(object):
 
     @property
     def average(self):
-        if self._average == 'mean':
+        if self._average == "mean":
             return self.mean
-        elif self._average == 'median':
+        elif self._average == "median":
             return self.median
 
     @average.setter
     def average(self, average):
-        allowed_averages = ['mean', 'median']
+        allowed_averages = ["mean", "median"]
         if average in allowed_averages:
             self._average = average
         else:
-            raise ValueError("Average {} not in allowed averages".format(average))
+            raise ValueError(f"Average {average} not in allowed averages")
 
     @property
     def median(self):
@@ -65,37 +66,37 @@ class SamplesSummary(object):
 
     @property
     def _lower_level(self):
-        """ The credible interval lower quantile value """
-        return (1 - self.confidence_level) / 2.
+        """The credible interval lower quantile value"""
+        return (1 - self.confidence_level) / 2.0
 
     @property
     def _upper_level(self):
-        """ The credible interval upper quantile value """
-        return (1 + self.confidence_level) / 2.
+        """The credible interval upper quantile value"""
+        return (1 + self.confidence_level) / 2.0
 
     @property
     def lower_absolute_credible_interval(self):
-        """ Absolute lower value of the credible interval """
+        """Absolute lower value of the credible interval"""
         return np.quantile(self.samples, self._lower_level, axis=0)
 
     @property
     def upper_absolute_credible_interval(self):
-        """ Absolute upper value of the credible interval """
+        """Absolute upper value of the credible interval"""
         return np.quantile(self.samples, self._upper_level, axis=0)
 
     @property
     def lower_relative_credible_interval(self):
-        """ Relative (to average) lower value of the credible interval """
+        """Relative (to average) lower value of the credible interval"""
         return self.lower_absolute_credible_interval - self.average
 
     @property
     def upper_relative_credible_interval(self):
-        """ Relative (to average) upper value of the credible interval """
+        """Relative (to average) upper value of the credible interval"""
         return self.upper_absolute_credible_interval - self.average
 
 
 def kish_log_effective_sample_size(ln_weights):
-    """ Calculate the Kish effective sample size from the natural-log weights
+    """Calculate the Kish effective sample size from the natural-log weights
 
     See https://en.wikipedia.org/wiki/Effective_sample_size for details
 

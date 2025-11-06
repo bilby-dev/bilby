@@ -32,9 +32,7 @@ def _prior_transform_wrapper(theta):
     """Wrapper to the prior transformation. Needed for multiprocessing."""
     from .base_sampler import _sampling_convenience_dump
 
-    return _sampling_convenience_dump.priors.rescale(
-        _sampling_convenience_dump.search_parameter_keys, theta
-    )
+    return _sampling_convenience_dump.priors.rescale(_sampling_convenience_dump.search_parameter_keys, theta)
 
 
 def _log_likelihood_wrapper(theta):
@@ -42,20 +40,10 @@ def _log_likelihood_wrapper(theta):
     from .base_sampler import _sampling_convenience_dump
 
     if _sampling_convenience_dump.priors.evaluate_constraints(
-        {
-            key: theta[ii]
-            for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
-        }
+        {key: theta[ii] for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)}
     ):
         params = deepcopy(_sampling_convenience_dump.parameters)
-        params.update(
-            {
-                key: t
-                for key, t in zip(
-                    _sampling_convenience_dump.search_parameter_keys, theta
-                )
-            }
-        )
+        params.update({key: t for key, t in zip(_sampling_convenience_dump.search_parameter_keys, theta)})
         return _safe_likelihood_call(
             _sampling_convenience_dump.likelihood,
             params,
@@ -165,11 +153,7 @@ class Dynesty(NestedSampler):
     @property
     def _dynesty_init_kwargs(self):
         params = inspect.signature(self.sampler_init).parameters
-        kwargs = {
-            key: param.default
-            for key, param in params.items()
-            if param.default != param.empty
-        }
+        kwargs = {key: param.default for key, param in params.items() if param.default != param.empty}
         kwargs["sample"] = "act-walk"
         kwargs["bound"] = "live"
         kwargs["update_interval"] = 600
@@ -179,11 +163,7 @@ class Dynesty(NestedSampler):
     @property
     def _dynesty_sampler_kwargs(self):
         params = inspect.signature(self.sampler_class.run_nested).parameters
-        kwargs = {
-            key: param.default
-            for key, param in params.items()
-            if param.default != param.empty
-        }
+        kwargs = {key: param.default for key, param in params.items() if param.default != param.empty}
         kwargs["save_bounds"] = False
         if "dlogz" in kwargs:
             kwargs["dlogz"] = 0.1
@@ -235,7 +215,7 @@ class Dynesty(NestedSampler):
         self.proposals = proposals
         self.print_method = print_method
         self._translate_kwargs(kwargs)
-        super(Dynesty, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -260,9 +240,7 @@ class Dynesty(NestedSampler):
             self.n_check_point = (
                 10
                 if np.isnan(self._log_likelihood_eval_time)
-                else max(
-                    int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10
-                )
+                else max(int(check_point_delta_t / self._log_likelihood_eval_time / 10), 10)
             )
         self.check_point_delta_t = check_point_delta_t
         logger.info(f"Checkpoint every check_point_delta_t = {check_point_delta_t}s")
@@ -294,9 +272,7 @@ class Dynesty(NestedSampler):
 
             if kwargs["sample"] == "act-walk":
                 internal_kwargs["nact"] = self.nact
-                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
-                    **internal_kwargs
-                )
+                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(**internal_kwargs)
                 bound = "none"
                 logger.info(
                     f"Using the bilby-implemented ensemble rwalk sampling tracking the "
@@ -315,9 +291,7 @@ class Dynesty(NestedSampler):
                 )
             elif kwargs["sample"] == "rwalk":
                 internal_kwargs["nact"] = self.nact
-                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(
-                    **internal_kwargs
-                )
+                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(**internal_kwargs)
                 bound = "none"
                 logger.info(
                     f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
@@ -360,9 +334,7 @@ class Dynesty(NestedSampler):
             if "rstate" not in kwargs:
                 kwargs["rstate"] = np.random.default_rng(seed)
             else:
-                logger.warning(
-                    "Kwargs contain both 'rstate' and 'seed', ignoring 'seed'."
-                )
+                logger.warning("Kwargs contain both 'rstate' and 'seed', ignoring 'seed'.")
 
     def _verify_kwargs_against_default_kwargs(self):
         if not self.kwargs["walks"]:
@@ -371,9 +343,7 @@ class Dynesty(NestedSampler):
             self.kwargs["print_func"] = self._print_func
             if "interval" in self.print_method:
                 self._last_print_time = datetime.datetime.now()
-                self._print_interval = datetime.timedelta(
-                    seconds=float(self.print_method.split("-")[1])
-                )
+                self._print_interval = datetime.timedelta(seconds=float(self.print_method.split("-")[1]))
         Sampler._verify_kwargs_against_default_kwargs(self)
 
     @classmethod
@@ -540,8 +510,7 @@ class Dynesty(NestedSampler):
             "live-multi",
         ]:
             logger.info(
-                "Live-point based bound method requested with dynesty sample "
-                f"'{sample}', overwriting to 'multi'"
+                f"Live-point based bound method requested with dynesty sample '{sample}', overwriting to 'multi'"
             )
             self.kwargs["bound"] = "multi"
         elif bound == "live":
@@ -551,25 +520,15 @@ class Dynesty(NestedSampler):
         elif bound == "live-multi":
             from .dynesty_utils import MultiEllipsoidLivePointSampler
 
-            dynesty.dynamicsampler._SAMPLERS[
-                "live-multi"
-            ] = MultiEllipsoidLivePointSampler
+            dynesty.dynamicsampler._SAMPLERS["live-multi"] = MultiEllipsoidLivePointSampler
         elif sample == "acceptance-walk":
-            raise DynestySetupError(
-                "bound must be set to live or live-multi for sample=acceptance-walk"
-            )
+            raise DynestySetupError("bound must be set to live or live-multi for sample=acceptance-walk")
         elif self.proposals is None:
-            logger.warning(
-                "No proposals specified using dynesty sampling, defaulting "
-                "to 'volumetric'."
-            )
+            logger.warning("No proposals specified using dynesty sampling, defaulting to 'volumetric'.")
             self.proposals = ["volumetric"]
             _SamplingContainer.proposals = self.proposals
         elif "diff" in self.proposals:
-            raise DynestySetupError(
-                "bound must be set to live or live-multi to use differential "
-                "evolution proposals"
-            )
+            raise DynestySetupError("bound must be set to live or live-multi to use differential evolution proposals")
 
         if sample == "rwalk":
             logger.info(
@@ -624,9 +583,7 @@ class Dynesty(NestedSampler):
             logger.info("Resume file successfully loaded.")
         else:
             if self.kwargs["live_points"] is None:
-                self.kwargs["live_points"] = self.get_initial_points_from_prior(
-                    self.nlive
-                )
+                self.kwargs["live_points"] = self.get_initial_points_from_prior(self.nlive)
                 self.kwargs["live_points"] = (*self.kwargs["live_points"], None)
             self.sampler = self.sampler_init(
                 loglikelihood=_log_likelihood_wrapper,
@@ -672,17 +629,13 @@ class Dynesty(NestedSampler):
         every process. To make sure we get every process, run the kwarg setting
         more times than we have processes.
         """
-        super(Dynesty, self)._setup_pool()
+        super()._setup_pool()
 
         if self.new_dynesty_api:
             return
 
         if self.pool is not None:
-            args = (
-                [(self.nact, self.maxmcmc, self.proposals, self.naccept)]
-                * self.npool
-                * 10
-            )
+            args = [(self.nact, self.maxmcmc, self.proposals, self.naccept)] * self.npool * 10
             self.pool.map(_set_sampling_kwargs, args)
 
     def _generate_result(self, out):
@@ -711,9 +664,7 @@ class Dynesty(NestedSampler):
             keep = weights > random.rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
-            logger.info(
-                f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples"
-            )
+            logger.info(f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples")
         else:
             self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
             self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
@@ -785,9 +736,7 @@ class Dynesty(NestedSampler):
             if os.path.isfile(self.resume_file):
                 last_checkpoint_s = time.time() - os.path.getmtime(self.resume_file)
             else:
-                last_checkpoint_s = (
-                    datetime.datetime.now() - self.start_time
-                ).total_seconds()
+                last_checkpoint_s = (datetime.datetime.now() - self.start_time).total_seconds()
             if last_checkpoint_s > self.check_point_delta_t:
                 self.write_current_state()
                 self._add_live()
@@ -907,7 +856,7 @@ class Dynesty(NestedSampler):
     def write_current_state_and_exit(self, signum=None, frame=None):
         if self.pbar is not None:
             self.pbar = self.pbar.close()
-        super(Dynesty, self).write_current_state_and_exit(signum=signum, frame=frame)
+        super().write_current_state_and_exit(signum=signum, frame=frame)
 
     def write_current_state(self):
         """
@@ -949,10 +898,7 @@ class Dynesty(NestedSampler):
             safe_file_dump((self.sampler, versions, metadata), self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
-            logger.warning(
-                "Cannot write pickle resume file! "
-                "Job will not resume if interrupted."
-            )
+            logger.warning("Cannot write pickle resume file! Job will not resume if interrupted.")
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
             if self.new_dynesty_api:
@@ -1015,8 +961,7 @@ class Dynesty(NestedSampler):
                 logger.warning("Failed to create dynesty state plot at checkpoint")
             except Exception as e:
                 logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
+                    f"Unexpected error {e} in dynesty plotting. Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -1041,16 +986,13 @@ class Dynesty(NestedSampler):
                 logger.warning("Failed to create dynesty unit state plot at checkpoint")
             except Exception as e:
                 logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
+                    f"Unexpected error {e} in dynesty plotting. Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_run.png"
-                fig, _ = dyplot.runplot(
-                    self.sampler.results, logplot=False, use_math_text=False
-                )
+                fig, _ = dyplot.runplot(self.sampler.results, logplot=False, use_math_text=False)
                 fig.tight_layout()
                 plt.savefig(filename)
             except (
@@ -1063,8 +1005,7 @@ class Dynesty(NestedSampler):
                 logger.warning("Failed to create dynesty run plot at checkpoint")
             except Exception as e:
                 logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
+                    f"Unexpected error {e} in dynesty plotting. Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -1080,8 +1021,7 @@ class Dynesty(NestedSampler):
                 logger.debug("Cannot create Dynesty stats plot with dynamic sampler.")
             except Exception as e:
                 logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
+                    f"Unexpected error {e} in dynesty plotting. Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
                 plt.close("all")
@@ -1112,9 +1052,7 @@ class Dynesty(NestedSampler):
             self.pbar = self.pbar.close()
             print("")
         N = 100
-        self.result.samples = pd.DataFrame(self.priors.sample(N))[
-            self.search_parameter_keys
-        ].values
+        self.result.samples = pd.DataFrame(self.priors.sample(N))[self.search_parameter_keys].values
         self.result.nested_samples = self.result.samples
         self.result.log_likelihood_evaluations = np.ones(N)
         self.result.log_evidence = 1
@@ -1213,9 +1151,7 @@ def dynesty_stats_plot(sampler):
         axs[-1].legend()
         axs[-1].set_yscale("log")
     else:
-        axs[-2].plot(
-            np.arange(0, len(lifetimes) - nlive), lifetimes[:-nlive], color="grey"
-        )
+        axs[-2].plot(np.arange(0, len(lifetimes) - nlive), lifetimes[:-nlive], color="grey")
         axs[-2].plot(
             np.arange(len(lifetimes) - nlive, len(lifetimes)),
             lifetimes[-nlive:],

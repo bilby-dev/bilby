@@ -6,6 +6,8 @@ data with background Gaussian noise. We then compare the result to posteriors
 estimated using the Fisher Information Matrix approximation.
 
 """
+# ruff: noqa: E402
+
 import copy
 
 import bilby
@@ -69,6 +71,4 @@ result_fim = copy.deepcopy(result)
 result_fim.posterior = fim.sample_dataframe("maxL", 10000)
 result_fim.label = "Fisher"
 
-bilby.core.result.plot_multiple(
-    [result, result_fim], parameters=injection_parameters, truth_color="k"
-)
+bilby.core.result.plot_multiple([result, result_fim], parameters=injection_parameters, truth_color="k")

@@ -1,9 +1,10 @@
 import unittest
 
-from astropy.cosmology import WMAP9
-from bilby.gw import cosmology
 import lal
 import pytest
+from astropy.cosmology import WMAP9
+
+from bilby.gw import cosmology
 
 
 @pytest.fixture(autouse=True)
@@ -77,7 +78,6 @@ class TestGetCosmology(unittest.TestCase):
 
 
 class TestPlanck15LALCosmology(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -87,14 +87,7 @@ class TestPlanck15LALCosmology(unittest.TestCase):
         dist_bilby = cosmo.luminosity_distance(z)
         # Change to use CreateDefaultCosmologicalParameters once it is
         # available in a release
-        omega = lal.CreateCosmologicalParameters(
-            h=0.679,
-            om=0.3065,
-            ol=1 - 0.3065,
-            w0=-1.0,
-            w1=0.0,
-            w2=0.0
-        )
+        omega = lal.CreateCosmologicalParameters(h=0.679, om=0.3065, ol=1 - 0.3065, w0=-1.0, w1=0.0, w2=0.0)
         dist_lal = lal.LuminosityDistance(omega=omega, z=z)
         # Results are the same to within 9 decimal places
         self.assertAlmostEqual(dist_bilby.value, dist_lal)

@@ -1,25 +1,24 @@
 import numpy as np
 from scipy.special import (
-    xlogy,
-    erf,
-    erfinv,
-    log1p,
-    stdtrit,
-    gammaln,
-    stdtr,
-    betaln,
     betainc,
     betaincinv,
-    gammaincinv,
+    betaln,
+    erf,
+    erfinv,
     gammainc,
+    gammaincinv,
+    gammaln,
+    log1p,
+    stdtr,
+    stdtrit,
+    xlogy,
 )
 
-from .base import Prior
 from ..utils import logger
+from .base import Prior
 
 
 class DeltaFunction(Prior):
-
     def __init__(self, peak, name=None, latex_label=None, unit=None):
         """Dirac delta function prior, this always returns peak.
 
@@ -35,8 +34,9 @@ class DeltaFunction(Prior):
             See superclass
 
         """
-        super(DeltaFunction, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                            minimum=peak, maximum=peak, check_range_nonzero=False)
+        super().__init__(
+            name=name, latex_label=latex_label, unit=unit, minimum=peak, maximum=peak, check_range_nonzero=False
+        )
         self.peak = peak
         self._is_fixed = True
         self.least_recently_sampled = peak
@@ -52,7 +52,7 @@ class DeltaFunction(Prior):
         =======
         float: Rescaled probability, equivalent to peak
         """
-        return self.peak * val ** 0
+        return self.peak * val**0
 
     def prob(self, val):
         """Return the prior probability of val
@@ -66,7 +66,7 @@ class DeltaFunction(Prior):
          Union[float, array_like]: np.inf if val = peak, 0 otherwise
 
         """
-        at_peak = (val == self.peak)
+        at_peak = val == self.peak
         return np.nan_to_num(np.multiply(at_peak, np.inf))
 
     def cdf(self, val):
@@ -74,9 +74,7 @@ class DeltaFunction(Prior):
 
 
 class PowerLaw(Prior):
-
-    def __init__(self, alpha, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None):
+    def __init__(self, alpha, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None):
         """Power law with bounds and alpha, spectral index
 
         Parameters
@@ -96,9 +94,9 @@ class PowerLaw(Prior):
         boundary: str
             See superclass
         """
-        super(PowerLaw, self).__init__(name=name, latex_label=latex_label,
-                                       minimum=minimum, maximum=maximum, unit=unit,
-                                       boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, unit=unit, boundary=boundary
+        )
         self.alpha = alpha
 
     def rescale(self, val):
@@ -119,8 +117,10 @@ class PowerLaw(Prior):
         if self.alpha == -1:
             return self.minimum * np.exp(val * np.log(self.maximum / self.minimum))
         else:
-            return (self.minimum ** (1 + self.alpha) + val *
-                    (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
+            return (
+                self.minimum ** (1 + self.alpha)
+                + val * (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))
+            ) ** (1.0 / (1 + self.alpha))
 
     def prob(self, val):
         """Return the prior probability of val
@@ -136,9 +136,11 @@ class PowerLaw(Prior):
         if self.alpha == -1:
             return np.nan_to_num(1 / val / np.log(self.maximum / self.minimum)) * self.is_in_prior_range(val)
         else:
-            return np.nan_to_num(val ** self.alpha * (1 + self.alpha) /
-                                 (self.maximum ** (1 + self.alpha) -
-                                  self.minimum ** (1 + self.alpha))) * self.is_in_prior_range(val)
+            return np.nan_to_num(
+                val**self.alpha
+                * (1 + self.alpha)
+                / (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))
+            ) * self.is_in_prior_range(val)
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -153,25 +155,22 @@ class PowerLaw(Prior):
 
         """
         if self.alpha == -1:
-            normalising = 1. / np.log(self.maximum / self.minimum)
+            normalising = 1.0 / np.log(self.maximum / self.minimum)
         else:
-            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
-                                              self.minimum ** (1 + self.alpha))
+            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            ln_in_range = np.log(1. * self.is_in_prior_range(val))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ln_in_range = np.log(1.0 * self.is_in_prior_range(val))
             ln_p = self.alpha * np.nan_to_num(np.log(val)) + np.log(normalising)
 
         return ln_p + ln_in_range
 
     def cdf(self, val):
         if self.alpha == -1:
-            _cdf = (np.log(val / self.minimum) /
-                    np.log(self.maximum / self.minimum))
+            _cdf = np.log(val / self.minimum) / np.log(self.maximum / self.minimum)
         else:
-            _cdf = (
-                (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
-                / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
+            _cdf = (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)) / (
+                self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)
             )
         _cdf = np.minimum(_cdf, 1)
         _cdf = np.maximum(_cdf, 0)
@@ -179,9 +178,7 @@ class PowerLaw(Prior):
 
 
 class Uniform(Prior):
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None):
+    def __init__(self, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None):
         """Uniform prior with bounds
 
         Parameters
@@ -199,9 +196,9 @@ class Uniform(Prior):
         boundary: str
             See superclass
         """
-        super(Uniform, self).__init__(name=name, latex_label=latex_label,
-                                      minimum=minimum, maximum=maximum, unit=unit,
-                                      boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, unit=unit, boundary=boundary
+        )
 
     def rescale(self, val):
         """
@@ -254,9 +251,7 @@ class Uniform(Prior):
 
 
 class LogUniform(PowerLaw):
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None):
+    def __init__(self, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None):
         """Log-Uniform prior with bounds
 
         Parameters
@@ -274,16 +269,15 @@ class LogUniform(PowerLaw):
         boundary: str
             See superclass
         """
-        super(LogUniform, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                         minimum=minimum, maximum=maximum, alpha=-1, boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, unit=unit, minimum=minimum, maximum=maximum, alpha=-1, boundary=boundary
+        )
         if self.minimum <= 0:
-            logger.warning('You specified a uniform-in-log prior with minimum={}'.format(self.minimum))
+            logger.warning(f"You specified a uniform-in-log prior with minimum={self.minimum}")
 
 
 class SymmetricLogUniform(Prior):
-
-    def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None, boundary=None):
+    def __init__(self, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None):
         """Symmetric Log-Uniform distributions with bounds
 
         This is identical to a Log-Uniform distribution, but mirrored about
@@ -306,9 +300,9 @@ class SymmetricLogUniform(Prior):
         boundary: str
             See superclass
         """
-        super(SymmetricLogUniform, self).__init__(name=name, latex_label=latex_label,
-                                                  minimum=minimum, maximum=maximum, unit=unit,
-                                                  boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, unit=unit, boundary=boundary
+        )
 
     def rescale(self, val):
         """
@@ -333,10 +327,12 @@ class SymmetricLogUniform(Prior):
         else:
             vals_less_than_5 = val < 0.5
             rescaled = np.empty_like(val)
-            rescaled[vals_less_than_5] = -self.maximum * np.exp(-2 * val[vals_less_than_5] *
-                                                                np.log(self.maximum / self.minimum))
-            rescaled[~vals_less_than_5] = self.minimum * np.exp(np.log(self.maximum / self.minimum) *
-                                                                (2 * val[~vals_less_than_5] - 1))
+            rescaled[vals_less_than_5] = -self.maximum * np.exp(
+                -2 * val[vals_less_than_5] * np.log(self.maximum / self.minimum)
+            )
+            rescaled[~vals_less_than_5] = self.minimum * np.exp(
+                np.log(self.maximum / self.minimum) * (2 * val[~vals_less_than_5] - 1)
+            )
             return rescaled
 
     def prob(self, val):
@@ -351,8 +347,7 @@ class SymmetricLogUniform(Prior):
         float: Prior probability of val
         """
         val = np.abs(val)
-        return (np.nan_to_num(0.5 / val / np.log(self.maximum / self.minimum)) *
-                self.is_in_prior_range(val))
+        return np.nan_to_num(0.5 / val / np.log(self.maximum / self.minimum)) * self.is_in_prior_range(val)
 
     def ln_prob(self, val):
         """Return the logarithmic prior probability of val
@@ -366,15 +361,13 @@ class SymmetricLogUniform(Prior):
         float:
 
         """
-        return np.nan_to_num(- np.log(2 * np.abs(val)) - np.log(np.log(self.maximum / self.minimum)))
+        return np.nan_to_num(-np.log(2 * np.abs(val)) - np.log(np.log(self.maximum / self.minimum)))
 
     def cdf(self, val):
         norm = 0.5 / np.log(self.maximum / self.minimum)
         _cdf = (
-            -norm * np.log(abs(val) / self.maximum)
-            * (val <= -self.minimum) * (val >= -self.maximum)
-            + (0.5 + norm * np.log(abs(val) / self.minimum))
-            * (val >= self.minimum) * (val <= self.maximum)
+            -norm * np.log(abs(val) / self.maximum) * (val <= -self.minimum) * (val >= -self.maximum)
+            + (0.5 + norm * np.log(abs(val) / self.minimum)) * (val >= self.minimum) * (val <= self.maximum)
             + 0.5 * (val > -self.minimum) * (val < self.minimum)
             + 1 * (val > self.maximum)
         )
@@ -382,9 +375,7 @@ class SymmetricLogUniform(Prior):
 
 
 class Cosine(Prior):
-
-    def __init__(self, minimum=-np.pi / 2, maximum=np.pi / 2, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(self, minimum=-np.pi / 2, maximum=np.pi / 2, name=None, latex_label=None, unit=None, boundary=None):
         """Cosine prior with bounds
 
         Parameters
@@ -402,8 +393,9 @@ class Cosine(Prior):
         boundary: str
             See superclass
         """
-        super(Cosine, self).__init__(minimum=minimum, maximum=maximum, name=name,
-                                     latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(
+            minimum=minimum, maximum=maximum, name=name, latex_label=latex_label, unit=unit, boundary=boundary
+        )
 
     def rescale(self, val):
         """
@@ -428,19 +420,14 @@ class Cosine(Prior):
         return np.cos(val) / 2 * self.is_in_prior_range(val)
 
     def cdf(self, val):
-        _cdf = (
-            (np.sin(val) - np.sin(self.minimum))
-            / (np.sin(self.maximum) - np.sin(self.minimum))
-            * (val >= self.minimum) * (val <= self.maximum)
-            + 1 * (val > self.maximum)
-        )
+        _cdf = (np.sin(val) - np.sin(self.minimum)) / (np.sin(self.maximum) - np.sin(self.minimum)) * (
+            val >= self.minimum
+        ) * (val <= self.maximum) + 1 * (val > self.maximum)
         return _cdf
 
 
 class Sine(Prior):
-
-    def __init__(self, minimum=0, maximum=np.pi, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(self, minimum=0, maximum=np.pi, name=None, latex_label=None, unit=None, boundary=None):
         """Sine prior with bounds
 
         Parameters
@@ -458,8 +445,9 @@ class Sine(Prior):
         boundary: str
             See superclass
         """
-        super(Sine, self).__init__(minimum=minimum, maximum=maximum, name=name,
-                                   latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(
+            minimum=minimum, maximum=maximum, name=name, latex_label=latex_label, unit=unit, boundary=boundary
+        )
 
     def rescale(self, val):
         """
@@ -484,17 +472,13 @@ class Sine(Prior):
         return np.sin(val) / 2 * self.is_in_prior_range(val)
 
     def cdf(self, val):
-        _cdf = (
-            (np.cos(val) - np.cos(self.minimum))
-            / (np.cos(self.maximum) - np.cos(self.minimum))
-            * (val >= self.minimum) * (val <= self.maximum)
-            + 1 * (val > self.maximum)
-        )
+        _cdf = (np.cos(val) - np.cos(self.minimum)) / (np.cos(self.maximum) - np.cos(self.minimum)) * (
+            val >= self.minimum
+        ) * (val <= self.maximum) + 1 * (val > self.maximum)
         return _cdf
 
 
 class Gaussian(Prior):
-
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None):
         """Gaussian prior with mean mu and width sigma
 
@@ -513,7 +497,7 @@ class Gaussian(Prior):
         boundary: str
             See superclass
         """
-        super(Gaussian, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
         self.sigma = sigma
 
@@ -527,7 +511,7 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
+        return self.mu + erfinv(2 * val - 1) * 2**0.5 * self.sigma
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -540,7 +524,7 @@ class Gaussian(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 / self.sigma
+        return np.exp(-((self.mu - val) ** 2) / (2 * self.sigma**2)) / (2 * np.pi) ** 0.5 / self.sigma
 
     def ln_prob(self, val):
         """Return the Log prior probability of val.
@@ -554,20 +538,18 @@ class Gaussian(Prior):
         Union[float, array_like]: Prior probability of val
         """
 
-        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + np.log(2 * np.pi * self.sigma ** 2))
+        return -0.5 * ((self.mu - val) ** 2 / self.sigma**2 + np.log(2 * np.pi * self.sigma**2))
 
     def cdf(self, val):
-        return (1 - erf((self.mu - val) / 2 ** 0.5 / self.sigma)) / 2
+        return (1 - erf((self.mu - val) / 2**0.5 / self.sigma)) / 2
 
 
 class Normal(Gaussian):
-    """A synonym for the  Gaussian distribution. """
+    """A synonym for the  Gaussian distribution."""
 
 
 class TruncatedGaussian(Prior):
-
-    def __init__(self, mu, sigma, minimum, maximum, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(self, mu, sigma, minimum, maximum, name=None, latex_label=None, unit=None, boundary=None):
         """Truncated Gaussian prior with mean mu and width sigma
 
         https://en.wikipedia.org/wiki/Truncated_normal_distribution
@@ -591,21 +573,23 @@ class TruncatedGaussian(Prior):
         boundary: str
             See superclass
         """
-        super(TruncatedGaussian, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                                minimum=minimum, maximum=maximum, boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, unit=unit, minimum=minimum, maximum=maximum, boundary=boundary
+        )
         self.mu = mu
         self.sigma = sigma
 
     @property
     def normalisation(self):
-        """ Calculates the proper normalisation of the truncated Gaussian
+        """Calculates the proper normalisation of the truncated Gaussian
 
         Returns
         =======
         float: Proper normalisation of the truncated Gaussian
         """
-        return (erf((self.maximum - self.mu) / 2 ** 0.5 / self.sigma) - erf(
-            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) / 2
+        return (
+            erf((self.maximum - self.mu) / 2**0.5 / self.sigma) - erf((self.minimum - self.mu) / 2**0.5 / self.sigma)
+        ) / 2
 
     def rescale(self, val):
         """
@@ -613,8 +597,12 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return erfinv(2 * val * self.normalisation + erf(
-            (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
+        return (
+            erfinv(2 * val * self.normalisation + erf((self.minimum - self.mu) / 2**0.5 / self.sigma))
+            * 2**0.5
+            * self.sigma
+            + self.mu
+        )
 
     def prob(self, val):
         """Return the prior probability of val.
@@ -627,17 +615,18 @@ class TruncatedGaussian(Prior):
         =======
         float: Prior probability of val
         """
-        return np.exp(-(self.mu - val) ** 2 / (2 * self.sigma ** 2)) / (2 * np.pi) ** 0.5 \
-            / self.sigma / self.normalisation * self.is_in_prior_range(val)
+        return (
+            np.exp(-((self.mu - val) ** 2) / (2 * self.sigma**2))
+            / (2 * np.pi) ** 0.5
+            / self.sigma
+            / self.normalisation
+            * self.is_in_prior_range(val)
+        )
 
     def cdf(self, val):
         _cdf = (
-            (
-                erf((val - self.mu) / 2 ** 0.5 / self.sigma)
-                - erf((self.minimum - self.mu) / 2 ** 0.5 / self.sigma)
-            ) / 2 / self.normalisation * (val >= self.minimum) * (val <= self.maximum)
-            + 1 * (val > self.maximum)
-        )
+            erf((val - self.mu) / 2**0.5 / self.sigma) - erf((self.minimum - self.mu) / 2**0.5 / self.sigma)
+        ) / 2 / self.normalisation * (val >= self.minimum) * (val <= self.maximum) + 1 * (val > self.maximum)
         return _cdf
 
 
@@ -662,9 +651,16 @@ class HalfGaussian(TruncatedGaussian):
         boundary: str
             See superclass
         """
-        super(HalfGaussian, self).__init__(mu=0., sigma=sigma, minimum=0., maximum=np.inf,
-                                           name=name, latex_label=latex_label,
-                                           unit=unit, boundary=boundary)
+        super().__init__(
+            mu=0.0,
+            sigma=sigma,
+            minimum=0.0,
+            maximum=np.inf,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+        )
 
 
 class HalfNormal(HalfGaussian):
@@ -692,10 +688,9 @@ class LogNormal(Prior):
         boundary: str
             See superclass
         """
-        super(LogNormal, self).__init__(name=name, minimum=0., latex_label=latex_label,
-                                        unit=unit, boundary=boundary)
+        super().__init__(name=name, minimum=0.0, latex_label=latex_label, unit=unit, boundary=boundary)
 
-        if sigma <= 0.:
+        if sigma <= 0.0:
             raise ValueError("For the LogGaussian prior the standard deviation must be positive")
 
         self.mu = mu
@@ -707,7 +702,7 @@ class LogNormal(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        return np.exp(self.mu + np.sqrt(2 * self.sigma ** 2) * erfinv(2 * val - 1))
+        return np.exp(self.mu + np.sqrt(2 * self.sigma**2) * erfinv(2 * val - 1))
 
     def prob(self, val):
         """Returns the prior probability of val.
@@ -722,15 +717,20 @@ class LogNormal(Prior):
         """
         if isinstance(val, (float, int)):
             if val <= self.minimum:
-                _prob = 0.
+                _prob = 0.0
             else:
-                _prob = np.exp(-(np.log(val) - self.mu) ** 2 / self.sigma ** 2 / 2)\
-                    / np.sqrt(2 * np.pi) / val / self.sigma
+                _prob = (
+                    np.exp(-((np.log(val) - self.mu) ** 2) / self.sigma**2 / 2) / np.sqrt(2 * np.pi) / val / self.sigma
+                )
         else:
             _prob = np.zeros(val.size)
-            idx = (val > self.minimum)
-            _prob[idx] = np.exp(-(np.log(val[idx]) - self.mu) ** 2 / self.sigma ** 2 / 2)\
-                / np.sqrt(2 * np.pi) / val[idx] / self.sigma
+            idx = val > self.minimum
+            _prob[idx] = (
+                np.exp(-((np.log(val[idx]) - self.mu) ** 2) / self.sigma**2 / 2)
+                / np.sqrt(2 * np.pi)
+                / val[idx]
+                / self.sigma
+            )
         return _prob
 
     def ln_prob(self, val):
@@ -748,25 +748,28 @@ class LogNormal(Prior):
             if val <= self.minimum:
                 _ln_prob = -np.inf
             else:
-                _ln_prob = -(np.log(val) - self.mu) ** 2 / self.sigma ** 2 / 2\
-                    - np.log(np.sqrt(2 * np.pi) * val * self.sigma)
+                _ln_prob = -((np.log(val) - self.mu) ** 2) / self.sigma**2 / 2 - np.log(
+                    np.sqrt(2 * np.pi) * val * self.sigma
+                )
         else:
             _ln_prob = -np.inf * np.ones(val.size)
-            idx = (val > self.minimum)
-            _ln_prob[idx] = -(np.log(val[idx]) - self.mu) ** 2\
-                / self.sigma ** 2 / 2 - np.log(np.sqrt(2 * np.pi) * val[idx] * self.sigma)
+            idx = val > self.minimum
+            _ln_prob[idx] = -((np.log(val[idx]) - self.mu) ** 2) / self.sigma**2 / 2 - np.log(
+                np.sqrt(2 * np.pi) * val[idx] * self.sigma
+            )
         return _ln_prob
 
     def cdf(self, val):
         if isinstance(val, (float, int)):
             if val <= self.minimum:
-                _cdf = 0.
+                _cdf = 0.0
             else:
                 _cdf = 0.5 + erf((np.log(val) - self.mu) / self.sigma / np.sqrt(2)) / 2
         else:
             _cdf = np.zeros(val.size)
-            _cdf[val > self.minimum] = 0.5 + erf((
-                np.log(val[val > self.minimum]) - self.mu) / self.sigma / np.sqrt(2)) / 2
+            _cdf[val > self.minimum] = (
+                0.5 + erf((np.log(val[val > self.minimum]) - self.mu) / self.sigma / np.sqrt(2)) / 2
+            )
         return _cdf
 
 
@@ -791,8 +794,7 @@ class Exponential(Prior):
         boundary: str
             See superclass
         """
-        super(Exponential, self).__init__(name=name, minimum=0., latex_label=latex_label,
-                                          unit=unit, boundary=boundary)
+        super().__init__(name=name, minimum=0.0, latex_label=latex_label, unit=unit, boundary=boundary)
         self.mu = mu
 
     def rescale(self, val):
@@ -816,7 +818,7 @@ class Exponential(Prior):
         """
         if isinstance(val, (float, int)):
             if val < self.minimum:
-                _prob = 0.
+                _prob = 0.0
             else:
                 _prob = np.exp(-val / self.mu) / self.mu
         else:
@@ -848,18 +850,17 @@ class Exponential(Prior):
     def cdf(self, val):
         if isinstance(val, (float, int)):
             if val < self.minimum:
-                _cdf = 0.
+                _cdf = 0.0
             else:
-                _cdf = 1. - np.exp(-val / self.mu)
+                _cdf = 1.0 - np.exp(-val / self.mu)
         else:
             _cdf = np.zeros(val.size)
-            _cdf[val >= self.minimum] = 1. - np.exp(-val[val >= self.minimum] / self.mu)
+            _cdf[val >= self.minimum] = 1.0 - np.exp(-val[val >= self.minimum] / self.mu)
         return _cdf
 
 
 class StudentT(Prior):
-    def __init__(self, df, mu=0., scale=1., name=None, latex_label=None,
-                 unit=None, boundary=None):
+    def __init__(self, df, mu=0.0, scale=1.0, name=None, latex_label=None, unit=None, boundary=None):
         """Student's t-distribution prior with number of degrees of freedom df,
         mean mu and scale
 
@@ -882,9 +883,9 @@ class StudentT(Prior):
         boundary: str
             See superclass
         """
-        super(StudentT, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
 
-        if df <= 0. or scale <= 0.:
+        if df <= 0.0 or scale <= 0.0:
             raise ValueError("For the StudentT prior the number of degrees of freedom and scale must be positive")
 
         self.df = df
@@ -934,17 +935,19 @@ class StudentT(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return gammaln(0.5 * (self.df + 1)) - gammaln(0.5 * self.df)\
-            - np.log(np.sqrt(np.pi * self.df) * self.scale) - (self.df + 1) / 2 *\
-            np.log(1 + ((val - self.mu) / self.scale) ** 2 / self.df)
+        return (
+            gammaln(0.5 * (self.df + 1))
+            - gammaln(0.5 * self.df)
+            - np.log(np.sqrt(np.pi * self.df) * self.scale)
+            - (self.df + 1) / 2 * np.log(1 + ((val - self.mu) / self.scale) ** 2 / self.df)
+        )
 
     def cdf(self, val):
         return stdtr(self.df, (val - self.mu) / self.scale)
 
 
 class Beta(Prior):
-    def __init__(self, alpha, beta, minimum=0, maximum=1, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(self, alpha, beta, minimum=0, maximum=1, name=None, latex_label=None, unit=None, boundary=None):
         """Beta distribution
 
         https://en.wikipedia.org/wiki/Beta_distribution
@@ -971,10 +974,11 @@ class Beta(Prior):
         boundary: str
             See superclass
         """
-        super(Beta, self).__init__(minimum=minimum, maximum=maximum, name=name,
-                                   latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(
+            minimum=minimum, maximum=maximum, name=name, latex_label=latex_label, unit=unit, boundary=boundary
+        )
 
-        if alpha <= 0. or beta <= 0.:
+        if alpha <= 0.0 or beta <= 0.0:
             raise ValueError("alpha and beta must both be positive values")
 
         self.alpha = alpha
@@ -1012,8 +1016,12 @@ class Beta(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        _ln_prob = xlogy(self.alpha - 1, val - self.minimum) + xlogy(self.beta - 1, self.maximum - val)\
-            - betaln(self.alpha, self.beta) - xlogy(self.alpha + self.beta - 1, self.maximum - self.minimum)
+        _ln_prob = (
+            xlogy(self.alpha - 1, val - self.minimum)
+            + xlogy(self.beta - 1, self.maximum - val)
+            - betaln(self.alpha, self.beta)
+            - xlogy(self.alpha + self.beta - 1, self.maximum - self.minimum)
+        )
 
         # deal with the fact that if alpha or beta are < 1 you get infinities at 0 and 1
         if isinstance(val, (float, int)):
@@ -1029,19 +1037,15 @@ class Beta(Prior):
     def cdf(self, val):
         if isinstance(val, (float, int)):
             if val > self.maximum:
-                return 1.
+                return 1.0
             elif val < self.minimum:
-                return 0.
+                return 0.0
             else:
-                return betainc(
-                    self.alpha, self.beta,
-                    (val - self.minimum) / (self.maximum - self.minimum)
-                )
+                return betainc(self.alpha, self.beta, (val - self.minimum) / (self.maximum - self.minimum))
         else:
-            _cdf = np.nan_to_num(betainc(self.alpha, self.beta,
-                                 (val - self.minimum) / (self.maximum - self.minimum)))
-            _cdf[val < self.minimum] = 0.
-            _cdf[val > self.maximum] = 1.
+            _cdf = np.nan_to_num(betainc(self.alpha, self.beta, (val - self.minimum) / (self.maximum - self.minimum)))
+            _cdf[val < self.minimum] = 0.0
+            _cdf[val > self.maximum] = 1.0
             return _cdf
 
 
@@ -1066,9 +1070,9 @@ class Logistic(Prior):
         boundary: str
             See superclass
         """
-        super(Logistic, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
 
-        if scale <= 0.:
+        if scale <= 0.0:
             raise ValueError("For the Logistic prior the scale must be positive")
 
         self.mu = mu
@@ -1086,12 +1090,13 @@ class Logistic(Prior):
             elif val == 1:
                 rescaled = np.inf
             else:
-                rescaled = self.mu + self.scale * np.log(val / (1. - val))
+                rescaled = self.mu + self.scale * np.log(val / (1.0 - val))
         else:
             rescaled = np.inf * np.ones(val.size)
             rescaled[val == 0] = -np.inf
-            rescaled[(val > 0) & (val < 1)] = self.mu + self.scale\
-                * np.log(val[(val > 0) & (val < 1)] / (1. - val[(val > 0) & (val < 1)]))
+            rescaled[(val > 0) & (val < 1)] = self.mu + self.scale * np.log(
+                val[(val > 0) & (val < 1)] / (1.0 - val[(val > 0) & (val < 1)])
+            )
         return rescaled
 
     def prob(self, val):
@@ -1118,11 +1123,14 @@ class Logistic(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return -(val - self.mu) / self.scale -\
-            2. * np.log(1. + np.exp(-(val - self.mu) / self.scale)) - np.log(self.scale)
+        return (
+            -(val - self.mu) / self.scale
+            - 2.0 * np.log(1.0 + np.exp(-(val - self.mu) / self.scale))
+            - np.log(self.scale)
+        )
 
     def cdf(self, val):
-        return 1. / (1. + np.exp(-(val - self.mu) / self.scale))
+        return 1.0 / (1.0 + np.exp(-(val - self.mu) / self.scale))
 
 
 class Cauchy(Prior):
@@ -1146,9 +1154,9 @@ class Cauchy(Prior):
         boundary: str
             See superclass
         """
-        super(Cauchy, self).__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary)
 
-        if beta <= 0.:
+        if beta <= 0.0:
             raise ValueError("For the Cauchy prior the scale must be positive")
 
         self.alpha = alpha
@@ -1182,7 +1190,7 @@ class Cauchy(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return 1. / self.beta / np.pi / (1. + ((val - self.alpha) / self.beta) ** 2)
+        return 1.0 / self.beta / np.pi / (1.0 + ((val - self.alpha) / self.beta) ** 2)
 
     def ln_prob(self, val):
         """Return the log prior probability of val.
@@ -1195,7 +1203,7 @@ class Cauchy(Prior):
         =======
         Union[float, array_like]: Log prior probability of val
         """
-        return - np.log(self.beta * np.pi) - np.log(1. + ((val - self.alpha) / self.beta) ** 2)
+        return -np.log(self.beta * np.pi) - np.log(1.0 + ((val - self.alpha) / self.beta) ** 2)
 
     def cdf(self, val):
         return 0.5 + np.arctan((val - self.alpha) / self.beta) / np.pi
@@ -1206,7 +1214,7 @@ class Lorentzian(Cauchy):
 
 
 class Gamma(Prior):
-    def __init__(self, k, theta=1., name=None, latex_label=None, unit=None, boundary=None):
+    def __init__(self, k, theta=1.0, name=None, latex_label=None, unit=None, boundary=None):
         """Gamma distribution
 
         https://en.wikipedia.org/wiki/Gamma_distribution
@@ -1226,8 +1234,7 @@ class Gamma(Prior):
         boundary: str
             See superclass
         """
-        super(Gamma, self).__init__(name=name, minimum=0., latex_label=latex_label,
-                                    unit=unit, boundary=boundary)
+        super().__init__(name=name, minimum=0.0, latex_label=latex_label, unit=unit, boundary=boundary)
 
         if k <= 0 or theta <= 0:
             raise ValueError("For the Gamma prior the shape and scale must be positive")
@@ -1274,15 +1281,16 @@ class Gamma(Prior):
                 _ln_prob = xlogy(self.k - 1, val) - val / self.theta - xlogy(self.k, self.theta) - gammaln(self.k)
         else:
             _ln_prob = -np.inf * np.ones(val.size)
-            idx = (val >= self.minimum)
-            _ln_prob[idx] = xlogy(self.k - 1, val[idx]) - val[idx] / self.theta\
-                - xlogy(self.k, self.theta) - gammaln(self.k)
+            idx = val >= self.minimum
+            _ln_prob[idx] = (
+                xlogy(self.k - 1, val[idx]) - val[idx] / self.theta - xlogy(self.k, self.theta) - gammaln(self.k)
+            )
         return _ln_prob
 
     def cdf(self, val):
         if isinstance(val, (float, int)):
             if val < self.minimum:
-                _cdf = 0.
+                _cdf = 0.0
             else:
                 _cdf = gammainc(self.k, val / self.theta)
         else:
@@ -1314,8 +1322,7 @@ class ChiSquared(Gamma):
         if nu <= 0 or not isinstance(nu, int):
             raise ValueError("For the ChiSquared prior the number of degrees of freedom must be a positive integer")
 
-        super(ChiSquared, self).__init__(name=name, k=nu / 2., theta=2.,
-                                         latex_label=latex_label, unit=unit, boundary=boundary)
+        super().__init__(name=name, k=nu / 2.0, theta=2.0, latex_label=latex_label, unit=unit, boundary=boundary)
 
     @property
     def nu(self):
@@ -1323,12 +1330,11 @@ class ChiSquared(Gamma):
 
     @nu.setter
     def nu(self, nu):
-        self.k = nu / 2.
+        self.k = nu / 2.0
 
 
 class FermiDirac(Prior):
-    def __init__(self, sigma, mu=None, r=None, name=None, latex_label=None,
-                 unit=None):
+    def __init__(self, sigma, mu=None, r=None, name=None, latex_label=None, unit=None):
         """A Fermi-Dirac type prior, with a fixed lower boundary at zero
         (see, e.g. Section 2.3.5 of [1]_). The probability distribution
         is defined by Equation 22 of [1]_.
@@ -1356,13 +1362,12 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        super(FermiDirac, self).__init__(name=name, latex_label=latex_label, unit=unit, minimum=0.)
+        super().__init__(name=name, latex_label=latex_label, unit=unit, minimum=0.0)
 
         self.sigma = sigma
 
         if mu is None and r is None:
-            raise ValueError("For the Fermi-Dirac prior either a 'mu' value or 'r' "
-                             "value must be given.")
+            raise ValueError("For the Fermi-Dirac prior either a 'mu' value or 'r' value must be given.")
 
         if r is None and mu is not None:
             self.mu = mu
@@ -1371,9 +1376,8 @@ class FermiDirac(Prior):
             self.r = r
             self.mu = self.sigma * self.r
 
-        if self.r <= 0. or self.sigma <= 0.:
-            raise ValueError("For the Fermi-Dirac prior the values of sigma and r "
-                             "must be positive.")
+        if self.r <= 0.0 or self.sigma <= 0.0:
+            raise ValueError("For the Fermi-Dirac prior the values of sigma and r must be positive.")
 
         self.expr = np.exp(self.r)
 
@@ -1394,7 +1398,7 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        inv = -1 / self.expr + (1 + self.expr)**-val + (1 + self.expr)**-val / self.expr
+        inv = -1 / self.expr + (1 + self.expr) ** -val + (1 + self.expr) ** -val / self.expr
         return -self.sigma * np.log(np.maximum(inv, 0))
 
     def prob(self, val):
@@ -1409,7 +1413,7 @@ class FermiDirac(Prior):
         float: Prior probability of val
         """
         return (
-            (np.exp((val - self.mu) / self.sigma) + 1)**-1
+            (np.exp((val - self.mu) / self.sigma) + 1) ** -1
             / (self.sigma * np.log1p(self.expr))
             * (val >= self.minimum)
         )
@@ -1448,10 +1452,7 @@ class FermiDirac(Prior):
         .. [1] M. Pitkin, M. Isi, J. Veitch & G. Woan, `arXiv:1705.08978v1
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
-        result = (
-            (np.logaddexp(0, -self.r) - np.logaddexp(-val / self.sigma, -self.r))
-            / np.logaddexp(0, self.r)
-        )
+        result = (np.logaddexp(0, -self.r) - np.logaddexp(-val / self.sigma, -self.r)) / np.logaddexp(0, self.r)
         return np.clip(result, 0, 1)
 
 
@@ -1485,15 +1486,13 @@ class WeightedDiscreteValues(Prior):
         nvalues = len(values)
         values = np.array(values)
         if values.shape != (nvalues,):
-            raise ValueError(
-                f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}"
-            )
+            raise ValueError(f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}")
         minimum = np.min(values)
         # Small delta added to help with MCMC walking
         maximum = np.max(values) * (1 + 1e-15)
-        super(WeightedDiscreteValues, self).__init__(
-            name=name, latex_label=latex_label, minimum=minimum,
-            maximum=maximum, unit=unit, boundary=boundary)
+        super().__init__(
+            name=name, latex_label=latex_label, minimum=minimum, maximum=maximum, unit=unit, boundary=boundary
+        )
         self.nvalues = nvalues
         sorter = np.argsort(values)
         self._values_array = values[sorter]
@@ -1502,11 +1501,7 @@ class WeightedDiscreteValues(Prior):
         # python buildins
         self.values = self._values_array.tolist()
 
-        weights = (
-            np.array(weights) / np.sum(weights)
-            if weights is not None
-            else np.ones(self.nvalues) / self.nvalues
-        )
+        weights = np.array(weights) / np.sum(weights) if weights is not None else np.ones(self.nvalues) / self.nvalues
         # check for consistent shape of input
         if weights.shape != (self.nvalues,):
             raise ValueError(
@@ -1586,16 +1581,13 @@ class WeightedDiscreteValues(Prior):
         """
         index = np.searchsorted(self._values_array, val)
         index = np.clip(index, 0, self.nvalues - 1)
-        lnp = np.where(
-            self._values_array[index] == val, self._lnweights_array[index], -np.inf
-        )
+        lnp = np.where(self._values_array[index] == val, self._lnweights_array[index], -np.inf)
         # turn 0d numpy array to scalar
         return lnp[()]
 
 
 class DiscreteValues(WeightedDiscreteValues):
-    def __init__(self, values, name=None, latex_label=None,
-                 unit=None, boundary="periodic"):
+    def __init__(self, values, name=None, latex_label=None, unit=None, boundary="periodic"):
         """An equal-weighted discrete-valued prior
 
         Parameters
@@ -1610,7 +1602,7 @@ class DiscreteValues(WeightedDiscreteValues):
             See superclass
         """
         weights = np.ones_like(values)
-        super(DiscreteValues, self).__init__(
+        super().__init__(
             values=values,
             weights=weights,
             name=name,
@@ -1649,7 +1641,7 @@ class WeightedCategorical(WeightedDiscreteValues):
         """
         self.ncategories = ncategories
         values = np.arange(0, ncategories)
-        super(WeightedCategorical, self).__init__(
+        super().__init__(
             values=values,
             weights=weights,
             name=name,
@@ -1660,9 +1652,7 @@ class WeightedCategorical(WeightedDiscreteValues):
 
 
 class Categorical(DiscreteValues):
-    def __init__(
-        self, ncategories, name=None, latex_label=None, unit=None, boundary="periodic"
-    ):
+    def __init__(self, ncategories, name=None, latex_label=None, unit=None, boundary="periodic"):
         """An equal-weighted Categorical prior
         Parameters
         ==========
@@ -1678,7 +1668,7 @@ class Categorical(DiscreteValues):
         """
         self.ncategories = ncategories
         values = np.arange(0, ncategories)
-        super(Categorical, self).__init__(
+        super().__init__(
             values=values,
             name=name,
             latex_label=latex_label,
@@ -1697,8 +1687,9 @@ class Triangular(Prior):
     where the mode has the highest pdf value.
 
     """
+
     def __init__(self, mode, minimum, maximum, name=None, latex_label=None, unit=None):
-        super(Triangular, self).__init__(
+        super().__init__(
             name=name,
             latex_label=latex_label,
             unit=unit,
@@ -1706,9 +1697,7 @@ class Triangular(Prior):
             maximum=maximum,
         )
         self.mode = mode
-        self.fractional_mode = (self.mode - self.minimum) / (
-            self.maximum - self.minimum
-        )
+        self.fractional_mode = (self.mode - self.minimum) / (self.maximum - self.minimum)
         self.scale = self.maximum - self.minimum
         self.rescaled_minimum = self.minimum - (self.minimum == self.mode) * self.scale
         self.rescaled_maximum = self.maximum + (self.maximum == self.mode) * self.scale
@@ -1731,9 +1720,9 @@ class Triangular(Prior):
         """
         below_mode = (val * self.scale * (self.mode - self.minimum)) ** 0.5
         above_mode = ((1 - val) * self.scale * (self.maximum - self.mode)) ** 0.5
-        return (self.minimum + below_mode) * (val < self.fractional_mode) + (
-            self.maximum - above_mode
-        ) * (val >= self.fractional_mode)
+        return (self.minimum + below_mode) * (val < self.fractional_mode) + (self.maximum - above_mode) * (
+            val >= self.fractional_mode
+        )
 
     def prob(self, val):
         """
@@ -1775,17 +1764,7 @@ class Triangular(Prior):
         float: prior cumulative probability at val
 
         """
-        return (
-            (val > self.mode)
-            + (val > self.minimum)
-            * (val <= self.maximum)
-            / (self.scale)
-            * (
-                (val > self.mode)
-                * (self.rescaled_maximum - val) ** 2.0
-                / (self.mode - self.rescaled_maximum)
-                + (val <= self.mode)
-                * (val - self.rescaled_minimum) ** 2.0
-                / (self.mode - self.rescaled_minimum)
-            )
+        return (val > self.mode) + (val > self.minimum) * (val <= self.maximum) / (self.scale) * (
+            (val > self.mode) * (self.rescaled_maximum - val) ** 2.0 / (self.mode - self.rescaled_maximum)
+            + (val <= self.mode) * (val - self.rescaled_minimum) ** 2.0 / (self.mode - self.rescaled_minimum)
         )

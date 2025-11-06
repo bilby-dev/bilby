@@ -119,9 +119,7 @@ def main():
     )
 
     # update the waveform generator to use our higher-order mode waveform
-    likelihood.waveform_generator.waveform_arguments[
-        "waveform_approximant"
-    ] = "IMRPhenomXHM"
+    likelihood.waveform_generator.waveform_arguments["waveform_approximant"] = "IMRPhenomXHM"
 
     # call the FakeSampler to compute the new likelihoods
     new_result = bilby.run_sampler(

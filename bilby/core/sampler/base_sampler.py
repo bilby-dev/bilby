@@ -108,7 +108,7 @@ def signal_wrapper(method):
     return wrapped
 
 
-class Sampler(object):
+class Sampler:
     """A sampler object to aid in setting up an inference run
 
     Parameters
@@ -333,9 +333,7 @@ class Sampler(object):
         try:
             __import__(external_sampler_name)
         except (ImportError, SystemExit):
-            raise SamplerNotInstalledError(
-                f"Sampler {external_sampler_name} is not installed on this system"
-            )
+            raise SamplerNotInstalledError(f"Sampler {external_sampler_name} is not installed on this system")
 
     def _verify_kwargs_against_default_kwargs(self):
         """
@@ -360,10 +358,7 @@ class Sampler(object):
         the respective parameter is fixed.
         """
         for key in self.priors:
-            if (
-                isinstance(self.priors[key], Prior)
-                and self.priors[key].is_fixed is False
-            ):
+            if isinstance(self.priors[key], Prior) and self.priors[key].is_fixed is False:
                 self._search_parameter_keys.append(key)
             elif isinstance(self.priors[key], Constraint):
                 self._constraint_parameter_keys.append(key)
@@ -378,9 +373,7 @@ class Sampler(object):
         for key in self._fixed_parameter_keys:
             logger.info(f"{key}={self.priors[key].peak}")
         logger.info(f"Analysis likelihood class: {self.likelihood.__class__}")
-        logger.info(
-            f"Analysis likelihood noise evidence: {self.likelihood.noise_log_likelihood()}"
-        )
+        logger.info(f"Analysis likelihood noise evidence: {self.likelihood.noise_log_likelihood()}")
 
     def _initialise_result(self, result_class):
         """
@@ -425,23 +418,16 @@ class Sampler(object):
         """
 
         if self.priors.test_has_redundant_keys():
-            raise IllegalSamplingSetError(
-                "Your sampling set contains redundant parameters."
-            )
+            raise IllegalSamplingSetError("Your sampling set contains redundant parameters.")
 
-        theta = self.priors.sample_subset_constrained_as_array(
-            self.search_parameter_keys, size=1
-        )[:, 0]
+        theta = self.priors.sample_subset_constrained_as_array(self.search_parameter_keys, size=1)[:, 0]
         try:
             self.log_likelihood(theta)
         except TypeError as e:
             params = deepcopy(self.parameters)
-            params.update(
-                {key: val for key, val in zip(self.search_parameter_keys, theta)}
-            )
+            params.update({key: val for key, val in zip(self.search_parameter_keys, theta)})
             raise TypeError(
-                f"Likelihood evaluation failed with message: \n'{e}'\n"
-                f"Have you specified all the parameters:\n{params}"
+                f"Likelihood evaluation failed with message: \n'{e}'\nHave you specified all the parameters:\n{params}"
             )
 
     def _time_likelihood(self, n_evaluations=100):
@@ -460,9 +446,7 @@ class Sampler(object):
 
         t1 = datetime.datetime.now()
         for _ in range(n_evaluations):
-            theta = self.priors.sample_subset_constrained_as_array(
-                self._search_parameter_keys, size=1
-            )[:, 0]
+            theta = self.priors.sample_subset_constrained_as_array(self._search_parameter_keys, size=1)[:, 0]
             self.log_likelihood(theta)
         total_time = (datetime.datetime.now() - t1).total_seconds()
         log_likelihood_eval_time = total_time / n_evaluations
@@ -471,9 +455,7 @@ class Sampler(object):
             log_likelihood_eval_time = np.nan
             logger.info("Unable to measure single likelihood time")
         else:
-            logger.info(
-                f"Single likelihood evaluation took {log_likelihood_eval_time:.3e} s"
-            )
+            logger.info(f"Single likelihood evaluation took {log_likelihood_eval_time:.3e} s")
         return log_likelihood_eval_time
 
     def _verify_use_ratio(self):
@@ -484,9 +466,7 @@ class Sampler(object):
         try:
             self.priors.sample_subset(self.search_parameter_keys)
         except (KeyError, AttributeError):
-            logger.error(
-                f"Cannot sample from priors with keys: {self.search_parameter_keys}."
-            )
+            logger.error(f"Cannot sample from priors with keys: {self.search_parameter_keys}.")
             raise
         if self.use_ratio is False:
             logger.debug("use_ratio set to False")
@@ -495,15 +475,10 @@ class Sampler(object):
         parameters = deepcopy(self.parameters)
         parameters.update(self.priors.sample())
 
-        ratio_is_nan = np.isnan(
-            _safe_likelihood_call(self.likelihood, parameters, use_ratio=True)
-        )
+        ratio_is_nan = np.isnan(_safe_likelihood_call(self.likelihood, parameters, use_ratio=True))
 
         if self.use_ratio is True and ratio_is_nan:
-            logger.warning(
-                "You have requested to use the loglikelihood_ratio, but it "
-                " returns a NaN"
-            )
+            logger.warning("You have requested to use the loglikelihood_ratio, but it  returns a NaN")
         elif self.use_ratio is None and not ratio_is_nan:
             logger.debug("use_ratio not spec. but gives valid answer, setting True")
             self.use_ratio = True
@@ -560,9 +535,7 @@ class Sampler(object):
 
         params = deepcopy(self.parameters)
         params.update({key: t for key, t in zip(self._search_parameter_keys, theta)})
-        return _safe_likelihood_call(
-            self.likelihood, parameters=params, use_ratio=self.use_ratio
-        )
+        return _safe_likelihood_call(self.likelihood, parameters=params, use_ratio=self.use_ratio)
 
     def get_random_draw_from_prior(self):
         """Get a random draw from the prior distribution
@@ -636,9 +609,7 @@ class Sampler(object):
         """
         log_p = self.log_prior(theta)
         log_l = self.log_likelihood(theta)
-        return self._check_bad_value(
-            val=log_p, warning=warning, theta=theta, label="prior"
-        ) and self._check_bad_value(
+        return self._check_bad_value(val=log_p, warning=warning, theta=theta, label="prior") and self._check_bad_value(
             val=log_l, warning=warning, theta=theta, label="likelihood"
         )
 
@@ -674,10 +645,8 @@ class Sampler(object):
             return
 
         try:
-            self.cached_result = read_in_result(
-                outdir=self.outdir, label=self.label, result_class=result_class
-            )
-        except IOError:
+            self.cached_result = read_in_result(outdir=self.outdir, label=self.label, result_class=result_class)
+        except OSError:
             self.cached_result = None
 
         if command_line_args.use_cached:
@@ -689,10 +658,7 @@ class Sampler(object):
             check_keys = ["search_parameter_keys", "fixed_parameter_keys"]
             use_cache = True
             for key in check_keys:
-                if (
-                    self.cached_result._check_attribute_match_to_other_object(key, self)
-                    is False
-                ):
+                if self.cached_result._check_attribute_match_to_other_object(key, self) is False:
                     logger.debug(f"Cached value {key} is unmatched")
                     use_cache = False
             try:
@@ -717,9 +683,7 @@ class Sampler(object):
                         kwargs_print[k] = f"array_like, shape={array_repr.shape}"
                 elif isinstance(kwargs_print[k], DataFrame):
                     kwargs_print[k] = f"DataFrame, shape={kwargs_print[k].shape}"
-            logger.info(
-                f"Using sampler {self.__class__.__name__} with kwargs {kwargs_print}"
-            )
+            logger.info(f"Using sampler {self.__class__.__name__} with kwargs {kwargs_print}")
 
     def calc_likelihood_count(self):
         if self.likelihood_benchmark:
@@ -736,13 +700,9 @@ class Sampler(object):
 
     def _log_interruption(self, signum=None):
         if signum == 14:
-            logger.info(
-                f"Run interrupted by alarm signal {signum}: checkpoint and exit on {self.exit_code}"
-            )
+            logger.info(f"Run interrupted by alarm signal {signum}: checkpoint and exit on {self.exit_code}")
         else:
-            logger.info(
-                f"Run interrupted by signal {signum}: checkpoint and exit on {self.exit_code}"
-            )
+            logger.info(f"Run interrupted by signal {signum}: checkpoint and exit on {self.exit_code}")
 
     def write_current_state_and_exit(self, signum=None, frame=None):
         """
@@ -848,9 +808,7 @@ class NestedSampler(Sampler):
     walks_equiv_kwargs = ["walks", "steps", "nmcmc"]
 
     @staticmethod
-    def reorder_loglikelihoods(
-        unsorted_loglikelihoods, unsorted_samples, sorted_samples
-    ):
+    def reorder_loglikelihoods(unsorted_loglikelihoods, unsorted_samples, sorted_samples):
         """Reorders the stored log-likelihood after they have been reweighted
 
         This creates a sorting index by matching the reweights `result.samples`
@@ -879,8 +837,7 @@ class NestedSampler(Sampler):
             idx = np.where(np.all(sorted_samples[ii] == unsorted_samples, axis=1))[0]
             if len(idx) > 1:
                 logger.warning(
-                    "Multiple likelihood matches found between sorted and "
-                    "unsorted samples. Taking the first match."
+                    "Multiple likelihood matches found between sorted and unsorted samples. Taking the first match."
                 )
             idxs.append(idx[0])
         return unsorted_loglikelihoods[idxs]
@@ -899,9 +856,7 @@ class NestedSampler(Sampler):
         =======
         float: log_likelihood
         """
-        if self.priors.evaluate_constraints(
-            {key: theta[ii] for ii, key in enumerate(self.search_parameter_keys)}
-        ):
+        if self.priors.evaluate_constraints({key: theta[ii] for ii, key in enumerate(self.search_parameter_keys)}):
             return Sampler.log_likelihood(self, theta)
         else:
             return np.nan_to_num(-np.inf)
@@ -917,14 +872,9 @@ class MCMCSampler(Sampler):
         if type(self.nburn) in [float, int]:
             logger.info(f"Discarding {self.nburn} steps for burn-in")
         elif self.result.max_autocorrelation_time is None:
-            logger.info(
-                f"Autocorrelation time not calculated, discarding "
-                f"{self.nburn} steps for burn-in"
-            )
+            logger.info(f"Autocorrelation time not calculated, discarding {self.nburn} steps for burn-in")
         else:
-            logger.info(
-                f"Discarding {self.nburn} steps for burn-in, estimated from autocorr"
-            )
+            logger.info(f"Discarding {self.nburn} steps for burn-in, estimated from autocorr")
 
     def calculate_autocorrelation(self, samples, c=3):
         """Uses the `emcee.autocorr` module to estimate the autocorrelation
@@ -940,9 +890,7 @@ class MCMCSampler(Sampler):
         import emcee
 
         try:
-            self.result.max_autocorrelation_time = int(
-                np.max(emcee.autocorr.integrated_time(samples, c=c))
-            )
+            self.result.max_autocorrelation_time = int(np.max(emcee.autocorr.integrated_time(samples, c=c)))
             logger.info(f"Max autocorr time = {self.result.max_autocorrelation_time}")
         except emcee.autocorr.AutocorrError as e:
             self.result.max_autocorrelation_time = None
@@ -962,7 +910,7 @@ class _TemporaryFileSamplerMixin:
     short_name = ""
 
     def __init__(self, temporary_directory, **kwargs):
-        super(_TemporaryFileSamplerMixin, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         try:
             from mpi4py import MPI
 
@@ -971,17 +919,14 @@ class _TemporaryFileSamplerMixin:
             using_mpi = False
 
         if using_mpi and temporary_directory:
-            logger.info(
-                "Temporary directory incompatible with MPI, "
-                "will run in original directory"
-            )
+            logger.info("Temporary directory incompatible with MPI, will run in original directory")
         self.use_temporary_directory = temporary_directory and not using_mpi
         self._outputfiles_basename = None
         self._temporary_outputfiles_basename = None
 
     def _check_and_load_sampling_time_file(self):
         if os.path.exists(self.time_file_path):
-            with open(self.time_file_path, "r") as time_file:
+            with open(self.time_file_path) as time_file:
                 self.total_sampling_time = float(time_file.readline())
         else:
             self.total_sampling_time = 0
@@ -1024,9 +969,7 @@ class _TemporaryFileSamplerMixin:
             temporary_outputfiles_basename += "/"
         self._temporary_outputfiles_basename = temporary_outputfiles_basename
         if os.path.exists(self.outputfiles_basename):
-            shutil.copytree(
-                self.outputfiles_basename, self.temporary_outputfiles_basename
-            )
+            shutil.copytree(self.outputfiles_basename, self.temporary_outputfiles_basename)
 
     def write_current_state(self):
         self._calculate_and_save_sampling_time()
@@ -1047,9 +990,7 @@ class _TemporaryFileSamplerMixin:
         Copy the temporary back to the proper path.
         Do not delete the temporary directory.
         """
-        logger.info(
-            f"Overwriting {self.outputfiles_basename} with {self.temporary_outputfiles_basename}"
-        )
+        logger.info(f"Overwriting {self.outputfiles_basename} with {self.temporary_outputfiles_basename}")
         outputfiles_basename_stripped = self.outputfiles_basename.rstrip("/")
         shutil.copytree(
             self.temporary_outputfiles_basename,

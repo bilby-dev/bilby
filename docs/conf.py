@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # bilby documentation build configuration file, created by
 # sphinx-quickstart on Fri May 25 12:08:01 2018.
@@ -21,13 +20,15 @@ import inspect
 import os
 import subprocess
 import sys
+
 import bilby
-sys.path.insert(0, os.path.abspath('../'))
+
+sys.path.insert(0, os.path.abspath("../"))
 
 
 def git_revision_hash():
     try:
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
     except subprocess.CalledProcessError:
         return "master"
 
@@ -58,43 +59,43 @@ GITURL = git_upstream_url()
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.mathjax',
-    'numpydoc',
-    'nbsphinx',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.autosectionlabel',
-    'sphinx_tabs.tabs',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.mathjax",
+    "numpydoc",
+    "nbsphinx",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.autosectionlabel",
+    "sphinx_tabs.tabs",
     "sphinx.ext.linkcode",
-    'myst_parser',
+    "myst_parser",
     "sphinx_sitemap",
 ]
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['templates']
+templates_path = ["templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = ['.rst', '.md', '.txt']
+source_suffix = [".rst", ".md", ".txt"]
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'bilby'
-copyright = u'2019, Greg Ashton'
-author = u'Greg Ashton'
+project = "bilby"
+copyright = "2019, Greg Ashton"
+author = "Greg Ashton"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-fullversion = bilby.__version__.split(':')[0]
+fullversion = bilby.__version__.split(":")[0]
 
 # The short X.Y version.
-version = '.'.join(fullversion.split('.')[:2])
+version = ".".join(fullversion.split(".")[:2])
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -109,16 +110,16 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'requirements.txt']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
 
 # The html path allows for google search console verification through
 # Aditya Vijaykumar's gmail ID
 
-html_extra_path = ['robots.txt', 'google063678b5c432c237.html']
+html_extra_path = ["robots.txt", "google063678b5c432c237.html"]
 
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -129,7 +130,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -148,21 +149,21 @@ html_theme = 'sphinx_rtd_theme'
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
-        'donate.html',
+    "**": [
+        "about.html",
+        "navigation.html",
+        "relations.html",  # needs 'show_related': True theme option to display
+        "searchbox.html",
+        "donate.html",
     ]
 }
 
-html_baseurl = 'https://bilby-dev.github.io/bilby/'
+html_baseurl = "https://bilby-dev.github.io/bilby/"
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'bilbydoc'
+htmlhelp_basename = "bilbydoc"
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -171,15 +172,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -189,8 +187,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'bilby.tex', u'bilby Documentation',
-     u'Paul Lasky', 'manual'),
+    (master_doc, "bilby.tex", "bilby Documentation", "Paul Lasky", "manual"),
 ]
 
 
@@ -198,10 +195,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'bilby', u'bilby Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "bilby", "bilby Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -210,9 +204,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'bilby', u'bilby Documentation',
-     author, 'bilby', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, "bilby", "bilby Documentation", author, "bilby", "One line description of project.", "Miscellaneous"),
 ]
 
 numpydoc_show_class_members = False
@@ -225,9 +217,9 @@ def linkcode_resolve(domain, info):
     """
     Adapted from https://github.com/aaugustin/websockets/blob/8e1628a14e0dd2ca98871c7500484b5d42d16b67/docs/conf.py
     """
-    if domain != 'py':
+    if domain != "py":
         return None
-    if not info['module']:
+    if not info["module"]:
         return None
 
     try:

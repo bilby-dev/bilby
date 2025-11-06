@@ -21,10 +21,7 @@ class GlobalMetaData(dict):
 
     def __setitem__(self, key, item):
         if key in self:
-            logger.debug(
-                f"Overwriting meta data key {key} with value {item}. "
-                f"Old value was {self[key]}"
-            )
+            logger.debug(f"Overwriting meta data key {key} with value {item}. Old value was {self[key]}")
         else:
             logger.debug(f"Setting meta data key {key} with value {item}")
         return super().__setitem__(key, item)
@@ -37,13 +34,8 @@ class GlobalMetaData(dict):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         else:
-            logger.warning(
-                "GlobalMetaData has already been instantiated. "
-                "Returning the existing instance."
-            )
+            logger.warning("GlobalMetaData has already been instantiated. Returning the existing instance.")
         return cls._instance
 
 
-global_meta_data = GlobalMetaData({
-    "rng": random.rng
-})
+global_meta_data = GlobalMetaData({"rng": random.rng})

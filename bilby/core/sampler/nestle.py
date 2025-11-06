@@ -77,18 +77,13 @@ class Nestle(NestedSampler):
             nestle.np.int = int
 
         out = nestle.sample(
-            loglikelihood=self.log_likelihood,
-            prior_transform=self.prior_transform,
-            ndim=self.ndim,
-            **self.kwargs
+            loglikelihood=self.log_likelihood, prior_transform=self.prior_transform, ndim=self.ndim, **self.kwargs
         )
         print("")
 
         self.result.sampler_output = out
         self.result.samples = nestle.resample_equal(out.samples, out.weights)
-        self.result.nested_samples = DataFrame(
-            out.samples, columns=self.search_parameter_keys
-        )
+        self.result.nested_samples = DataFrame(out.samples, columns=self.search_parameter_keys)
         self.result.nested_samples["weights"] = out.weights
         self.result.nested_samples["log_likelihood"] = out.logl
         self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(

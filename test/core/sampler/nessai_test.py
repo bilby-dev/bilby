@@ -1,9 +1,9 @@
+import os
 import unittest
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
 import bilby
 import bilby.core.sampler.nessai
-import os
 
 
 class TestNessai(unittest.TestCase):
@@ -26,8 +26,8 @@ class TestNessai(unittest.TestCase):
         )
         self.expected = self.sampler.default_kwargs
         self.expected["n_pool"] = 1  # Because npool=1 by default
-        self.expected['output'] = 'outdir/label_nessai/'
-        self.expected['seed'] = 150914
+        self.expected["output"] = "outdir/label_nessai/"
+        self.expected["seed"] = 150914
 
     def tearDown(self):
         del self.likelihood
@@ -88,9 +88,7 @@ class TestNessai(unittest.TestCase):
 def test_get_expected_outputs():
     label = "par0"
     outdir = os.path.join("some", "bilby_pipe", "dir")
-    filenames, directories = bilby.core.sampler.nessai.Nessai.get_expected_outputs(
-        outdir=outdir, label=label
-    )
+    filenames, directories = bilby.core.sampler.nessai.Nessai.get_expected_outputs(outdir=outdir, label=label)
     assert len(filenames) == 0
     assert len(directories) == 3
     base_dir = os.path.join(outdir, f"{label}_nessai", "")

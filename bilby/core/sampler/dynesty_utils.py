@@ -89,9 +89,7 @@ class MultiEllipsoidLivePointSampler(MultiEllipsoidSampler):
 
     def update_user(self, blob, update=True):
         LivePointSampler.update_user(self, blob=blob, update=update)
-        super(MultiEllipsoidLivePointSampler, self).update_rwalk(
-            blob=blob, update=update
-        )
+        super().update_rwalk(blob=blob, update=update)
 
     update_rwalk = update_user
 
@@ -102,7 +100,7 @@ class MultiEllipsoidLivePointSampler(MultiEllipsoidSampler):
         """
         self.kwargs["nlive"] = self.nlive
         self.kwargs["live"] = self.live_u
-        return super(MultiEllipsoidLivePointSampler, self).propose_live(*args)
+        return super().propose_live(*args)
 
 
 class FixedRWalk:
@@ -127,9 +125,7 @@ class FixedRWalk:
         accepted = list()
 
         for prop in proposals:
-            u_prop = proposal_funcs[prop](
-                u=current_u, **common_kwargs, **proposal_kwargs[prop]
-            )
+            u_prop = proposal_funcs[prop](u=current_u, **common_kwargs, **proposal_kwargs[prop])
             u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
             if u_prop is None:
                 accepted.append(0)
@@ -244,9 +240,7 @@ class ACTTrackingRWalk:
             iteration += 1
 
             prop = proposals[iteration % len(proposals)]
-            u_prop = proposal_funcs[prop](
-                u=current_u, **common_kwargs, **proposal_kwargs[prop]
-            )
+            u_prop = proposal_funcs[prop](u=current_u, **common_kwargs, **proposal_kwargs[prop])
             u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
             success = False
             if u_prop is not None:
@@ -304,17 +298,13 @@ class ACTTrackingRWalk:
         thin = self.thin * iact
 
         if accept == 0:
-            logger.warning(
-                "Unable to find a new point using walk: returning a random point"
-            )
+            logger.warning("Unable to find a new point using walk: returning a random point")
             u = common_kwargs["rstate"].uniform(size=len(current_u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)
             self._cache.append((u, v, logl, ncall, blob))
         elif not np.isfinite(act):
-            logger.warning(
-                "Unable to find a new point using walk: try increasing maxmcmc"
-            )
+            logger.warning("Unable to find a new point using walk: try increasing maxmcmc")
             self._cache.append((current_u, current_v, logl, ncall, blob))
         elif (self.thin == -1) or (len(u_list) <= thin):
             self._cache.append((current_u, current_v, logl, ncall, blob))
@@ -327,9 +317,7 @@ class ACTTrackingRWalk:
             reject //= n_found
             nfail //= n_found
             ncall_list = [ncall // n_found] * n_found
-            blob_list = [
-                dict(accept=accept, reject=reject, fail=nfail, scale=args.scale)
-            ] * n_found
+            blob_list = [dict(accept=accept, reject=reject, fail=nfail, scale=args.scale)] * n_found
             self._cache.extend(zip(u_list, v_list, logl_list, ncall_list, blob_list))
             logger.debug(
                 f"act: {self.act:.2f}, max failures: {most_failures}, thin: {thin}, "
@@ -442,9 +430,7 @@ class AcceptanceTrackingRWalk:
                 break
 
         if not (np.isfinite(act) and accept > 0):
-            logger.debug(
-                "Unable to find a new point using walk: returning a random point"
-            )
+            logger.debug("Unable to find a new point using walk: returning a random point")
             u = rstate.uniform(size=len(u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)

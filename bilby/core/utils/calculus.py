@@ -1,7 +1,7 @@
 import math
 
 import numpy as np
-from scipy.interpolate import interp1d, RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, interp1d
 from scipy.special import logsumexp
 
 from .log import logger
@@ -116,9 +116,7 @@ def derivatives(
             cureps *= epsscale
             if cureps < mineps or flipflop > flipflopmax:
                 # if no convergence set flat derivative (TODO: check if there is a better thing to do instead)
-                logger.warning(
-                    "Derivative calculation did not converge: setting flat derivative."
-                )
+                logger.warning("Derivative calculation did not converge: setting flat derivative.")
                 grads[count] = 0.0
                 break
             leps *= epsscale
@@ -175,9 +173,7 @@ def logtrapzexp(lnf, dx):
         C = np.log(dx / 2.0)
     elif isinstance(dx, (list, np.ndarray)):
         if len(dx) != len(lnf) - 1:
-            raise ValueError(
-                "Step size array must have length one less than the function length"
-            )
+            raise ValueError("Step size array must have length one less than the function length")
 
         lndx = np.log(dx)
         lnfdx1 = lnfdx1.copy() + lndx
@@ -190,7 +186,6 @@ def logtrapzexp(lnf, dx):
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
-
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
         self.x_min, self.x_max, self.y_min, self.y_max = bbox
         if self.x_min is None:
@@ -224,6 +219,7 @@ class WrappedInterp1d(interp1d):
     A wrapper around scipy interp1d which sets equality-by-instantiation and
     makes sure that the output is a float if the input is a float or int.
     """
+
     def __call__(self, x):
         output = super().__call__(x)
         if isinstance(x, (float, int)):
@@ -254,4 +250,4 @@ def round_up_to_power_of_two(x):
     float: next power of two
 
     """
-    return 2**math.ceil(np.log2(x))
+    return 2 ** math.ceil(np.log2(x))

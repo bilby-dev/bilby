@@ -10,6 +10,7 @@ For this example we use `PyMultiNest`, this can be installed using
 
 conda install -c conda-forge pymultinest
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed
@@ -85,17 +86,13 @@ search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
 priors = bilby.core.prior.PriorDict()
 for key in ["psi", "geocent_time"]:
     priors[key] = injection_parameters[key]
-priors["luminosity_distance"] = bilby.core.prior.Uniform(
-    2, 20, "luminosity_distance", unit="$kpc$"
-)
+priors["luminosity_distance"] = bilby.core.prior.Uniform(2, 20, "luminosity_distance", unit="$kpc$")
 priors["pc_coeff1"] = bilby.core.prior.Uniform(-1, 1, "pc_coeff1")
 priors["pc_coeff2"] = bilby.core.prior.Uniform(-1, 1, "pc_coeff2")
 priors["pc_coeff3"] = bilby.core.prior.Uniform(-1, 1, "pc_coeff3")
 priors["pc_coeff4"] = bilby.core.prior.Uniform(-1, 1, "pc_coeff4")
 priors["pc_coeff5"] = bilby.core.prior.Uniform(-1, 1, "pc_coeff5")
-priors["ra"] = bilby.core.prior.Uniform(
-    minimum=0, maximum=2 * np.pi, name="ra", boundary="periodic"
-)
+priors["ra"] = bilby.core.prior.Uniform(minimum=0, maximum=2 * np.pi, name="ra", boundary="periodic")
 priors["dec"] = bilby.core.prior.Sine(name="dec")
 priors["geocent_time"] = bilby.core.prior.Uniform(
     injection_parameters["geocent_time"] - 1,

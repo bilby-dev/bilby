@@ -24,11 +24,7 @@ bilby.utils.check_directory_exists_and_if_not_mkdir(outdir)
 
 # Here we define our model. We want to inject two Gaussians and recover with up to three.
 def gaussian(xs, amplitude, mu, sigma):
-    return (
-        amplitude
-        / np.sqrt(2 * np.pi * sigma**2)
-        * np.exp(-0.5 * (xs - mu) ** 2 / sigma**2)
-    )
+    return amplitude / np.sqrt(2 * np.pi * sigma**2) * np.exp(-0.5 * (xs - mu) ** 2 / sigma**2)
 
 
 def triple_gaussian(
@@ -84,52 +80,26 @@ plt.clf()
 # Now we want to set up our priors.
 priors = bilby.core.prior.PriorDict()
 # For the slab-and-spike prior, we first need to define the 'slab' part, which is just a regular bilby prior.
-amplitude_slab_0 = bilby.core.prior.Uniform(
-    minimum=-10, maximum=10, name="amplitude_0", latex_label="$A_0$"
-)
-amplitude_slab_1 = bilby.core.prior.Uniform(
-    minimum=-10, maximum=10, name="amplitude_1", latex_label="$A_1$"
-)
-amplitude_slab_2 = bilby.core.prior.Uniform(
-    minimum=-10, maximum=10, name="amplitude_2", latex_label="$A_2$"
-)
+amplitude_slab_0 = bilby.core.prior.Uniform(minimum=-10, maximum=10, name="amplitude_0", latex_label="$A_0$")
+amplitude_slab_1 = bilby.core.prior.Uniform(minimum=-10, maximum=10, name="amplitude_1", latex_label="$A_1$")
+amplitude_slab_2 = bilby.core.prior.Uniform(minimum=-10, maximum=10, name="amplitude_2", latex_label="$A_2$")
 # We do the following to create the slab-and-spike prior. The spike height is somewhat arbitrary and can
 # be corrected in post-processing.
-priors["amplitude_0"] = bilby.core.prior.SlabSpikePrior(
-    slab=amplitude_slab_0, spike_location=0, spike_height=0.1
-)
-priors["amplitude_1"] = bilby.core.prior.SlabSpikePrior(
-    slab=amplitude_slab_1, spike_location=0, spike_height=0.1
-)
-priors["amplitude_2"] = bilby.core.prior.SlabSpikePrior(
-    slab=amplitude_slab_2, spike_location=0, spike_height=0.1
-)
+priors["amplitude_0"] = bilby.core.prior.SlabSpikePrior(slab=amplitude_slab_0, spike_location=0, spike_height=0.1)
+priors["amplitude_1"] = bilby.core.prior.SlabSpikePrior(slab=amplitude_slab_1, spike_location=0, spike_height=0.1)
+priors["amplitude_2"] = bilby.core.prior.SlabSpikePrior(slab=amplitude_slab_2, spike_location=0, spike_height=0.1)
 # Our problem has a degeneracy in the ordering. In general, this problem is somewhat difficult to resolve properly.
 # See e.g. https://github.com/GregoryAshton/kookaburra/blob/master/src/priors.py#L72 for an implementation.
 # We resolve this by not letting the priors overlap in this case.
-priors["mu_0"] = bilby.core.prior.Uniform(
-    minimum=-5, maximum=-2, name="mu_0", latex_label=r"$\mu_0$"
-)
-priors["mu_1"] = bilby.core.prior.Uniform(
-    minimum=-2, maximum=2, name="mu_1", latex_label=r"$\mu_1$"
-)
-priors["mu_2"] = bilby.core.prior.Uniform(
-    minimum=2, maximum=5, name="mu_2", latex_label=r"$\mu_2$"
-)
-priors["sigma_0"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_0", latex_label=r"$\sigma_0$"
-)
-priors["sigma_1"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_1", latex_label=r"$\sigma_1$"
-)
-priors["sigma_2"] = bilby.core.prior.LogUniform(
-    minimum=0.01, maximum=10, name="sigma_2", latex_label=r"$\sigma_2$"
-)
+priors["mu_0"] = bilby.core.prior.Uniform(minimum=-5, maximum=-2, name="mu_0", latex_label=r"$\mu_0$")
+priors["mu_1"] = bilby.core.prior.Uniform(minimum=-2, maximum=2, name="mu_1", latex_label=r"$\mu_1$")
+priors["mu_2"] = bilby.core.prior.Uniform(minimum=2, maximum=5, name="mu_2", latex_label=r"$\mu_2$")
+priors["sigma_0"] = bilby.core.prior.LogUniform(minimum=0.01, maximum=10, name="sigma_0", latex_label=r"$\sigma_0$")
+priors["sigma_1"] = bilby.core.prior.LogUniform(minimum=0.01, maximum=10, name="sigma_1", latex_label=r"$\sigma_1$")
+priors["sigma_2"] = bilby.core.prior.LogUniform(minimum=0.01, maximum=10, name="sigma_2", latex_label=r"$\sigma_2$")
 
 # Setting up the likelihood and running the samplers works the same as elsewhere.
-likelihood = bilby.core.likelihood.GaussianLikelihood(
-    x=xs, y=ys, func=triple_gaussian, sigma=sigma
-)
+likelihood = bilby.core.likelihood.GaussianLikelihood(x=xs, y=ys, func=triple_gaussian, sigma=sigma)
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
@@ -152,15 +122,9 @@ plt.savefig(f"{outdir}/{label}_max_likelihood_recovery")
 plt.clf()
 
 # Finally, we can check what fraction of amplitude samples are exactly on the spike.
-spike_samples_0 = len(np.where(result.posterior["amplitude_0"] == 0.0)[0]) / len(
-    result.posterior
-)
-spike_samples_1 = len(np.where(result.posterior["amplitude_1"] == 0.0)[0]) / len(
-    result.posterior
-)
-spike_samples_2 = len(np.where(result.posterior["amplitude_2"] == 0.0)[0]) / len(
-    result.posterior
-)
+spike_samples_0 = len(np.where(result.posterior["amplitude_0"] == 0.0)[0]) / len(result.posterior)
+spike_samples_1 = len(np.where(result.posterior["amplitude_1"] == 0.0)[0]) / len(result.posterior)
+spike_samples_2 = len(np.where(result.posterior["amplitude_2"] == 0.0)[0]) / len(result.posterior)
 print(f"{spike_samples_0 * 100:.2f}% of amplitude_0 samples are exactly 0.0")
 print(f"{spike_samples_1 * 100:.2f}% of amplitude_1 samples are exactly 0.0")
 print(f"{spike_samples_2 * 100:.2f}% of amplitude_2 samples are exactly 0.0")

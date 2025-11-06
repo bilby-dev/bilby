@@ -5,15 +5,15 @@ import numpy as np
 
 import bilby.core.likelihood
 from bilby.core.likelihood import (
-    Likelihood,
+    Analytical1DLikelihood,
+    AnalyticalMultidimensionalBimodalCovariantGaussian,
+    AnalyticalMultidimensionalCovariantGaussian,
+    ExponentialLikelihood,
     GaussianLikelihood,
+    JointLikelihood,
+    Likelihood,
     PoissonLikelihood,
     StudentTLikelihood,
-    Analytical1DLikelihood,
-    ExponentialLikelihood,
-    AnalyticalMultidimensionalCovariantGaussian,
-    AnalyticalMultidimensionalBimodalCovariantGaussian,
-    JointLikelihood,
 )
 
 
@@ -62,9 +62,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.func = test_func
         self.parameter1_value = 4
         self.parameter2_value = 7
-        self.analytical_1d_likelihood = Analytical1DLikelihood(
-            x=self.x, y=self.y, func=self.func
-        )
+        self.analytical_1d_likelihood = Analytical1DLikelihood(x=self.x, y=self.y, func=self.func)
         self.analytical_1d_likelihood.parameters["parameter1"] = self.parameter1_value
         self.analytical_1d_likelihood.parameters["parameter2"] = self.parameter2_value
 
@@ -128,12 +126,8 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
             self.analytical_1d_likelihood.func = new_func
 
     def test_parameters(self):
-        expected_parameters = dict(
-            parameter1=self.parameter1_value, parameter2=self.parameter2_value
-        )
-        self.assertDictEqual(
-            expected_parameters, self.analytical_1d_likelihood.parameters
-        )
+        expected_parameters = dict(parameter1=self.parameter1_value, parameter2=self.parameter2_value)
+        self.assertDictEqual(expected_parameters, self.analytical_1d_likelihood.parameters)
 
     def test_n(self):
         self.assertEqual(len(self.x), self.analytical_1d_likelihood.n)
@@ -147,17 +141,11 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         sigma = 5
         self.analytical_1d_likelihood.sigma = sigma
         self.analytical_1d_likelihood.parameters["sigma"] = sigma
-        expected_model_parameters = dict(
-            parameter1=self.parameter1_value, parameter2=self.parameter2_value
-        )
-        self.assertDictEqual(
-            expected_model_parameters, self.analytical_1d_likelihood.model_parameters()
-        )
+        expected_model_parameters = dict(parameter1=self.parameter1_value, parameter2=self.parameter2_value)
+        self.assertDictEqual(expected_model_parameters, self.analytical_1d_likelihood.model_parameters())
 
     def test_repr(self):
-        expected = "Analytical1DLikelihood(x={}, y={}, func={})".format(
-            self.x, self.y, self.func.__name__
-        )
+        expected = f"Analytical1DLikelihood(x={self.x}, y={self.y}, func={self.func.__name__})"
         self.assertEqual(expected, repr(self.analytical_1d_likelihood))
 
 
@@ -219,9 +207,7 @@ class TestGaussianLikelihood(unittest.TestCase):
 
     def test_repr(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, sigma=self.sigma)
-        expected = "GaussianLikelihood(x={}, y={}, func={}, sigma={})".format(
-            self.x, self.y, self.function.__name__, self.sigma
-        )
+        expected = f"GaussianLikelihood(x={self.x}, y={self.y}, func={self.function.__name__}, sigma={self.sigma})"
         self.assertEqual(expected, repr(likelihood))
 
 
@@ -246,9 +232,7 @@ class TestStudentTLikelihood(unittest.TestCase):
         del self.function
 
     def test_known_sigma(self):
-        likelihood = StudentTLikelihood(
-            self.x, self.y, self.function, self.nu, self.sigma
-        )
+        likelihood = StudentTLikelihood(self.x, self.y, self.function, self.nu, self.sigma)
         likelihood.parameters["m"] = 2
         likelihood.parameters["c"] = 0
         likelihood.log_likelihood()
@@ -297,12 +281,8 @@ class TestStudentTLikelihood(unittest.TestCase):
     def test_repr(self):
         nu = 0
         sigma = 0.5
-        likelihood = StudentTLikelihood(
-            self.x, self.y, self.function, nu=nu, sigma=sigma
-        )
-        expected = "StudentTLikelihood(x={}, y={}, func={}, nu={}, sigma={})".format(
-            self.x, self.y, self.function.__name__, nu, sigma
-        )
+        likelihood = StudentTLikelihood(self.x, self.y, self.function, nu=nu, sigma=sigma)
+        expected = f"StudentTLikelihood(x={self.x}, y={self.y}, func={self.function.__name__}, nu={nu}, sigma={sigma})"
         self.assertEqual(expected, repr(likelihood))
 
 
@@ -379,39 +359,29 @@ class TestPoissonLikelihood(unittest.TestCase):
             self.poisson_likelihood.y = 5.3
 
     def test_log_likelihood_wrong_func_return_type(self):
-        poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: "test"
-        )
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: "test")
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood()
 
     def test_log_likelihood_negative_func_return_element(self):
-        poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2])
-        )
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2]))
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood()
 
     def test_log_likelihood_zero_func_return_element(self):
-        poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0])
-        )
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0]))
         self.assertEqual(-np.inf, poisson_likelihood.log_likelihood())
 
     def test_log_likelihood_dummy(self):
-        """ Merely tests if it goes into the right if else bracket """
-        poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.linspace(1, 100, self.N)
-        )
+        """Merely tests if it goes into the right if else bracket"""
+        poisson_likelihood = PoissonLikelihood(x=self.x, y=self.y, func=lambda x: np.linspace(1, 100, self.N))
         with mock.patch("numpy.sum") as m:
             m.return_value = 1
             self.assertEqual(1, poisson_likelihood.log_likelihood())
 
     def test_repr(self):
         likelihood = PoissonLikelihood(self.x, self.y, self.function)
-        expected = "PoissonLikelihood(x={}, y={}, func={})".format(
-            self.x, self.y, self.function.__name__
-        )
+        expected = f"PoissonLikelihood(x={self.x}, y={self.y}, func={self.function.__name__})"
         self.assertEqual(expected, repr(likelihood))
 
 
@@ -432,9 +402,7 @@ class TestExponentialLikelihood(unittest.TestCase):
 
         self.function = test_function
         self.function_array = test_function_array
-        self.exponential_likelihood = ExponentialLikelihood(
-            x=self.x, y=self.y, func=self.function
-        )
+        self.exponential_likelihood = ExponentialLikelihood(x=self.x, y=self.y, func=self.function)
 
     def tearDown(self):
         del self.N
@@ -491,18 +459,14 @@ class TestExponentialLikelihood(unittest.TestCase):
             self.exponential_likelihood.y = np.array([4.3, -1.2, 4])
 
     def test_log_likelihood_default(self):
-        """ Merely tests that it ends up at the right place in the code """
-        exponential_likelihood = ExponentialLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([4.2])
-        )
+        """Merely tests that it ends up at the right place in the code"""
+        exponential_likelihood = ExponentialLikelihood(x=self.x, y=self.y, func=lambda x: np.array([4.2]))
         with mock.patch("numpy.sum") as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood())
 
     def test_repr(self):
-        expected = "ExponentialLikelihood(x={}, y={}, func={})".format(
-            self.x, self.y, self.function.__name__
-        )
+        expected = f"ExponentialLikelihood(x={self.x}, y={self.y}, func={self.function.__name__})"
         self.assertEqual(expected, repr(self.exponential_likelihood))
 
 
@@ -511,9 +475,7 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
         self.cov = [[1, 0, 0], [0, 4, 0], [0, 0, 9]]
         self.sigma = [1, 2, 3]
         self.mean = [10, 11, 12]
-        self.likelihood = AnalyticalMultidimensionalCovariantGaussian(
-            mean=self.mean, cov=self.cov
-        )
+        self.likelihood = AnalyticalMultidimensionalCovariantGaussian(mean=self.mean, cov=self.cov)
         self.likelihood.parameters.update({f"x{ii}": 0 for ii in range(len(self.sigma))})
 
     def tearDown(self):
@@ -579,9 +541,7 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         self.assertEqual(3, self.likelihood.dim)
 
     def test_log_likelihood(self):
-        likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
-            mean_1=[0], mean_2=[0], cov=[1]
-        )
+        likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(mean_1=[0], mean_2=[0], cov=[1])
         self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood(dict(x0=0)))
 
 
@@ -601,9 +561,7 @@ class TestJointLikelihood(unittest.TestCase):
         self.third_likelihood = ExponentialLikelihood(
             x=self.x, y=self.y, func=lambda x, param4, param5: (param4 + param5) * x
         )
-        self.joint_likelihood = JointLikelihood(
-            self.first_likelihood, self.second_likelihood, self.third_likelihood
-        )
+        self.joint_likelihood = JointLikelihood(self.first_likelihood, self.second_likelihood, self.third_likelihood)
 
         # self.first_parameters = dict(param1=1, param2=2)
         # self.second_parmaeters = dict(param2=2, param3=3)
@@ -630,7 +588,13 @@ class TestJointLikelihood(unittest.TestCase):
         del self.joint_likelihood
 
     def test_parameters_consistent_from_init(self):
-        expected = dict(param1=1, param2=2, param3=3, param4=4, param5=5,)
+        expected = dict(
+            param1=1,
+            param2=2,
+            param3=3,
+            param4=4,
+            param5=5,
+        )
         self.assertDictEqual(expected, self.joint_likelihood.parameters)
 
     def test_log_likelihood_correctly_sums(self):
@@ -667,9 +631,7 @@ class TestJointLikelihood(unittest.TestCase):
         self.first_likelihood.noise_log_likelihood = mock.MagicMock(return_value=1)
         self.second_likelihood.noise_log_likelihood = mock.MagicMock(return_value=2)
         self.third_likelihood.noise_log_likelihood = mock.MagicMock(return_value=3)
-        self.joint_likelihood = JointLikelihood(
-            self.first_likelihood, self.second_likelihood, self.third_likelihood
-        )
+        self.joint_likelihood = JointLikelihood(self.first_likelihood, self.second_likelihood, self.third_likelihood)
         expected = (
             self.first_likelihood.noise_log_likelihood()
             + self.second_likelihood.noise_log_likelihood()
@@ -679,9 +641,7 @@ class TestJointLikelihood(unittest.TestCase):
 
     def test_init_with_list_of_likelihoods(self):
         with self.assertRaises(ValueError):
-            JointLikelihood(
-                [self.first_likelihood, self.second_likelihood, self.third_likelihood]
-            )
+            JointLikelihood([self.first_likelihood, self.second_likelihood, self.third_likelihood])
 
     def test_setting_single_likelihood(self):
         self.joint_likelihood.likelihoods = self.first_likelihood
@@ -702,7 +662,6 @@ class TestJointLikelihood(unittest.TestCase):
 
 
 class TestGPLikelihood(unittest.TestCase):
-
     def setUp(self) -> None:
         self.t = [1, 2, 3]
         self.y = [4, 5, 6]
@@ -715,7 +674,8 @@ class TestGPLikelihood(unittest.TestCase):
         self.gp_mock.get_parameter_dict = mock.MagicMock(return_value=dict(self.parameter_dict))
         self.gp_class = mock.MagicMock(return_value=self.gp_mock)
         self.celerite_likelihood = bilby.core.likelihood._GPLikelihood(
-            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr, gp_class=self.gp_class)
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr, gp_class=self.gp_class
+        )
 
     def tearDown(self) -> None:
         del self.t
@@ -745,11 +705,13 @@ class TestGPLikelihood(unittest.TestCase):
 
     def test_gp_instantiation(self):
         self.celerite_likelihood.GPClass.assert_called_once_with(
-            kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True)
+            kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True
+        )
 
     def test_gp_mock(self):
         self.celerite_likelihood.gp.compute.assert_called_once_with(
-            self.celerite_likelihood.t, yerr=self.celerite_likelihood.yerr)
+            self.celerite_likelihood.t, yerr=self.celerite_likelihood.yerr
+        )
 
     def test_parameters(self):
         self.assertDictEqual(self.parameter_dict, self.celerite_likelihood.parameters)
@@ -764,24 +726,22 @@ class TestGPLikelihood(unittest.TestCase):
 
 
 class TestFunctionMeanModel(unittest.TestCase):
-
     def test_function_to_celerite_mean_model(self):
         def func(x, a, b, c):
-            return a * x ** 2 + b * x + c
+            return a * x**2 + b * x + c
 
         mean_model = bilby.core.likelihood.function_to_celerite_mean_model(func=func)
         self.assertListEqual(["a", "b", "c"], list(mean_model.parameter_names))
 
     def test_function_to_george_mean_model(self):
         def func(x, a, b, c):
-            return a * x ** 2 + b * x + c
+            return a * x**2 + b * x + c
 
         mean_model = bilby.core.likelihood.function_to_celerite_mean_model(func=func)
         self.assertListEqual(["a", "b", "c"], list(mean_model.parameter_names))
 
 
 class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
-
     def setUp(self) -> None:
         import celerite
 
@@ -797,7 +757,8 @@ class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
         self.MeanModel = bilby.likelihood.function_to_celerite_mean_model(func=func)
         self.mean_model = self.MeanModel(a=1)
         self.celerite_likelihood = bilby.core.likelihood.CeleriteLikelihood(
-            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr)
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr
+        )
         self.celerite_likelihood.parameters = self.parameters
 
     def tearDown(self) -> None:
@@ -822,7 +783,6 @@ class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
 
 
 class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
-
     def setUp(self) -> None:
         import george
 
@@ -838,7 +798,8 @@ class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
         self.MeanModel = bilby.likelihood.function_to_celerite_mean_model(func=func)
         self.mean_model = self.MeanModel(a=1)
         self.george_likelihood = bilby.core.likelihood.GeorgeLikelihood(
-            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr)
+            kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr
+        )
 
     def tearDown(self) -> None:
         pass

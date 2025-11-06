@@ -60,18 +60,6 @@ Homepage = "https://github.com/bilby-dev/bilby"
 Source = "https://github.com/bilby-dev/bilby"
 Tracker = "https://github.com/bilby-dev/bilby/issues"
 
-[tool.flake8]
-exclude = [
-  ".git",
-  "docs",
-  "build",
-  "dist",
-  "test",
-  "*__init__.py"
-]
-ignore = ["E129", "W503", "W504", "E203", "E402"]
-max-line-length = 120
-
 [tool.isort]
 known_third_party = [
   "astropy",
@@ -109,6 +97,12 @@ addopts = [
   "--ignore=test/gw/plot_test.py",
   "--ignore=test/integration/sampler_run_test.py"
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.setuptools]
 packages = [

@@ -2,9 +2,7 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--skip-roqs", action="store_true", default=False, help="Skip all tests that require ROQs"
-    )
+    parser.addoption("--skip-roqs", action="store_true", default=False, help="Skip all tests that require ROQs")
 
 
 def pytest_configure(config):

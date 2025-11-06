@@ -24,10 +24,11 @@ https://numpy.org/doc/stable/reference/random/generator.html
     Do not import :code:`rng` directly from :code:`bilby.core.utils.random`
     since it will not be seeded correctly.
 """
+
 import sys
 import warnings
 
-from numpy.random import default_rng, SeedSequence
+from numpy.random import SeedSequence, default_rng
 
 
 def __getattr__(name):
@@ -45,6 +46,7 @@ class Generator:
     It should not be used directly, instead use :code:`random.rng` to
     generate random numbers. See the documentation for more details.
     """
+
     rng = default_rng()
     """Random number generator.
 
@@ -77,7 +79,7 @@ def seed(seed):
 
     # Warn if the original rng object (i.e., pre-seed) still exists elsewhere
     for module in sys.modules.values():
-        if not module or not hasattr(module, '__dict__'):
+        if not module or not hasattr(module, "__dict__"):
             continue
         rng_obj = module.__dict__.get("rng")
         if rng_obj is _original_rng:
@@ -85,7 +87,7 @@ def seed(seed):
                 "Detected that `rng` was likely imported directly before calling `seed()`. "
                 "This means the imported reference will not reflect the newly seeded generator. "
                 "Use `from bilby.core.utils import random` and access `random.rng` instead.",
-                RuntimeWarning
+                RuntimeWarning,
             )
             break
 

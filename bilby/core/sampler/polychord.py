@@ -7,7 +7,6 @@ from .base_sampler import NestedSampler, signal_wrapper
 
 
 class PyPolyChord(NestedSampler):
-
     """
     Bilby wrapper of PyPolyChord
     https://arxiv.org/abs/1506.00171
@@ -86,9 +85,7 @@ class PyPolyChord(NestedSampler):
             pc_kwargs["base_dir"] = self._sample_file_directory
             pc_kwargs["file_root"] = self.label
             pc_kwargs.pop("use_polychord_defaults")
-            settings = PolyChordSettings(
-                nDims=self.ndim, nDerived=self.ndim, **pc_kwargs
-            )
+            settings = PolyChordSettings(nDims=self.ndim, nDerived=self.ndim, **pc_kwargs)
         self._verify_kwargs_against_default_kwargs()
         out = pypolychord.run_polychord(
             loglikelihood=self.log_likelihood,
@@ -125,7 +122,7 @@ class PyPolyChord(NestedSampler):
 
     def log_likelihood(self, theta):
         """Overrides the log_likelihood so that PolyChord understands it"""
-        return super(PyPolyChord, self).log_likelihood(theta), theta
+        return super().log_likelihood(theta), theta
 
     def _read_sample_file(self):
         """
@@ -138,9 +135,7 @@ class PyPolyChord(NestedSampler):
         array_like, array_like: The log_likelihoods and the associated parameters
 
         """
-        sample_file = (
-            self._sample_file_directory + "/" + self.label + "_equal_weights.txt"
-        )
+        sample_file = self._sample_file_directory + "/" + self.label + "_equal_weights.txt"
         samples = np.loadtxt(sample_file)
         log_likelihoods = -0.5 * samples[:, 1]
         physical_parameters = samples[:, -self.ndim :]

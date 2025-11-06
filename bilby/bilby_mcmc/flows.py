@@ -44,7 +44,6 @@ class NVPFlow(Flow):
         batch_norm_between_layers=False,
         random_permutation=True,
     ):
-
         if use_volume_preserving:
             coupling_constructor = AdditiveCouplingTransform
         else:
@@ -66,9 +65,7 @@ class NVPFlow(Flow):
 
         layers = []
         for _ in range(num_layers):
-            transform = coupling_constructor(
-                mask=mask, transform_net_create_fn=create_resnet
-            )
+            transform = coupling_constructor(mask=mask, transform_net_create_fn=create_resnet)
             layers.append(transform)
             mask *= -1
             if batch_norm_between_layers:
@@ -87,9 +84,7 @@ class BasicFlow(Flow):
     def __init__(self, features):
         transform = CompositeTransform(
             [
-                MaskedAffineAutoregressiveTransform(
-                    features=features, hidden_features=2 * features
-                ),
+                MaskedAffineAutoregressiveTransform(features=features, hidden_features=2 * features),
                 RandomPermutation(features=features),
             ]
         )

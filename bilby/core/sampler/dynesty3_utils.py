@@ -190,18 +190,14 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         evaluation_history = list()
 
         for prop in proposals:
-            u_prop = proposal_funcs[prop](
-                u=current_u, **common_kwargs, **proposal_kwargs[prop]
-            )
+            u_prop = proposal_funcs[prop](u=current_u, **common_kwargs, **proposal_kwargs[prop])
             u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
             if u_prop is None:
                 continue
 
             v_prop = args.prior_transform(u_prop)
             logl_prop = args.loglikelihood(v_prop)
-            evaluation_history.append(
-                SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
-            )
+            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
             ncall += 1
 
             if logl_prop > args.loglstar:
@@ -381,9 +377,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         # Initialize internal variables
         current_v = args.prior_transform(np.array(current_u))
         logl = args.loglikelihood(np.array(current_v))
-        evaluation_history.append(
-            SamplerHistoryItem(u=current_u, v=current_v, logl=logl)
-        )
+        evaluation_history.append(SamplerHistoryItem(u=current_u, v=current_v, logl=logl))
         accept = 0
         reject = 0
         nfail = 0
@@ -400,17 +394,13 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             iteration += 1
 
             prop = proposals[iteration % len(proposals)]
-            u_prop = proposal_funcs[prop](
-                u=current_u, **common_kwargs, **proposal_kwargs[prop]
-            )
+            u_prop = proposal_funcs[prop](u=current_u, **common_kwargs, **proposal_kwargs[prop])
             u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
             success = False
             if u_prop is not None:
                 v_prop = args.prior_transform(np.array(u_prop))
                 logl_prop = args.loglikelihood(np.array(v_prop))
-                evaluation_history.append(
-                    SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
-                )
+                evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
                 ncall += 1
                 if logl_prop > args.loglstar:
                     success = True
@@ -465,20 +455,14 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         cache = ACTTrackingEnsembleWalk._cache
 
         if accept == 0:
-            logger.warning(
-                "Unable to find a new point using walk: returning a random point"
-            )
+            logger.warning("Unable to find a new point using walk: returning a random point")
             u = common_kwargs["rstate"].uniform(size=len(current_u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)
-            evaluation_history = [
-                SamplerHistoryItem(u=current_u, v=current_v, logl=logl)
-            ]
+            evaluation_history = [SamplerHistoryItem(u=current_u, v=current_v, logl=logl)]
             cache.append((u, v, logl, ncall, blob, evaluation_history))
         elif not np.isfinite(act):
-            logger.warning(
-                "Unable to find a new point using walk: try increasing maxmcmc"
-            )
+            logger.warning("Unable to find a new point using walk: try increasing maxmcmc")
             cache.append((current_u, current_v, logl, ncall, blob, evaluation_history))
         elif (thin == -1) or (len(u_list) <= thin):
             cache.append((current_u, current_v, logl, ncall, blob, evaluation_history))
@@ -486,18 +470,13 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             u_list = u_list[thin::thin]
             v_list = v_list[thin::thin]
             logl_list = logl_list[thin::thin]
-            evaluation_history_list = (
-                evaluation_history[thin * ii : thin * (ii + 1)]
-                for ii in range(len(u_list))
-            )
+            evaluation_history_list = (evaluation_history[thin * ii : thin * (ii + 1)] for ii in range(len(u_list)))
             n_found = len(u_list)
             accept = max(accept // n_found, 1)
             reject //= n_found
             nfail //= n_found
             ncall_list = [ncall // n_found] * n_found
-            blob_list = [
-                dict(accept=accept, reject=reject, fail=nfail, act=act)
-            ] * n_found
+            blob_list = [dict(accept=accept, reject=reject, fail=nfail, act=act)] * n_found
             cache.extend(
                 zip(
                     u_list,
@@ -597,9 +576,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             iteration += 1
 
             prop = proposals[iteration % len(proposals)]
-            u_prop = proposal_funcs[prop](
-                current_u, **common_kwargs, **proposal_kwargs[prop]
-            )
+            u_prop = proposal_funcs[prop](current_u, **common_kwargs, **proposal_kwargs[prop])
             u_prop = apply_boundaries_(u_prop, **boundary_kwargs)
 
             if u_prop is None:
@@ -609,9 +586,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             # Check proposed point.
             v_prop = args.prior_transform(np.array(u_prop))
             logl_prop = args.loglikelihood(np.array(v_prop))
-            evaluation_history.append(
-                SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop)
-            )
+            evaluation_history.append(SamplerHistoryItem(u=v_prop, v=u_prop, logl=logl_prop))
             if logl_prop > args.loglstar:
                 current_u = u_prop
                 current_v = v_prop
@@ -639,9 +614,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
                 break
 
         if not (np.isfinite(act) and accept > 0):
-            logger.debug(
-                "Unable to find a new point using walk: returning a random point"
-            )
+            logger.debug("Unable to find a new point using walk: returning a random point")
             current_u = rstate.uniform(size=len(current_u))
             current_v = args.prior_transform(current_u)
             logl = args.loglikelihood(current_v)
@@ -935,6 +908,4 @@ def apply_boundaries_(u_prop, periodic, reflective):
         return u_prop
 
 
-proposal_funcs = dict(
-    diff=propose_differential_evolution, volumetric=propose_volumetric
-)
+proposal_funcs = dict(diff=propose_differential_evolution, volumetric=propose_volumetric)

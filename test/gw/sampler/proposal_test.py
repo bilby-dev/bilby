@@ -16,9 +16,7 @@ class TestSkyLocationWanderJump(unittest.TestCase):
                 dec=prior.Uniform(minimum=0.0, maximum=np.pi, boundary="reflective"),
             )
         )
-        self.jump_proposal = bilby.gw.sampler.proposal.SkyLocationWanderJump(
-            priors=self.priors
-        )
+        self.jump_proposal = bilby.gw.sampler.proposal.SkyLocationWanderJump(priors=self.priors)
 
     def tearDown(self):
         del self.priors
@@ -53,9 +51,7 @@ class TestCorrelatedPolarisationPhaseJump(unittest.TestCase):
                 psi=prior.Uniform(minimum=0.0, maximum=np.pi),
             )
         )
-        self.jump_proposal = bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(
-            priors=self.priors
-        )
+        self.jump_proposal = bilby.gw.sampler.proposal.CorrelatedPolarisationPhaseJump(priors=self.priors)
 
     def tearDown(self):
         del self.priors
@@ -67,9 +63,7 @@ class TestCorrelatedPolarisationPhaseJump(unittest.TestCase):
             sample = proposal.Sample(dict(phase=0.2, psi=0.5))
             alpha = 3.0 * np.pi * 0.3
             beta = 0.3
-            expected = proposal.Sample(
-                dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta))
-            )
+            expected = proposal.Sample(dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta)))
             self.assertEqual(expected, self.jump_proposal(sample, coordinates=None))
 
     def test_jump_proposal_call_case_2(self):
@@ -78,9 +72,7 @@ class TestCorrelatedPolarisationPhaseJump(unittest.TestCase):
             sample = proposal.Sample(dict(phase=0.2, psi=0.5))
             alpha = 0.7
             beta = 3.0 * np.pi * 0.7 - 2 * np.pi
-            expected = proposal.Sample(
-                dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta))
-            )
+            expected = proposal.Sample(dict(phase=0.5 * (alpha - beta), psi=0.5 * (alpha + beta)))
             self.assertEqual(expected, self.jump_proposal(sample))
 
 
@@ -92,9 +84,7 @@ class TestPolarisationPhaseJump(unittest.TestCase):
                 psi=prior.Uniform(minimum=0.0, maximum=np.pi),
             )
         )
-        self.jump_proposal = bilby.gw.sampler.proposal.PolarisationPhaseJump(
-            priors=self.priors
-        )
+        self.jump_proposal = bilby.gw.sampler.proposal.PolarisationPhaseJump(priors=self.priors)
 
     def tearDown(self):
         del self.priors

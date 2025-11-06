@@ -1,15 +1,24 @@
-from .base import GravitationalWaveTransient
-from .basic import BasicGravitationalWaveTransient
-from .roq import BilbyROQParamsRangeError, ROQGravitationalWaveTransient
-from .multiband import MBGravitationalWaveTransient
-from .relative import RelativeBinningGravitationalWaveTransient
-
 from ..source import lal_binary_black_hole
 from ..waveform_generator import WaveformGenerator
+from .base import GravitationalWaveTransient
+from .basic import BasicGravitationalWaveTransient
+from .multiband import MBGravitationalWaveTransient
+from .relative import RelativeBinningGravitationalWaveTransient
+from .roq import BilbyROQParamsRangeError, ROQGravitationalWaveTransient
+
+__all__ = [
+    BasicGravitationalWaveTransient,
+    GravitationalWaveTransient,
+    MBGravitationalWaveTransient,
+    RelativeBinningGravitationalWaveTransient,
+    BilbyROQParamsRangeError,
+    ROQGravitationalWaveTransient,
+    "get_binary_black_hole_likelihood",
+]
 
 
 def get_binary_black_hole_likelihood(interferometers):
-    """ A wrapper to quickly set up a likelihood for BBH parameter estimation
+    """A wrapper to quickly set up a likelihood for BBH parameter estimation
 
     Parameters
     ==========
@@ -27,8 +36,6 @@ def get_binary_black_hole_likelihood(interferometers):
         duration=interferometers.duration,
         sampling_frequency=interferometers.sampling_frequency,
         frequency_domain_source_model=lal_binary_black_hole,
-        waveform_arguments={'waveform_approximant': 'IMRPhenomPv2',
-                            'reference_frequency': 50})
+        waveform_arguments={"waveform_approximant": "IMRPhenomPv2", "reference_frequency": 50},
+    )
     return GravitationalWaveTransient(interferometers, waveform_generator)
-
-

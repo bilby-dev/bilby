@@ -5,6 +5,7 @@ non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise
 
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,7 +46,7 @@ ax.plot(time, model(time, **injection_parameters), "--r", label="signal")
 ax.set_xlabel("time")
 ax.set_ylabel("y")
 ax.legend()
-fig.savefig("{}/{}_data.png".format(outdir, label))
+fig.savefig(f"{outdir}/{label}_data.png")
 plt.close()
 
 # Now lets instantiate a version of our GaussianLikelihood, giving it

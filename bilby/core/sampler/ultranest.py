@@ -86,7 +86,7 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
         callback_interval=10,
         **kwargs,
     ):
-        super(Ultranest, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -136,10 +136,7 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
             self._viz_callback_counter += 1
 
     def _apply_ultranest_boundaries(self):
-        if (
-            self.kwargs["wrapped_params"] is None
-            or len(self.kwargs.get("wrapped_params", [])) == 0
-        ):
+        if self.kwargs["wrapped_params"] is None or len(self.kwargs.get("wrapped_params", [])) == 0:
             self.kwargs["wrapped_params"] = []
             for param, value in self.priors.items():
                 if param in self.search_parameter_keys:
@@ -154,7 +151,7 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
         Do not delete the temporary directory.
         """
         if inspect.stack()[1].function != "_viz_callback":
-            super(Ultranest, self)._copy_temporary_directory_contents_to_proper_path()
+            super()._copy_temporary_directory_contents_to_proper_path()
 
     @property
     def sampler_function_kwargs(self):
@@ -244,8 +241,7 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
                 sampler.stepsampler = stepsampler
             else:
                 logger.warning(
-                    "The supplied step sampler is not the correct type. "
-                    "The default step sampling will be used instead."
+                    "The supplied step sampler is not the correct type. The default step sampling will be used instead."
                 )
 
         if self.use_temporary_directory:
@@ -275,22 +271,18 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
         nested_samples = DataFrame(data, columns=self.search_parameter_keys)
         nested_samples["weights"] = weights
         nested_samples["log_likelihood"] = out["weighted_samples"]["logl"]
-        self.result.log_likelihood_evaluations = np.array(
-            out["weighted_samples"]["logl"]
-        )[mask]
+        self.result.log_likelihood_evaluations = np.array(out["weighted_samples"]["logl"])[mask]
         self.result.sampler_output = out
         self.result.samples = data[mask, :]
         self.result.nested_samples = nested_samples
         self.result.log_evidence = out["logz"]
         self.result.log_evidence_err = out["logzerr"]
         if self.kwargs["num_live_points"] is not None:
-            self.result.information_gain = (
-                np.power(out["logzerr"], 2) * self.kwargs["num_live_points"]
-            )
+            self.result.information_gain = np.power(out["logzerr"], 2) * self.kwargs["num_live_points"]
 
         self.result.outputfiles_basename = self.outputfiles_basename
         self.result.sampling_time = datetime.timedelta(seconds=self.total_sampling_time)
 
     def log_likelihood(self, theta):
-        log_l = super(Ultranest, self).log_likelihood(theta=theta)
+        log_l = super().log_likelihood(theta=theta)
         return np.nan_to_num(log_l)

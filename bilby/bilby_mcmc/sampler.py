@@ -184,8 +184,7 @@ class Bilby_MCMC(MCMCSampler):
         normalize_prior=True,
         **kwargs,
     ):
-
-        super(Bilby_MCMC, self).__init__(
+        super().__init__(
             likelihood=likelihood,
             priors=priors,
             outdir=outdir,
@@ -202,12 +201,8 @@ class Bilby_MCMC(MCMCSampler):
         self.L1steps = self.kwargs["L1steps"]
         self.L2steps = self.kwargs["L2steps"]
         self.normalize_prior = normalize_prior
-        self.pt_inputs = ParallelTemperingInputs(
-            **{key: self.kwargs[key] for key in ParallelTemperingInputs._fields}
-        )
-        self.convergence_inputs = ConvergenceInputs(
-            **{key: self.kwargs[key] for key in ConvergenceInputs._fields}
-        )
+        self.pt_inputs = ParallelTemperingInputs(**{key: self.kwargs[key] for key in ParallelTemperingInputs._fields})
+        self.convergence_inputs = ConvergenceInputs(**{key: self.kwargs[key] for key in ConvergenceInputs._fields})
         self.proposal_cycle = self.kwargs["proposal_cycle"]
         self.pt_rejection_sample = self.kwargs["pt_rejection_sample"]
         self.evidence_method = self.kwargs["evidence_method"]
@@ -218,7 +213,7 @@ class Bilby_MCMC(MCMCSampler):
         self.check_point_delta_t = self.kwargs["check_point_delta_t"]
         check_directory_exists_and_if_not_mkdir(self.outdir)
         self.resume = resume
-        self.resume_file = "{}/{}_resume.pickle".format(self.outdir, self.label)
+        self.resume_file = f"{self.outdir}/{self.label}_resume.pickle"
 
         self.verify_configuration()
         self.verbose = verbose
@@ -305,7 +300,6 @@ class Bilby_MCMC(MCMCSampler):
             self.init_ptsampler()
 
     def init_ptsampler(self):
-
         logger.info(f"Initializing BilbyPTMCMCSampler with:\n{self.get_setup_string()}")
         self.ptsampler = BilbyPTMCMCSampler(
             convergence_inputs=self.convergence_inputs,
@@ -350,9 +344,7 @@ class Bilby_MCMC(MCMCSampler):
                 tp = datetime.datetime.now()
                 ppt_frac = (tp - tp0).total_seconds() / self._time_since_last_print
                 if ppt_frac > 0.01:
-                    logger.warning(
-                        f"Non-negligible print progress time (ppt_frac={ppt_frac:0.2f})"
-                    )
+                    logger.warning(f"Non-negligible print progress time (ppt_frac={ppt_frac:0.2f})")
                 self._steps_since_last_print = 0
                 self._time_since_last_print = 0
 
@@ -391,9 +383,7 @@ class Bilby_MCMC(MCMCSampler):
             If true, resume file was successfully loaded, otherwise false
 
         """
-        if os.path.isfile(self.resume_file) is False or not os.path.getsize(
-            self.resume_file
-        ):
+        if os.path.isfile(self.resume_file) is False or not os.path.getsize(self.resume_file):
             return False
         import dill
 
@@ -404,10 +394,7 @@ class Bilby_MCMC(MCMCSampler):
                 return False
             self.ptsampler = ptsampler
             if self.ptsampler.pt_inputs != self.pt_inputs:
-                msg = (
-                    f"pt_inputs has changed: {self.ptsampler.pt_inputs} "
-                    f"-> {self.pt_inputs}"
-                )
+                msg = f"pt_inputs has changed: {self.ptsampler.pt_inputs} -> {self.pt_inputs}"
                 raise ResumeError(msg)
             self.ptsampler.set_convergence_inputs(self.convergence_inputs)
             self.ptsampler.pt_rejection_sample = self.pt_rejection_sample
@@ -432,11 +419,9 @@ class Bilby_MCMC(MCMCSampler):
         self.ptsampler.pool = None
         if dill.pickles(self.ptsampler):
             safe_file_dump(self.ptsampler, self.resume_file, dill)
-            logger.info("Written checkpoint file {}".format(self.resume_file))
+            logger.info(f"Written checkpoint file {self.resume_file}")
         else:
-            logger.warning(
-                "Cannot write pickle resume file! Job may not resume if interrupted."
-            )
+            logger.warning("Cannot write pickle resume file! Job may not resume if interrupted.")
             # Touch the file to postpone next check-point attempt
             Path(self.resume_file).touch(exist_ok=True)
         self.ptsampler.pool = _pool
@@ -449,12 +434,8 @@ class Bilby_MCMC(MCMCSampler):
         if self.ptsampler.nensemble > 1:
             self.print_ensemble_acceptance()
         if self.check_point_plot:
-            self.plot_progress(
-                self.ptsampler, self.label, self.outdir, self.priors, self.diagnostic
-            )
-            self.ptsampler.compute_evidence(
-                outdir=self.outdir, label=self.label, make_plots=True
-            )
+            self.plot_progress(self.ptsampler, self.label, self.outdir, self.priors, self.diagnostic)
+            self.ptsampler.compute_evidence(outdir=self.outdir, label=self.label, make_plots=True)
 
     def print_ensemble_acceptance(self):
         logger.info(f"Ensemble swaps = {self.ptsampler.swap_counter['ensemble']}")
@@ -468,9 +449,7 @@ class Bilby_MCMC(MCMCSampler):
         time = str(sampling_time).split(".")[0]
 
         # Time for last evaluation set
-        time_per_eval_ms = (
-            1000 * self._time_since_last_print / self._steps_since_last_print
-        )
+        time_per_eval_ms = 1000 * self._time_since_last_print / self._steps_since_last_print
 
         # Pull out progress summary
         tau = self.ptsampler.tau
@@ -487,12 +466,7 @@ class Bilby_MCMC(MCMCSampler):
         # Estimated time til finish (ETF)
         if tau < np.inf:
             remaining_samples = self.target_nsamples - nsamples
-            remaining_evals = (
-                remaining_samples
-                * self.convergence_inputs.thin_by_nact
-                * tau
-                * self.L1steps
-            )
+            remaining_evals = remaining_samples * self.convergence_inputs.thin_by_nact * tau * self.L1steps
             remaining_time_s = time_per_eval_ms * 1e-3 * remaining_evals
             remaining_time_dt = datetime.timedelta(seconds=remaining_time_s)
             if remaining_samples > 0:
@@ -582,7 +556,7 @@ class Bilby_MCMC(MCMCSampler):
         return filenames, []
 
 
-class BilbyPTMCMCSampler(object):
+class BilbyPTMCMCSampler:
     def __init__(
         self,
         convergence_inputs,
@@ -615,9 +589,7 @@ class BilbyPTMCMCSampler(object):
         self.swap_counter["L2-ensemble"] = int(self.L2steps / 2) + 1
 
         self._nsamples_dict = {}
-        self.ensemble_proposal_cycle = proposals.get_default_ensemble_proposal_cycle(
-            _sampling_convenience_dump.priors
-        )
+        self.ensemble_proposal_cycle = proposals.get_default_ensemble_proposal_cycle(_sampling_convenience_dump.priors)
         self.sampling_time = 0
         self.ln_z_dict = dict()
         self.ln_z_err_dict = dict()
@@ -644,7 +616,6 @@ class BilbyPTMCMCSampler(object):
         return betas
 
     def setup_sampler_dictionary(self, convergence_inputs, proposal_cycle):
-
         betas = self.get_initial_betas()
         logger.info(
             f"Initializing BilbyPTMCMCSampler with:"
@@ -772,9 +743,7 @@ class BilbyPTMCMCSampler(object):
             nsamples_list.append(sampler.nsamples)
         if self.pt_rejection_sample:
             for samp in self.sampler_list[1:]:
-                nsamples_list.append(
-                    len(samp.rejection_sample_zero_temperature_samples())
-                )
+                nsamples_list.append(len(samp.rejection_sample_zero_temperature_samples()))
         return sum(nsamples_list)
 
     @property
@@ -824,9 +793,7 @@ class BilbyPTMCMCSampler(object):
                 if self.adapt:
                     self.adapt_temperatures()
             elif self.adapt:
-                logger.info(
-                    f"Adaptation of temperature chains finished at step {self.position}"
-                )
+                logger.info(f"Adaptation of temperature chains finished at step {self.position}")
                 self.adapt = False
 
         self.swap_counter["L2-ensemble"] += 1
@@ -948,9 +915,7 @@ class BilbyPTMCMCSampler(object):
             ln_z, ln_z_err = self.compute_evidence_per_ensemble(method, kwargs)
             self.ln_z_dict[key] = ln_z
             self.ln_z_err_dict[key] = ln_z_err
-            logger.debug(
-                f"Log-evidence of {ln_z:0.2f}+/-{ln_z_err:0.2f} calculated using {key} method"
-            )
+            logger.debug(f"Log-evidence of {ln_z:0.2f}+/-{ln_z_err:0.2f} calculated using {key} method")
 
     def compute_evidence_per_ensemble(self, method, kwargs):
         from scipy.special import logsumexp
@@ -975,9 +940,7 @@ class BilbyPTMCMCSampler(object):
 
         return lnZ, lnZerr
 
-    def thermodynamic_integration_evidence(
-        self, ptchain, outdir, label, make_plots=True
-    ):
+    def thermodynamic_integration_evidence(self, ptchain, outdir, label, make_plots=True):
         """Computes the evidence using thermodynamic integration
 
         We compute the evidence without the burnin samples, no thinning
@@ -1043,9 +1006,7 @@ class BilbyPTMCMCSampler(object):
             return np.nan, np.nan
 
         # Read in log likelihoods
-        ln_likes = np.array(
-            [samp.chain.get_1d_array(LOGLKEY)[min_index:max_index] for samp in ptchain]
-        )[:-1].T
+        ln_likes = np.array([samp.chain.get_1d_array(LOGLKEY)[min_index:max_index] for samp in ptchain])[:-1].T
 
         # Thin to only independent samples
         ln_likes = ln_likes[:: int(self.tau), :]
@@ -1064,9 +1025,7 @@ class BilbyPTMCMCSampler(object):
         try:
             for _ in range(repeats):
                 idxs = [random.rng.integers(i, i + ll) for i in range(steps - ll)]
-                ln_z_realisations.append(
-                    self._calculate_stepping_stone(betas, ln_likes[idxs, :])[0]
-                )
+                ln_z_realisations.append(self._calculate_stepping_stone(betas, ln_likes[idxs, :])[0])
             ln_z_err = np.std(ln_z_realisations)
         except ValueError:
             logger.info("Failed to estimate stepping stone uncertainty")
@@ -1117,7 +1076,7 @@ class BilbyPTMCMCSampler(object):
         ax1.set_ylabel(r"$\langle \log(\mathcal{L}) \rangle$")
 
         plt.tight_layout()
-        fig.savefig("{}/{}_beta_lnl.png".format(outdir, label))
+        fig.savefig(f"{outdir}/{label}_beta_lnl.png")
         plt.close()
 
     def _create_stepping_stone_plot(self, means, outdir, label):
@@ -1140,7 +1099,7 @@ class BilbyPTMCMCSampler(object):
         ax.set_ylabel("Cumulative $\\ln Z$")
 
         plt.tight_layout()
-        fig.savefig("{}/{}_stepping_stone.png".format(outdir, label))
+        fig.savefig(f"{outdir}/{label}_stepping_stone.png")
         plt.close()
 
     @property
@@ -1155,7 +1114,7 @@ class BilbyPTMCMCSampler(object):
             return None
 
 
-class BilbyMCMCSampler(object):
+class BilbyMCMCSampler:
     def __init__(
         self,
         convergence_inputs,
@@ -1179,16 +1138,12 @@ class BilbyMCMCSampler(object):
         if initial_sample_method.lower() == "prior":
             full_sample_dict = _sampling_convenience_dump.priors.sample()
             initial_sample = {
-                k: v
-                for k, v in full_sample_dict.items()
-                if k in _sampling_convenience_dump.priors.non_fixed_keys
+                k: v for k, v in full_sample_dict.items() if k in _sampling_convenience_dump.priors.non_fixed_keys
             }
         elif initial_sample_method.lower() in ["maximize", "maximise", "maximum"]:
             initial_sample = get_initial_maximimum_posterior_sample(self.beta)
         else:
-            raise ValueError(
-                f"initial sample method {initial_sample_method} not understood"
-            )
+            raise ValueError(f"initial sample method {initial_sample_method} not understood")
 
         if initial_sample_dict is not None:
             initial_sample.update(initial_sample_dict)
@@ -1295,11 +1250,7 @@ class BilbyMCMCSampler(object):
 
             with np.errstate(over="ignore"):
                 alpha = np.exp(
-                    log_factor
-                    + self.beta * prop[LOGLKEY]
-                    + prop[LOGPKEY]
-                    - self.beta * curr[LOGLKEY]
-                    - curr[LOGPKEY]
+                    log_factor + self.beta * prop[LOGLKEY] + prop[LOGPKEY] - self.beta * curr[LOGLKEY] - curr[LOGPKEY]
                 )
 
             if random.rng.uniform(0, 1) <= alpha:
@@ -1338,14 +1289,9 @@ class BilbyMCMCSampler(object):
     def rejection_sample_zero_temperature_samples(self, print_message=False):
         beta = self.beta
         chain = self.chain
-        hot_samples = pd.DataFrame(
-            chain._chain_array[chain.minimum_index : chain.position], columns=chain.keys
-        )
+        hot_samples = pd.DataFrame(chain._chain_array[chain.minimum_index : chain.position], columns=chain.keys)
         if len(hot_samples) == 0:
-            logger.debug(
-                f"Rejection sampling for Temp {self.Tindex} failed: "
-                "no usable hot samples"
-            )
+            logger.debug(f"Rejection sampling for Temp {self.Tindex} failed: no usable hot samples")
             return hot_samples
 
         # Pull out log likelihood
@@ -1353,9 +1299,7 @@ class BilbyMCMCSampler(object):
 
         # Revert to true likelihood if needed
         if _sampling_convenience_dump.use_ratio:
-            zerotemp_logl += (
-                _sampling_convenience_dump.likelihood.noise_log_likelihood()
-            )
+            zerotemp_logl += _sampling_convenience_dump.likelihood.noise_log_likelihood()
 
         # Calculate normalised weights
         log_weights = (1 - beta) * zerotemp_logl
@@ -1370,10 +1314,7 @@ class BilbyMCMCSampler(object):
         self.rejection_sampling_count = len(samples)
 
         if print_message:
-            logger.info(
-                f"Rejection sampling Temp {self.Tindex}, beta={beta:0.2f} "
-                f"yielded {len(samples)} samples"
-            )
+            logger.info(f"Rejection sampling Temp {self.Tindex}, beta={beta:0.2f} yielded {len(samples)} samples")
         return samples
 
 

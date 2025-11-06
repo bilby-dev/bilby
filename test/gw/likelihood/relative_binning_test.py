@@ -1,9 +1,10 @@
 import unittest
 from copy import deepcopy
 
-import bilby
 import numpy as np
 from parameterized import parameterized
+
+import bilby
 
 
 class TestRelativeBinningLikelihood(unittest.TestCase):
@@ -41,8 +42,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
 
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
         ifos.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=self.test_parameters['geocent_time'] - duration + 2.
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=self.test_parameters["geocent_time"] - duration + 2.0,
         )
         for ifo in ifos:
             ifo.minimum_frequency = fmin
@@ -54,16 +56,16 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
                 prefix=f"recalib_{ifo.name}_",
                 minimum_frequency=ifo.minimum_frequency,
                 maximum_frequency=ifo.maximum_frequency,
-                n_points=spline_calibration_nodes
+                n_points=spline_calibration_nodes,
             )
             for i in range(spline_calibration_nodes):
                 self.test_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = 0
                 self.test_parameters[f"recalib_{ifo.name}_phase_{i}"] = 0
                 # Calibration errors of 5% in amplitude and 5 degrees in phase
-                self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = \
-                    np.random.normal(loc=0, scale=0.05)
-                self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = \
-                    np.random.normal(loc=0, scale=5 * np.pi / 180)
+                self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = np.random.normal(loc=0, scale=0.05)
+                self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = np.random.normal(
+                    loc=0, scale=5 * np.pi / 180
+                )
 
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
@@ -76,16 +78,16 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
 
         approximant = "IMRPhenomXP"
         non_bin_wfg = bilby.gw.WaveformGenerator(
-            duration=duration, sampling_frequency=sampling_frequency,
+            duration=duration,
+            sampling_frequency=sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-            waveform_arguments=dict(
-                reference_frequency=fmin, minimum_frequency=fmin, waveform_approximant=approximant)
+            waveform_arguments=dict(reference_frequency=fmin, minimum_frequency=fmin, waveform_approximant=approximant),
         )
         bin_wfg = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=duration, sampling_frequency=sampling_frequency,
+            duration=duration,
+            sampling_frequency=sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
-            waveform_arguments=dict(
-                reference_frequency=fmin, waveform_approximant=approximant, minimum_frequency=fmin)
+            waveform_arguments=dict(reference_frequency=fmin, waveform_approximant=approximant, minimum_frequency=fmin),
         )
         ifos.inject_signal(
             parameters=self.test_parameters,
@@ -95,11 +97,11 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         self.ifos = ifos
 
         self.non_bin = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=ifos, waveform_generator=deepcopy(non_bin_wfg),
-            priors=priors.copy()
+            interferometers=ifos, waveform_generator=deepcopy(non_bin_wfg), priors=priors.copy()
         )
         self.binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
-            interferometers=ifos, waveform_generator=deepcopy(bin_wfg),
+            interferometers=ifos,
+            waveform_generator=deepcopy(bin_wfg),
             fiducial_parameters=self.fiducial_parameters,
             priors=priors.copy(),
             epsilon=0.05,
@@ -119,11 +121,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             parameters = self.priors.sample()
             regular_ln_l = self.non_bin.log_likelihood_ratio(parameters)
             binned_ln_l = self.binned.log_likelihood_ratio(parameters)
-            self.assertLess(
-                abs(regular_ln_l - binned_ln_l)
-                / abs(self.reference_ln_l - regular_ln_l),
-                0.1
-            )
+            self.assertLess(abs(regular_ln_l - binned_ln_l) / abs(self.reference_ln_l - regular_ln_l), 0.1)
 
     def test_matches_non_binned_many_state(self):
         for _ in range(100):
@@ -132,13 +130,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             self.binned.parameters.update(parameters)
             regular_ln_l = self.non_bin.log_likelihood_ratio()
             binned_ln_l = self.binned.log_likelihood_ratio()
-            self.assertLess(
-                abs(regular_ln_l - binned_ln_l)
-                / abs(self.reference_ln_l - regular_ln_l),
-                0.1
-            )
+            self.assertLess(abs(regular_ln_l - binned_ln_l) / abs(self.reference_ln_l - regular_ln_l), 0.1)
 
-    @parameterized.expand([(False, ), (True, )])
+    @parameterized.expand([(False,), (True,)])
     def test_matches_non_binned(self, add_cal_errors):
         parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
@@ -157,12 +151,24 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         fiducial_parameters["chirp_mass"] *= 0.99
         priors = self.priors.copy()
         for key in [
-            "ra", "dec", "geocent_time", "phase", "psi", "theta_jn", "luminosity_distance",
-            "a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl",
+            "ra",
+            "dec",
+            "geocent_time",
+            "phase",
+            "psi",
+            "theta_jn",
+            "luminosity_distance",
+            "a_1",
+            "a_2",
+            "tilt_1",
+            "tilt_2",
+            "phi_12",
+            "phi_jl",
         ]:
             priors[key] = self.test_parameters[key]
         binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
-            interferometers=self.ifos, waveform_generator=deepcopy(self.bin_wfg),
+            interferometers=self.ifos,
+            waveform_generator=deepcopy(self.bin_wfg),
             priors=priors,
             fiducial_parameters=fiducial_parameters,
             epsilon=0.05,
@@ -183,7 +189,8 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         test that we avoid this.
         """
         binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
-            interferometers=self.ifos, waveform_generator=deepcopy(self.bin_wfg),
+            interferometers=self.ifos,
+            waveform_generator=deepcopy(self.bin_wfg),
             fiducial_parameters=self.fiducial_parameters,
             priors=self.priors.copy(),
             epsilon=0.001,
@@ -227,7 +234,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         ifos.set_strain_data_from_zero_noise(
             sampling_frequency=sampling_frequency,
             duration=duration,
-            start_time=test_parameters['geocent_time'] - duration + 2.
+            start_time=test_parameters["geocent_time"] - duration + 2.0,
         )
         for ifo in ifos:
             ifo.minimum_frequency = fmin
@@ -243,21 +250,13 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             duration=duration,
             sampling_frequency=sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-            waveform_arguments=dict(
-                reference_frequency=fmin,
-                minimum_frequency=fmin,
-                waveform_approximant=approximant
-            )
+            waveform_arguments=dict(reference_frequency=fmin, minimum_frequency=fmin, waveform_approximant=approximant),
         )
         bin_wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=duration,
             sampling_frequency=sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning,
-            waveform_arguments=dict(
-                reference_frequency=fmin,
-                waveform_approximant=approximant,
-                minimum_frequency=fmin
-            )
+            waveform_arguments=dict(reference_frequency=fmin, waveform_approximant=approximant, minimum_frequency=fmin),
         )
         ifos.inject_signal(
             parameters=test_parameters,
@@ -266,9 +265,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         )
 
         non_bin = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=ifos,
-            waveform_generator=deepcopy(non_bin_wfg),
-            priors=priors.copy()
+            interferometers=ifos, waveform_generator=deepcopy(non_bin_wfg), priors=priors.copy()
         )
         binned = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
             interferometers=ifos,

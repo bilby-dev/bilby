@@ -1,8 +1,9 @@
 import unittest
+
 import numpy as np
 
-from bilby.core.utils import create_frequency_series, create_time_series
 from bilby.core.series import CoupledTimeAndFrequencySeries
+from bilby.core.utils import create_frequency_series, create_time_series
 
 
 class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
@@ -24,12 +25,9 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
 
     def test_repr(self):
         expected = (
-            "CoupledTimeAndFrequencySeries(duration={}, sampling_frequency={},"
-            " start_time={})".format(
-                self.series.duration,
-                self.series.sampling_frequency,
-                self.series.start_time,
-            )
+            f"CoupledTimeAndFrequencySeries(duration={self.series.duration}, "
+            f"sampling_frequency={self.series.sampling_frequency},"
+            f" start_time={self.series.start_time})"
         )
         self.assertEqual(expected, repr(self.series))
 
@@ -49,9 +47,7 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.assertIsInstance(self.series.time_array, np.ndarray)
 
     def test_frequency_array_from_init(self):
-        expected = create_frequency_series(
-            sampling_frequency=self.sampling_frequency, duration=self.duration
-        )
+        expected = create_frequency_series(sampling_frequency=self.sampling_frequency, duration=self.duration)
         self.assertTrue(np.array_equal(expected, self.series.frequency_array))
 
     def test_time_array_from_init(self):
@@ -65,16 +61,10 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
     def test_frequency_array_setter(self):
         new_sampling_frequency = 100
         new_duration = 3
-        new_frequency_array = create_frequency_series(
-            sampling_frequency=new_sampling_frequency, duration=new_duration
-        )
+        new_frequency_array = create_frequency_series(sampling_frequency=new_sampling_frequency, duration=new_duration)
         self.series.frequency_array = new_frequency_array
-        self.assertTrue(
-            np.array_equal(new_frequency_array, self.series.frequency_array)
-        )
-        self.assertLessEqual(
-            np.abs(new_sampling_frequency - self.series.sampling_frequency), 1
-        )
+        self.assertTrue(np.array_equal(new_frequency_array, self.series.frequency_array))
+        self.assertLessEqual(np.abs(new_sampling_frequency - self.series.sampling_frequency), 1)
         self.assertAlmostEqual(new_duration, self.series.duration)
         self.assertAlmostEqual(self.start_time, self.series.start_time)
 
@@ -89,9 +79,7 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         )
         self.series.time_array = new_time_array
         self.assertTrue(np.array_equal(new_time_array, self.series.time_array))
-        self.assertAlmostEqual(
-            new_sampling_frequency, self.series.sampling_frequency, places=1
-        )
+        self.assertAlmostEqual(new_sampling_frequency, self.series.sampling_frequency, places=1)
         self.assertAlmostEqual(new_duration, self.series.duration, places=1)
         self.assertAlmostEqual(new_start_time, self.series.start_time, places=1)
 

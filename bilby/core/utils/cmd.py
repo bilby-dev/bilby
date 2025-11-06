@@ -7,7 +7,7 @@ from .log import logger
 
 
 def set_up_command_line_arguments():
-    """ Sets up command line arguments that can be used to modify how scripts are run.
+    """Sets up command line arguments that can be used to modify how scripts are run.
 
     Returns
     =======
@@ -50,30 +50,37 @@ def set_up_command_line_arguments():
     """
     try:
         parser = argparse.ArgumentParser(
-            description="Command line interface for bilby scripts",
-            add_help=False, allow_abbrev=False)
+            description="Command line interface for bilby scripts", add_help=False, allow_abbrev=False
+        )
     except TypeError:
-        parser = argparse.ArgumentParser(
-            description="Command line interface for bilby scripts",
-            add_help=False)
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help=("Increase output verbosity [logging.DEBUG]." +
-                              " Overridden by script level settings"))
-    parser.add_argument("-q", "--quiet", action="store_true",
-                        help=("Decrease output verbosity [logging.WARNING]." +
-                              " Overridden by script level settings"))
-    parser.add_argument("-c", "--clean", action="store_true",
-                        help="Force clean data, never use cached data")
-    parser.add_argument("-u", "--use-cached", action="store_true",
-                        help="Force cached data and do not check its validity")
-    parser.add_argument("--sampler-help", nargs='?', default=False,
-                        const='None', help="Print help for given sampler")
-    parser.add_argument("--bilby-test-mode", action="store_true",
-                        help=("Used for testing only: don't run full PE, but"
-                              " just check nothing breaks"))
-    parser.add_argument("--bilby-zero-likelihood-mode", action="store_true",
-                        help=("Used for testing only: don't run full PE, but"
-                              " just check nothing breaks"))
+        parser = argparse.ArgumentParser(description="Command line interface for bilby scripts", add_help=False)
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help=("Increase output verbosity [logging.DEBUG]." + " Overridden by script level settings"),
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help=("Decrease output verbosity [logging.WARNING]." + " Overridden by script level settings"),
+    )
+    parser.add_argument("-c", "--clean", action="store_true", help="Force clean data, never use cached data")
+    parser.add_argument(
+        "-u", "--use-cached", action="store_true", help="Force cached data and do not check its validity"
+    )
+    parser.add_argument("--sampler-help", nargs="?", default=False, const="None", help="Print help for given sampler")
+    parser.add_argument(
+        "--bilby-test-mode",
+        action="store_true",
+        help=("Used for testing only: don't run full PE, but just check nothing breaks"),
+    )
+    parser.add_argument(
+        "--bilby-zero-likelihood-mode",
+        action="store_true",
+        help=("Used for testing only: don't run full PE, but just check nothing breaks"),
+    )
     args, unknown_args = parser.parse_known_args()
     if args.quiet:
         args.log_level = logging.WARNING
@@ -98,19 +105,17 @@ def run_commandline(cl, log_level=20, raise_error=True, return_output=True):
 
     """
 
-    logger.log(log_level, 'Now executing: ' + cl)
+    logger.log(log_level, "Now executing: " + cl)
     if return_output:
         try:
-            out = subprocess.check_output(
-                cl, stderr=subprocess.STDOUT, shell=True,
-                universal_newlines=True)
+            out = subprocess.check_output(cl, stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
         except subprocess.CalledProcessError as e:
-            logger.log(log_level, 'Execution failed: {}'.format(e.output))
+            logger.log(log_level, f"Execution failed: {e.output}")
             if raise_error:
                 raise
             else:
                 out = 0
-        os.system('\n')
+        os.system("\n")
         return out
     else:
         process = subprocess.Popen(cl, shell=True)

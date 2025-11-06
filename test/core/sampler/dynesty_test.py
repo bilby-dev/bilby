@@ -3,14 +3,14 @@ import shutil
 import unittest
 from copy import deepcopy
 
-import bilby
-import bilby.core.sampler.dynesty
 import numpy as np
 import parameterized
 import pytest
 from attr import define
-from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+from scipy.stats import gamma, ks_1samp, powerlaw, uniform
 
+import bilby
+import bilby.core.sampler.dynesty
 
 try:
     import dynesty.internal_samplers  # noqa
@@ -29,9 +29,7 @@ class Dummy:
     axes: np.ndarray
     scale: float = 1
     rseed: float = 1234
-    kwargs: dict = dict(
-        walks=500, live=np.zeros((2, 4)), periodic=None, reflective=None
-    )
+    kwargs: dict = dict(walks=500, live=np.zeros((2, 4)), periodic=None, reflective=None)
     prior_transform: callable = lambda x: x
     loglikelihood: callable = lambda x: 0
     loglstar: float = -1
@@ -122,9 +120,7 @@ class TestDynesty(unittest.TestCase):
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
         self.init_sampler()
         if NEW_DYNESTY_API:
-            self.assertEqual(
-                [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
-            )
+            self.assertEqual([0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"])
             self.assertEqual(
                 [1, 3],
                 self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
@@ -164,9 +160,7 @@ class TestDynesty(unittest.TestCase):
     def test_sampler_kwargs_acceptance_walk(self):
         self.init_sampler(sample="acceptance-walk", naccept=5, maxmcmc=200)
         if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler
-            )
+            self.assertIsInstance(self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler)
             self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
             self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
         else:
@@ -177,12 +171,14 @@ class TestDynesty(unittest.TestCase):
     def test_run_test_runs(self):
         self.sampler._run_test()
 
-    @parameterized.parameterized.expand((
-        ("unif", "single"),
-        ("unif", "multi"),
-        ("rslice", "single"),
-        ("rslice", "multi"),
-    ))
+    @parameterized.parameterized.expand(
+        (
+            ("unif", "single"),
+            ("unif", "multi"),
+            ("rslice", "single"),
+            ("rslice", "multi"),
+        )
+    )
     def test_dynesty_native_methods_initialize(self, sample, bound):
         """
         Make sure that we can initialize the native dynesty samplers.
@@ -194,9 +190,7 @@ class TestDynesty(unittest.TestCase):
 def test_get_expected_outputs():
     label = "par0"
     outdir = os.path.join("some", "bilby_pipe", "dir")
-    filenames, directories = bilby.core.sampler.dynesty.Dynesty.get_expected_outputs(
-        outdir=outdir, label=label
-    )
+    filenames, directories = bilby.core.sampler.dynesty.Dynesty.get_expected_outputs(outdir=outdir, label=label)
     assert len(filenames) == 2
     assert len(directories) == 0
     assert os.path.join(outdir, f"{label}_resume.pickle") in filenames
@@ -204,19 +198,13 @@ def test_get_expected_outputs():
 
 
 class ProposalsTest(unittest.TestCase):
-
     def test_boundaries(self):
         inputs = np.array([0.1, 1.1, -1.3])
         expected = np.array([0.1, 0.1, 0.7])
         periodic = [1]
         reflective = [2]
         self.assertLess(
-            max(
-                abs(
-                    dynesty_utils.apply_boundaries_(inputs, periodic, reflective)
-                    - expected
-                )
-            ),
+            max(abs(dynesty_utils.apply_boundaries_(inputs, periodic, reflective) - expected)),
             1e-10,
         )
 
@@ -233,13 +221,9 @@ class ProposalsTest(unittest.TestCase):
         for _ in range(1000):
             new_samples.append(proposal_func(start, axes, 1, 4, 2, rng))
         new_samples = np.array(new_samples)
+        self.assertGreater(ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01)
         self.assertGreater(
-            ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01
-        )
-        self.assertGreater(
-            ks_1samp(
-                np.linalg.norm(new_samples[:, :2], axis=-1), powerlaw(2, scale=2).cdf
-            ).pvalue,
+            ks_1samp(np.linalg.norm(new_samples[:, :2], axis=-1), powerlaw(2, scale=2).cdf).pvalue,
             0.01,
         )
 
@@ -252,9 +236,7 @@ class ProposalsTest(unittest.TestCase):
         for _ in range(1000):
             new_samples.append(proposal_func(start, live, 4, 2, rng, mix=0))
         new_samples = np.array(new_samples)
-        self.assertGreater(
-            ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01
-        )
+        self.assertGreater(ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01)
         self.assertLess(np.max(abs(new_samples[:, :2]) - np.array([1, 1])), 1e-10)
 
     @parameterized.parameterized.expand(((1,), (None,), (5,)))
@@ -265,19 +247,13 @@ class ProposalsTest(unittest.TestCase):
         start = np.zeros(4)
         new_samples = list()
         for _ in range(1000):
-            new_samples.append(
-                proposal_func(start, live, 4, 2, rng, mix=1, scale=scale)
-            )
+            new_samples.append(proposal_func(start, live, 4, 2, rng, mix=1, scale=scale))
         new_samples = np.array(new_samples)
         if scale is None:
             scale = 1.17
+        self.assertGreater(ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01)
         self.assertGreater(
-            ks_1samp(new_samples[:, 2:].flatten(), uniform(0, 1).cdf).pvalue, 0.01
-        )
-        self.assertGreater(
-            ks_1samp(
-                np.abs(new_samples[:, :2].flatten()), gamma(4, scale=scale / 4).cdf
-            ).pvalue,
+            ks_1samp(np.abs(new_samples[:, :2].flatten()), gamma(4, scale=scale / 4).cdf).pvalue,
             0.01,
         )
 
@@ -290,9 +266,7 @@ class ProposalsTest(unittest.TestCase):
             dynesty_utils._SamplingContainer.proposals = ["diff"]
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
-        self.assertTrue(
-            np.array_equal(proposals, np.array(["diff"] * args.kwargs["walks"]))
-        )
+        self.assertTrue(np.array_equal(proposals, np.array(["diff"] * args.kwargs["walks"])))
         self.assertDictEqual(common, dict(n=len(args.u), n_cluster=len(args.axes)))
         assert np.array_equal(args.kwargs["live"][:1, :2], specific["diff"]["live"])
         del specific["diff"]["live"]
@@ -307,13 +281,9 @@ class ProposalsTest(unittest.TestCase):
             dynesty_utils._SamplingContainer.proposals = ["volumetric"]
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
-        self.assertTrue(
-            np.array_equal(proposals, np.array(["volumetric"] * args.kwargs["walks"]))
-        )
+        self.assertTrue(np.array_equal(proposals, np.array(["volumetric"] * args.kwargs["walks"])))
         self.assertDictEqual(common, dict(n=len(args.u), n_cluster=len(args.axes)))
-        self.assertDictEqual(
-            specific, dict(volumetric=dict(axes=args.axes, scale=args.scale))
-        )
+        self.assertDictEqual(specific, dict(volumetric=dict(axes=args.axes, scale=args.scale)))
 
     @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
     def test_proposal_functions_run_old(self):
@@ -433,7 +403,6 @@ class TestEstimateNMCMC(unittest.TestCase):
 
 
 class TestReproducibility(unittest.TestCase):
-
     @staticmethod
     def model(x, m, c):
         return m * x + c
@@ -445,12 +414,8 @@ class TestReproducibility(unittest.TestCase):
         self.x = np.linspace(0, 1, 11)
         self.injection_parameters = dict(m=0.5, c=0.2)
         self.sigma = 0.1
-        self.y = self.model(self.x, **self.injection_parameters) + rng.normal(
-            0, self.sigma, len(self.x)
-        )
-        self.likelihood = bilby.likelihood.GaussianLikelihood(
-            self.x, self.y, self.model, self.sigma
-        )
+        self.y = self.model(self.x, **self.injection_parameters) + rng.normal(0, self.sigma, len(self.x))
+        self.likelihood = bilby.likelihood.GaussianLikelihood(self.x, self.y, self.model, self.sigma)
 
         self.priors = bilby.core.prior.PriorDict()
         self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")

@@ -1,15 +1,15 @@
-import unittest
 import os
-from shutil import rmtree
+import unittest
 from importlib.metadata import version
+from shutil import rmtree
 
-import numpy as np
 import lal
 import lalsimulation as lalsim
-from gwpy.timeseries import TimeSeries
-from gwpy.detector import Channel
-from scipy.stats import ks_2samp
+import numpy as np
 import pytest
+from gwpy.detector import Channel
+from gwpy.timeseries import TimeSeries
+from scipy.stats import ks_2samp
 
 import bilby
 from bilby.gw import utils as gwutils
@@ -30,13 +30,13 @@ class TestGWUtils(unittest.TestCase):
         freq_data = np.array([1, 2, 3])
         df = 0.1
         asd = gwutils.asd_from_freq_series(freq_data, df)
-        self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
+        self.assertTrue(np.all(asd == freq_data * 2 * df**0.5))
 
     def test_psd_from_freq_series(self):
         freq_data = np.array([1, 2, 3])
         df = 0.1
         psd = gwutils.psd_from_freq_series(freq_data, df)
-        self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
+        self.assertTrue(np.all(psd == (freq_data * 2 * df**0.5) ** 2))
 
     def test_inner_product(self):
         aa = np.array([1, 2, 3])
@@ -69,14 +69,13 @@ class TestGWUtils(unittest.TestCase):
         psd = PSD.power_spectral_density_interpolated(frequency)
         duration = 4
 
-        mfsnr = gwutils.matched_filter_snr(
-            signal, frequency_domain_strain, psd, duration
-        )
+        mfsnr = gwutils.matched_filter_snr(signal, frequency_domain_strain, psd, duration)
         self.assertEqual(mfsnr, 25.510869054168282)
 
     @pytest.mark.skip(reason="GWOSC unstable: avoiding this test")
     def test_get_event_time(self):
         from urllib3.exceptions import NewConnectionError
+
         events = [
             "GW150914",
             "GW170104",
@@ -120,18 +119,14 @@ class TestGWUtils(unittest.TestCase):
         ts.write(filename, format="gwf")
 
         # Check reading without time limits
-        strain = gwutils.read_frame_file(
-            filename, start_time=None, end_time=None, channel=channel
-        )
+        strain = gwutils.read_frame_file(filename, start_time=None, end_time=None, channel=channel)
         self.assertEqual(strain.name, channel)
         self.assertTrue(np.all(strain.value == data))
 
         # Check reading with time limits
         start_cut = 2
         end_cut = 8
-        strain = gwutils.read_frame_file(
-            filename, start_time=start_cut, end_time=end_cut, channel=channel
-        )
+        strain = gwutils.read_frame_file(filename, start_time=start_cut, end_time=end_cut, channel=channel)
         idxs = (times >= start_cut) & (times < end_cut)
         self.assertTrue(np.all(strain.value == data[idxs]))
 
@@ -140,9 +135,7 @@ class TestGWUtils(unittest.TestCase):
         self.assertTrue(np.all(strain.value == data))
 
         # Check reading with incorrect channel
-        strain = gwutils.read_frame_file(
-            filename, start_time=None, end_time=None, channel="WRONG"
-        )
+        strain = gwutils.read_frame_file(filename, start_time=None, end_time=None, channel="WRONG")
         self.assertTrue(np.all(strain.value == data))
 
         ts = TimeSeries(data=data, times=times, t0=0)
@@ -152,9 +145,7 @@ class TestGWUtils(unittest.TestCase):
         self.assertEqual(strain, None)
 
     def test_convert_args_list_to_float(self):
-        self.assertEqual(
-            gwutils.convert_args_list_to_float(1, "2", 3.0), [1.0, 2.0, 3.0]
-        )
+        self.assertEqual(gwutils.convert_args_list_to_float(1, "2", 3.0), [1.0, 2.0, 3.0])
         with self.assertRaises(ValueError):
             gwutils.convert_args_list_to_float(1, "2", "ten")
 
@@ -265,7 +256,6 @@ class TestGWUtils(unittest.TestCase):
 
 
 class TestSkyFrameConversion(unittest.TestCase):
-
     def setUp(self) -> None:
         self.priors = bilby.core.prior.PriorDict()
         self.priors["ra"] = bilby.core.prior.Uniform(0, 2 * np.pi)
@@ -285,10 +275,7 @@ class TestSkyFrameConversion(unittest.TestCase):
         zeniths = self.samples["zenith"]
         azimuths = self.samples["azimuth"]
         times = self.samples["time"]
-        args = zip(*[
-            (zenith, azimuth, time, self.ifos)
-            for zenith, azimuth, time in zip(zeniths, azimuths, times)
-        ])
+        args = zip(*[(zenith, azimuth, time, self.ifos) for zenith, azimuth, time in zip(zeniths, azimuths, times)])
         ras, decs = zip(*map(bilby.gw.utils.zenith_azimuth_to_ra_dec, *args))
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
@@ -296,6 +283,7 @@ class TestSkyFrameConversion(unittest.TestCase):
 
 def test_ln_i0_mathces_scipy():
     from scipy.special import i0
+
     values = np.linspace(-10, 10, 101)
     assert max(abs(gwutils.ln_i0(values) - np.log(i0(values)))) < 1e-10
 

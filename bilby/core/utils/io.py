@@ -1,12 +1,12 @@
-from collections import UserDict, UserList
 import datetime
 import inspect
 import json
 import os
 import shutil
+from collections import UserDict, UserList
+from datetime import timedelta
 from importlib import import_module
 from pathlib import Path
-from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ from .log import logger
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
-    """ Checks if the given directory exists and creates it if it does not exist
+    """Checks if the given directory exists and creates it if it does not exist
 
     Parameters
     ==========
@@ -28,8 +28,8 @@ def check_directory_exists_and_if_not_mkdir(directory):
 
 class BilbyJsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        from ..prior import BaseJointPriorDist, Prior, PriorDict
         from ...bilby_mcmc.proposals import ProposalCycle
+        from ..prior import BaseJointPriorDist, Prior, PriorDict
 
         if isinstance(obj, np.integer):
             return int(obj)
@@ -49,7 +49,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
         if isinstance(obj, ProposalCycle):
             return str(obj)
         try:
-            from astropy import cosmology as cosmo, units
+            from astropy import cosmology as cosmo
+            from astropy import units
 
             if isinstance(obj, cosmo.FLRW):
                 return encode_astropy_cosmology(obj)
@@ -82,10 +83,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 "__name__": obj.__name__,
             }
         if isinstance(obj, (timedelta)):
-            return {
-                "__timedelta__": True,
-                "__total_seconds__": obj.total_seconds()
-            }
+            return {"__timedelta__": True, "__total_seconds__": obj.total_seconds()}
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
@@ -132,9 +130,7 @@ def encode_astropy_unit(obj):
         return dict(__astropy_unit__=True, unit=obj.to_string())
 
     except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be properly loaded."
-        )
+        logger.debug("Cannot import astropy, cosmological priors may not be properly loaded.")
         return obj
 
 
@@ -179,9 +175,7 @@ def decode_astropy_cosmology(dct):
         del dct["__cosmology__"]
         return cosmo.Cosmology.from_format(dct, format="mapping")
     except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be properly loaded."
-        )
+        logger.debug("Cannot import astropy, cosmological priors may not be properly loaded.")
         return dct
     except KeyError:
         # Support decoding result files that used the previous encoding
@@ -213,9 +207,7 @@ def decode_astropy_quantity(dct):
             del dct["__astropy_quantity__"]
             return units.Quantity(**dct)
     except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be properly loaded."
-        )
+        logger.debug("Cannot import astropy, cosmological priors may not be properly loaded.")
         return dct
 
 
@@ -240,9 +232,7 @@ def decode_astropy_unit(dct):
             del dct["__astropy_unit__"]
             return units.Unit(dct["unit"])
     except ImportError:
-        logger.debug(
-            "Cannot import astropy, cosmological priors may not be properly loaded."
-        )
+        logger.debug("Cannot import astropy, cosmological priors may not be properly loaded.")
         return dct
 
 
@@ -260,10 +250,8 @@ def decode_numpy_random_generator(dct):
             f"Original error: {e}"
         ) from e
     # Convert the state and inc integers back to integers
-    dct["bit_generator_state"]["state"]["state"] = \
-        int(dct["bit_generator_state"]["state"]["state"])
-    dct["bit_generator_state"]["state"]["inc"] = \
-        int(dct["bit_generator_state"]["state"]["inc"])
+    dct["bit_generator_state"]["state"]["state"] = int(dct["bit_generator_state"]["state"]["state"])
+    dct["bit_generator_state"]["state"]["inc"] = int(dct["bit_generator_state"]["state"]["inc"])
 
     generator = np.random.Generator(bit_generator())
     generator.bit_generator.state = dct["bit_generator_state"]
@@ -278,7 +266,7 @@ def load_json(filename, gzip):
             json_str = file.read().decode("utf-8")
         dictionary = json.loads(json_str, object_hook=decode_bilby_json)
     else:
-        with open(filename, "r") as file:
+        with open(filename) as file:
             dictionary = json.load(file, object_hook=decode_bilby_json)
     return dictionary
 
@@ -293,14 +281,13 @@ def decode_bilby_json(dct):
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
             obj = cls(**dct["kwargs"])
         except (AttributeError, ValueError) as e:
-            if type(e).__name__ == 'AttributeError':
+            if type(e).__name__ == "AttributeError":
                 warning_message = "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
-            elif type(e).__name__ == 'ValueError':
+            elif type(e).__name__ == "ValueError":
                 warning_message = (
-                    f"Unable to load prior {cls} with arguments {dct['kwargs']}, "
-                    "defaulting to base Prior object"
+                    f"Unable to load prior {cls} with arguments {dct['kwargs']}, defaulting to base Prior object"
                 )
             logger.warning(warning_message)
             from ..prior import Prior
@@ -332,9 +319,7 @@ def decode_bilby_json(dct):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"], default)
         except ModuleNotFoundError:
-            logger.warning(
-                f"Cannot load module {dct['__module__']}, returning function name as string"
-            )
+            logger.warning(f"Cannot load module {dct['__module__']}, returning function name as string")
             cls = default
         return cls
     if dct.get("__timedelta__", False):
@@ -421,7 +406,8 @@ def encode_for_hdf5(key, item):
     from ..prior.dict import PriorDict
 
     try:
-        from astropy import cosmology as cosmo, units
+        from astropy import cosmology as cosmo
+        from astropy import units
     except ImportError:
         logger.debug("Cannot import astropy, cannot write cosmological priors")
         cosmo = None
@@ -435,9 +421,9 @@ def encode_for_hdf5(key, item):
         item = complex(item)
     if isinstance(item, np.ndarray):
         # Numpy's wide unicode strings are not supported by hdf5
-        if item.dtype.kind == 'U':
-            logger.debug(f'converting dtype {item.dtype} for hdf5')
-            item = np.array(item, dtype='S')
+        if item.dtype.kind == "U":
+            logger.debug(f"converting dtype {item.dtype} for hdf5")
+            item = np.array(item, dtype="S")
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
     elif isinstance(item, np.random.Generator):
@@ -462,7 +448,7 @@ def encode_for_hdf5(key, item):
                 else:
                     output.append(str(value).encode("utf-8"))
         else:
-            raise ValueError(f'Cannot save {key}: {type(item)} type')
+            raise ValueError(f"Cannot save {key}: {type(item)} type")
     elif isinstance(item, PriorDict):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
@@ -474,9 +460,7 @@ def encode_for_hdf5(key, item):
     elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
         output = encode_astropy_unit(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
-        output = dict(
-            __module__=item.__module__, __name__=item.__name__, __class__=True
-        )
+        output = dict(__module__=item.__module__, __name__=item.__name__, __class__=True)
     elif isinstance(item, dict):
         output = item.copy()
     elif isinstance(item, (UserDict, UserList)):
@@ -486,7 +470,7 @@ def encode_for_hdf5(key, item):
     elif isinstance(item, datetime.timedelta):
         output = item.total_seconds()
     else:
-        raise ValueError(f'Cannot save {key}: {type(item)} type')
+        raise ValueError(f"Cannot save {key}: {type(item)} type")
     return output
 
 
@@ -539,9 +523,7 @@ def recursively_load_dict_contents_from_group(h5file, path):
         if isinstance(item, h5py.Dataset):
             output[key] = decode_from_hdf5(item[()])
         elif isinstance(item, h5py.Group):
-            output[key] = recursively_load_dict_contents_from_group(
-                h5file, path + key + "/"
-            )
+            output[key] = recursively_load_dict_contents_from_group(h5file, path + key + "/")
     # Some items may be encoded as dictionaries, so we need to decode them
     # after the dictionary has been constructed.
     # This includes decoding astropy and bilby types
@@ -573,7 +555,7 @@ def recursively_save_dict_contents_to_group(h5file, path, dic):
 
 
 def safe_file_dump(data, filename, module):
-    """ Safely dump data to a .pickle file
+    """Safely dump data to a .pickle file
 
     Parameters
     ==========
@@ -593,7 +575,7 @@ def safe_file_dump(data, filename, module):
 
 
 def move_old_file(filename, overwrite=False):
-    """ Moves or removes an old file.
+    """Moves or removes an old file.
 
     Parameters
     ==========
@@ -605,14 +587,12 @@ def move_old_file(filename, overwrite=False):
     """
     if os.path.isfile(filename):
         if overwrite:
-            logger.debug("Removing existing file {}".format(filename))
+            logger.debug(f"Removing existing file {filename}")
             os.remove(filename)
         else:
-            logger.debug(
-                "Renaming existing file {} to {}.old".format(filename, filename)
-            )
+            logger.debug(f"Renaming existing file {filename} to {filename}.old")
             shutil.move(filename, filename + ".old")
-    logger.debug("Saving result to {}".format(filename))
+    logger.debug(f"Saving result to {filename}")
 
 
 def safe_save_figure(fig, filename, **kwargs):

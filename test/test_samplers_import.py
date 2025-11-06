@@ -1,10 +1,9 @@
-import bilby
 import pytest
 
+import bilby
 
-@pytest.mark.parametrize(
-    "sampler_name", bilby.core.sampler.IMPLEMENTED_SAMPLERS.keys()
-)
+
+@pytest.mark.parametrize("sampler_name", bilby.core.sampler.IMPLEMENTED_SAMPLERS.keys())
 def test_sampler_import(sampler_name):
     """
     Tests that all of the implemented samplers can be initialized.

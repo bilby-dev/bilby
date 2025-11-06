@@ -1,13 +1,13 @@
-import unittest
 import logging
+import unittest
+from copy import copy
+
+import lal
+import lalsimulation
+import numpy as np
 import pytest
 
 import bilby
-import lal
-import lalsimulation
-
-import numpy as np
-from copy import copy
 
 
 class TestLalBBH(unittest.TestCase):
@@ -48,28 +48,20 @@ class TestLalBBH(unittest.TestCase):
     def test_lal_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_black_hole(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_waveform_error_catching(self):
         self.bad_parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.bad_parameters
-            )
-        )
+        self.assertIsNone(bilby.gw.source.lal_binary_black_hole(self.frequency_array, **self.bad_parameters))
 
     def test_waveform_error_raising(self):
         raise_error_parameters = copy(self.bad_parameters)
         raise_error_parameters.update(self.waveform_kwargs)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **raise_error_parameters
-            )
+            bilby.gw.source.lal_binary_black_hole(self.frequency_array, **raise_error_parameters)
 
     def test_unused_waveform_kwargs_message(self):
         self.parameters.update(self.waveform_kwargs)
@@ -77,18 +69,14 @@ class TestLalBBH(unittest.TestCase):
         bilby.gw.source.logger.propagate = True
 
         with self._caplog.at_level(logging.WARNING, logger="bilby"):
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters
-            )
+            bilby.gw.source.lal_binary_black_hole(self.frequency_array, **self.parameters)
             assert "There are unused waveform kwargs" in self._caplog.text
 
         del self.parameters["unused_waveform_parameter"]
 
     def test_lal_bbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_black_hole(self.frequency_array, **self.parameters),
             dict,
         )
 
@@ -148,28 +136,21 @@ class TestGWSignalBBH(unittest.TestCase):
     def test_gwsignal_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.gwsignal_binary_black_hole(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.gwsignal_binary_black_hole(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_waveform_error_catching(self):
         self.bad_parameters.update(self.waveform_kwargs)
-        self.assertIsNone(
-            bilby.gw.source.gwsignal_binary_black_hole(
-                self.frequency_array, **self.bad_parameters
-            )
-        )
+        self.assertIsNone(bilby.gw.source.gwsignal_binary_black_hole(self.frequency_array, **self.bad_parameters))
 
     def test_waveform_error_raising(self):
         raise_error_parameters = copy(self.bad_parameters)
         raise_error_parameters.update(self.waveform_kwargs)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.gwsignal_binary_black_hole(
-                self.frequency_array, **raise_error_parameters
-            )
+            bilby.gw.source.gwsignal_binary_black_hole(self.frequency_array, **raise_error_parameters)
+
     # def test_gwsignal_bbh_works_without_waveform_parameters(self):
     #    self.assertIsInstance(
     #        bilby.gw.source.gwsignal_binary_black_hole(
@@ -180,18 +161,10 @@ class TestGWSignalBBH(unittest.TestCase):
 
     def test_gwsignal_lal_bbh_consistency(self):
         self.parameters.update(self.waveform_kwargs)
-        hpc_gwsignal = bilby.gw.source.gwsignal_binary_black_hole(
-            self.frequency_array, **self.parameters
-        )
-        hpc_lal = bilby.gw.source.lal_binary_black_hole(
-            self.frequency_array, **self.parameters
-        )
-        self.assertTrue(
-            np.allclose(hpc_gwsignal["plus"], hpc_lal["plus"], atol=0, rtol=1e-7)
-        )
-        self.assertTrue(
-            np.allclose(hpc_gwsignal["cross"], hpc_lal["cross"], atol=0, rtol=1e-7)
-        )
+        hpc_gwsignal = bilby.gw.source.gwsignal_binary_black_hole(self.frequency_array, **self.parameters)
+        hpc_lal = bilby.gw.source.lal_binary_black_hole(self.frequency_array, **self.parameters)
+        self.assertTrue(np.allclose(hpc_gwsignal["plus"], hpc_lal["plus"], atol=0, rtol=1e-7))
+        self.assertTrue(np.allclose(hpc_gwsignal["cross"], hpc_lal["cross"], atol=0, rtol=1e-7))
 
 
 class TestLalBNS(unittest.TestCase):
@@ -226,17 +199,13 @@ class TestLalBNS(unittest.TestCase):
     def test_lal_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_neutron_star(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_lal_bns_works_without_waveform_parameters(self):
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_neutron_star(self.frequency_array, **self.parameters),
             dict,
         )
 
@@ -245,9 +214,7 @@ class TestLalBNS(unittest.TestCase):
         self.parameters.pop("lambda_2")
         self.parameters.update(self.waveform_kwargs)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star(
-                self.frequency_array, **self.parameters
-            )
+            bilby.gw.source.lal_binary_neutron_star(self.frequency_array, **self.parameters)
 
 
 class TestEccentricLalBBH(unittest.TestCase):
@@ -275,17 +242,13 @@ class TestEccentricLalBBH(unittest.TestCase):
     def test_lal_ebbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
         self.assertIsInstance(
-            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_lal_ebbh_works_without_waveform_parameters(self):
         self.assertIsInstance(
-            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(self.frequency_array, **self.parameters),
             dict,
         )
 
@@ -293,9 +256,7 @@ class TestEccentricLalBBH(unittest.TestCase):
         self.parameters.pop("eccentricity")
         self.parameters.update(self.waveform_kwargs)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(
-                self.frequency_array, **self.parameters
-            )
+            bilby.gw.source.lal_eccentric_binary_black_hole_no_spins(self.frequency_array, **self.parameters)
 
 
 @pytest.mark.requires_roqs
@@ -303,9 +264,9 @@ class TestROQBBH(unittest.TestCase):
     def setUp(self):
         roq_dir = "/roq_basis"
 
-        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear_file = f"{roq_dir}/fnodes_linear.npy"
         fnodes_linear = np.load(fnodes_linear_file).T
-        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic_file = f"{roq_dir}/fnodes_quadratic.npy"
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
 
         self.parameters = dict(
@@ -336,9 +297,7 @@ class TestROQBBH(unittest.TestCase):
 
     def test_roq_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
-        self.assertIsInstance(
-            bilby.gw.source.binary_black_hole_roq(self.frequency_array, **self.parameters), dict
-        )
+        self.assertIsInstance(bilby.gw.source.binary_black_hole_roq(self.frequency_array, **self.parameters), dict)
 
     def test_roq_fails_without_frequency_nodes(self):
         self.parameters.update(self.waveform_kwargs)
@@ -355,13 +314,13 @@ class TestBBHfreqseq(unittest.TestCase):
             mass_2=30.0,
             luminosity_distance=400.0,
             a_1=0.4,
-            tilt_1=0.,
-            phi_12=0.,
+            tilt_1=0.0,
+            phi_12=0.0,
             a_2=0.8,
-            tilt_2=0.,
-            phi_jl=0.,
+            tilt_2=0.0,
+            phi_jl=0.0,
             theta_jn=0.3,
-            phase=0.0
+            phase=0.0,
         )
         self.minimum_frequency = 20.0
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 8)
@@ -388,7 +347,7 @@ class TestBBHfreqseq(unittest.TestCase):
             bilby.gw.source.binary_black_hole_frequency_sequence(
                 self.frequency_array, frequencies=self.frequencies, **self.parameters
             ),
-            dict
+            dict,
         )
 
     def test_waveform_error_catching(self):
@@ -418,14 +377,14 @@ class TestBBHfreqseq(unittest.TestCase):
         )
         self.assertEqual(freqseq.keys(), lalbbh.keys())
         for mode in freqseq:
-            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence])**2.)
-            norm = np.sum(np.abs(freqseq[mode])**2.)
+            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence]) ** 2.0)
+            norm = np.sum(np.abs(freqseq[mode]) ** 2.0)
             self.assertLess(diff / norm, 1e-15)
 
     def test_match_LalBBH_specify_modes(self):
         parameters = copy(self.parameters)
         parameters.update(self.waveform_kwargs)
-        parameters['mode_array'] = [[2, 2]]
+        parameters["mode_array"] = [[2, 2]]
         freqseq = bilby.gw.source.binary_black_hole_frequency_sequence(
             self.frequency_array, frequencies=self.frequencies, **parameters
         )
@@ -434,16 +393,16 @@ class TestBBHfreqseq(unittest.TestCase):
         )
         self.assertEqual(freqseq.keys(), lalbbh.keys())
         for mode in freqseq:
-            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence])**2.)
-            norm = np.sum(np.abs(freqseq[mode])**2.)
+            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence]) ** 2.0)
+            norm = np.sum(np.abs(freqseq[mode]) ** 2.0)
             self.assertLess(diff / norm, 1e-15)
 
     def test_match_LalBBH_nonGR(self):
         parameters = copy(self.parameters)
         parameters.update(self.waveform_kwargs)
         wf_dict = lal.CreateDict()
-        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi0(wf_dict, 1.)
-        parameters['lal_waveform_dictionary'] = wf_dict
+        lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi0(wf_dict, 1.0)
+        parameters["lal_waveform_dictionary"] = wf_dict
         freqseq = bilby.gw.source.binary_black_hole_frequency_sequence(
             self.frequency_array, frequencies=self.frequencies, **parameters
         )
@@ -452,8 +411,8 @@ class TestBBHfreqseq(unittest.TestCase):
         )
         self.assertEqual(freqseq.keys(), lalbbh.keys())
         for mode in freqseq:
-            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence])**2.)
-            norm = np.sum(np.abs(freqseq[mode])**2.)
+            diff = np.sum(np.abs(freqseq[mode] - lalbbh[mode][self.full_frequencies_to_sequence]) ** 2.0)
+            norm = np.sum(np.abs(freqseq[mode]) ** 2.0)
             self.assertLess(diff / norm, 1e-15)
 
 
@@ -472,7 +431,7 @@ class TestBNSfreqseq(unittest.TestCase):
             theta_jn=1.7,
             phase=0.0,
             lambda_1=1000.0,
-            lambda_2=1000.0
+            lambda_2=1000.0,
         )
         self.minimum_frequency = 50.0
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 16)
@@ -495,7 +454,7 @@ class TestBNSfreqseq(unittest.TestCase):
             bilby.gw.source.binary_neutron_star_frequency_sequence(
                 self.frequency_array, frequencies=self.frequencies, **self.parameters
             ),
-            dict
+            dict,
         )
 
     def test_fails_without_tidal_parameters(self):
@@ -517,8 +476,8 @@ class TestBNSfreqseq(unittest.TestCase):
         )
         self.assertEqual(freqseq.keys(), lalbns.keys())
         for mode in freqseq:
-            diff = np.sum(np.abs(freqseq[mode] - lalbns[mode][self.full_frequencies_to_sequence])**2.)
-            norm = np.sum(np.abs(freqseq[mode])**2.)
+            diff = np.sum(np.abs(freqseq[mode] - lalbns[mode][self.full_frequencies_to_sequence]) ** 2.0)
+            norm = np.sum(np.abs(freqseq[mode]) ** 2.0)
             self.assertLess(diff / norm, 1e-5)
 
 
@@ -550,7 +509,7 @@ class TestRelbinBBH(unittest.TestCase):
             minimum_frequency=20.0,
             catch_waveform_errors=True,
             fiducial=False,
-            frequency_bin_edges=np.arange(20, 1500, 50)
+            frequency_bin_edges=np.arange(20, 1500, 50),
         )
         self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
         self.bad_parameters = copy(self.parameters)
@@ -566,35 +525,27 @@ class TestRelbinBBH(unittest.TestCase):
     def test_relbin_fiducial_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_relbin_binned_bbh_works_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_binned)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_waveform_error_catching_fiducial(self):
         self.bad_parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **self.bad_parameters
-            )
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **self.bad_parameters)
         )
 
     def test_waveform_error_catching_binned(self):
         self.bad_parameters.update(self.waveform_kwargs_binned)
         self.assertIsNone(
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **self.bad_parameters
-            )
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **self.bad_parameters)
         )
 
     def test_waveform_error_raising_fiducial(self):
@@ -602,18 +553,14 @@ class TestRelbinBBH(unittest.TestCase):
         raise_error_parameters.update(self.waveform_kwargs_fiducial)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **raise_error_parameters
-            )
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **raise_error_parameters)
 
     def test_waveform_error_raising_binned(self):
         raise_error_parameters = copy(self.bad_parameters)
         raise_error_parameters.update(self.waveform_kwargs_binned)
         raise_error_parameters["catch_waveform_errors"] = False
         with self.assertRaises(Exception):
-            bilby.gw.source.lal_binary_black_hole_relative_binning(
-                self.frequency_array, **raise_error_parameters
-            )
+            bilby.gw.source.lal_binary_black_hole_relative_binning(self.frequency_array, **raise_error_parameters)
 
     def test_relbin_bbh_runs_without_fiducial_option(self):
         self.assertIsInstance(
@@ -680,18 +627,14 @@ class TestRelbinBNS(unittest.TestCase):
     def test_relbin_fiducial_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star_relative_binning(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(self.frequency_array, **self.parameters),
             dict,
         )
 
     def test_relbin_binned_bns_runs_with_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs_binned)
         self.assertIsInstance(
-            bilby.gw.source.lal_binary_neutron_star_relative_binning(
-                self.frequency_array, **self.parameters
-            ),
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(self.frequency_array, **self.parameters),
             dict,
         )
 
@@ -710,18 +653,14 @@ class TestRelbinBNS(unittest.TestCase):
         self.parameters.pop("lambda_2")
         self.parameters.update(self.waveform_kwargs_fiducial)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star_relative_binning(
-                self.frequency_array, **self.parameters
-            )
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(self.frequency_array, **self.parameters)
 
     def test_binned_fails_without_tidal_parameters(self):
         self.parameters.pop("lambda_1")
         self.parameters.pop("lambda_2")
         self.parameters.update(self.waveform_kwargs_binned)
         with self.assertRaises(TypeError):
-            bilby.gw.source.lal_binary_neutron_star_relative_binning(
-                self.frequency_array, **self.parameters
-            )
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(self.frequency_array, **self.parameters)
 
 
 if __name__ == "__main__":

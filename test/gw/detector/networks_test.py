@@ -1,7 +1,7 @@
 import unittest
-from unittest import mock
-from shutil import rmtree
 from itertools import combinations
+from shutil import rmtree
+from unittest import mock
 
 import numpy as np
 
@@ -13,12 +13,8 @@ class TestInterferometerList(unittest.TestCase):
         self.frequency_arrays = np.linspace(0, 4096, 4097)
         self.name1 = "name1"
         self.name2 = "name2"
-        self.power_spectral_density1 = (
-            bilby.gw.detector.PowerSpectralDensity.from_aligo()
-        )
-        self.power_spectral_density2 = (
-            bilby.gw.detector.PowerSpectralDensity.from_aligo()
-        )
+        self.power_spectral_density1 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.power_spectral_density2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.minimum_frequency1 = 10
         self.minimum_frequency2 = 10
         self.maximum_frequency1 = 20
@@ -192,25 +188,17 @@ class TestInterferometerList(unittest.TestCase):
         self.assertTrue(mock_warning.called)
         warning_log_str = mock_warning.call_args.args[0].args[0]
         self.assertIsInstance(warning_log_str, str)
-        self.assertTrue(
-            "The start_time of all interferometers are not the same:" in warning_log_str
-        )
+        self.assertTrue("The start_time of all interferometers are not the same:" in warning_log_str)
 
-    @mock.patch.object(
-        bilby.gw.detector.Interferometer, "set_strain_data_from_power_spectral_density"
-    )
+    @mock.patch.object(bilby.gw.detector.Interferometer, "set_strain_data_from_power_spectral_density")
     def test_set_strain_data_from_power_spectral_density(self, m):
-        self.ifo_list.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=123, duration=6.2, start_time=3
-        )
+        self.ifo_list.set_strain_data_from_power_spectral_densities(sampling_frequency=123, duration=6.2, start_time=3)
         m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
         self.assertEqual(len(self.ifo_list), m.call_count)
 
     def test_inject_signal_pol_and_wg_none(self):
         with self.assertRaises(ValueError):
-            self.ifo_list.inject_signal(
-                injection_polarizations=None, waveform_generator=None
-            )
+            self.ifo_list.inject_signal(injection_polarizations=None, waveform_generator=None)
 
     def test_meta_data(self):
         ifos_list = [self.ifo1, self.ifo2]
@@ -219,37 +207,27 @@ class TestInterferometerList(unittest.TestCase):
         meta_data = {ifo.name: ifo.meta_data for ifo in ifos_list}
         self.assertEqual(ifos.meta_data, meta_data)
 
-    @mock.patch.object(
-        bilby.gw.waveform_generator.WaveformGenerator, "frequency_domain_strain"
-    )
+    @mock.patch.object(bilby.gw.waveform_generator.WaveformGenerator, "frequency_domain_strain")
     def test_inject_signal_pol_none_calls_frequency_domain_strain(self, m):
         waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=lambda x, y, z: x
         )
         self.ifo1.inject_signal = mock.MagicMock(return_value=None)
         self.ifo2.inject_signal = mock.MagicMock(return_value=None)
-        self.ifo_list.inject_signal(
-            parameters=None, waveform_generator=waveform_generator
-        )
+        self.ifo_list.inject_signal(parameters=None, waveform_generator=waveform_generator)
         self.assertTrue(m.called)
 
     @mock.patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_with_inj_pol(self, m):
-        self.ifo_list.inject_signal(
-            injection_polarizations=dict(plus=1), raise_error=False
-        )
-        m.assert_called_with(
-            parameters=None, injection_polarizations=dict(plus=1), raise_error=False
-        )
+        self.ifo_list.inject_signal(injection_polarizations=dict(plus=1), raise_error=False)
+        m.assert_called_with(parameters=None, injection_polarizations=dict(plus=1), raise_error=False)
         self.assertEqual(len(self.ifo_list), m.call_count)
 
     @mock.patch.object(bilby.gw.detector.Interferometer, "inject_signal")
     def test_inject_signal_returns_expected_polarisations(self, m):
         m.return_value = dict(plus=1, cross=2)
         injection_polarizations = dict(plus=1, cross=2)
-        ifos_pol = self.ifo_list.inject_signal(
-            injection_polarizations=injection_polarizations
-        )
+        ifos_pol = self.ifo_list.inject_signal(injection_polarizations=injection_polarizations)
         self.assertDictEqual(
             self.ifo1.inject_signal(injection_polarizations=injection_polarizations),
             ifos_pol[0],
@@ -273,28 +251,16 @@ class TestInterferometerList(unittest.TestCase):
         self.assertEqual(self.ifo2.strain_data.duration, self.ifo_list.duration)
 
     def test_sampling_frequency(self):
-        self.assertEqual(
-            self.ifo1.strain_data.sampling_frequency, self.ifo_list.sampling_frequency
-        )
-        self.assertEqual(
-            self.ifo2.strain_data.sampling_frequency, self.ifo_list.sampling_frequency
-        )
+        self.assertEqual(self.ifo1.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
+        self.assertEqual(self.ifo2.strain_data.sampling_frequency, self.ifo_list.sampling_frequency)
 
     def test_start_time(self):
         self.assertEqual(self.ifo1.strain_data.start_time, self.ifo_list.start_time)
         self.assertEqual(self.ifo2.strain_data.start_time, self.ifo_list.start_time)
 
     def test_frequency_array(self):
-        self.assertTrue(
-            np.array_equal(
-                self.ifo1.strain_data.frequency_array, self.ifo_list.frequency_array
-            )
-        )
-        self.assertTrue(
-            np.array_equal(
-                self.ifo2.strain_data.frequency_array, self.ifo_list.frequency_array
-            )
-        )
+        self.assertTrue(np.array_equal(self.ifo1.strain_data.frequency_array, self.ifo_list.frequency_array))
+        self.assertTrue(np.array_equal(self.ifo2.strain_data.frequency_array, self.ifo_list.frequency_array))
 
     def test_append_with_ifo(self):
         self.ifo_list.append(self.ifo2)
@@ -304,16 +270,12 @@ class TestInterferometerList(unittest.TestCase):
     def test_append_with_ifo_list(self):
         self.ifo_list.append(self.ifo_list)
         names = [ifo.name for ifo in self.ifo_list]
-        self.assertListEqual(
-            [self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names
-        )
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
 
     def test_extend(self):
         self.ifo_list.extend(self.ifo_list)
         names = [ifo.name for ifo in self.ifo_list]
-        self.assertListEqual(
-            [self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names
-        )
+        self.assertListEqual([self.ifo1.name, self.ifo2.name, self.ifo1.name, self.ifo2.name], names)
 
     def test_insert(self):
         new_ifo = self.ifo1
@@ -333,9 +295,7 @@ class TestInterferometerList(unittest.TestCase):
 
         with open("./outdir/psd.pkl", "wb") as ff:
             dill.dump(self.ifo_list[0].power_spectral_density, ff)
-        filename = self.ifo_list._filename_from_outdir_label_extension(
-            outdir="outdir", label="psd", extension="pkl"
-        )
+        filename = self.ifo_list._filename_from_outdir_label_extension(outdir="outdir", label="psd", extension="pkl")
         with self.assertRaises(TypeError):
             bilby.gw.detector.InterferometerList.from_pickle(filename)
 
@@ -376,10 +336,7 @@ class TriangularInterferometerTest(unittest.TestCase):
         """
 
         def a(delta_lat, delta_long, lat_1, lat_2):
-            return (
-                np.sin(delta_lat / 2) ** 2
-                + np.cos(lat_1) * np.cos(lat_2) * np.sin(delta_long / 2) ** 2
-            )
+            return np.sin(delta_lat / 2) ** 2 + np.cos(lat_1) * np.cos(lat_2) * np.sin(delta_long / 2) ** 2
 
         def c(a):
             return 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))

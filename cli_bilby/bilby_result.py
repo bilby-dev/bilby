@@ -1,4 +1,4 @@
-""" A command line interface to ease the process of batch jobs on result files
+"""A command line interface to ease the process of batch jobs on result files
 
 Examples
 --------
@@ -21,6 +21,7 @@ This is calling `plot_corner()` on each of the result files
 individually. Note that passing extra commands in is not yet implemented.
 
 """
+
 import argparse
 
 import bilby
@@ -54,9 +55,7 @@ def setup_command_line_args():
         action="store_true",
         help="Gzip the merged output results file if using JSON format.",
     )
-    parser.add_argument(
-        "-o", "--outdir", type=str, default=None, help="Output directory."
-    )
+    parser.add_argument("-o", "--outdir", type=str, default=None, help="Output directory.")
     parser.add_argument(
         "-l",
         "--label",
@@ -95,9 +94,7 @@ def setup_command_line_args():
         help="Merge the set of runs, output saved using the outdir and label",
     )
 
-    action_parser.add_argument(
-        "-b", "--bayes", action="store_true", help="Print all Bayes factors."
-    )
+    action_parser.add_argument("-b", "--bayes", action="store_true", help="Print all Bayes factors.")
     action_parser.add_argument(
         "-p",
         "--print",
@@ -115,10 +112,7 @@ def setup_command_line_args():
     action_parser.add_argument(
         "--ipython",
         action="store_true",
-        help=(
-            "For each result given, drops the user into an "
-            "IPython shell with the result loaded in"
-        ),
+        help=("For each result given, drops the user into an IPython shell with the result loaded in"),
     )
     args = parser.parse_args()
 
@@ -143,10 +137,8 @@ def print_bayes_factors(results_list):
 
 def drop_to_ipython(results_list):
     for result in results_list:
-        message = "Opened IPython terminal for result {}".format(result.label)
-        message += "\nRunning with bilby={},\nResult generated with bilby={}".format(
-            bilby.__version__, result.version
-        )
+        message = f"Opened IPython terminal for result {result.label}"
+        message += f"\nRunning with bilby={bilby.__version__},\nResult generated with bilby={result.version}"
         message += "\nBilby result loaded as `result`"
         import IPython
 
@@ -155,7 +147,7 @@ def drop_to_ipython(results_list):
 
 def print_matches(results_list, args):
     for r in results_list:
-        print("\nResult file: {}/{}".format(r.outdir, r.label))
+        print(f"\nResult file: {r.outdir}/{r.label}")
         for key in args.keys:
             for attr in r.__dict__:
                 if key in attr:
@@ -178,11 +170,7 @@ def apply_max_samples(result, args):
 
 
 def apply_lightweight(result, args):
-    strip_keys = [
-        "_nested_samples",
-        "log_likelihood_evaluations",
-        "log_prior_evaluations"
-    ]
+    strip_keys = ["_nested_samples", "log_likelihood_evaluations", "log_prior_evaluations"]
     for key in strip_keys:
         setattr(result, key, None)
     return result
