@@ -1,4 +1,4 @@
-# Prior file for analysing GW231123 with a CBC waveform plus two sine-Gaussian bursts
+# Prior file for analysing GW231123 with a coherent CBC waveform plus two sine-Gaussian bursts
 # The standard CBC parameters follow the broad BBH priors shipped with bilby.
 # Additional entries configure the two burst components required by
 # bilby.gw.source.cbc_plus_sine_gaussians and enforce the mandatory

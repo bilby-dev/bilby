@@ -1,0 +1,48 @@
+# Prior file for analysing GW231123 with a coherent CBC waveform plus two detector-local sine-Gaussian bursts
+# The standard CBC parameters follow the broad BBH priors shipped with bilby.
+# Additional entries configure the per-detector burst components required by
+# bilby.gw.source.cbc_plus_sine_gaussians when using the incoherent extension.
+
+mass_1 = Constraint(name='mass_1', minimum=5, maximum=100)
+mass_2 = Constraint(name='mass_2', minimum=5, maximum=100)
+mass_ratio = bilby.gw.prior.UniformInComponentsMassRatio(name='mass_ratio', minimum=0.125, maximum=1)
+chirp_mass = bilby.gw.prior.UniformInComponentsChirpMass(name='chirp_mass', minimum=20, maximum=80)
+luminosity_distance = bilby.gw.prior.UniformSourceFrame(name='luminosity_distance', minimum=50, maximum=5000, unit='Mpc')
+dec = Cosine(name='dec')
+ra = Uniform(name='ra', minimum=0, maximum=2 * np.pi, boundary='periodic')
+theta_jn = Sine(name='theta_jn')
+psi = Uniform(name='psi', minimum=0, maximum=np.pi, boundary='periodic')
+phase = Uniform(name='phase', minimum=0, maximum=2 * np.pi, boundary='periodic')
+a_1 = Uniform(name='a_1', minimum=0, maximum=0.99)
+a_2 = Uniform(name='a_2', minimum=0, maximum=0.99)
+tilt_1 = Sine(name='tilt_1')
+tilt_2 = Sine(name='tilt_2')
+phi_12 = Uniform(name='phi_12', minimum=0, maximum=2 * np.pi, boundary='periodic')
+phi_jl = Uniform(name='phi_jl', minimum=0, maximum=2 * np.pi, boundary='periodic')
+geocent_time = Uniform(name='geocent_time', minimum=1384767016.0, maximum=1384767020.0)
+
+# Detector-local burst parameters for component 0
+sine_gaussian_0_H1_hrss = LogUniform(name='sine_gaussian_0_H1_hrss', minimum=1e-24, maximum=1e-20)
+sine_gaussian_0_H1_Q = Uniform(name='sine_gaussian_0_H1_Q', minimum=3, maximum=30)
+sine_gaussian_0_H1_frequency = Uniform(name='sine_gaussian_0_H1_frequency', minimum=50, maximum=1024)
+sine_gaussian_0_H1_time_offset = Uniform(name='sine_gaussian_0_H1_time_offset', minimum=-0.05, maximum=0.05)
+sine_gaussian_0_H1_phase_offset = Uniform(name='sine_gaussian_0_H1_phase_offset', minimum=-np.pi, maximum=np.pi, boundary='periodic')
+
+sine_gaussian_0_L1_hrss = LogUniform(name='sine_gaussian_0_L1_hrss', minimum=1e-24, maximum=1e-20)
+sine_gaussian_0_L1_Q = Uniform(name='sine_gaussian_0_L1_Q', minimum=3, maximum=30)
+sine_gaussian_0_L1_frequency = Uniform(name='sine_gaussian_0_L1_frequency', minimum=50, maximum=1024)
+sine_gaussian_0_L1_time_offset = Uniform(name='sine_gaussian_0_L1_time_offset', minimum=-0.05, maximum=0.05)
+sine_gaussian_0_L1_phase_offset = Uniform(name='sine_gaussian_0_L1_phase_offset', minimum=-np.pi, maximum=np.pi, boundary='periodic')
+
+# Detector-local burst parameters for component 1
+sine_gaussian_1_H1_hrss = LogUniform(name='sine_gaussian_1_H1_hrss', minimum=1e-24, maximum=1e-20)
+sine_gaussian_1_H1_Q = Uniform(name='sine_gaussian_1_H1_Q', minimum=3, maximum=30)
+sine_gaussian_1_H1_frequency = Uniform(name='sine_gaussian_1_H1_frequency', minimum=50, maximum=1024)
+sine_gaussian_1_H1_time_offset = Uniform(name='sine_gaussian_1_H1_time_offset', minimum=-0.05, maximum=0.05)
+sine_gaussian_1_H1_phase_offset = Uniform(name='sine_gaussian_1_H1_phase_offset', minimum=-np.pi, maximum=np.pi, boundary='periodic')
+
+sine_gaussian_1_L1_hrss = LogUniform(name='sine_gaussian_1_L1_hrss', minimum=1e-24, maximum=1e-20)
+sine_gaussian_1_L1_Q = Uniform(name='sine_gaussian_1_L1_Q', minimum=3, maximum=30)
+sine_gaussian_1_L1_frequency = Uniform(name='sine_gaussian_1_L1_frequency', minimum=50, maximum=1024)
+sine_gaussian_1_L1_time_offset = Uniform(name='sine_gaussian_1_L1_time_offset', minimum=-0.05, maximum=0.05)
+sine_gaussian_1_L1_phase_offset = Uniform(name='sine_gaussian_1_L1_phase_offset', minimum=-np.pi, maximum=np.pi, boundary='periodic')

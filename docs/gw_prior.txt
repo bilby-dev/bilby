@@ -105,6 +105,21 @@ burst must specify all five quantities (``hrss``, ``Q``, ``frequency``,
 ``time_offset`` and ``phase_offset``), so the priors above fully describe the
 additional burst while leaving the standard CBC priors unchanged.
 
+To configure detector-local incoherent bursts, extend the naming scheme to
+include the interferometer label, e.g. :code:`sine_gaussian_0_H1_hrss` and
+:code:`sine_gaussian_0_L1_hrss`.  Parameters matching
+``sine_gaussian_<index>_<detector>_<field>`` are grouped into the
+``incoherent_sine_gaussian_parameters`` mapping and added directly to the
+corresponding detector strain without antenna projections.  The same required
+fields apply (``hrss``, ``Q``, ``frequency``, ``time_offset`` and
+``phase_offset``) with an optional ``polarization`` selector when per-detector
+components should contribute either the plus or cross polarisation.
+
+Example configuration and prior files for coherent and incoherent burst
+setups are provided in :code:`examples/gw_examples/data_examples` as
+``GW231123_cbc_plus_sine_gaussians_coherent`` and
+``GW231123_cbc_plus_sine_gaussians_incoherent`` respectively.
+
 
 Modifying the prior
 -------------------
