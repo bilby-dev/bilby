@@ -351,7 +351,7 @@ def cbc_plus_sine_gaussians(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, lambda_1=0.0,
         lambda_2=0.0, eccentricity=0.0, sine_gaussian_parameters=None,
-        **kwargs):
+        incoherent_sine_gaussian_parameters=None, **kwargs):
     """A CBC waveform model augmented with a collection of sine-Gaussians.
 
     This function evaluates a compact binary coalescence (CBC) waveform using
@@ -386,9 +386,18 @@ def cbc_plus_sine_gaussians(
     eccentricity : float, optional
         Orbital eccentricity.
     sine_gaussian_parameters : list[dict] or None, optional
-        A list containing the parameters of each sine-Gaussian component. Each
-        dictionary must define ``hrss``, ``Q``, ``frequency``, ``time_offset`` and
-        ``phase_offset``.
+        A list containing the parameters of each coherent sine-Gaussian
+        component. Each dictionary must define ``hrss``, ``Q``, ``frequency``,
+        ``time_offset`` and ``phase_offset``.
+    incoherent_sine_gaussian_parameters : dict[str, list[dict]] or None, optional
+        Mapping of detector names to lists of incoherent sine-Gaussian
+        components.  Each detector entry should contain a list of dictionaries
+        describing the components local to that interferometer with the same
+        mandatory keys as the coherent case (``hrss``, ``Q``, ``frequency``,
+        ``time_offset`` and ``phase_offset``) and an optional ``polarization``
+        flag.  The ``polarization`` value controls which polarization of the
+        sine-Gaussian is interpreted as the detector strain and defaults to
+        ``"plus"``.
     **kwargs
         Additional keyword arguments forwarded to the underlying CBC waveform
         generator.
@@ -438,10 +447,13 @@ def cbc_plus_sine_gaussians(
 
     h_plus = base_waveform['plus']
     h_cross = base_waveform['cross']
+    combined_waveform = dict(plus=h_plus, cross=h_cross)
 
     if sine_gaussian_parameters:
         h_plus = h_plus.copy()
         h_cross = h_cross.copy()
+        combined_waveform['plus'] = h_plus
+        combined_waveform['cross'] = h_cross
         for index, parameters in enumerate(sine_gaussian_parameters):
             try:
                 hrss = parameters['hrss']
@@ -471,7 +483,55 @@ def cbc_plus_sine_gaussians(
             h_plus += sine_gaussian_waveform['plus']
             h_cross += sine_gaussian_waveform['cross']
 
-    return dict(plus=h_plus, cross=h_cross)
+    if incoherent_sine_gaussian_parameters:
+        for detector, components in incoherent_sine_gaussian_parameters.items():
+            if not components:
+                continue
+
+            detector_waveform = np.zeros_like(h_plus, dtype=h_plus.dtype)
+
+            for index, parameters in enumerate(components):
+                try:
+                    hrss = parameters['hrss']
+                    quality_factor = parameters['Q']
+                    peak_frequency = parameters['frequency']
+                    time_offset = parameters['time_offset']
+                    phase_offset = parameters['phase_offset']
+                except KeyError as error:
+                    missing_key = error.args[0]
+                    raise KeyError(
+                        "Missing '{}' for incoherent sine-Gaussian {} in '{}'. "
+                        "Each sine-Gaussian requires 'hrss', 'Q', 'frequency', "
+                        "'time_offset', and 'phase_offset'.".format(
+                            missing_key, index, detector
+                        )
+                    ) from error
+
+                polarization = parameters.get('polarization', 'plus')
+
+                sine_gaussian_waveform = sinegaussian(
+                    frequency_array,
+                    hrss=hrss,
+                    Q=quality_factor,
+                    frequency=peak_frequency,
+                    time_offset=time_offset,
+                    phase_offset=phase_offset,
+                )
+
+                if polarization == 'plus':
+                    detector_waveform += sine_gaussian_waveform['plus']
+                elif polarization == 'cross':
+                    detector_waveform += sine_gaussian_waveform['cross']
+                else:
+                    raise ValueError(
+                        "Unsupported polarization '{}' for incoherent sine-"
+                        "Gaussian {} in '{}'. Valid options are 'plus' and "
+                        "'cross'.".format(polarization, index, detector)
+                    )
+
+            combined_waveform[detector] = detector_waveform
+
+    return combined_waveform
 
 
 def lal_binary_neutron_star(

@@ -1,5 +1,6 @@
 import unittest
 import logging
+from unittest import mock
 import pytest
 
 import bilby
@@ -221,6 +222,50 @@ class TestCBCPlusSineGaussians(unittest.TestCase):
         phase = np.exp(-2j * np.pi * self.frequency_array * time_offset) * np.exp(1j * phase_offset)
         self.assertTrue(np.allclose(shifted["plus"], base["plus"] * phase))
         self.assertTrue(np.allclose(shifted["cross"], base["cross"] * phase))
+
+    def test_incoherent_components_generate_detector_modes(self):
+        base_plus = np.ones_like(self.frequency_array, dtype=complex)
+        base_cross = 1j * np.ones_like(self.frequency_array, dtype=complex)
+
+        with mock.patch("bilby.gw.source._base_lal_cbc_fd_waveform", return_value=dict(plus=base_plus, cross=base_cross)):
+            h1_parameters = dict(self.sine_gaussian, hrss=2e-22, time_offset=0.005, phase_offset=0.1)
+            h1_parameters["polarization"] = "cross"
+            l1_parameters = dict(self.sine_gaussian, hrss=4e-22, time_offset=-0.002, phase_offset=-0.3)
+
+            waveform = bilby.gw.source.cbc_plus_sine_gaussians(
+                self.frequency_array,
+                sine_gaussian_parameters=[],
+                incoherent_sine_gaussian_parameters=dict(H1=[h1_parameters], L1=[l1_parameters]),
+                **self.parameters,
+            )
+
+        self.assertIn("plus", waveform)
+        self.assertIn("cross", waveform)
+        self.assertTrue(np.allclose(waveform["plus"], base_plus))
+        self.assertTrue(np.allclose(waveform["cross"], base_cross))
+        self.assertIn("H1", waveform)
+        self.assertIn("L1", waveform)
+
+        expected_h1 = bilby.gw.source.sinegaussian(self.frequency_array, **h1_parameters)["cross"]
+        expected_l1 = bilby.gw.source.sinegaussian(self.frequency_array, **l1_parameters)["plus"]
+
+        self.assertTrue(np.allclose(waveform["H1"], expected_h1))
+        self.assertTrue(np.allclose(waveform["L1"], expected_l1))
+
+    def test_incoherent_component_invalid_polarization_raises(self):
+        base_plus = np.ones_like(self.frequency_array, dtype=complex)
+        base_cross = 1j * np.ones_like(self.frequency_array, dtype=complex)
+
+        with mock.patch("bilby.gw.source._base_lal_cbc_fd_waveform", return_value=dict(plus=base_plus, cross=base_cross)):
+            parameters = dict(self.sine_gaussian, polarization="linear")
+
+            with self.assertRaisesRegex(ValueError, "Unsupported polarization"):
+                bilby.gw.source.cbc_plus_sine_gaussians(
+                    self.frequency_array,
+                    sine_gaussian_parameters=[],
+                    incoherent_sine_gaussian_parameters=dict(H1=[parameters]),
+                    **self.parameters,
+                )
 
 
 class TestGWSignalBBH(unittest.TestCase):

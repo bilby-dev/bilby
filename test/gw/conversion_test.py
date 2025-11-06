@@ -363,6 +363,55 @@ class TestConvertToLALParams(unittest.TestCase):
                 self.assertNotIn(f"sine_gaussian_{index}_{field}", converted)
         self.assertIn("sine_gaussian_parameters", added_keys)
 
+    def test_convert_to_cbc_plus_sine_gaussians_incoherent(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            sine_gaussian_0_H1_hrss=3e-22,
+            sine_gaussian_0_H1_Q=7.0,
+            sine_gaussian_0_H1_frequency=90.0,
+            sine_gaussian_0_H1_time_offset=0.02,
+            sine_gaussian_0_H1_phase_offset=-0.4,
+            sine_gaussian_0_H1_polarization="cross",
+            sine_gaussian_0_L1_hrss=1e-22,
+            sine_gaussian_0_L1_Q=5.0,
+            sine_gaussian_0_L1_frequency=100.0,
+            sine_gaussian_0_L1_time_offset=0.01,
+            sine_gaussian_0_L1_phase_offset=0.5,
+        )
+
+        converted, added_keys = conversion.convert_to_cbc_plus_sine_gaussian_parameters(parameters)
+
+        self.assertIn("incoherent_sine_gaussian_parameters", converted)
+        self.assertIn("incoherent_sine_gaussian_parameters", added_keys)
+        incoherent = converted["incoherent_sine_gaussian_parameters"]
+        self.assertIn("H1", incoherent)
+        self.assertIn("L1", incoherent)
+
+        self.assertEqual(len(incoherent["H1"]), 1)
+        self.assertEqual(len(incoherent["L1"]), 1)
+
+        h1_component = incoherent["H1"][0]
+        self.assertEqual(h1_component["hrss"], parameters["sine_gaussian_0_H1_hrss"])
+        self.assertEqual(h1_component["Q"], parameters["sine_gaussian_0_H1_Q"])
+        self.assertEqual(h1_component["frequency"], parameters["sine_gaussian_0_H1_frequency"])
+        self.assertEqual(h1_component["time_offset"], parameters["sine_gaussian_0_H1_time_offset"])
+        self.assertEqual(h1_component["phase_offset"], parameters["sine_gaussian_0_H1_phase_offset"])
+        self.assertEqual(h1_component["polarization"], parameters["sine_gaussian_0_H1_polarization"])
+
+        l1_component = incoherent["L1"][0]
+        self.assertEqual(l1_component["hrss"], parameters["sine_gaussian_0_L1_hrss"])
+        self.assertEqual(l1_component["Q"], parameters["sine_gaussian_0_L1_Q"])
+        self.assertEqual(l1_component["frequency"], parameters["sine_gaussian_0_L1_frequency"])
+        self.assertEqual(l1_component["time_offset"], parameters["sine_gaussian_0_L1_time_offset"])
+        self.assertEqual(l1_component["phase_offset"], parameters["sine_gaussian_0_L1_phase_offset"])
+        self.assertNotIn("polarization", l1_component)
+
+        for key in list(parameters.keys()):
+            if key.startswith("sine_gaussian_0_H1_") or key.startswith("sine_gaussian_0_L1_"):
+                self.assertNotIn(key, converted)
+
     def test_convert_to_cbc_plus_sine_gaussians_dict_wrapper(self):
         parameters = dict(
             mass_1=30.0,
@@ -397,6 +446,20 @@ class TestConvertToLALParams(unittest.TestCase):
             sine_gaussian_0_Q=10.0,
             sine_gaussian_0_frequency=150.0,
             sine_gaussian_0_phase_offset=0.5,
+        )
+
+        with self.assertRaisesRegex(KeyError, "time_offset"):
+            conversion.convert_to_cbc_plus_sine_gaussian_parameters(parameters)
+
+    def test_convert_to_cbc_plus_sine_gaussians_missing_incoherent_fields_raises(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            sine_gaussian_0_H1_hrss=1e-22,
+            sine_gaussian_0_H1_Q=10.0,
+            sine_gaussian_0_H1_frequency=150.0,
+            sine_gaussian_0_H1_phase_offset=0.5,
         )
 
         with self.assertRaisesRegex(KeyError, "time_offset"):
@@ -576,6 +639,17 @@ class TestGenerateAllParameters(unittest.TestCase):
             sine_gaussian_1_frequency=180.0,
             sine_gaussian_1_time_offset=-0.02,
             sine_gaussian_1_phase_offset=-0.5,
+            sine_gaussian_2_H1_hrss=4e-22,
+            sine_gaussian_2_H1_Q=6.0,
+            sine_gaussian_2_H1_frequency=200.0,
+            sine_gaussian_2_H1_time_offset=0.03,
+            sine_gaussian_2_H1_phase_offset=0.0,
+            sine_gaussian_2_L1_hrss=5e-22,
+            sine_gaussian_2_L1_Q=5.5,
+            sine_gaussian_2_L1_frequency=210.0,
+            sine_gaussian_2_L1_time_offset=-0.01,
+            sine_gaussian_2_L1_phase_offset=0.2,
+            sine_gaussian_2_L1_polarization="cross",
         )
 
         for values in [self.parameters, self.data_frame]:
@@ -597,6 +671,29 @@ class TestGenerateAllParameters(unittest.TestCase):
                 dict(hrss=2e-22, Q=8.0, frequency=180.0, time_offset=-0.02, phase_offset=-0.5),
             )):
                 self.assertEqual(components[index], expected)
+
+            incoherent = converted["incoherent_sine_gaussian_parameters"]
+            if isinstance(converted, pd.DataFrame):
+                incoherent = incoherent.iloc[0]
+            self.assertIn("H1", incoherent)
+            self.assertIn("L1", incoherent)
+            self.assertEqual(len(incoherent["H1"]), 1)
+            self.assertEqual(len(incoherent["L1"]), 1)
+            self.assertEqual(
+                incoherent["H1"][0],
+                dict(hrss=4e-22, Q=6.0, frequency=200.0, time_offset=0.03, phase_offset=0.0),
+            )
+            self.assertEqual(
+                incoherent["L1"][0],
+                dict(
+                    hrss=5e-22,
+                    Q=5.5,
+                    frequency=210.0,
+                    time_offset=-0.01,
+                    phase_offset=0.2,
+                    polarization="cross",
+                ),
+            )
 
     def _generate(self, func, expected):
         for values in [self.parameters, self.data_frame]:
