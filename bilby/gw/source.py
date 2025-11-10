@@ -1403,12 +1403,10 @@ def sinegaussian(
                (np.exp(-fm**2 * np.pi**2 * tau**2) -
                np.exp(-fp**2 * np.pi**2 * tau**2)))
 
-    if time_offset != 0.0 or phase_offset != 0.0:
-        phase = np.exp(-2j * np.pi * frequency_array * time_offset)
-        if phase_offset != 0.0:
-            phase = phase * np.exp(1j * phase_offset)
-        h_plus = h_plus * phase
-        h_cross = h_cross * phase
+    phase = np.exp(-2j * np.pi * frequency_array * time_offset)
+    phase *= np.exp(1j * phase_offset)
+    h_plus = h_plus * phase
+    h_cross = h_cross * phase
 
     return {'plus': h_plus, 'cross': h_cross}
 
