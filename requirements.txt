@@ -1,4 +1,4 @@
-bilby.cython>=0.3.0
+bilby_rust
 dynesty>=2.0.1
 emcee
 corner
@@ -12,3 +12,5 @@ tqdm
 h5py
 attrs
 importlib-metadata>=3.6; python_version < '3.10'
+plum-dispatch
+array_api_compat

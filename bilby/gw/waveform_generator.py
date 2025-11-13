@@ -24,7 +24,8 @@ class WaveformGenerator(object):
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
-                 waveform_arguments=None):
+                 waveform_arguments=None, use_cache=True,
+                 ):
         """
         The base waveform generator class.
 
@@ -57,6 +58,10 @@ class WaveformGenerator(object):
             Note: the arguments of frequency_domain_source_model (except the first,
             which is the frequencies at which to compute the strain) will be added to
             the WaveformGenerator object and initialised to `None`.
+        use_cache: bool
+            Whether to attempt caching the waveform between subsequent calls.
+            This is :code:`True` by default but must be disabled for JIT compilation
+            with :code:`JAX`.
 
         """
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
@@ -76,6 +81,7 @@ class WaveformGenerator(object):
         if isinstance(parameters, dict):
             self.parameters = parameters
         self._cache = dict(parameters=None, waveform=None, model=None)
+        self.use_cache = use_cache
         logger.info(f"Waveform generator instantiated: {self}")
 
     def __repr__(self):
@@ -95,9 +101,9 @@ class WaveformGenerator(object):
         return self.__class__.__name__ + '(duration={}, sampling_frequency={}, start_time={}, ' \
                                          'frequency_domain_source_model={}, time_domain_source_model={}, ' \
                                          'parameter_conversion={}, ' \
-                                         'waveform_arguments={})'\
+                                         'waveform_arguments={}, use_cache={})'\
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
-                    param_conv_name, self.waveform_arguments)
+                    param_conv_name, self.waveform_arguments, self.use_cache)
 
     def frequency_domain_strain(self, parameters=None):
         """ Wrapper to source_model.
@@ -160,10 +166,14 @@ class WaveformGenerator(object):
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points, parameters):
-        if parameters is None:
-            parameters = self.parameters
-        if parameters == self._cache['parameters'] and self._cache['model'] == model and \
-                self._cache['transformed_model'] == transformed_model:
+        if parameters is not None:
+            self.parameters = parameters
+        if (
+            self.use_cache
+            and self.parameters == self._cache['parameters']
+            and self._cache['model'] == model
+            and self._cache['transformed_model'] == transformed_model
+        ):
             return self._cache['waveform']
         else:
             self._cache['parameters'] = parameters.copy()

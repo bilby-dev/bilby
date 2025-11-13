@@ -164,6 +164,7 @@ def conditional_prior_factory(prior_class):
                 self.reference_params will be used.
 
             """
+            required_variables.pop("xp", None)
             if sorted(list(required_variables)) == sorted(self.required_variables):
                 parameters = self.condition_func(self.reference_params.copy(), **required_variables)
                 for key, value in parameters.items():

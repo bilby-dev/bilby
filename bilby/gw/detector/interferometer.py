@@ -1,16 +1,17 @@
 import os
 
 import numpy as np
-from bilby_cython.geometry import (
+
+from ...core import utils
+from ...core.utils import PropertyAccessor, docstring, logger, safe_file_dump
+from ...core.utils.env import string_to_boolean
+from ...compat.utils import array_module
+from .. import utils as gwutils
+from ..geometry import (
     get_polarization_tensor,
     three_by_three_matrix_contraction,
     time_delay_from_geocenter,
 )
-
-from ...core import utils
-from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
-from ...core.utils.env import string_to_boolean
-from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
@@ -305,10 +306,12 @@ class Interferometer(object):
         array_like: A 3x3 array representation of the detector response (signal observed in the interferometer)
         """
         if frequencies is None:
-            frequencies = self.frequency_array[self.frequency_mask]
+            # frequencies = self.frequency_array[self.frequency_mask]
+            frequencies = self.frequency_array
             mask = self.frequency_mask
         else:
-            mask = np.ones(len(frequencies), dtype=bool)
+            xp = array_module(frequencies)
+            mask = xp.ones(len(frequencies), dtype=bool)
 
         signal = {}
         for mode in waveform_polarizations.keys():
@@ -318,8 +321,8 @@ class Interferometer(object):
                 parameters['geocent_time'],
                 parameters['psi'], mode)
 
-            signal[mode] = waveform_polarizations[mode] * det_response
-        signal_ifo = sum(signal.values()) * mask
+            signal[mode] = waveform_polarizations[mode] * mask * det_response
+        signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
             parameters['ra'], parameters['dec'], parameters['geocent_time'])
@@ -329,9 +332,11 @@ class Interferometer(object):
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
-        signal_ifo[mask] = signal_ifo[mask] * np.exp(-1j * 2 * np.pi * dt * frequencies)
+        xp = array_module(signal_ifo)
 
-        signal_ifo[mask] *= self.calibration_model.get_calibration_factor(
+        signal_ifo = signal_ifo * xp.exp(-1j * 2 * np.pi * dt * frequencies)
+
+        signal_ifo *= self.calibration_model.get_calibration_factor(
             frequencies, prefix='recalib_{}_'.format(self.name), **parameters
         )
 
@@ -481,7 +486,7 @@ class Interferometer(object):
         self.strain_data.frequency_domain_strain += signal_ifo
 
         self.meta_data['optimal_SNR'] = (
-            np.sqrt(self.optimal_snr_squared(signal=signal_ifo)).real)
+            self.optimal_snr_squared(signal=signal_ifo)).real ** 0.5
         self.meta_data['matched_filter_SNR'] = (
             self.matched_filter_snr(signal=signal_ifo))
         self.meta_data['parameters'] = parameters
@@ -667,7 +672,7 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        return frequency_series / (self.amplitude_spectral_density_array * np.sqrt(self.duration / 4))
+        return frequency_series / (self.amplitude_spectral_density_array * (self.duration / 4)**0.5)
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,
@@ -698,14 +703,13 @@ class Interferometer(object):
             w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
 
         """
-        frequency_window_factor = (
-            np.sum(self.frequency_mask)
-            / len(self.frequency_mask)
-        )
+        xp = array_module(whitened_frequency_series)
+
+        frequency_window_factor = self.frequency_mask.mean()
 
         whitened_time_series = (
-            np.fft.irfft(whitened_frequency_series)
-            * np.sqrt(np.sum(self.frequency_mask)) / frequency_window_factor
+            xp.fft.irfft(whitened_frequency_series)
+            * self.frequency_mask.sum()**0.5 / frequency_window_factor
         )
 
         return whitened_time_series
@@ -923,3 +927,10 @@ class Interferometer(object):
         if res.__class__ != cls:
             raise TypeError('The loaded object is not an Interferometer')
         return res
+
+    def set_array_backend(self, xp):
+        self.geometry.set_array_backend(xp=xp)
+
+    @property
+    def array_backend(self):
+        return array_module(self.geometry.length)

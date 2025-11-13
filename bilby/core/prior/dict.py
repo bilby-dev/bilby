@@ -6,6 +6,7 @@ from io import open as ioopen
 from warnings import warn
 
 import numpy as np
+from scipy._lib._array_api import array_namespace
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -53,6 +54,9 @@ class PriorDict(dict):
             self.conversion_function = conversion_function
         else:
             self.conversion_function = self.default_conversion_function
+
+    def __hash__(self):
+        return hash(str(self))
 
     def evaluate_constraints(self, sample):
         out_sample = self.conversion_function(sample)
@@ -535,9 +539,11 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
+        xp = array_namespace(*sample.values())
+        prob = xp.prod(xp.asarray([self[key].prob(sample[key]) for key in sample]), **kwargs)
 
-        return self.check_prob(sample, prob)
+        return prob
+        # return self.check_prob(sample, prob)
 
     def check_prob(self, sample, prob):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
@@ -632,9 +638,11 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        return list(
-            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
-        )
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
+        xp = array_namespace(theta)
+
+        return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -803,12 +811,14 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
+        xp = array_namespace(*sample.values())
+        res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key))
             for key in sample
-        ]
-        prob = np.prod(res, **kwargs)
-        return self.check_prob(sample, prob)
+        ])
+        prob = xp.prod(res, **kwargs)
+        return prob
+        # return self.check_prob(sample, prob)
 
     def ln_prob(self, sample, axis=None, normalized=True):
         """
@@ -829,13 +839,15 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
+        xp = array_namespace(*sample.values())
+        res = xp.array([
             self[key].ln_prob(sample[key], **self.get_required_variables(key))
             for key in sample
-        ]
-        ln_prob = np.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized)
+        ])
+        ln_prob = xp.sum(res, axis=axis)
+        return ln_prob
+        # return self.check_ln_prob(sample, ln_prob,
+        #                           normalized=normalized)
 
     def cdf(self, sample):
         self._prepare_evaluation(*zip(*sample.items()))
@@ -859,8 +871,11 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
+        xp = array_namespace(theta)
+
         keys = list(keys)
-        theta = list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
@@ -872,35 +887,7 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
-                joint[self[key].dist.distname] = [key]
-            elif isinstance(self[key], JointPrior):
-                joint[self[key].dist.distname].append(key)
-        for names in joint.values():
-            # this is needed to unpack how joint prior rescaling works
-            # as an example of a joint prior over {a, b, c, d} we might
-            # get the following based on the order within the joint prior
-            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
-            # -> [1, 2, 3, 4]
-            # -> {a: 1, b: 2, c: 3, d: 4}
-            values = list()
-            for key in names:
-                values = np.concatenate([values, result[key]])
-            for key, value in zip(names, values):
-                result[key] = value
-
-        def safe_flatten(value):
-            """
-            this is gross but can be removed whenever we switch to returning
-            arrays, flatten converts 0-d arrays to 1-d so has to be special
-            cased
-            """
-            if isinstance(value, (float, int)):
-                return value
-            else:
-                return result[key].flatten()
-
-        return [safe_flatten(result[key]) for key in keys]
+        return xp.array([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

@@ -20,8 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # disable windows build test as bilby_cython is currently broken there
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
@@ -52,8 +51,8 @@ jobs:
           python -c "import bilby.hyper"
           python -c "import cli_bilby"
           python test/import_test.py
-      # - if: ${{ matrix.os != "windows-latest" }}
-      #   run: |
-      #     for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
-      #         ${script} --help;
-      #     done
+      - if: ${{ matrix.os != "windows-latest" }}
+        run: |
+          for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
+              ${script} --help;
+          done

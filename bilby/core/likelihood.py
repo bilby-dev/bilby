@@ -4,10 +4,12 @@ import os
 from warnings import warn
 
 import numpy as np
+from array_api_compat import is_array_api_obj
 from scipy.special import gammaln, xlogy
 from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args, logger
+from ..compat.utils import array_module
 
 PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
 
@@ -166,7 +168,7 @@ class ZeroLikelihood(Likelihood):
 
     def __init__(self, likelihood):
         super(ZeroLikelihood, self).__init__()
-        self.parameters = likelihood.parameters
+        self.parameters = dict()
         self._parent = likelihood
 
     def log_likelihood(self, parameters=None):
@@ -282,9 +284,10 @@ class GaussianLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters=None):
         parameters = _fallback_to_parameters(self, parameters)
+        xp = array_module(self.x)
         sigma = parameters.get("sigma", self.sigma)
-        log_l = np.sum(- (self.residual(parameters) / sigma)**2 / 2 -
-                       np.log(2 * np.pi * sigma**2) / 2)
+        log_l = xp.sum(- (self.residual(parameters) / sigma)**2 / 2 -
+                       xp.log(2 * np.pi * sigma**2) / 2)
         return log_l
 
     def __repr__(self):
@@ -343,17 +346,18 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters=None):
         rate = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
-        if not isinstance(rate, np.ndarray):
+        if not is_array_api_obj(rate):
             raise ValueError(
                 "Poisson rate function returns wrong value type! "
                 "Is {} when it should be numpy.ndarray".format(type(rate)))
-        elif np.any(rate < 0.):
+        elif any(rate < 0.):
             raise ValueError(("Poisson rate function returns a negative",
                               " value!"))
-        elif np.any(rate == 0.):
+        elif any(rate == 0.):
             return -np.inf
         else:
-            return np.sum(-rate + self.y * np.log(rate) - gammaln(self.y + 1))
+            xp = array_module(rate)
+            return xp.sum(-rate + self.y * xp.log(rate) - gammaln(self.y + 1))
 
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
@@ -394,9 +398,10 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters=None):
         mu = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
-        if np.any(mu < 0.):
+        if any(mu < 0.):
             return -np.inf
-        return -np.sum(np.log(mu) + (self.y / mu))
+        xp = array_module(mu)
+        return -xp.sum(xp.log(mu) + (self.y / mu))
 
     def __repr__(self):
         return Analytical1DLikelihood.__repr__(self)
@@ -410,7 +415,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
     def y(self, y):
         if not isinstance(y, np.ndarray):
             y = np.array([y])
-        if np.any(y < 0):
+        if any(y < 0):
             raise ValueError("Data must be non-negative")
         self._y = y
 
@@ -457,9 +462,10 @@ class StudentTLikelihood(Analytical1DLikelihood):
             raise ValueError("Number of degrees of freedom for Student's "
                              "t-likelihood must be positive")
 
+        xp = array_module(self.x)
         log_l =\
-            np.sum(- (nu + 1) * np.log1p(self.lam * self.residual(parameters=parameters)**2 / nu) / 2 +
-                   np.log(self.lam / (nu * np.pi)) / 2 +
+            xp.sum(- (nu + 1) * xp.log1p(self.lam * self.residual(parameters=parameters)**2 / nu) / 2 +
+                   xp.log(self.lam / (nu * np.pi)) / 2 +
                    gammaln((nu + 1) / 2) - gammaln(nu / 2))
         return log_l
 
@@ -506,8 +512,10 @@ class Multinomial(Likelihood):
         base: str
             The base of the parameter labels
         """
-        self.data = np.array(data)
-        self._total = np.sum(self.data)
+        if not is_array_api_obj(data):
+            data = np.array(data)
+        self.data = data
+        self._total = self.data.sum()
         super(Multinomial, self).__init__()
         self.n = n_dimensions
         self.base = base
@@ -534,7 +542,8 @@ class Multinomial(Likelihood):
 
     def _multinomial_ln_pdf(self, probs):
         """Lifted from scipy.stats.multinomial._logpdf"""
-        ln_prob = gammaln(self._total + 1) + np.sum(
+        xp = array_module(self.data)
+        ln_prob = gammaln(self._total + 1) + xp.sum(
             xlogy(self.data, probs) - gammaln(self.data + 1), axis=-1)
         return ln_prob
 
@@ -553,11 +562,18 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
         """
 
     def __init__(self, mean, cov):
-        self.cov = np.atleast_2d(cov)
-        self.mean = np.atleast_1d(mean)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.pdf = multivariate_normal(mean=self.mean, cov=self.cov)
-        super(AnalyticalMultidimensionalCovariantGaussian, self).__init__()
+        xp = array_module(cov)
+        self.cov = xp.atleast_2d(cov)
+        self.mean = xp.atleast_1d(mean)
+        self.sigma = xp.sqrt(xp.diag(self.cov))
+        if xp == np:
+            self.logpdf = multivariate_normal(mean=self.mean, cov=self.cov).logpdf
+        else:
+            from functools import partial
+            from jax.scipy.stats.multivariate_normal import logpdf
+            self.logpdf = partial(logpdf, mean=self.mean, cov=self.cov)
+        parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
+        super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=parameters)
 
     @property
     def dim(self):
@@ -565,8 +581,9 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
 
     def log_likelihood(self, parameters=None):
         parameters = _fallback_to_parameters(self, parameters)
-        x = np.array([parameters["x{0}".format(i)] for i in range(self.dim)])
-        return self.pdf.logpdf(x)
+        xp = array_module(self.cov)
+        x = xp.array([parameters["x{0}".format(i)] for i in range(self.dim)])
+        return self.logpdf(x)
 
 
 class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
@@ -584,13 +601,21 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
         """
 
     def __init__(self, mean_1, mean_2, cov):
-        self.cov = np.atleast_2d(cov)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.mean_1 = np.atleast_1d(mean_1)
-        self.mean_2 = np.atleast_1d(mean_2)
-        self.pdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov)
-        self.pdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov)
-        super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__()
+        xp = array_module(cov)
+        self.cov = xp.atleast_2d(cov)
+        self.sigma = xp.sqrt(xp.diag(self.cov))
+        self.mean_1 = xp.atleast_1d(mean_1)
+        self.mean_2 = xp.atleast_1d(mean_2)
+        if xp == np:
+            self.logpdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov).logpdf
+            self.logpdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov).logpdf
+        else:
+            from functools import partial
+            from jax.scipy.stats.multivariate_normal import logpdf
+            self.logpdf_1 = partial(logpdf, mean=self.mean_1, cov=self.cov)
+            self.logpdf_2 = partial(logpdf, mean=self.mean_2, cov=self.cov)
+        parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
+        super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__(parameters=parameters)
 
     @property
     def dim(self):
@@ -598,8 +623,9 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
 
     def log_likelihood(self, parameters=None):
         parameters = _fallback_to_parameters(self, parameters)
-        x = np.array([parameters["x{0}".format(i)] for i in range(self.dim)])
-        return -np.log(2) + np.logaddexp(self.pdf_1.logpdf(x), self.pdf_2.logpdf(x))
+        xp = array_module(self.cov)
+        x = xp.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+        return -xp.log(2) + xp.logaddexp(self.logpdf_1(x), self.logpdf_2(x))
 
 
 class JointLikelihood(Likelihood):
