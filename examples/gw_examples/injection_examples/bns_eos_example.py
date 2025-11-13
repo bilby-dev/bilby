@@ -121,16 +121,16 @@ priors["symmetric_mass_ratio"] = bilby.core.prior.Uniform(
     0.1, 0.25, name="symmetric_mass_ratio"
 )
 priors["eos_spectral_gamma_0"] = bilby.core.prior.Uniform(
-    0.2, 2.0, name="gamma0", latex_label="$\\gamma_0"
+    0.2, 2.0, name="gamma0", latex_label="$\\gamma_0$"
 )
 priors["eos_spectral_gamma_1"] = bilby.core.prior.Uniform(
-    -1.6, 1.7, name="gamma1", latex_label="$\\gamma_1"
+    -1.6, 1.7, name="gamma1", latex_label="$\\gamma_1$"
 )
 priors["eos_spectral_gamma_2"] = bilby.core.prior.Uniform(
-    -0.6, 0.6, name="gamma2", latex_label="$\\gamma_2"
+    -0.6, 0.6, name="gamma2", latex_label="$\\gamma_2$"
 )
 priors["eos_spectral_gamma_3"] = bilby.core.prior.Uniform(
-    -0.02, 0.02, name="gamma3", latex_label="$\\gamma_3"
+    -0.02, 0.02, name="gamma3", latex_label="$\\gamma_3$"
 )
 
 # The eos_check prior imposes several hard physical constraints on samples like
