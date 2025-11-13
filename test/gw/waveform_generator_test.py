@@ -925,6 +925,16 @@ class TestGWSignalGenerator(unittest.TestCase):
 
         assert wfg.frequency_domain_strain(parameters) is None
 
+    def test_repr(self):
+        wfg = self.get_wfgen()
+        repr_str = repr(wfg)
+        # Check that the repr contains the correct sampling_frequency value
+        # This test specifically checks that sampling_frequency is not incorrectly set to duration
+        assert f"sampling_frequency={wfg.sampling_frequency}" in repr_str
+        assert f"duration={wfg.duration}" in repr_str
+        # Ensure sampling_frequency and duration have different values in our test
+        assert wfg.sampling_frequency != wfg.duration
+
 
 if __name__ == "__main__":
     unittest.main()
