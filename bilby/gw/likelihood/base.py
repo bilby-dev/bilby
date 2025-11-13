@@ -80,7 +80,7 @@ class GravitationalWaveTransient(Likelihood):
         Whether to introduce a `time_jitter` parameter. This avoids either
         missing the likelihood peak, or introducing biases in the
         reconstructed time posterior due to an insufficient sampling frequency.
-        Default is False, however using this parameter is strongly encouraged.
+        Default is :code:`True` if :code:`time_marginalization` is :code:`True`.
     reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
         Definition of the reference frame for the sky location.
 
