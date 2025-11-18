@@ -88,3 +88,9 @@ result = bilby.core.sampler.run_sampler(
 
 # make some plots of the outputs
 result.plot_corner()
+
+# Plot the time-domain strain in each detector (after optional filtering)
+ifos.plot_time_domain_data(outdir=outdir, label=label, t0=injection_parameters["geocent_time"])
+
+# Plot the reconstructed waveform posterior in the time and frequency domains
+result.plot_waveform_posterior(interferometers=ifos)
