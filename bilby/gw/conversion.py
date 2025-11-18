@@ -300,8 +300,7 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
         where ``field`` is one of ``hrss``, ``Q``, ``frequency``, ``time_offset``
         or ``phase_offset``.  Incoherent components use keys of the form
         ``sine_gaussian_<index>_<detector>_<field>`` where ``detector`` is the
-        interferometer name and ``field`` extends the coherent list with an
-        optional ``polarization`` entry.
+        interferometer name and ``field`` matches the coherent set.
 
     Returns
     -------
@@ -316,10 +315,13 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
         r"sine_gaussian_(\d+)_(hrss|Q|frequency|time_offset|phase_offset)"
     )
     incoherent_pattern = re.compile(
-        r"sine_gaussian_(\d+)_([A-Za-z0-9]+)_(hrss|Q|frequency|time_offset|phase_offset|polarization)"
+        r"sine_gaussian_(\d+)_([A-Za-z0-9]+)_(hrss|Q|frequency|time_offset|phase_offset)"
     )
     grouped_parameters = {}
     incoherent_grouped_parameters = {}
+    unsupported_polarization_pattern = re.compile(
+        r"sine_gaussian_(\d+)_([A-Za-z0-9]+)_polarization"
+    )
 
     for key in list(converted_parameters.keys()):
         match = sine_gaussian_pattern.fullmatch(key)
@@ -338,6 +340,20 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
         field = incoherent_match.group(3)
         incoherent_grouped_parameters.setdefault(index, {})\
             .setdefault(detector, {})[field] = converted_parameters.pop(key)
+
+        continue
+
+    unsupported_polarization_keys = [
+        key for key in converted_parameters
+        if unsupported_polarization_pattern.fullmatch(key) is not None
+    ]
+    if unsupported_polarization_keys:
+        raise KeyError(
+            "Polarization fields are not supported for incoherent sine-Gaussian "
+            "components: {}".format(
+                ", ".join(sorted(unsupported_polarization_keys))
+            )
+        )
 
     if grouped_parameters:
         sine_gaussian_parameters = []
@@ -383,8 +399,6 @@ def convert_to_cbc_plus_sine_gaussian_parameters(parameters):
                     time_offset=parameter_set["time_offset"],
                     phase_offset=parameter_set["phase_offset"],
                 )
-                if "polarization" in parameter_set:
-                    component["polarization"] = parameter_set["polarization"]
 
                 incoherent_parameters.setdefault(detector, []).append(component)
 

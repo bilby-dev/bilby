@@ -229,7 +229,6 @@ class TestCBCPlusSineGaussians(unittest.TestCase):
 
         with mock.patch("bilby.gw.source._base_lal_cbc_fd_waveform", return_value=dict(plus=base_plus, cross=base_cross)):
             h1_parameters = dict(self.sine_gaussian, hrss=2e-22, time_offset=0.005, phase_offset=0.1)
-            h1_parameters["polarization"] = "cross"
             l1_parameters = dict(self.sine_gaussian, hrss=4e-22, time_offset=-0.002, phase_offset=-0.3)
 
             waveform = bilby.gw.source.cbc_plus_sine_gaussians(
@@ -246,8 +245,11 @@ class TestCBCPlusSineGaussians(unittest.TestCase):
         self.assertIn("H1", waveform)
         self.assertIn("L1", waveform)
 
-        expected_h1 = bilby.gw.source.sinegaussian(self.frequency_array, **h1_parameters)["cross"]
-        expected_l1 = bilby.gw.source.sinegaussian(self.frequency_array, **l1_parameters)["plus"]
+        expected_h1_waveform = bilby.gw.source.sinegaussian(self.frequency_array, **h1_parameters)
+        expected_l1_waveform = bilby.gw.source.sinegaussian(self.frequency_array, **l1_parameters)
+
+        expected_h1 = expected_h1_waveform["plus"] + expected_h1_waveform["cross"]
+        expected_l1 = expected_l1_waveform["plus"] + expected_l1_waveform["cross"]
 
         self.assertTrue(np.allclose(waveform["H1"], expected_h1))
         self.assertTrue(np.allclose(waveform["L1"], expected_l1))
@@ -259,7 +261,7 @@ class TestCBCPlusSineGaussians(unittest.TestCase):
         with mock.patch("bilby.gw.source._base_lal_cbc_fd_waveform", return_value=dict(plus=base_plus, cross=base_cross)):
             parameters = dict(self.sine_gaussian, polarization="linear")
 
-            with self.assertRaisesRegex(ValueError, "Unsupported polarization"):
+            with self.assertRaisesRegex(ValueError, "do not support polarization"):
                 bilby.gw.source.cbc_plus_sine_gaussians(
                     self.frequency_array,
                     sine_gaussian_parameters=[],

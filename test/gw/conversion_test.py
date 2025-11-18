@@ -373,7 +373,6 @@ class TestConvertToLALParams(unittest.TestCase):
             sine_gaussian_0_H1_frequency=90.0,
             sine_gaussian_0_H1_time_offset=0.02,
             sine_gaussian_0_H1_phase_offset=-0.4,
-            sine_gaussian_0_H1_polarization="cross",
             sine_gaussian_0_L1_hrss=1e-22,
             sine_gaussian_0_L1_Q=5.0,
             sine_gaussian_0_L1_frequency=100.0,
@@ -398,7 +397,6 @@ class TestConvertToLALParams(unittest.TestCase):
         self.assertEqual(h1_component["frequency"], parameters["sine_gaussian_0_H1_frequency"])
         self.assertEqual(h1_component["time_offset"], parameters["sine_gaussian_0_H1_time_offset"])
         self.assertEqual(h1_component["phase_offset"], parameters["sine_gaussian_0_H1_phase_offset"])
-        self.assertEqual(h1_component["polarization"], parameters["sine_gaussian_0_H1_polarization"])
 
         l1_component = incoherent["L1"][0]
         self.assertEqual(l1_component["hrss"], parameters["sine_gaussian_0_L1_hrss"])
@@ -406,11 +404,26 @@ class TestConvertToLALParams(unittest.TestCase):
         self.assertEqual(l1_component["frequency"], parameters["sine_gaussian_0_L1_frequency"])
         self.assertEqual(l1_component["time_offset"], parameters["sine_gaussian_0_L1_time_offset"])
         self.assertEqual(l1_component["phase_offset"], parameters["sine_gaussian_0_L1_phase_offset"])
-        self.assertNotIn("polarization", l1_component)
 
         for key in list(parameters.keys()):
             if key.startswith("sine_gaussian_0_H1_") or key.startswith("sine_gaussian_0_L1_"):
                 self.assertNotIn(key, converted)
+
+    def test_incoherent_polarization_fields_raise(self):
+        parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            sine_gaussian_0_H1_polarization="cross",
+            sine_gaussian_0_H1_hrss=1e-22,
+            sine_gaussian_0_H1_Q=7.0,
+            sine_gaussian_0_H1_frequency=90.0,
+            sine_gaussian_0_H1_time_offset=0.02,
+            sine_gaussian_0_H1_phase_offset=-0.4,
+        )
+
+        with self.assertRaisesRegex(KeyError, "Polarization fields are not supported"):
+            conversion.convert_to_cbc_plus_sine_gaussian_parameters(parameters)
 
     def test_convert_to_cbc_plus_sine_gaussians_dict_wrapper(self):
         parameters = dict(
@@ -649,7 +662,6 @@ class TestGenerateAllParameters(unittest.TestCase):
             sine_gaussian_2_L1_frequency=210.0,
             sine_gaussian_2_L1_time_offset=-0.01,
             sine_gaussian_2_L1_phase_offset=0.2,
-            sine_gaussian_2_L1_polarization="cross",
         )
 
         for values in [self.parameters, self.data_frame]:
@@ -691,7 +703,6 @@ class TestGenerateAllParameters(unittest.TestCase):
                     frequency=210.0,
                     time_offset=-0.01,
                     phase_offset=0.2,
-                    polarization="cross",
                 ),
             )
 

@@ -394,10 +394,9 @@ def cbc_plus_sine_gaussians(
         components.  Each detector entry should contain a list of dictionaries
         describing the components local to that interferometer with the same
         mandatory keys as the coherent case (``hrss``, ``Q``, ``frequency``,
-        ``time_offset`` and ``phase_offset``) and an optional ``polarization``
-        flag.  The ``polarization`` value controls which polarization of the
-        sine-Gaussian is interpreted as the detector strain and defaults to
-        ``"plus"``.
+        ``time_offset`` and ``phase_offset``).  These detector-local bursts are
+        added directly to the interferometer strain without applying antenna
+        pattern projections or polarization choices.
     **kwargs
         Additional keyword arguments forwarded to the underlying CBC waveform
         generator.
@@ -497,6 +496,12 @@ def cbc_plus_sine_gaussians(
                     peak_frequency = parameters['frequency']
                     time_offset = parameters['time_offset']
                     phase_offset = parameters['phase_offset']
+                    if 'polarization' in parameters:
+                        raise ValueError(
+                            "Incoherent sine-Gaussians are added directly to the "
+                            "detector strain and do not support polarization "
+                            "fields."
+                        )
                 except KeyError as error:
                     missing_key = error.args[0]
                     raise KeyError(
@@ -507,8 +512,6 @@ def cbc_plus_sine_gaussians(
                         )
                     ) from error
 
-                polarization = parameters.get('polarization', 'plus')
-
                 sine_gaussian_waveform = sinegaussian(
                     frequency_array,
                     hrss=hrss,
@@ -518,16 +521,9 @@ def cbc_plus_sine_gaussians(
                     phase_offset=phase_offset,
                 )
 
-                if polarization == 'plus':
-                    detector_waveform += sine_gaussian_waveform['plus']
-                elif polarization == 'cross':
-                    detector_waveform += sine_gaussian_waveform['cross']
-                else:
-                    raise ValueError(
-                        "Unsupported polarization '{}' for incoherent sine-"
-                        "Gaussian {} in '{}'. Valid options are 'plus' and "
-                        "'cross'.".format(polarization, index, detector)
-                    )
+                detector_waveform += (
+                    sine_gaussian_waveform['plus'] + sine_gaussian_waveform['cross']
+                )
 
             combined_waveform[detector] = detector_waveform
 
