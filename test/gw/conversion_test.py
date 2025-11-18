@@ -1,3 +1,4 @@
+import logging
 import unittest
 from copy import deepcopy
 
@@ -641,6 +642,19 @@ class TestGenerateAllParameters(unittest.TestCase):
 
         self.assertFalse(
             any("Generation of mass parameters failed" in message for message in captured.output)
+        )
+
+    def test_generate_all_bbh_parameters_without_spin_keys_does_not_log_info(self):
+        sample = {"mass_1": 30.0, "mass_2": 20.0}
+        with self.assertLogs("bilby", level="INFO") as captured:
+            logging.getLogger("bilby").info("sentinel")
+            bilby.gw.conversion.generate_all_bbh_parameters(sample)
+
+        self.assertFalse(
+            any(
+                "Generation of spin parameters failed" in message
+                for message in captured.output
+            )
         )
 
     def test_generate_all_bns_parameters(self):

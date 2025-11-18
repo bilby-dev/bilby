@@ -1786,6 +1786,10 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                                  likelihood=None, priors=None, npool=1):
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
+    if isinstance(sample, DataFrame):
+        sample_keys = set(sample.columns)
+    else:
+        sample_keys = set(sample.keys())
 
     waveform_defaults = defaults
     for key in waveform_defaults:
@@ -1856,6 +1860,7 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             "redshift", "comoving_distance", "luminosity_distance",
         },
     }
+    cbc_hint_keys = conversion_hint_keys["mass"] | conversion_hint_keys["spin"]
 
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
@@ -1864,8 +1869,9 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             output_sample = func(output_sample)
         except KeyError as e:
             hint_keys = conversion_hint_keys.get(key, set())
-            has_relevant_keys = any(item in output_sample for item in hint_keys)
-            log = logger.info if has_relevant_keys else logger.debug
+            has_hint_keys = bool(hint_keys & sample_keys)
+            has_cbc_context = bool(cbc_hint_keys & sample_keys)
+            log = logger.info if (has_hint_keys and has_cbc_context) else logger.debug
             log(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
