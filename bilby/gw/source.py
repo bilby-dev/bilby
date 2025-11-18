@@ -525,6 +525,12 @@ def cbc_plus_sine_gaussians(
                     sine_gaussian_waveform['plus'] + sine_gaussian_waveform['cross']
                 )
 
+            # Interferometer.get_detector_response treats a mode matching the
+            # detector name as an already projected strain (antenna_response
+            # returns 1 for mode == self.name).  Storing the summed
+            # detector-local burst contribution under the detector key therefore
+            # injects it directly into the strain alongside the coherently
+            # projected CBC modes.
             combined_waveform[detector] = detector_waveform
 
     return combined_waveform
