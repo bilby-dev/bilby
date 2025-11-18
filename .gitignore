@@ -16,3 +16,4 @@ MANIFEST
 **/outdir
 .idea/*
 bilby/_version.py
+.DS_Store
