@@ -634,6 +634,15 @@ class TestGenerateAllParameters(unittest.TestCase):
             self.expected_bbh_keys,
         )
 
+    def test_generate_all_bbh_parameters_without_cbc_keys_does_not_log_info(self):
+        sample = {"ra": 0.0, "dec": 0.0}
+        with self.assertLogs("bilby", level="INFO") as captured:
+            bilby.gw.conversion.generate_all_bbh_parameters(sample)
+
+        self.assertFalse(
+            any("Generation of mass parameters failed" in message for message in captured.output)
+        )
+
     def test_generate_all_bns_parameters(self):
         self._generate(
             bilby.gw.conversion.generate_all_bns_parameters,

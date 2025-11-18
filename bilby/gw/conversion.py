@@ -1842,13 +1842,31 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     .format(type(output_sample))
                 )
         compute_snrs(output_sample, likelihood, npool=npool)
+    conversion_hint_keys = {
+        "mass": {
+            "mass_1", "mass_2", "chirp_mass", "total_mass", "mass_ratio",
+            "symmetric_mass_ratio", "mass_1_source", "mass_2_source",
+            "chirp_mass_source", "total_mass_source",
+        },
+        "spin": {
+            "a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl",
+            "spin_1z", "spin_2z",
+        },
+        "source frame": {
+            "redshift", "comoving_distance", "luminosity_distance",
+        },
+    }
+
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
             generate_source_frame_parameters]):
         try:
             output_sample = func(output_sample)
         except KeyError as e:
-            logger.info(
+            hint_keys = conversion_hint_keys.get(key, set())
+            has_relevant_keys = any(item in output_sample for item in hint_keys)
+            log = logger.info if has_relevant_keys else logger.debug
+            log(
                 "Generation of {} parameters failed with message {}".format(
                     key, e))
 
