@@ -387,7 +387,7 @@ class TriangularInterferometerTest(unittest.TestCase):
         for pair in list(combinations(self.triangular_ifo, 2)):
             delta_lat = np.radians(pair[1].latitude - pair[0].latitude)
             delta_long = np.radians(pair[1].longitude - pair[0].longitude)
-            pair_a = a(delta_lat, delta_long, pair[0].latitude, pair[1].latitude)
+            pair_a = a(delta_lat, delta_long, np.radians(pair[0].latitude), np.radians(pair[1].latitude))
             pair_c = c(pair_a)
             distance = bilby.core.utils.radius_of_earth * pair_c
             self.assertAlmostEqual(distance / 1000, pair[0].length, delta=1)
