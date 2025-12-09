@@ -2134,8 +2134,6 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     kwargs['truths'] = None
     if corner_labels is not None:
         kwargs['labels'] = corner_labels
-
-    fig = results[0].plot_corner(fig=fig, save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
