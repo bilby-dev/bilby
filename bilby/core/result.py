@@ -2087,7 +2087,7 @@ class ResultList(list):
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, corner_labels=None, linestyles=None,
                   fig=None, **kwargs):
-    """ Generate a corner plot overlaying two sets of results
+    """Generate a corner plot overlaying two sets of results
 
     Parameters
     ==========
@@ -2110,7 +2110,10 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         for the keyword `labels` for which you should use the dedicated
         `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
-        ambiguous on such a plot.
+        ambiguous on such a plot. The keyword arguments `contour_kwargs["linestyles"]`,
+        `hist_kwargs["linestyle"]`, `color` and `hist_kwargs["color"]` are overwritten
+        with the values provided in the `colours` and `linestyles` inputs or by the default
+        styles.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
