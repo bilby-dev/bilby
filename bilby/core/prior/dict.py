@@ -709,12 +709,17 @@ class ConditionalPriorDict(PriorDict):
         4. We set the `self._resolved` flag to True if all conditional
         priors were added in the right order
         """
-        self._unconditional_keys = [
-            key for key in self.keys() if not hasattr(self[key], "condition_func")
-        ]
-        conditional_keys_unsorted = [
-            key for key in self.keys() if hasattr(self[key], "condition_func")
-        ]
+        conditional_keys_unsorted = []
+        self._unconditional_keys = []
+        joint_dists = {}
+        for key in self.keys():
+            if not hasattr(self[key], "condition_func"):
+                self._unconditional_keys.append(key)
+            else:
+                conditional_keys_unsorted.append(key)
+            if isinstance(self[key], JointPrior):
+                joint_dists[self[key].dist.distname] = self[key].dist.names
+
         self._conditional_keys = []
         for _ in range(len(self)):
             for key in conditional_keys_unsorted[:]:
@@ -725,6 +730,12 @@ class ConditionalPriorDict(PriorDict):
         self._resolved = True
         if len(conditional_keys_unsorted) != 0:
             self._resolved = False
+
+        # ensure that all joint dist names are resolved
+        for names in joint_dists.values():
+            for name in names:
+                if name not in self.sorted_keys:
+                    self._resolved = False
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
