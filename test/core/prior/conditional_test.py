@@ -350,6 +350,29 @@ class TestConditionalPriorDict(unittest.TestCase):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
         np.testing.assert_array_equal(expected, res)
 
+    def test_rescale_subset(self):
+        test_sample_subset = {
+            key: self.test_sample[key] for key in ["var_0", "var_1", "var_2"]
+        }
+
+        res = self.conditional_priors.rescale(
+            keys=list(test_sample_subset.keys()),
+            theta=list(test_sample_subset.values()),
+        )
+        expected = [self.test_sample["var_0"]]
+        for ii in range(1, 3):
+            expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
+        np.testing.assert_array_equal(expected, res)
+
+    def test_subset_evaluation_failures(self):
+        sample = {"var_1": self.xp.asarray(0.5)}
+        for method in ("prob", "ln_prob", "cdf"):
+            with self.subTest(method=method):
+                with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+                    getattr(self.conditional_priors, method)(sample)
+        with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+            self.conditional_priors.rescale(["var_1"], [0.5])
+
     def test_rescale_with_joint_prior(self):
         """
         Add a joint prior into the conditional prior dictionary and check that
