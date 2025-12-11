@@ -733,9 +733,9 @@ class ConditionalPriorDict(PriorDict):
 
         # ensure that all joint dist names are resolved
         for names in joint_dists.values():
-            for name in names:
-                if name not in self.sorted_keys:
-                    self._resolved = False
+            if not set(names).issubset(self.sorted_keys):
+                self._resolved = False
+                break
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
