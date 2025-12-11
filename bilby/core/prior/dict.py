@@ -728,11 +728,14 @@ class ConditionalPriorDict(PriorDict):
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
-        conditions_resolved = True
         for k in self[key].required_variables:
             if k not in sampled_keys:
-                conditions_resolved = False
-        return conditions_resolved
+                return False
+            elif isinstance(self[k], JointPrior):
+                for name in self[k].dist.names:
+                    if name not in sampled_keys and name != key:
+                        return False
+        return True
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
