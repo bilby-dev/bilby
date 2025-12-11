@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 from plum import dispatch
-from bilby_rust import time as _time
+from bilby_cython import time as _time
 
 from ..compat.types import Real, ArrayLike
 from ..compat.utils import array_module

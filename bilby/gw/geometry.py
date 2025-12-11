@@ -1,6 +1,6 @@
 import numpy as np
 from plum import dispatch
-from bilby_rust import geometry as _geometry
+from bilby_cython import geometry as _geometry
 
 from .time import greenwich_mean_sidereal_time
 from ..compat.types import Real, ArrayLike
