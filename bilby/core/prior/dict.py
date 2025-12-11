@@ -779,11 +779,14 @@ class ConditionalPriorDict(PriorDict):
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
-        conditions_resolved = True
         for k in self[key].required_variables:
             if k not in sampled_keys:
-                conditions_resolved = False
-        return conditions_resolved
+                return False
+            elif isinstance(self[k], JointPrior):
+                for name in self[k].dist.names:
+                    if name not in sampled_keys and name != key:
+                        return False
+        return True
 
     def sample_subset(self, keys=iter([]), size=None, *, random_state=None):
         self.convert_floats_to_delta_functions()
@@ -947,11 +950,11 @@ class ConditionalPriorDict(PriorDict):
             # joint-priors only return on rescale if all related keys have
             # been requested
             if isinstance(self[key], JointPrior):
-                if result[key] is not None:
+                if len(result[key]) != 0:
                     names = self[key].dist.names
                     for name, joint_rescale in zip(names, result[key]):
                         result[name] = joint_rescale
-                        self[name].least_recently_sampled = result[name]
+                        self[name].least_recently_sampled = joint_rescale
             else:
                 # if not joint prior, set value immediately
                 self[key].least_recently_sampled = result[key]
