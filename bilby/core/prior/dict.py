@@ -923,6 +923,13 @@ class ConditionalPriorDict(PriorDict):
         subset_keys_sorted = [key for key in self.sorted_keys if key in subset_keys]
         if len(subset_keys_sorted) != len(subset_keys):
             resolved = False
+            logger.debug(
+                "The requested subset {} of priors contains {} keys ({}) that are not in the prior dict.".format(
+                    keys,
+                    len(subset_keys) - len(subset_keys_sorted),
+                    list(set(subset_keys) - set(subset_keys_sorted)),
+                )
+            )
         for key in subset_keys_sorted:
             # if one key is not resolved, break early
             if not resolved:
