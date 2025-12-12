@@ -2111,9 +2111,9 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
         ambiguous on such a plot. The keyword arguments `contour_kwargs["linestyles"]`,
-        `hist_kwargs["linestyle"]`, `color` and `hist_kwargs["color"]` are overwritten
-        with the values provided in the `colours` and `linestyles` inputs or by the default
-        styles.
+        `contour_kwargs['colors']`, `hist_kwargs["linestyle"]`, `color` and 
+        `hist_kwargs["color"]` are overwritten with the values provided in the
+        `colours` and `linestyles` inputs or by the default styles.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
