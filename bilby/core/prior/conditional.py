@@ -59,6 +59,9 @@ def conditional_prior_factory(prior_class):
             self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
             self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
 
+            # no conditional prior (including DeltaFunction) is fixed a priori
+            self._is_fixed = False
+
         def sample(self, size=None, **required_variables):
             """Draw a sample from the prior
 
