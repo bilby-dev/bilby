@@ -884,11 +884,12 @@ class ConditionalPriorDict(PriorDict):
                 distname = self[key].dist.distname
                 names = set(self[key].dist.names)
                 if distname not in joint:
-                    joint[distname] = [key]
+                    joint[distname] = {key}
                 elif isinstance(self[key], JointPrior):
-                    joint[distname].append(key)
+                    joint[distname].add(key)
                 # only when all names have been rescaled, we can set the values
-                if set(names) == set(joint[distname]):
+                # we use sets because the order does not matter here
+                if names == joint[distname]:
                     for name, value in zip(names, result[key]):
                         result[name] = value
                         self[name].least_recently_sampled = value
