@@ -734,6 +734,15 @@ class ConditionalPriorDict(PriorDict):
                 conditions_resolved = False
         return conditions_resolved
 
+    def _resolve_subset_conditions(self, keys):
+        try:
+            # if subset is already resolved, nothing to do
+            self._check_subset_resolved(keys)
+        except IllegalConditionsException:
+            # updates to the dict might require re-resolving conditions
+            self._resolve_conditions()
+            self._check_subset_resolved(keys)
+
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
         add_delta_keys = [
@@ -919,6 +928,31 @@ class ConditionalPriorDict(PriorDict):
         if not self._resolved:
             raise IllegalConditionsException(
                 "The current set of priors contains unresolveable conditions."
+            )
+
+    def _check_subset_resolved(self, keys):
+        """Checks if a subset of keys can be sampled given the current conditions"""
+        resolved = True
+        subset_keys = list(keys)
+        subset_keys_sorted = [key for key in self.sorted_keys if key in subset_keys]
+        if len(subset_keys_sorted) != len(subset_keys):
+            resolved = False
+        for key in subset_keys_sorted:
+            # if one key is not resolved, break early
+            if not resolved:
+                break
+            if isinstance(self[key], JointPrior):
+                if not set(self[key].dist.names).issubset(subset_keys_sorted):
+                    resolved = False
+            if key in self._conditional_keys:
+                # we can check against the sorted keys as those are already resolved in order
+                resolved = self._check_conditions_resolved(
+                    key, subset_keys_sorted
+                )
+
+        if not resolved:
+            raise IllegalConditionsException(
+                f"The requested subset {keys} of priors contains unresolveable conditions."
             )
 
     @property
