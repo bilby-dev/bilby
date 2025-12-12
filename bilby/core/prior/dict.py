@@ -744,39 +744,27 @@ class ConditionalPriorDict(PriorDict):
             self._check_subset_resolved(keys)
 
     def sample_subset(self, keys=iter([]), size=None):
-        self.convert_floats_to_delta_functions()
-        add_delta_keys = [
-            key
-            for key in self.keys()
-            if key not in keys and isinstance(self[key], DeltaFunction)
-        ]
-        use_keys = add_delta_keys + list(keys)
-        subset_dict = ConditionalPriorDict({key: self[key] for key in use_keys})
-        if not subset_dict._resolved:
-            raise IllegalConditionsException(
-                "The current set of priors contains unresolvable conditions."
-            )
+
+        use_keys = self._prepare_evaluation(keys)
+
         samples = dict()
-        for key in subset_dict.sorted_keys:
-            if key not in keys or isinstance(self[key], Constraint):
+        use_keys_sorted = [key for key in self.sorted_keys if key in use_keys]
+        for key in use_keys_sorted:
+            if isinstance(self[key], Constraint):
                 continue
-            if isinstance(self[key], Prior):
-                try:
-                    samples[key] = subset_dict[key].sample(
-                        size=size, **subset_dict.get_required_variables(key)
-                    )
-                except ValueError:
-                    # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
-                    # If that is the case, we sample each sample individually.
-                    required_variables = subset_dict.get_required_variables(key)
-                    samples[key] = np.zeros(size)
-                    for i in range(size):
-                        rvars = {
-                            key: value[i] for key, value in required_variables.items()
-                        }
-                        samples[key][i] = subset_dict[key].sample(**rvars)
-            else:
-                logger.debug("{} not a known prior.".format(key))
+            try:
+                samples[key] = self[key].sample(
+                    size=size, **self.get_required_variables(key)
+                )
+            except ValueError:
+                # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
+                # If that is the case, we sample each sample individually.
+                required_variables = self.get_required_variables(key)
+                samples[key] = np.zeros(size)
+                for i in range(size):
+                    rvars = {key: value[i] for key, value in required_variables.items()}
+                    samples[key][i] = self[key].sample(**rvars)
+
         return samples
 
     def get_required_variables(self, key):
@@ -870,15 +858,14 @@ class ConditionalPriorDict(PriorDict):
         """
         keys = list(keys)
         theta = list(theta)
-        self._check_resolved()
-        self._update_rescale_keys(keys)
+        theta = {key: value for key, value in zip(keys, theta)}
+        self._prepare_evaluation(keys)
+        sorted_keys = [key for key in self.sorted_keys if key in keys]
         result = dict()
         joint = dict()
-        for key, index in zip(
-            self.sorted_keys_without_fixed_parameters, self._rescale_indexes
-        ):
+        for key in sorted_keys:
             result[key] = self[key].rescale(
-                theta[index], **self.get_required_variables(key)
+                theta[key], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
             if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
@@ -911,18 +898,17 @@ class ConditionalPriorDict(PriorDict):
 
         return [safe_flatten(result[key]) for key in keys]
 
-    def _update_rescale_keys(self, keys):
-        if not keys == self._least_recently_rescaled_keys:
-            self._rescale_indexes = [
-                keys.index(element)
-                for element in self.sorted_keys_without_fixed_parameters
-            ]
-            self._least_recently_rescaled_keys = keys
-
-    def _prepare_evaluation(self, keys, theta):
-        self._check_resolved()
-        for key, value in zip(keys, theta):
-            self[key].least_recently_sampled = value
+    def _prepare_evaluation(self, keys, theta=None):
+        self.convert_floats_to_delta_functions()
+        # Add all fixed priors, (unconditional delta functions)
+        # that are not already in keys as they may be required to resolve conditions
+        fixed_keys = [key for key in self.fixed_keys if key not in keys]
+        use_keys = fixed_keys + list(keys)
+        self._resolve_subset_conditions(use_keys)
+        if theta is not None:
+            for key, value in zip(keys, theta):
+                self[key].least_recently_sampled = value
+        return use_keys
 
     def _check_resolved(self):
         if not self._resolved:
