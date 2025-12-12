@@ -2149,10 +2149,11 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
             linestyle = linestyles[i]
         else:
             linestyle = 'solid'
-        hist_kwargs = kwargs.get('hist_kwargs', dict())
+        hist_kwargs = kwargs.get("hist_kwargs", dict())
         contour_kwargs = kwargs.get("contour_kwargs", dict())
-        hist_kwargs['color'] = c
+        hist_kwargs["color"] = c
         hist_kwargs["linestyle"] = linestyle
+        contour_kwargs["colors"] = c
         contour_kwargs["linestyles"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
         kwargs["contour_kwargs"] = contour_kwargs
