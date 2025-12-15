@@ -331,7 +331,7 @@ class TestROQLikelihood(unittest.TestCase):
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
         self.priors.pop("mass_2")
-        # Testing is done with the 4s IMRPhenomXPHM ROQ basis
+        # Testing is done with the 4s IMRPhenomPv2 ROQ basis
         self.priors["chirp_mass"] = bilby.core.prior.Uniform(12.299703, 45)
         self.priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
         self.priors["geocent_time"] = bilby.core.prior.Uniform(1.19, 1.21)
@@ -343,7 +343,7 @@ class TestROQLikelihood(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
-                waveform_approximant="IMRPhenomXPHM",
+                waveform_approximant="IMRPhenomPv2",
             ),
         )
 
@@ -361,7 +361,7 @@ class TestROQLikelihood(unittest.TestCase):
                 frequency_nodes_linear=fnodes_linear,
                 frequency_nodes_quadratic=fnodes_quadratic,
                 reference_frequency=20.0,
-                waveform_approximant="IMRPhenomXPHM",
+                waveform_approximant="IMRPhenomPv2",
             ),
         )
 
@@ -583,7 +583,7 @@ class TestRescaledROQLikelihood(unittest.TestCase):
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
         self.priors.pop("mass_2")
-        # Testing is done with the 4s IMRPhenomXPHM ROQ basis
+        # Testing is done with the 4s IMRPhenomPv2 ROQ basis
         self.priors["chirp_mass"] = bilby.core.prior.Uniform(
             12.299703 / scale_factor, 45 / scale_factor
         )
@@ -598,7 +598,7 @@ class TestRescaledROQLikelihood(unittest.TestCase):
                 frequency_nodes_linear=fnodes_linear,
                 frequency_nodes_quadratic=fnodes_quadratic,
                 reference_frequency=20.0,
-                waveform_approximant="IMRPhenomXPHM",
+                waveform_approximant="IMRPhenomPv2",
             ),
         )
 
@@ -1006,7 +1006,7 @@ class TestCreateROQLikelihood(unittest.TestCase):
         duration = 4
         geocent_time = 1.2
         reference_frequency = 20.0
-        waveform_approximant = "IMRPhenomXPHM"
+        waveform_approximant = "IMRPhenomPv2"
         mc_range = [12.299703, 45]
 
         priors = bilby.gw.prior.BBHPriorDict()
@@ -1153,7 +1153,7 @@ class TestInOutROQWeights(unittest.TestCase):
         duration = 4
         geocent_time = 1.2
         reference_frequency = 20.0
-        waveform_approximant = "IMRPhenomXPHM"
+        waveform_approximant = "IMRPhenomPv2"
         mc_range = [12.299703, 45]
 
         priors = bilby.gw.prior.BBHPriorDict()
