@@ -885,7 +885,7 @@ class ConditionalPriorDict(PriorDict):
                 names = set(self[key].dist.names)
                 if distname not in joint:
                     joint[distname] = {key}
-                elif isinstance(self[key], JointPrior):
+                else:
                     joint[distname].add(key)
                 # only when all names have been rescaled, we can set the values
                 # we use sets because the order does not matter here
