@@ -592,7 +592,7 @@ class PriorDict(dict):
             return ln_prob
         else:
             if isinstance(ln_prob, float):
-                if self.evaluate_constraints(sample):
+                if np.all(self.evaluate_constraints(sample)):
                     return ln_prob + np.log(ratio)
                 else:
                     return -np.inf
