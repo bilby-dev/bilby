@@ -619,7 +619,7 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        try: 
+        try:
             erfinv = erfinv_import(xp)
         except BackendNotImplementedError:
             raise NotImplementedError(

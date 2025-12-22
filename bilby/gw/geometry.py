@@ -148,7 +148,6 @@ def rotation_matrix_from_delta(delta_x):
     return rotation_3 @ rotation_2 @ rotation_1
 
 
-
 @dispatch
 def three_by_three_matrix_contraction(a, b):
     """"""
@@ -169,7 +168,6 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     )
     delta_d = detector2 - detector1
     return omega @ delta_d / speed_of_light
-
 
 
 @dispatch
