@@ -761,7 +761,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         )
 
         if self.time_marginalization:
-            parameters["geocent_time"] = origianl_time
+            parameters["geocent_time"] = original_time
 
         d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conjugate()
 
@@ -800,7 +800,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 start_idx, end_idx = self.start_end_idxs[b]
                 self._full_d_h[self._full_to_multiband[start_idx:end_idx + 1]] += \
                     strain[start_idx:end_idx + 1] * self.linear_coeffs[interferometer.name][start_idx:end_idx + 1]
-            d_inner_h_array = np.fft.fft(self._full_d_h)
+            d_inner_h_array = xp.fft.fft(self._full_d_h)
         else:
             d_inner_h_array = None
 
