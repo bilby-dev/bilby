@@ -2,9 +2,7 @@ from typing import Union
 
 import numpy as np
 from plum import dispatch
-from bilby_cython import time as _time
 
-from ..compat.types import Real, ArrayLike
 from ..compat.utils import array_module
 
 
@@ -226,34 +224,3 @@ def utc_to_julian_day(utc_time):
 
     """
     return utc_time.julian_day
-
-
-@dispatch(precedence=1)
-def gps_time_to_utc(gps_time: Real):
-    return _time.gps_time_to_utc(gps_time)
-
-
-@dispatch(precedence=1)
-def greenwich_mean_sidereal_time(gps_time: Real):
-    return _time.greenwich_mean_sidereal_time(gps_time)
-
-
-@dispatch(precedence=1)
-def greenwich_mean_sidereal_time(gps_time: ArrayLike):
-    return _time.greenwich_mean_sidereal_time_vectorized(gps_time)
-
-
-@dispatch(precedence=1)
-def greenwich_sidereal_time(gps_time: Real, equation_of_equinoxes: Real):
-    return _time.greenwich_sidereal_time(gps_time, equation_of_equinoxes)
-
-
-@dispatch(precedence=1)
-def n_leap_seconds(gps_time: Real):
-    return _time.n_leap_seconds(gps_time)
-
-
-@dispatch(precedence=1)
-def utc_to_julian_day(utc_time: Real):
-    return _time.utc_to_julian_day(utc_time)
-
