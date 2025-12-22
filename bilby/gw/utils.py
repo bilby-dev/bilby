@@ -5,7 +5,6 @@ from functools import lru_cache
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import i0e
-from plum import dispatch
 
 from .geometry import zenith_azimuth_to_theta_phi
 from .time import greenwich_mean_sidereal_time
