@@ -12,6 +12,7 @@ from ...core.prior import Interped, Prior, Uniform, DeltaFunction
 from ..detector import InterferometerList, get_empty_interferometer, calibration
 from ..prior import BBHPriorDict, Cosmological
 from ..utils import noise_weighted_inner_product, zenith_azimuth_to_ra_dec, ln_i0
+from ..waveform_generator import GWSignalWaveformGenerator
 
 
 class GravitationalWaveTransient(Likelihood):
@@ -1163,7 +1164,7 @@ class GravitationalWaveTransient(Likelihood):
 
     @property
     def meta_data(self):
-        return dict(
+        meta = dict(
             interferometers=self.interferometers.meta_data,
             time_marginalization=self.time_marginalization,
             phase_marginalization=self.phase_marginalization,
@@ -1181,3 +1182,10 @@ class GravitationalWaveTransient(Likelihood):
             reference_frame=self._reference_frame_str,
             lal_version=self.lal_version,
             lalsimulation_version=self.lalsimulation_version)
+
+        if isinstance(self.waveform_generator, GWSignalWaveformGenerator):
+            meta["waveform_generator_constructor_dict"] = (
+                self.waveform_generator.waveform_generator_constructor_dict
+            )
+
+        return meta

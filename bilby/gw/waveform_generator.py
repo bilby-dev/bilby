@@ -320,6 +320,11 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         self.spinning = spinning
         self.tidal = tidal
         self.eccentric = eccentric
+        self.waveform_generator_constructor_dict = dict(
+            spinning=spinning,
+            eccentric=eccentric,
+            tidal=tidal,
+        )
         super().__init__(**kwargs)
         self.waveform_approximant = self.waveform_arguments["waveform_approximant"]
         self.generator = self._create_generator()
