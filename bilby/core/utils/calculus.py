@@ -1,5 +1,6 @@
 import math
 
+import array_api_compat as aac
 import numpy as np
 from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
@@ -234,10 +235,17 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
     def __call__(self, x, y, dx=0, dy=0, grid=False):
-        from array_api_compat import is_jax_namespace
         xp = array_module(x)
-        if is_jax_namespace(xp):
+        if aac.is_numpy_namespace(xp):
+            return self._call_scipy(x, y, dx=dx, dy=dy, grid=grid)
+        elif aac.is_jax_namespace(xp):
             return self._call_jax(x, y)
+        else:
+            raise NotImplementedError(
+                f"BoundedRectBivariateSpline not implemented for {xp.__name__} backend"
+            )
+    
+    def _call_scipy(self, x, y, dx=0, dy=0, grid=False):
         result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)

@@ -6,7 +6,6 @@ from io import open as ioopen
 from warnings import warn
 
 import numpy as np
-from scipy._lib._array_api import array_namespace
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -17,6 +16,7 @@ from ..utils import (
     BilbyJsonEncoder,
     decode_bilby_json,
 )
+from ...compat.utils import array_module
 
 
 class PriorDict(dict):
@@ -542,7 +542,7 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        xp = array_namespace(*sample.values())
+        xp = array_module(sample.values())
         prob = xp.prod(xp.asarray([self[key].prob(sample[key]) for key in sample]), **kwargs)
 
         return prob
@@ -643,7 +643,7 @@ class PriorDict(dict):
         """
         if isinstance(theta, {}.values().__class__):
             theta = list(theta)
-        xp = array_namespace(theta)
+        xp = array_module(theta)
 
         return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
 
@@ -814,7 +814,7 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        xp = array_namespace(*sample.values())
+        xp = array_module(sample.values())
         res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key))
             for key in sample
@@ -842,7 +842,7 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        xp = array_namespace(*sample.values())
+        xp = array_module(sample.values())
         res = xp.array([
             self[key].ln_prob(sample[key], **self.get_required_variables(key))
             for key in sample
@@ -876,7 +876,7 @@ class ConditionalPriorDict(PriorDict):
         """
         if isinstance(theta, {}.values().__class__):
             theta = list(theta)
-        xp = array_namespace(theta)
+        xp = array_module(theta)
 
         keys = list(keys)
         self._check_resolved()
