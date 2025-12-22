@@ -109,7 +109,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
     @property
     def waveform_generator_constructor_dict(self):
         """ Constructor dict for the waveform generator (if applicable) """
-        if not isinstance(self.waveform_generator_class, GWSignalWaveformGenerator):
+        if not issubclass(self.waveform_generator_class, GWSignalWaveformGenerator):
             return None
         else:
             return self.__get_from_nested_meta_data(
