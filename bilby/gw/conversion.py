@@ -287,7 +287,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                 converted_parameters['a_{}'.format(idx)] = abs(
                     converted_parameters[key])
                 converted_parameters['cos_tilt_{}'.format(idx)] = \
-                    xp.sign(converted_parameters[key])
+                    xp.sign(xp.asarray(converted_parameters[key]))
             else:
                 with np.errstate(invalid="raise"):
                     try:
