@@ -6,10 +6,10 @@ from warnings import warn
 import numpy as np
 from array_api_compat import is_array_api_obj
 from scipy.special import gammaln, xlogy
-from scipy.stats import multivariate_normal
 
 from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args, logger
-from ..compat.utils import array_module
+from ..compat.patches import multivariate_logpdf
+from ..compat.utils import BackendNotImplementedError, array_module
 
 PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
 
@@ -566,12 +566,13 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
         self.cov = xp.atleast_2d(cov)
         self.mean = xp.atleast_1d(mean)
         self.sigma = xp.sqrt(xp.diag(self.cov))
-        if xp == np:
-            self.logpdf = multivariate_normal(mean=self.mean, cov=self.cov).logpdf
-        else:
-            from functools import partial
-            from jax.scipy.stats.multivariate_normal import logpdf
-            self.logpdf = partial(logpdf, mean=self.mean, cov=self.cov)
+        try:
+            self.logpdf = multivariate_logpdf(xp, mean=self.mean, cov=self.cov)
+        except BackendNotImplementedError:
+            raise NotImplementedError(
+                f"Multivariate normal likelihood not implemented for {xp.__name__} backend"
+            )
+        
         parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
         super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=parameters)
 
@@ -606,14 +607,13 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
         self.sigma = xp.sqrt(xp.diag(self.cov))
         self.mean_1 = xp.atleast_1d(mean_1)
         self.mean_2 = xp.atleast_1d(mean_2)
-        if xp == np:
-            self.logpdf_1 = multivariate_normal(mean=self.mean_1, cov=self.cov).logpdf
-            self.logpdf_2 = multivariate_normal(mean=self.mean_2, cov=self.cov).logpdf
-        else:
-            from functools import partial
-            from jax.scipy.stats.multivariate_normal import logpdf
-            self.logpdf_1 = partial(logpdf, mean=self.mean_1, cov=self.cov)
-            self.logpdf_2 = partial(logpdf, mean=self.mean_2, cov=self.cov)
+        try:
+            self.logpdf_1 = multivariate_logpdf(xp, mean=self.mean_1, cov=self.cov)
+            self.logpdf_2 = multivariate_logpdf(xp, mean=self.mean_2, cov=self.cov)
+        except BackendNotImplementedError:
+            raise NotImplementedError(
+                f"Multivariate normal likelihood not implemented for {xp.__name__} backend"
+            )
         parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
         super(AnalyticalMultidimensionalBimodalCovariantGaussian, self).__init__(parameters=parameters)
 

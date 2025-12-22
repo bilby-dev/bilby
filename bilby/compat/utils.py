@@ -1,14 +1,25 @@
 import numpy as np
 from array_api_compat import array_namespace
 
+from ..core.utils.log import logger
+
 __all__ = ["array_module", "promote_to_array"]
 
 
 def array_module(arr):
-    if arr.__class__.__module__ == "builtins":
-        return np
-    else:
+    try:
         return array_namespace(arr)
+    except TypeError:
+        if arr.__class__.__module__ == "builtins":
+            return np
+        elif arr.__module__.startswith("pandas"):
+            return np
+        else:
+            logger.warning(
+                f"Unknown array module for type: {type(arr)} Defaulting to numpy."
+            )
+            return np
+
 
 
 def promote_to_array(args, backend, skip=None):
@@ -32,3 +43,7 @@ def xp_wrap(func):
         return func(self, *args, **kwargs)
 
     return wrapped
+
+
+class BackendNotImplementedError(NotImplementedError):
+    pass

@@ -1,0 +1,37 @@
+import array_api_compat as aac
+
+from .utils import BackendNotImplementedError
+
+
+def erfinv_import(xp):
+    if aac.is_numpy_namespace(xp):
+        from scipy.special import erfinv
+    elif aac.is_jax_namespace(xp):
+        from jax.scipy.special import erfinv
+    elif aac.is_torch_namespace(xp):
+        from torch.special import erfinv
+    elif aac.is_cupy_namespace(xp):
+        from cupyx.scipy.special import erfinv
+    else:
+        raise BackendNotImplementedError
+    return erfinv
+
+
+def multivariate_logpdf(xp, mean, cov):
+    if aac.is_numpy_namespace(xp):
+        from scipy.stats import multivariate_normal
+
+        logpdf = multivariate_normal(mean=mean, cov=cov).logpdf
+    elif aac.is_jax_namespace(xp):
+        from functools import partial
+        from jax.scipy.stats.multivariate_normal import logpdf
+
+        logpdf = partial(logpdf, mean=mean, cov=cov)
+    elif aac.is_torch_namespace(xp):
+        from torch.distributions.multivariate_normal import MultivariateNormal
+
+        mvn = MultivariateNormal(loc=mean, covariance_matrix=xp.array(cov))
+        logpdf = mvn.log_prob
+    else:
+        raise BackendNotImplementedError
+    return logpdf
