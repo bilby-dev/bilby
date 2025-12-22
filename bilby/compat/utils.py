@@ -21,7 +21,6 @@ def array_module(arr):
             return np
 
 
-
 def promote_to_array(args, backend, skip=None):
     if skip is None:
         skip = len(args)
