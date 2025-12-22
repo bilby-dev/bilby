@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 from plum import dispatch
 
@@ -125,7 +123,7 @@ def greenwich_mean_sidereal_time(gps_time):
     ----------
     gps_time : float
         GPS time in seconds.
-    
+
     Returns
     -------
     float
@@ -145,7 +143,7 @@ def greenwich_sidereal_time(gps_time, equation_of_equinoxes):
         GPS time in seconds.
     equation_of_equinoxes : float
         Equation of the equinoxes in seconds.
-    
+
     Returns
     -------
     float
@@ -178,26 +176,26 @@ def n_leap_seconds(gps_time, leap_seconds):
         GPS time in seconds.
     leap_seconds : array_like
         GPS time of leap seconds.
-    
+
     Returns
     -------
     float
-        Number of leap seconds    
+        Number of leap seconds
     """
     xp = array_module(gps_time)
     return xp.sum(gps_time > leap_seconds[:, None], axis=0).squeeze()
 
 
 @dispatch
-def n_leap_seconds(gps_time: Union[np.ndarray, float, int]):
+def n_leap_seconds(gps_time: np.ndarray | float | int):  # noqa F811
     """
     Calculate the number of leap seconds that have occurred up to a given GPS time.
 
     Parameters
     ----------
-    gps_time : float
+    gps_time : float | np.ndarray | int
         GPS time in seconds.
-    
+
     Returns
     -------
     float
@@ -216,7 +214,7 @@ def utc_to_julian_day(utc_time):
     ----------
     utc_time : datetime
         UTC time.
-    
+
     Returns
     -------
     float

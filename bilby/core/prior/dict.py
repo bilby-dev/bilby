@@ -882,7 +882,6 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
-        joint = dict()
         for key, index in zip(
             self.sorted_keys_without_fixed_parameters, self._rescale_indexes
         ):

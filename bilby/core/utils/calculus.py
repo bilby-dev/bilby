@@ -192,7 +192,7 @@ def logtrapzexp(lnf, dx):
 
 
 class interp1d(_interp1d):
-        
+
     def __call__(self, x):
         from array_api_compat import is_numpy_namespace
 
@@ -201,7 +201,7 @@ class interp1d(_interp1d):
             return super().__call__(x)
         else:
             return self._call_alt(x, xp=xp)
-    
+
     def _call_alt(self, x, *, xp=np):
         if isinstance(self.fill_value, tuple):
             left, right = self.fill_value
@@ -244,7 +244,7 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
             raise NotImplementedError(
                 f"BoundedRectBivariateSpline not implemented for {xp.__name__} backend"
             )
-    
+
     def _call_scipy(self, x, y, dx=0, dy=0, grid=False):
         result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
@@ -258,7 +258,7 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
                 return result.item()
         else:
             return result
-    
+
     def _call_jax(self, x, y):
         import jax.numpy as jnp
         from interpax import interp2d

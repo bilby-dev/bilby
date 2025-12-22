@@ -853,7 +853,7 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
-    
+
     def test_jax_methods(self):
         import jax
 

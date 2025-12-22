@@ -457,8 +457,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         frequency_nodes = self.waveform_generator.waveform_arguments['frequency_nodes']
         linear_indices = self.waveform_generator.waveform_arguments['linear_indices']
         quadratic_indices = self.waveform_generator.waveform_arguments['quadratic_indices']
-        size_linear = len(linear_indices)
-        size_quadratic = len(quadratic_indices)
         h_linear = 0j
         h_quadratic = 0j
         for mode in waveform_polarizations['linear']:

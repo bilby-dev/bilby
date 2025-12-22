@@ -572,7 +572,7 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
             raise NotImplementedError(
                 f"Multivariate normal likelihood not implemented for {xp.__name__} backend"
             )
-        
+
         parameters = {"x{0}".format(i): 0 for i in range(self.dim)}
         super(AnalyticalMultidimensionalCovariantGaussian, self).__init__(parameters=parameters)
 
