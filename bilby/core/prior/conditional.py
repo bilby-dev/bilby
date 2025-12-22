@@ -345,13 +345,13 @@ class DirichletElement(ConditionalBeta):
         :code:`n_dimensions` = :math:`N = 1`:
 
             .. math::
-                p(x_0) = 1 ; 0 < x_0 < 1
+                p(x_0) = 1 ; 0 \leq x_0 \leq 1
 
         :code:`n_dimensions` = :math:`N = 2`:
 
             .. math::
                 \begin{align}
-                    p(x_0)         &= 1 - x_0          ; & 0 \leq x_0 \leq 1       \\
+                    p(x_0)         &= 1                ; & 0 \leq x_0 \leq 1       \\
                     p(x_1\mid x_0) &= \delta(1-x_0-x_1); & 0 \leq x_1 \leq 1 - x_0
                 \end{align}
 
