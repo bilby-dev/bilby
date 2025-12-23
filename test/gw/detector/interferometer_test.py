@@ -6,6 +6,7 @@ import lal
 import lalsimulation
 import pytest
 from shutil import rmtree
+from parameterized import parameterized_class
 
 import numpy as np
 
@@ -596,6 +597,7 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
 
 
 @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
+@parameterized_class(("crop_duration",), [(0,), (4,), (16,)])
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64
@@ -603,6 +605,7 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
         self.ifo.set_strain_data_from_power_spectral_density(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
+        self.ifo.crop_duration = self.crop_duration
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -646,9 +649,17 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         std = np.std(time_series)
         self.assertAlmostEqual(std, 1, places=2)
 
+    @property
+    def frequency_mask(self):
+        frequencies = bilby.core.utils.series.create_frequency_series(
+            duration=self.ifo.cropped_duration, sampling_frequency=self.sampling_frequency
+        )
+        return (self.ifo.minimum_frequency <= frequencies) & (
+            frequencies <= self.ifo.maximum_frequency
+        )
+
     def test_frequency_domain_whitened_strain(self):
-        mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask]
+        white = self.ifo.whitened_frequency_domain_strain[self.frequency_mask]
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_whitened_strain(self):
@@ -666,8 +677,10 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         )
         # Whiten the template
         whitened_signal_ifo = self.ifo.whiten_frequency_series(signal_ifo)
-        mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask] - whitened_signal_ifo[mask]
+        white = (
+            self.ifo.whitened_frequency_domain_strain[self.frequency_mask]
+            - whitened_signal_ifo[self.frequency_mask]
+        )
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_noise_and_signal_whitening(self):

@@ -281,16 +281,16 @@ class GravitationalWaveTransient(Likelihood):
         _mask = interferometer.frequency_mask
 
         if 'recalib_index' in parameters:
-            signal[_mask] *= self.calibration_draws[interferometer.name][int(parameters['recalib_index'])]
+            signal *= self.calibration_draws[interferometer.name][int(parameters['recalib_index'])]
 
-        d_inner_h = interferometer.inner_product(signal=signal)
-        optimal_snr_squared = interferometer.optimal_snr_squared(signal=signal)
+        whitened_signal = interferometer.whiten_frequency_series(signal)
+
+        d_inner_h = (interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal).sum()
+        optimal_snr_squared = (abs(whitened_signal)**2).sum()
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
         d_inner_h_array = None
         optimal_snr_squared_array = None
-
-        normalization = 4 / self.waveform_generator.duration
 
         if return_array is False:
             d_inner_h_array = None
@@ -298,43 +298,34 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization and self.calibration_marginalization:
 
             d_inner_h_integrand = np.tile(
-                interferometer.frequency_domain_strain.conjugate() * signal /
-                interferometer.power_spectral_density_array, (self.number_of_response_curves, 1)).T
-
-            d_inner_h_integrand[_mask] *= self.calibration_draws[interferometer.name].T
-
-            d_inner_h_array = 4 / self.waveform_generator.duration * np.fft.fft(
-                d_inner_h_integrand[0:-1], axis=0
+                interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal,
+                (self.number_of_response_curves, 1)
             ).T
 
-            optimal_snr_squared_integrand = (
-                normalization * np.abs(signal)**2 / interferometer.power_spectral_density_array
-            )
+            d_inner_h_integrand *= self.calibration_draws[interferometer.name].T
+
+            d_inner_h_array = np.fft.fft(d_inner_h_integrand[0:-1], axis=0).T
+
+            optimal_snr_squared_integrand = np.abs(whitened_signal)**2
             optimal_snr_squared_array = np.dot(
-                optimal_snr_squared_integrand[_mask],
+                optimal_snr_squared_integrand,
                 self.calibration_abs_draws[interferometer.name].T
             )
 
         elif self.time_marginalization and not self.calibration_marginalization:
-            d_inner_h_array = normalization * np.fft.fft(
-                signal[0:-1]
-                * interferometer.frequency_domain_strain.conjugate()[0:-1]
-                / interferometer.power_spectral_density_array[0:-1]
+            d_inner_h_array = np.fft.fft(
+                whitened_signal
+                * interferometer.whitened_frequency_domain_strain.conjugate()
             )
 
         elif self.calibration_marginalization and ('recalib_index' not in parameters):
             d_inner_h_integrand = (
-                normalization *
-                interferometer.frequency_domain_strain.conjugate() * signal
-                / interferometer.power_spectral_density_array
+                interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal
             )
-            d_inner_h_array = np.dot(d_inner_h_integrand[_mask], self.calibration_draws[interferometer.name].T)
+            d_inner_h_array = np.dot(d_inner_h_integrand, self.calibration_draws[interferometer.name].T)
 
-            optimal_snr_squared_integrand = (
-                normalization * np.abs(signal)**2 / interferometer.power_spectral_density_array
-            )
+            optimal_snr_squared_integrand = np.abs(whitened_signal)**2
             optimal_snr_squared_array = np.dot(
-                optimal_snr_squared_integrand[_mask],
                 self.calibration_abs_draws[interferometer.name].T
             )
 
@@ -391,12 +382,9 @@ class GravitationalWaveTransient(Likelihood):
     def _calculate_noise_log_likelihood(self):
         log_l = 0
         for interferometer in self.interferometers:
-            mask = interferometer.frequency_mask
-            log_l -= noise_weighted_inner_product(
-                interferometer.frequency_domain_strain[mask],
-                interferometer.frequency_domain_strain[mask],
-                interferometer.power_spectral_density_array[mask],
-                self.waveform_generator.duration) / 2
+            log_l -= (
+                abs(interferometer.whitened_frequency_domain_strain)**2
+            ).sum() / 2
         return float(np.real(log_l))
 
     def noise_log_likelihood(self):
