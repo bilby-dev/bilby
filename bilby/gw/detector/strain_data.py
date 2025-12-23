@@ -221,7 +221,7 @@ class InterferometerStrainData(object):
     def time_mask(self, mask):
         self._time_mask = mask
         self._time_mask_updated = True
-  
+
     @property
     def alpha(self):
         return 2 * self.roll_off / self.duration
