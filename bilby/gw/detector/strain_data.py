@@ -12,11 +12,12 @@ class InterferometerStrainData(object):
     duration = PropertyAccessor('_times_and_frequencies', 'duration')
     sampling_frequency = PropertyAccessor('_times_and_frequencies', 'sampling_frequency')
     start_time = PropertyAccessor('_times_and_frequencies', 'start_time')
+    end_time = PropertyAccessor('_times_and_frequencies', 'end_time')
     frequency_array = PropertyAccessor('_times_and_frequencies', 'frequency_array')
     time_array = PropertyAccessor('_times_and_frequencies', 'time_array')
 
     def __init__(self, minimum_frequency=0, maximum_frequency=np.inf,
-                 roll_off=0.2, notch_list=None):
+                 roll_off=0.2, notch_list=None, crop_duration=0):
         """ Initiate an InterferometerStrainData object
 
         The initialised object contains no data, this should be added using one
@@ -33,6 +34,11 @@ class InterferometerStrainData(object):
             This corresponds to alpha * duration / 2 for scipy tukey window.
         notch_list: bilby.gw.detector.strain_data.NotchList
             A list of notches
+        crop_duration: float | tuple
+            The duration of data to crop at the beginning/end of the segment
+            to avoid whitening artifacts. If a float, that duration is excluded
+            at each end, if a tuple, this specifies the truncation duration
+            at the beginning and end.
 
         """
 
@@ -41,11 +47,14 @@ class InterferometerStrainData(object):
         self.notch_list = notch_list
         self.roll_off = roll_off
         self.window_factor = 1
+        self._crop_duration = crop_duration
 
         self._times_and_frequencies = CoupledTimeAndFrequencySeries()
 
         self._frequency_mask_updated = False
         self._frequency_mask = None
+        self._time_mask_updated = False
+        self._time_mask = None
         self._frequency_domain_strain = None
         self._time_domain_strain = None
         self._channel = None
@@ -136,6 +145,33 @@ class InterferometerStrainData(object):
         self._frequency_mask_updated = False
 
     @property
+    def crop_duration(self):
+        """
+        The duration of data to crop at the beginning/end of the segment
+        to avoid conditioning artifacts. If a float, that duration is
+        excluded at each end, if a tuple, this specifies the truncation
+        duration at the beginning and end.
+        """
+        return self._crop_duration
+
+    @crop_duration.setter
+    def crop_duration(self, crop_duration):
+        if not isinstance(self.crop_duration, (float, int, list, tuple)):
+            raise TypeError(f"Invalid crop specification {self.crop_duration}")
+        self._crop_duration = crop_duration
+        self._time_mask_updated = False
+
+    @property
+    def cropped_duration(self):
+        """
+        The duration after applying the time-domain mask.
+        """
+        if isinstance(self.crop_duration, (float, int)):
+            return self.duration - 2 * self.crop_duration
+        else:
+            return self.duration - sum(self.crop_duration[:2])
+
+    @property
     def frequency_mask(self):
         """ Masking array for limiting the frequency band.
 
@@ -159,6 +195,33 @@ class InterferometerStrainData(object):
         self._frequency_mask = mask
         self._frequency_mask_updated = True
 
+    @property
+    def time_mask(self):
+        """ Masking array for cropping corrupted data at the edges.
+
+        Returns
+        =======
+        mask: np.ndarray
+            An array of boolean values
+        """
+        if not self._time_mask_updated:
+            if isinstance(self.crop_duration, (tuple, list)):
+                crop_start, crop_end = self.crop_duration
+            elif isinstance(self.crop_duration, (float, int)):
+                crop_start = crop_end = self.crop_duration
+
+            time_array = self._times_and_frequencies.time_array
+            mask = ((time_array > self.start_time + crop_start) &
+                    (time_array <= self.end_time - crop_end))
+            self._time_mask = mask
+            self._time_mask_updated = True
+        return self._time_mask
+
+    @time_mask.setter
+    def time_mask(self, mask):
+        self._time_mask = mask
+        self._time_mask_updated = True
+  
     @property
     def alpha(self):
         return 2 * self.roll_off / self.duration
