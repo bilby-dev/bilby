@@ -680,9 +680,9 @@ class Interferometer(object):
                 * self.frequency_mask
             ))
         else:
-            return self._whiten_and_crop(frequency_series=frequency_series)
+            return self.whiten_and_crop(frequency_series=frequency_series)
 
-    def _whiten_and_crop(self, frequency_series : np.array) -> np.array:
+    def whiten_and_crop(self, frequency_series : np.array) -> np.array:
         """
         Whitens a frequency series with the noise properties and applies
         the time mask to the whitened time-domain strain.
