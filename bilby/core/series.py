@@ -130,5 +130,5 @@ class CoupledTimeAndFrequencySeries(object):
         self._time_array_updated = False
 
     @property
-    def end_time(self)
+    def end_time(self):
         return self.start_time + self.duration

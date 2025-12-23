@@ -11,7 +11,7 @@ from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
 from ..detector import InterferometerList, get_empty_interferometer, calibration
 from ..prior import BBHPriorDict, Cosmological
-from ..utils import noise_weighted_inner_product, zenith_azimuth_to_ra_dec, ln_i0
+from ..utils import zenith_azimuth_to_ra_dec, ln_i0
 
 
 class GravitationalWaveTransient(Likelihood):
@@ -278,7 +278,6 @@ class GravitationalWaveTransient(Likelihood):
             interferometer=interferometer,
             parameters=parameters,
         )
-        _mask = interferometer.frequency_mask
 
         if 'recalib_index' in parameters:
             signal *= self.calibration_draws[interferometer.name][int(parameters['recalib_index'])]
