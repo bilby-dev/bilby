@@ -581,8 +581,9 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
 class EccentricGWSignalWaveformGenerator(GWSignalWaveformGenerator):
     """
-    Subclass that initializes an eccentric GW Signal Waveform Generator.
-    See documentation of `GWSignalWaveformGenerator` for more information
+    Subclass that initializes an eccentric GWSignal Waveform Generator.
+    Equivalent to `GWSignalWaveformGenerator` with `eccentric=True`.
+    See documentation of `GWSignalWaveformGenerator` for more information.
     """
 
     def __init__(self, **kwargs):
