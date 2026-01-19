@@ -579,6 +579,16 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         return self._all_parameters.difference(self.defaults.keys())
 
 
+class EccentricGWSignalWaveformGenerator(GWSignalWaveformGenerator):
+    """
+    Subclass that initializes an eccentric GW Signal Waveform Generator.
+    See documentation of `GWSignalWaveformGenerator` for more information
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(eccentric=True, **kwargs)
+
+
 def _try_waveform_call(func, parameters, generator, catch_waveform_errors):
     try:
         return func(parameters, generator)
