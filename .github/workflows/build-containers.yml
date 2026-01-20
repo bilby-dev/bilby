@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["310", "311", "312"]
+        python-version: ["10", "11", "12", "13"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup dockerfile
         run: |
-          cp containers/v3-dockerfile-test-suite-python${{ matrix.python-version }} Dockerfile
+          cp containers/dockerfile-template Dockerfile
           cp containers/env-template.yml .
 
       - name: Login to the Container registry
@@ -39,7 +39,7 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           tags: type=raw,value=latest
-          images: ghcr.io/${{ env.IMAGE_NAME }}-python${{ matrix.python-version }}
+          images: ghcr.io/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}
 
       - name: Build and push Docker image
         id: push
@@ -47,6 +47,8 @@ jobs:
         with:
           context: .
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            python_minor_version=${{ matrix.python-version }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
 
