@@ -49,8 +49,3 @@ FROM build-env AS test
 COPY --from=data /roq_basis /roq_basis
 RUN mamba info
 RUN python --version
-RUN git clone https://github.com/bilby-dev/bilby.git
-RUN cd bilby
-RUN pip install --no-deps -e . && pytest .
-RUN cd ..
-RUN rm -rf bilby

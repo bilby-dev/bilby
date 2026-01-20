@@ -51,6 +51,8 @@ jobs:
             python_minor_version=${{ matrix.python-version }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # FIXME: disabled as it is not working well but should probably be added in later
       # https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
