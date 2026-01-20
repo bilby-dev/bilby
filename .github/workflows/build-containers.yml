@@ -33,21 +33,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and export to Docker
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          build-args: python_minor_version=${{ matrix.python-version }}
-          load: true
-          file: containers/dockerfile-template
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:test
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache,mode=max
-
-      - name: Test
-        run: |
-          docker run --rm ${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:test
-
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
