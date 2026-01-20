@@ -28,7 +28,7 @@ jobs:
           cp containers/env-template.yml .
 
       - name: Login to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
