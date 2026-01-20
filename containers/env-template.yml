@@ -13,7 +13,6 @@ dependencies:
   - pandas
   - astropy
   - flake8
-  - anaconda
   - coverage
   - configargparse
   - future
