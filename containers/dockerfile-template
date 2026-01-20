@@ -47,5 +47,15 @@ RUN mamba clean --all
 
 FROM build-env AS test
 COPY --from=data /roq_basis /roq_basis
+WORKDIR /bilby
+COPY . .
+RUN pip install --no-deps -e . && pytest .
+
+#############################
+### Finalize environment ####
+#############################
+
+FROM build-env AS final
+COPY --from=data /roq_basis /roq_basis
 RUN mamba info
 RUN python --version
