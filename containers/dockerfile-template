@@ -33,11 +33,11 @@ ARG python_major_version=3
 ARG python_minor_version=12
 
 RUN echo "  - python=${python_major_version}.${python_minor_version}" >> env.yml
-ENV conda_env python${python_major_version}${python_minor_version}
+ENV conda_env=python${python_major_version}${python_minor_version}
 
 RUN mamba env create -f env.yml -n ${conda_env}
 RUN echo "source activate ${conda_env}" > ~/.bashrc
-ENV PATH /opt/conda/envs/${conda_env}/bin:$PATH
+ENV PATH=/opt/conda/envs/${conda_env}/bin:$PATH
 RUN /bin/bash -c "source activate ${conda_env}"
 RUN mamba clean --all
 

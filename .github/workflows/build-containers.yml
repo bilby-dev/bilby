@@ -22,10 +22,6 @@ jobs:
         python-version: ["10", "11", "12"]
     steps:
       - uses: actions/checkout@v4
-      # - name: Setup dockerfile
-      #   run: |
-      #     cp containers/dockerfile-template Dockerfile
-      #     cp containers/env-template.yml .
 
       - name: Login to the Container registry
         uses: docker/login-action@v3
@@ -33,13 +29,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Extract metadata (tags, labels) for Docker
-      #   id: meta
-      #   uses: docker/metadata-action@v5
-      #   with:
-      #     tags: type=raw,value=latest
-      #     images: ghcr.io/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,12 +38,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          # tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             python_minor_version=${{ matrix.python-version }}
           push: true
           file: containers/dockerfile-template
-          # labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache,mode=max
