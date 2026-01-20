@@ -46,7 +46,7 @@ jobs:
 
       - name: Test
         run: |
-          docker run --rm test
+          docker run --rm ${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:test
 
       - name: Build and push Docker image
         id: push
