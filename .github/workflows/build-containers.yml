@@ -22,10 +22,10 @@ jobs:
         python-version: ["10", "11", "12"]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup dockerfile
-        run: |
-          cp containers/dockerfile-template Dockerfile
-          cp containers/env-template.yml .
+      # - name: Setup dockerfile
+      #   run: |
+      #     cp containers/dockerfile-template Dockerfile
+      #     cp containers/env-template.yml .
 
       - name: Login to the Container registry
         uses: docker/login-action@v3
@@ -48,11 +48,12 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          # context: .
+          context: .
           # tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             python_minor_version=${{ matrix.python-version }}
           push: true
+          file: containers/dockerfile-template
           # labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:latest
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache
