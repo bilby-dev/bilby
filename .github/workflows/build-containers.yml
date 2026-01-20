@@ -12,9 +12,8 @@ env:
 jobs:
   build-container:
     permissions:
-      contents: read
-      packages: write
       attestations: write
+      contents: read
       id-token: write
       packages: write
     runs-on: ubuntu-latest
