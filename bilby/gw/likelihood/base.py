@@ -301,30 +301,32 @@ class GravitationalWaveTransient(Likelihood):
                 (self.number_of_response_curves, 1)
             ).T
 
-            d_inner_h_integrand *= self.calibration_draws[interferometer.name].T
+            d_inner_h_integrand[interferometer.frequency_mask] *= self.calibration_draws[interferometer.name].T
 
-            d_inner_h_array = np.fft.fft(d_inner_h_integrand[0:-1], axis=0).T
+            d_inner_h_array = np.fft.fft(d_inner_h_integrand[:-1], axis=0).T
 
             optimal_snr_squared_integrand = np.abs(whitened_signal)**2
             optimal_snr_squared_array = np.dot(
-                optimal_snr_squared_integrand,
+                optimal_snr_squared_integrand[interferometer.frequency_mask],
                 self.calibration_abs_draws[interferometer.name].T
             )
 
         elif self.time_marginalization and not self.calibration_marginalization:
-            d_inner_h_array = np.fft.fft(
+            d_inner_h_integrand = (
                 whitened_signal
                 * interferometer.whitened_frequency_domain_strain.conjugate()
             )
+            d_inner_h_array = np.fft.fft(d_inner_h_integrand[:-1])
 
         elif self.calibration_marginalization and ('recalib_index' not in parameters):
             d_inner_h_integrand = (
                 interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal
-            )
+            )[interferometer.frequency_mask]
             d_inner_h_array = np.dot(d_inner_h_integrand, self.calibration_draws[interferometer.name].T)
 
             optimal_snr_squared_integrand = np.abs(whitened_signal)**2
             optimal_snr_squared_array = np.dot(
+                optimal_snr_squared_integrand[interferometer.frequency_mask],
                 self.calibration_abs_draws[interferometer.name].T
             )
 

@@ -677,8 +677,7 @@ class Interferometer(object):
             return np.nan_to_num(frequency_series / (
                 self.amplitude_spectral_density_array
                 * np.sqrt(self.duration / 4)
-                * self.frequency_mask
-            ))
+            )) * self.frequency_mask
         else:
             return self.whiten_and_crop(frequency_series=frequency_series)
 
@@ -728,7 +727,7 @@ class Interferometer(object):
         cropped_time_series = time_series[self.time_mask]
         cropped_white, _ = nfft(cropped_time_series, self.sampling_frequency)
 
-        return cropped_white * (4 / (self.duration - 2 * self.cropped_duration))**0.5
+        return cropped_white * (4 / self.cropped_duration)**0.5
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,
