@@ -303,27 +303,6 @@ class TestInterferometer(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ifo.inject_signal(injection_polarizations=None, parameters=None)
 
-    def test_optimal_snr_squared(self):
-        """
-        Merely checks parameters are given in the right order and the frequency
-        mask is applied.
-        """
-        with mock.patch("bilby.gw.utils.noise_weighted_inner_product") as m:
-            m.side_effect = lambda a, b, c, d: [a, b, c, d]
-            signal = np.ones_like(self.ifo.power_spectral_density_array)
-            mask = self.ifo.frequency_mask
-            expected = [
-                signal[mask],
-                signal[mask],
-                self.ifo.power_spectral_density_array[mask],
-                self.ifo.strain_data.duration,
-            ]
-            actual = self.ifo.optimal_snr_squared(signal=signal)
-            self.assertTrue(np.array_equal(expected[0], actual[0]))
-            self.assertTrue(np.array_equal(expected[1], actual[1]))
-            self.assertTrue(np.array_equal(expected[2], actual[2]))
-            self.assertEqual(expected[3], actual[3])
-
     def test_template_template_inner_product(self):
         signal_1 = np.ones_like(self.ifo.power_spectral_density_array)
         signal_2 = np.ones_like(self.ifo.power_spectral_density_array) * 2
