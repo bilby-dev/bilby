@@ -34,12 +34,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          tags: type=raw,value=latest
-          images: ghcr.io/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}
+      # - name: Extract metadata (tags, labels) for Docker
+      #   id: meta
+      #   uses: docker/metadata-action@v5
+      #   with:
+      #     tags: type=raw,value=latest
+      #     images: ghcr.io/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}
 
       - name: Build and push Docker image
         id: push
@@ -51,9 +51,10 @@ jobs:
             python_minor_version=${{ matrix.python-version }}
           push: true
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache,mode=max
+  
       # FIXME: disabled as it is not working well but should probably be added in later
       # https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
       # - name: Generate artifact attestation
