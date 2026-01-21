@@ -81,7 +81,8 @@ class WaveformGenerator(object):
             self.waveform_arguments = dict()
         if parameters is not None:
             logger.warning(
-                "Non null parameters passed to waveform generator. These will be ignored."
+                "Setting initial parameters via the 'parameters' argument is "
+                "deprecated and will be removed in a future release."
             )
         self._cache = dict(parameters=None, waveform=None, model=None)
         self.use_cache = use_cache
@@ -169,13 +170,16 @@ class WaveformGenerator(object):
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
                           transformed_model_data_points, parameters):
-        if parameters is None and self._cache["parameters"] is not None:
-            parameters = self._cache["parameters"]
-        elif parameters is None:
-            raise ValueError("No parameters passed to waveform generator.")
-
-        if parameters == self._cache['parameters'] and self._cache['model'] == model and \
-                self._cache['transformed_model'] == transformed_model:
+        if parameters is None:
+            parameters = self._cache.get('parameters', None)
+        if parameters is None:
+            raise ValueError("No parameters given to generate waveform.")
+        if (
+            self.use_cache
+            and parameters == self._cache.get('parameters', None)
+            and self._cache['model'] == model
+            and self._cache['transformed_model'] == transformed_model
+        ):
             return self._cache['waveform']
         else:
             self._cache['parameters'] = parameters.copy()
