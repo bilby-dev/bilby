@@ -28,7 +28,8 @@ RUN  wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_lin
 #############################
 
 FROM os-deps AS build-env
-COPY containers/env-template.yml env.yml
+ARG ENV_FILE=environment.yml
+COPY ${ENV_FILE} env.yml
 ARG python_major_version=3
 ARG python_minor_version=12
 

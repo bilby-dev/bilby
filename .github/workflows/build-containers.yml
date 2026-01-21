@@ -7,7 +7,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-container:
@@ -20,6 +19,8 @@ jobs:
     strategy:
       matrix:
         python-version: ["10", "11", "12"]
+    env:
+      LABEL: ${{ env.REGISTRY }}/${{ github.repository }}-python3${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,16 +39,18 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          build-args: python_minor_version=${{ matrix.python-version }}
+          build-args: |
+            python_minor_version=${{ matrix.python-version }}
+            ENV_FILE=containers/environment.yml
           push: true
-          file: containers/dockerfile-template
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-python3${{ matrix.python-version }}:buildcache,mode=max
+          file: containers/Dockerfile
+          tags: ${{ env.LABEL }}:latest
+          cache-from: type=registry,ref=${{ env.LABEL }}:buildcache
+          cache-to: type=registry,ref=${{ env.LABEL }}:buildcache,mode=max
   
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}-python3${{ matrix.python-version }}
+          subject-name: ${{ env.LABEL }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
