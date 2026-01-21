@@ -241,7 +241,7 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
     """
     converted_parameters = parameters.copy()
     original_keys = list(converted_parameters.keys())
-    xp = array_module(parameters[original_keys[5]])
+    xp = array_module(parameters.values())
     if 'luminosity_distance' not in original_keys:
         if 'redshift' in converted_parameters.keys():
             converted_parameters['luminosity_distance'] = \
