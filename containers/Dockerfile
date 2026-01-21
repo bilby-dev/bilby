@@ -43,20 +43,21 @@ RUN /bin/bash -c "source activate ${conda_env}"
 RUN mamba clean --all
 
 #############################
-##### Test environment ######
+###### Install bilby ########
 #############################
 
-FROM build-env AS test
+FROM build-env AS install
 COPY --from=data /roq_basis /roq_basis
 WORKDIR /bilby
 COPY . .
-RUN pip install --no-deps -e . && pytest .
+RUN pip install --no-deps .
 
 #############################
 ### Finalize environment ####
 #############################
 
-FROM build-env AS final
+FROM install AS final
 COPY --from=data /roq_basis /roq_basis
 RUN mamba info
 RUN python --version
+RUN python -uc "import bilby; print(bilby.__version__)"
