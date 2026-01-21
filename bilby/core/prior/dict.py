@@ -56,7 +56,10 @@ class PriorDict(dict):
 
     def evaluate_constraints(self, sample):
         out_sample = self.conversion_function(sample)
-        prob = 1
+        try:
+            prob = np.ones_like(next(iter(out_sample.values())))
+        except TypeError:
+            prob = np.ones_like(out_sample)
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
@@ -589,7 +592,7 @@ class PriorDict(dict):
             return ln_prob
         else:
             if isinstance(ln_prob, float):
-                if self.evaluate_constraints(sample):
+                if np.all(self.evaluate_constraints(sample)):
                     return ln_prob + np.log(ratio)
                 else:
                     return -np.inf
