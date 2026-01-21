@@ -398,9 +398,9 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters=None):
         mu = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
-        if any(mu < 0.):
-            return -np.inf
         xp = array_module(mu)
+        if xp.any(mu < 0.):
+            return -np.inf
         return -xp.sum(xp.log(mu) + (self.y / mu))
 
     def __repr__(self):
