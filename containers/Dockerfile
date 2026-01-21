@@ -50,7 +50,9 @@ FROM build-env AS install
 COPY --from=data /roq_basis /roq_basis
 WORKDIR /bilby
 COPY . .
+COPY .git/ ./.git/
 RUN pip install --no-deps .
+RUN cd / && rm -rf /bilby
 
 #############################
 ### Finalize environment ####

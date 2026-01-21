@@ -21,6 +21,9 @@ jobs:
       LABEL: ghcr.io/${{ github.repository }}-python3${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Remove unnecessary files
         run: |
