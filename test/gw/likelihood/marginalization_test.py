@@ -3,6 +3,7 @@ import os
 import pytest
 import unittest
 from copy import deepcopy
+from functools import cached_property
 from itertools import product
 from parameterized import parameterized
 
@@ -230,34 +231,6 @@ class TestMarginalizations(unittest.TestCase):
             maximum=self.parameters["geocent_time"] + 0.1
         )
 
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        self.roq_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=self.duration,
-            sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
-            start_time=1126259640,
-            waveform_arguments=dict(
-                reference_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
-                frequency_nodes_linear=np.load(f"{roq_dir}/fnodes_linear.npy"),
-                frequency_nodes_quadratic=np.load(f"{roq_dir}/fnodes_quadratic.npy"),
-            )
-        )
-        self.roq_linear_matrix_file = f"{roq_dir}/B_linear.npy"
-        self.roq_quadratic_matrix_file = f"{roq_dir}/B_quadratic.npy"
-
         self.relbin_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -281,13 +254,49 @@ class TestMarginalizations(unittest.TestCase):
             )
         )
 
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
+    @property
+    def roq_linear_matrix_file(self):
+        return f"{self.roq_dir}/B_linear.npy"
+
+    @property
+    def roq_quadratic_matrix_file(self):
+        return f"{self.roq_dir}/B_quadratic.npy"
+
+    @cached_property
+    def roq_waveform_generator(self):
+        return bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                waveform_approximant="IMRPhenomPv2",
+                frequency_nodes_linear=np.load(f"{self.roq_dir}/fnodes_linear.npy"),
+                frequency_nodes_quadratic=np.load(f"{self.roq_dir}/fnodes_quadratic.npy"),
+            )
+        )
+
     def tearDown(self):
         del self.duration
         del self.sampling_frequency
         del self.parameters
         del self.interferometers
         del self.waveform_generator
-        del self.roq_waveform_generator
         del self.priors
 
     @classmethod
