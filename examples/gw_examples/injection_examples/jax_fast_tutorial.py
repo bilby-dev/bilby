@@ -10,96 +10,129 @@ between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 We optionally use ripple waveforms and a JIT-compiled likelihood.
 """
 import os
-from itertools import product
 
 # Set OMP_NUM_THREADS to stop lalsimulation taking over my computer
 os.environ["OMP_NUM_THREADS"] = "1"
 
 import bilby
-import bilby.gw.jaxstuff
 import numpy as np
 import jax
 import jax.numpy as jnp
-from jax import random
-from numpyro.infer import AIES, ESS  # noqa
-from numpyro.infer.ensemble_util import get_nondiagonal_indices
+from bilby.compat.jax import JittedLikelihood
+from ripple.waveforms import IMRPhenomPv2
 
 jax.config.update("jax_enable_x64", True)
 
-bilby.core.utils.setup_logger()  # log_level="WARNING")
+
+def bilby_to_ripple_spins(
+    theta_jn,
+    phi_jl,
+    tilt_1,
+    tilt_2,
+    phi_12,
+    a_1,
+    a_2,
+):
+    """
+    A simplified spherical to cartesian spin conversion function.
+    This is not equivalent to the method used in `bilby.gw.conversion`
+    which comes from `lalsimulation` and is not `JAX` compatible.
+    """
+    iota = theta_jn
+    spin_1x = a_1 * jnp.sin(tilt_1) * jnp.cos(phi_jl)
+    spin_1y = a_1 * jnp.sin(tilt_1) * jnp.sin(phi_jl)
+    spin_1z = a_1 * jnp.cos(tilt_1)
+    spin_2x = a_2 * jnp.sin(tilt_2) * jnp.cos(phi_jl + phi_12)
+    spin_2y = a_2 * jnp.sin(tilt_2) * jnp.sin(phi_jl + phi_12)
+    spin_2z = a_2 * jnp.cos(tilt_2)
+    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
-def setup_prior():
-    # Set up a PriorDict, which inherits from dict.
-    # By default we will sample all terms in the signal models.  However, this will
-    # take a long time for the calculation, so for this example we will set almost
-    # all of the priors to be equall to their injected values.  This implies the
-    # prior is a delta function at the true, injected value.  In reality, the
-    # sampler implementation is smart enough to not sample any parameter that has
-    # a delta-function prior.
-    # The above list does *not* include mass_1, mass_2, theta_jn and luminosity
-    # distance, which means those are the parameters that will be included in the
-    # sampler.  If we do nothing, then the default priors get used.
-    priors = bilby.gw.prior.BBHPriorDict()
-    del priors["mass_1"], priors["mass_2"]
-    priors["geocent_time"] = bilby.core.prior.Uniform(1126249642, 1126269642)
-    priors["luminosity_distance"].minimum = 1
-    priors["luminosity_distance"].maximum = 500
-    priors["chirp_mass"].minimum = 2.35
-    priors["chirp_mass"].maximum = 2.45
-    # priors["luminosity_distance"] = bilby.core.prior.PowerLaw(2.0, 10.0, 500.0)
-    # priors["sky_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["sky_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["sky_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["delta_phase"] = priors.pop("phase")
-    # del priors["tilt_1"], priors["tilt_2"], priors["phi_12"], priors["phi_jl"]
-    # priors["spin_1_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["spin_1_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["spin_1_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["spin_2_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["spin_2_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["spin_2_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # # del priors["a_1"], priors["a_2"]
-    # # priors["chi_1"] = bilby.core.prior.Uniform(-0.05, 0.05)
-    # # priors["chi_2"] = bilby.core.prior.Uniform(-0.05, 0.05)
-    # del priors["theta_jn"], priors["psi"], priors["delta_phase"]
-    # priors["orientation_w"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["orientation_x"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["orientation_y"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    # priors["orientation_z"] = bilby.core.prior.Normal(mu=0, sigma=1)
-    return priors
+def ripple_bbh(
+    frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
+    a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, **kwargs,
+):
+    """
+    Source function wrapper to ripple's IMRPhenomPv2 waveform generator.
+    This function cannot be jitted directly as the Bilby waveform generator
+    relies on inspecting the function signature.
+
+    Parameters
+    ----------
+    frequency: jnp.ndarray
+        Frequencies at which to compute the waveform.
+    mass_1: float | jnp.ndarray
+        Mass of the primary component in solar masses.
+    mass_2: float | jnp.ndarray
+        Mass of the secondary component in solar masses.
+    luminosity_distance: float | jnp.ndarray
+        Luminosity distance to the source in Mpc.
+    theta_jn: float | jnp.ndarray
+        Angle between total angular momentum and line of sight in radians.
+    phase: float | jnp.ndarray
+        Phase at coalescence in radians.
+    a_1: float | jnp.ndarray
+        Dimensionless spin magnitude of the primary component.
+    a_2: float | jnp.ndarray
+        Dimensionless spin magnitude of the secondary component.
+    tilt_1: float | jnp.ndarray
+        Tilt angle of the primary component spin in radians.
+    tilt_2: float | jnp.ndarray
+        Tilt angle of the secondary component spin in radians.
+    phi_12: float | jnp.ndarray
+        Azimuthal angle between the two spin vectors in radians.
+    phi_jl: float | jnp.ndarray
+        Azimuthal angle of the total angular momentum vector in radians.
+    **kwargs
+        Additional keyword arguments. Must include 'minimum_frequency'.
+    
+    Returns
+    -------
+    dict
+        Dictionary containing the plus and cross polarizations of the waveform.
+    """
+    iota, *cartesian_spins = bilby_to_ripple_spins(
+    # iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_ripple_spins(
+        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2
+    )
+    frequencies = jnp.maximum(frequency, kwargs["minimum_frequency"])
+    theta = jnp.array([
+        mass_1, mass_2, *cartesian_spins,
+        luminosity_distance, jnp.array(0.0), phase, iota
+    ])
+    wf_func = jax.jit(IMRPhenomPv2.gen_IMRPhenomPv2)
+    hp, hc = wf_func(frequencies, theta, jnp.array(20.0))
+    return dict(plus=hp, cross=hc)
 
 
-def original_to_sampling_priors(priors, truth):
-    del priors["ra"], priors["dec"]
-    priors["zenith"] = bilby.core.prior.Cosine()
-    priors["azimuth"] = bilby.core.prior.Uniform(minimum=0, maximum=2 * np.pi)
-    priors["L1_time"] = bilby.core.prior.Uniform(truth["geocent_time"] - 0.1, truth["geocent_time"] + 0.1)
-
-
-def main(use_jax, model, idx):
+def main():
     # Set the duration and sampling frequency of the data segment that we're
     # going to inject the signal into
     duration = 64.0
     sampling_frequency = 2048.0
     minimum_frequency = 20.0
-    if use_jax:
-        duration = jax.numpy.array(duration)
-        sampling_frequency = jax.numpy.array(sampling_frequency)
-        minimum_frequency = jax.numpy.array(minimum_frequency)
+    duration = jnp.array(duration)
+    sampling_frequency = jnp.array(sampling_frequency)
+    minimum_frequency = jnp.array(minimum_frequency)
 
     # Specify the output directory and the name of the simulation.
-    outdir = "pp-test-2"
-    label = f"{model}_{'jax' if use_jax else 'numpy'}_{idx}"
+    outdir = "outdir"
+    label = f"jax_fast_tutorial"
 
     # Set up a random seed for result reproducibility.  This is optional!
-    bilby.core.utils.random.seed(88170235 + idx * 1000)
+    bilby.core.utils.random.seed(88170235)
 
-    priors = setup_prior()
+    priors = bilby.gw.prior.BBHPriorDict()
     injection_parameters = priors.sample()
-    if model == "relbin":
-        injection_parameters["fiducial"] = 1
-    original_to_sampling_priors(priors, injection_parameters)
+    injection_parameters["geocent_time"] = 1000000000.0
+    injection_parameters["luminosity_distance"] = 400.0
+    del priors["ra"], priors["dec"]
+    priors["zenith"] = bilby.core.prior.Cosine()
+    priors["azimuth"] = bilby.core.prior.Uniform(minimum=0, maximum=2 * np.pi)
+    priors["L1_time"] = bilby.core.prior.Uniform(
+        injection_parameters["geocent_time"] - 0.1,
+        injection_parameters["geocent_time"] + 0.1,
+    )
 
     # Fixed arguments passed into the source model
     waveform_arguments = dict(
@@ -108,28 +141,13 @@ def main(use_jax, model, idx):
         minimum_frequency=minimum_frequency,
     )
 
-    if use_jax:
-        match model:
-            case "relbin":
-                fdsm = bilby.gw.jaxstuff.ripple_bbh_relbin
-            case _:
-                fdsm = bilby.gw.jaxstuff.ripple_bbh
-    else:
-        match model:
-            case "relbin":
-                fdsm = bilby.gw.source.lal_binary_black_hole_relative_binning
-            case _:
-                fdsm = bilby.gw.source.lal_binary_black_hole
-    # fdsm = bilby.gw.source.sinegaussian
-
     # Create the waveform_generator using a LAL BinaryBlackHole source function
     waveform_generator = bilby.gw.WaveformGenerator(
         duration=duration,
         sampling_frequency=sampling_frequency,
-        frequency_domain_source_model=fdsm,
-        # parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+        frequency_domain_source_model=ripple_bbh,
         waveform_arguments=waveform_arguments,
-        use_cache=not use_jax,
+        use_cache=False,
     )
 
     # Set up interferometers.  In this case we'll use two interferometers
@@ -145,30 +163,11 @@ def main(use_jax, model, idx):
         waveform_generator=waveform_generator, parameters=injection_parameters,
         raise_error=False,
     )
-    if use_jax:
-        ifos.set_array_backend(jax.numpy)
-
-    if model == "mb":
-        if use_jax:
-            pass
-        else:
-            waveform_generator.frequency_domain_source_model = (
-                bilby.gw.source.binary_black_hole_frequency_sequence
-            )
-        del waveform_generator.waveform_arguments["minimum_frequency"]
+    ifos.set_array_backend(jnp)
 
     # Initialise the likelihood by passing in the interferometer data (ifos) and
     # the waveform generator
-    match model:
-        case "relbin":
-            likelihood_class = (
-                bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient
-            )
-        case "mb":
-            likelihood_class = bilby.gw.likelihood.MBGravitationalWaveTransient
-        case _:
-            likelihood_class = bilby.gw.likelihood.GravitationalWaveTransient
-    likelihood = likelihood_class(
+    likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
         interferometers=ifos,
         waveform_generator=waveform_generator,
         priors=priors,
@@ -176,43 +175,37 @@ def main(use_jax, model, idx):
         distance_marginalization=True,
         reference_frame=ifos,
         time_reference="L1",
-        # epsilon=0.1,
-        # update_fiducial_parameters=True,
     )
+    # Do an initial likelihood evaluation to trigger any internal setup
+    likelihood.log_likelihood_ratio(priors.sample())
+    # Wrap the likelihood with the JittedLikelihood to JIT compile the likelihood
+    # evaluation
+    likelihood = JittedLikelihood(likelihood)
+    # Evaluate the likelihood once to trigger the JIT compilation, this will take
+    # a few seconds as compiling the waveform takes some time
+    likelihood.log_likelihood_ratio(priors.sample())
 
     # use the log_compiles context so we can make sure there aren't recompilations
     # inside the sampling loop
-    if True:
-    # with jax.log_compiles():
+    with jax.log_compiles():
         result = bilby.run_sampler(
             likelihood=likelihood,
             priors=priors,
-            sampler="jaxted" if use_jax else "dynesty",
-            nlive=1000,
+            sampler="dynesty",
+            nlive=100,
             sample="acceptance-walk",
-            method="nest",
-            nsteps=100,
-            naccept=30,
+            naccept=5,
             injection_parameters=injection_parameters,
             outdir=outdir,
             label=label,
-            npool=None if use_jax else 16,
-            # save="hdf5",
-            save=False,
+            npool=None,
+            save="hdf5",
             rseed=np.random.randint(0, 100000),
         )
 
     # Make a corner plot.
-    # result.plot_corner()
-    import IPython; IPython.embed()
-    return result.sampling_time
+    result.plot_corner()
 
 
 if __name__ == "__main__":
-    times = dict()
-    # for arg in product([True, False][:], ["relbin", "mb", "regular"][2:3]):
-    #     times[arg] = main(*arg)
-    with jax.log_compiles():
-        for idx in np.arange(100):
-            times[idx] = main(True, "mb", idx)
-    print(times)
+    main()
