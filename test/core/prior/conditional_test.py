@@ -349,8 +349,10 @@ class TestConditionalPriorDict(unittest.TestCase):
             )
         )
 
-        ref_variables = list(self.test_sample.values()) + [0.4, 0.1]
-        keys = list(self.test_sample.keys()) + names
+        ref_variables = list(self.test_sample.values())
+        ref_variables = ref_variables[:2] + [0.1] + ref_variables[2:] + [0.4]
+        keys = list(self.test_sample.keys())
+        keys = keys[:2] + ["mvgvar_0"] + keys[2:] + ["mvgvar_1"]
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertEqual(np.shape(res), (6,))
@@ -360,7 +362,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         expected = [self.test_sample["var_0"]]
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        np.testing.assert_array_equal(expected, res[:4])
+        np.testing.assert_array_equal(expected, list(res)[:2] + list(res)[3:5])
 
     def test_cdf(self):
         """

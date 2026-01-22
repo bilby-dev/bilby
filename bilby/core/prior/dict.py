@@ -888,7 +888,13 @@ class ConditionalPriorDict(PriorDict):
             result[key] = self[key].rescale(
                 theta[index], **self.get_required_variables(key)
             )
-            self[key].least_recently_sampled = result[key]
+            if isinstance(self[key], JointPrior) and result[key] is not None:
+                for key, val in zip(self[key].dist.names, result[key]):
+                    self[key].least_recently_sampled = val
+                    result[key] = val
+            else:
+                self[key].least_recently_sampled = result[key]
+
         return xp.array([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
