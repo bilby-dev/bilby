@@ -15,9 +15,9 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 import bilby
-import numpy as np
 import jax
 import jax.numpy as jnp
+import numpy as np
 from bilby.compat.jax import JittedLikelihood
 from ripple.waveforms import IMRPhenomPv2
 
@@ -49,8 +49,19 @@ def bilby_to_ripple_spins(
 
 
 def ripple_bbh(
-    frequency, mass_1, mass_2, luminosity_distance, theta_jn, phase,
-    a_1, a_2, tilt_1, tilt_2, phi_12, phi_jl, **kwargs,
+    frequency,
+    mass_1,
+    mass_2,
+    luminosity_distance,
+    theta_jn,
+    phase,
+    a_1,
+    a_2,
+    tilt_1,
+    tilt_2,
+    phi_12,
+    phi_jl,
+    **kwargs,
 ):
     """
     Source function wrapper to ripple's IMRPhenomPv2 waveform generator.
@@ -85,21 +96,27 @@ def ripple_bbh(
         Azimuthal angle of the total angular momentum vector in radians.
     **kwargs
         Additional keyword arguments. Must include 'minimum_frequency'.
-    
+
     Returns
     -------
     dict
         Dictionary containing the plus and cross polarizations of the waveform.
     """
     iota, *cartesian_spins = bilby_to_ripple_spins(
-    # iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_ripple_spins(
         theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2
     )
     frequencies = jnp.maximum(frequency, kwargs["minimum_frequency"])
-    theta = jnp.array([
-        mass_1, mass_2, *cartesian_spins,
-        luminosity_distance, jnp.array(0.0), phase, iota
-    ])
+    theta = jnp.array(
+        [
+            mass_1,
+            mass_2,
+            *cartesian_spins,
+            luminosity_distance,
+            jnp.array(0.0),
+            phase,
+            iota,
+        ]
+    )
     wf_func = jax.jit(IMRPhenomPv2.gen_IMRPhenomPv2)
     hp, hc = wf_func(frequencies, theta, jnp.array(20.0))
     return dict(plus=hp, cross=hc)
@@ -160,7 +177,8 @@ def main():
         start_time=injection_parameters["geocent_time"] - duration + 2,
     )
     ifos.inject_signal(
-        waveform_generator=waveform_generator, parameters=injection_parameters,
+        waveform_generator=waveform_generator,
+        parameters=injection_parameters,
         raise_error=False,
     )
     ifos.set_array_backend(jnp)
