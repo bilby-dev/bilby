@@ -44,6 +44,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from array_api_compat import is_jax_namespace
 from scipy.interpolate import interp1d
 
 from ...compat.utils import array_module
@@ -375,8 +376,9 @@ class CubicSpline(Recalibrate):
         delta_amplitude = self._evaluate_spline("amplitude", a, b, c, d, previous_nodes)
         delta_phase = self._evaluate_spline("phase", a, b, c, d, previous_nodes)
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
+        xp = calibration_factor.__array_namespace__()
 
-        return calibration_factor
+        return xp.nan_to_num(calibration_factor)
 
 
 class Precomputed(Recalibrate):
@@ -408,8 +410,21 @@ class Precomputed(Recalibrate):
         idx = int(params.get(self.prefix, None))
         if idx is None:
             raise KeyError(f"Calibration index for {self.label} not found.")
-        if not np.array_equal(frequency_array, self.frequency_array):
-            raise ValueError("Frequency grid passed to calibrator doesn't match.")
+
+        xp = frequency_array.__array_namespace__()
+        if not xp.array_equal(frequency_array, self.frequency_array):
+            intersection, mask, _ = xp.intersect1d(
+                frequency_array, self.frequency_array, return_indices=True
+            )
+            if len(intersection) != len(self.frequency_array):
+                raise ValueError("Frequency grid passed to calibrator doesn't match.")
+            output = xp.ones_like(frequency_array, dtype=complex)
+            curve = xp.asarray(self.curves[idx])
+            if is_jax_namespace(xp):
+                output = output.at[mask].set(curve)
+            else:
+                output[mask] = curve
+            return output
         return self.curves[idx]
 
     @classmethod
