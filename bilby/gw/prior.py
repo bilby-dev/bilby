@@ -512,7 +512,7 @@ class AlignedSpin(Interped):
                 after performing the integral over spin orientation using a
                 delta function identity.
                 """
-                return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
+                return a_prior.prob(aa, xp=np) * z_prior.prob(chi / aa, xp=np) / aa
 
             self.num_interp = 10_000 if num_interp is None else num_interp
             xx = np.linspace(chi_min, chi_max, self.num_interp)
