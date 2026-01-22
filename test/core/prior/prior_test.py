@@ -6,9 +6,28 @@ import scipy.stats as ss
 from scipy.integrate import trapezoid
 
 
+aligned_prior_complex = bilby.gw.prior.AlignedSpin(
+    a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
+    z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
+    name="test",
+    unit="unit",
+    num_interp=1000,
+)
+
+hp_map_file = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "prior_files/GW150914_testing_skymap.fits",
+)
+hp_dist = bilby.gw.prior.HealPixMapPriorDist(
+    hp_map_file, names=["testra", "testdec"]
+)
+hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
+    hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
+)
+
+
 class TestPriorClasses(unittest.TestCase):
     def setUp(self):
-
         # set multivariate Gaussian
         mvg = bilby.core.prior.MultivariateGaussianDist(
             names=["testa", "testb"],
@@ -21,16 +40,6 @@ class TestPriorClasses(unittest.TestCase):
             mus=[1, 1],
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
             weights=1.0,
-        )
-        hp_map_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/GW150914_testing_skymap.fits",
-        )
-        hp_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec"]
-        )
-        hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
         )
 
         def condition_func(reference_params, test_param):
@@ -102,13 +111,7 @@ class TestPriorClasses(unittest.TestCase):
                 name="test", unit="unit", minimum=1e-2, maximum=1e2
             ),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
-            bilby.gw.prior.AlignedSpin(
-                a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
-                z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
-                name="test",
-                unit="unit",
-                num_interp=1000,
-            ),
+            aligned_prior_complex,
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
             bilby.core.prior.MultivariateNormal(dist=mvn, name="testa", unit="unit"),
@@ -861,15 +864,16 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 continue
-            print(prior)
             scaled = prior.rescale(points)
             assert isinstance(scaled, jax.Array)
             if isinstance(prior, bilby.core.prior.DeltaFunction):
                 continue
-            assert max(abs(prior.cdf(scaled) - points)) < 1e-6
             probs = prior.prob(scaled)
             assert min(probs) > 0
             assert max(abs(jax.numpy.log(probs) - prior.ln_prob(scaled))) < 1e-6
+            if isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                continue
+            assert max(abs(prior.cdf(scaled) - points)) < 1e-6
 
 
 if __name__ == "__main__":
