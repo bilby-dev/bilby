@@ -487,6 +487,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         indices, in_bounds = self._closest_time_indices(
             ifo_time, self.weights['time_samples'])
+        indices = xp.clip(indices, 0, len(self.weights['time_samples']) - 1)
         d_inner_h_tc_array = xp.einsum(
             'i,ji->j',
             xp.conjugate(h_linear),
