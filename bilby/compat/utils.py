@@ -18,7 +18,10 @@ def array_module(arr):
             except TypeError:
                 return np
         elif arr.__class__.__module__ == "builtins" and isinstance(arr, Iterable):
-            return array_namespace(arr)
+            try:
+                return array_namespace(*arr)
+            except TypeError:
+                return np
         elif arr.__class__.__module__ == "builtins":
             return np
         elif arr.__module__.startswith("pandas"):
