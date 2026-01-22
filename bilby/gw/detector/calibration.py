@@ -362,8 +362,9 @@ class CubicSpline(Recalibrate):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        log10f_per_deltalog10f = (
-            np.log10(frequency_array) - self.log_spline_points[0]
+        log10f_per_deltalog10f = np.nan_to_num(
+            np.log10(frequency_array) - self.log_spline_points[0],
+            neginf=0.0,
         ) / self.delta_log_spline_points
         previous_nodes = np.clip(np.floor(log10f_per_deltalog10f).astype(int), a_min=0, a_max=self.n_points - 2)
         b = log10f_per_deltalog10f - previous_nodes

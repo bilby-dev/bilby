@@ -769,7 +769,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         if self.linear_interpolation:
             optimal_snr_squared = xp.vdot(
-                (strain * strain.conjugate()).real,
+                xp.abs(strain)**2,
                 self.quadratic_coeffs[interferometer.name]
             )
         else:
@@ -780,7 +780,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 Mb = self.Mbs[b]
                 if b == 0:
                     optimal_snr_squared += (4. / self.interferometers.duration) * xp.vdot(
-                        (strain[start_idx:end_idx + 1] * strain[start_idx:end_idx + 1].conjugate()).real,
+                        xp.abs(strain[start_idx:end_idx + 1])**2,
                         interferometer.frequency_mask[Ks:Ke + 1] * self.windows[start_idx:end_idx + 1]
                         / interferometer.power_spectral_density_array[Ks:Ke + 1])
                 else:
@@ -790,7 +790,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                     self.hbcs[interferometer.name][b][-Mb:] = xp.fft.irfft(self.wths[interferometer.name][b])
                     thbc = xp.fft.rfft(self.hbcs[interferometer.name][b])
                     optimal_snr_squared += (4. / self.Tbhats[b]) * xp.vdot(
-                        thbc * np.conjugate(thbc).real, self.Ibcs[interferometer.name][b])
+                        xp.abs(thbc)**2, self.Ibcs[interferometer.name][b])
 
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
