@@ -42,6 +42,10 @@ class TestPriorClasses(unittest.TestCase):
             weights=1.0,
         )
 
+        # need to reset this for the repr test to get equality correct
+        hp_dist.requested_parameters = {"testra": None, "testdec": None}
+        hp_3d_dist.requested_parameters = {"testra": None, "testdec": None, "testdistance": None}
+
         def condition_func(reference_params, test_param):
             return reference_params.copy()
 
