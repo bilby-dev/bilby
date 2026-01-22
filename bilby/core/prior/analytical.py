@@ -13,6 +13,7 @@ from scipy.special import (
     stdtr,
     stdtrit,
     xlogy,
+    xlog1py,
 )
 
 from .base import Prior
@@ -369,7 +370,7 @@ class SymmetricLogUniform(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=np):
         asymmetric = xp.log(abs(val) / self.minimum) / xp.log(self.maximum / self.minimum)
-        return 0.5 * (1 + xp.sign(val) * asymmetric)
+        return xp.clip(0.5 * (1 + xp.sign(val) * asymmetric), 0, 1)
 
 
 class Cosine(Prior):
@@ -989,7 +990,7 @@ class Beta(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return xp.exp(self.ln_prob(val))
+        return xp.exp(self.ln_prob(val, xp=xp))
 
     @xp_wrap
     def ln_prob(self, val, *, xp=np):
@@ -1003,13 +1004,9 @@ class Beta(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        _ln_prob = (
-            xlogy(xp.asarray(self.alpha - 1), val - self.minimum)
-            + xlogy(xp.asarray(self.beta - 1), self.maximum - val)
-            - betaln(self.alpha, self.beta)
-            - xlogy(self.alpha + self.beta - 1, self.maximum - self.minimum)
-        )
-        return xp.nan_to_num(_ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
+        ln_prob = xlog1py(self.beta - 1.0, -val) + xlogy(self.alpha - 1.0, val)
+        ln_prob -= betaln(self.alpha, self.beta)
+        return xp.nan_to_num(ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
 
     @xp_wrap
     def cdf(self, val, *, xp=np):
@@ -1442,20 +1439,21 @@ class WeightedDiscreteValues(Prior):
             The unit of the parameter. Used for plotting.
         """
 
+        xp = array_module(values)
         nvalues = len(values)
-        values = np.array(values)
+        values = xp.array(values)
         if values.shape != (nvalues,):
             raise ValueError(
                 f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}"
             )
-        minimum = np.min(values)
+        minimum = xp.min(values)
         # Small delta added to help with MCMC walking
-        maximum = np.max(values) * (1 + 1e-15)
+        maximum = xp.max(values) * (1 + 1e-15)
         super(WeightedDiscreteValues, self).__init__(
             name=name, latex_label=latex_label, minimum=minimum,
             maximum=maximum, unit=unit, boundary=boundary)
         self.nvalues = nvalues
-        sorter = np.argsort(values)
+        sorter = xp.argsort(values)
         self._values_array = values[sorter]
 
         # inititialization of priors from repr only supports
@@ -1463,9 +1461,9 @@ class WeightedDiscreteValues(Prior):
         self.values = self._values_array.tolist()
 
         weights = (
-            np.array(weights) / np.sum(weights)
+            xp.array(weights) / xp.sum(weights)
             if weights is not None
-            else np.ones(self.nvalues) / self.nvalues
+            else xp.ones(self.nvalues) / self.nvalues
         )
         # check for consistent shape of input
         if weights.shape != (self.nvalues,):
@@ -1476,14 +1474,15 @@ class WeightedDiscreteValues(Prior):
             )
         self._weights_array = weights[sorter]
         self.weights = self._weights_array.tolist()
-        self._lnweights_array = np.log(self._weights_array)
+        self._lnweights_array = xp.log(self._weights_array)
 
         # save cdf for rescaling
-        _cumulative_weights_array = np.cumsum(self._weights_array)
+        _cumulative_weights_array = xp.cumsum(self._weights_array)
         # insert 0 for values smaller than minimum
-        self._cumulative_weights_array = np.insert(_cumulative_weights_array, 0, 0)
+        self._cumulative_weights_array = xp.insert(_cumulative_weights_array, 0, 0)
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the discrete-value prior.
 
@@ -1498,10 +1497,11 @@ class WeightedDiscreteValues(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        index = np.searchsorted(self._cumulative_weights_array[1:], val)
-        return self._values_array[index]
+        index = xp.searchsorted(self._cumulative_weights_array[1:], val)
+        return xp.asarray(self._values_array)[index]
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=np):
         """Return the cumulative prior probability of val.
 
         Parameters
@@ -1512,10 +1512,11 @@ class WeightedDiscreteValues(Prior):
         =======
         float: cumulative prior probability of val
         """
-        index = np.searchsorted(self._values_array, val, side="right")
-        return self._cumulative_weights_array[index]
+        index = xp.searchsorted(self._values_array, val, side="right")
+        return xp.asarray(self._cumulative_weights_array)[index]
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=np):
         """Return the prior probability of val.
 
         Parameters
@@ -1526,9 +1527,9 @@ class WeightedDiscreteValues(Prior):
         =======
         float: Prior probability of val
         """
-        index = np.searchsorted(self._values_array, val)
-        index = np.clip(index, 0, self.nvalues - 1)
-        p = np.where(self._values_array[index] == val, self._weights_array[index], 0)
+        index = xp.searchsorted(self._values_array, val)
+        index = xp.clip(index, 0, self.nvalues - 1)
+        p = xp.where(self._values_array[index] == val, self._weights_array[index], 0)
         # turn 0d numpy array to scalar
         return p[()]
 

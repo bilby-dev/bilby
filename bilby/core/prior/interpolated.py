@@ -77,10 +77,10 @@ class Interped(Prior):
         =======
          Union[float, array_like]: Prior probability of val
         """
-        return self.probability_density(val)
+        return self.probability_density(val)[()]
 
     def cdf(self, val):
-        return self.cumulative_distribution(val)
+        return self.cumulative_distribution(val)[()]
 
     @xp_wrap
     def rescale(self, val, *, xp=np):
@@ -89,7 +89,7 @@ class Interped(Prior):
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        return self.inverse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)[()]
 
     @property
     def minimum(self):
