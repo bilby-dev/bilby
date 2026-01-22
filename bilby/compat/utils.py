@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 import numpy as np
 from array_api_compat import array_namespace
 
@@ -10,7 +12,14 @@ def array_module(arr):
     try:
         return array_namespace(arr)
     except TypeError:
-        if arr.__class__.__module__ == "builtins":
+        if isinstance(arr, dict):
+            try:
+                return array_namespace(*[val for val in arr.values() if not isinstance(val, str)])
+            except TypeError:
+                return np
+        elif arr.__class__.__module__ == "builtins" and isinstance(arr, Iterable):
+            return array_namespace(arr)
+        elif arr.__class__.__module__ == "builtins":
             return np
         elif arr.__module__.startswith("pandas"):
             return np
