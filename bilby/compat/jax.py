@@ -7,11 +7,6 @@ class JittedLikelihood(Likelihood):
     """
     A wrapper to just-in-time compile a :code:`Bilby` likelihood for use with :code:`jax`.
 
-    .. note::
-
-        This is currently hardcoded to return the log likelihood ratio, regardless of
-        the input.
-
     Parameters
     ==========
     likelihood: bilby.core.likelihood.Likelihood
