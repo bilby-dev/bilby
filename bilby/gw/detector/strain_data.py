@@ -181,19 +181,41 @@ class InterferometerStrainData(object):
             An array of boolean values
         """
         if not self._frequency_mask_updated:
-            frequency_array = self._times_and_frequencies.frequency_array
+            self._update_frequency_mask()
+        return self._frequency_mask
+
+    def _update_frequency_mask(self):
+        def calculate_frequency_mask(frequency_array):
             mask = ((frequency_array >= self.minimum_frequency) &
                     (frequency_array <= self.maximum_frequency))
             for notch in self.notch_list:
                 mask[notch.get_idxs(frequency_array)] = False
-            self._frequency_mask = mask
-            self._frequency_mask_updated = True
-        return self._frequency_mask
+            return mask
+
+        self._frequency_mask = calculate_frequency_mask(
+            self._times_and_frequencies.frequency_array
+        )
+
+        cropped_frequencies = bilby.core.utils.series.create_frequency_series(
+            duration=self.cropped_duration,
+            sampling_frequency=self.sampling_frequency
+        )
+        self._cropped_frequency_mask = calculate_frequency_mask(
+            cropped_frequencies
+        )
+
+        self._frequency_mask_updated = True
 
     @frequency_mask.setter
     def frequency_mask(self, mask):
         self._frequency_mask = mask
         self._frequency_mask_updated = True
+
+    @property
+    def cropped_frequency_mask(self):
+        if not self._frequency_mask_updated:
+            self._update_frequency_mask
+        return self._cropped_frequency_mask
 
     @property
     def time_mask(self):

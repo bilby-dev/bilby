@@ -47,6 +47,7 @@ class Interferometer(object):
     time_mask = PropertyAccessor('strain_data', 'time_mask')
     crop_duration = PropertyAccessor('strain_data', 'crop_duration')
     cropped_duration = PropertyAccessor('strain_data', 'cropped_duration')
+    cropped_frequency_mask = PropertyAccessor('strain_data', 'cropped_frequency_mask')
     frequency_domain_strain = PropertyAccessor('strain_data', 'frequency_domain_strain')
     time_domain_strain = PropertyAccessor('strain_data', 'time_domain_strain')
 
