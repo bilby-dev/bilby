@@ -1135,6 +1135,7 @@ class GravitationalWaveTransient(Likelihood):
                     )
                 else:
                     raise
+        else:
             ra = parameters["ra"]
             dec = parameters["dec"]
         if "geocent" not in self.time_reference and f"{self.time_reference}_time" in parameters:
