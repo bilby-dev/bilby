@@ -1,7 +1,7 @@
 import numpy as np
 
 from ...core import utils
-from ...core.series import CoupledTimeAndFrequencySeries
+from ...core.series import create_frequency_series, CoupledTimeAndFrequencySeries
 from ...core.utils import logger, PropertyAccessor
 from .. import utils as gwutils
 
@@ -196,7 +196,7 @@ class InterferometerStrainData(object):
             self._times_and_frequencies.frequency_array
         )
 
-        cropped_frequencies = bilby.core.utils.series.create_frequency_series(
+        cropped_frequencies = create_frequency_series(
             duration=self.cropped_duration,
             sampling_frequency=self.sampling_frequency
         )
