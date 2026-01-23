@@ -628,17 +628,8 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         std = np.std(time_series)
         self.assertAlmostEqual(std, 1, places=2)
 
-    @property
-    def frequency_mask(self):
-        frequencies = bilby.core.utils.series.create_frequency_series(
-            duration=self.ifo.cropped_duration, sampling_frequency=self.sampling_frequency
-        )
-        return (self.ifo.minimum_frequency <= frequencies) & (
-            frequencies <= self.ifo.maximum_frequency
-        )
-
     def test_frequency_domain_whitened_strain(self):
-        white = self.ifo.whitened_frequency_domain_strain[self.frequency_mask]
+        white = self.ifo.whitened_frequency_domain_strain[self.ifo.cropped_frequency_mask]
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_whitened_strain(self):
@@ -657,8 +648,8 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         # Whiten the template
         whitened_signal_ifo = self.ifo.whiten_frequency_series(signal_ifo)
         white = (
-            self.ifo.whitened_frequency_domain_strain[self.frequency_mask]
-            - whitened_signal_ifo[self.frequency_mask]
+            self.ifo.whitened_frequency_domain_strain[self.ifo.cropped_frequency_mask]
+            - whitened_signal_ifo[self.ifo.cropped_frequency_mask]
         )
         self._check_frequency_series_whiteness(white)
 
