@@ -1,5 +1,5 @@
 html5lib==1.0b8  # Hack to ensure documentation generated
-sphinx
+sphinx<9  # needed for sphinx_rtd_theme<3.1
 sphinx_tabs
 numpydoc
 nbsphinx
