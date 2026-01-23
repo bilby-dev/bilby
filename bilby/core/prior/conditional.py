@@ -328,6 +328,7 @@ class DirichletElement(ConditionalBeta):
 
     .. math::
         p(x_n\mid S_n) := \begin{cases}
+            1 & N = 1 \\
             \displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
             & n < N - 1 \\
             \displaystyle\delta(1-S_{N-1}-x_{N-1}) & n = N - 1
@@ -337,7 +338,7 @@ class DirichletElement(ConditionalBeta):
     dimensions and :math:`S_n` is the sum of all previous dimensions,
 
     .. math::
-        S_n := \sum_{i=0}^{n-1}x_i & n < N
+        S_n := \sum_{i=0}^{n-1}x_i \qquad n < N
 
     Examples
     ========
@@ -350,10 +351,10 @@ class DirichletElement(ConditionalBeta):
         :code:`n_dimensions` = :math:`N = 2`:
 
             .. math::
-                \begin{align}
-                    p(x_0)         &= 1                ; & 0 \leq x_0 \leq 1       \\
-                    p(x_1\mid x_0) &= \delta(1-x_0-x_1); & 0 \leq x_1 \leq 1 - x_0
-                \end{align}
+                    p(x_0)         = 1                ; \qquad 0 \leq x_0 \leq 1
+
+            .. math::
+                    p(x_1\mid x_0) = \delta(1-x_0-x_1); \qquad 0 \leq x_1 \leq 1 - x_0
 
     Parameters
     ==========
