@@ -134,7 +134,7 @@ def main():
 
     # Specify the output directory and the name of the simulation.
     outdir = "outdir"
-    label = f"jax_fast_tutorial"
+    label = "jax_fast_tutorial"
 
     # Set up a random seed for result reproducibility.  This is optional!
     bilby.core.utils.random.seed(88170235)
