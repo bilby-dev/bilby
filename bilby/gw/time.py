@@ -172,7 +172,7 @@ def n_leap_seconds(gps_time, leap_seconds):
 
     Parameters
     ----------
-    gps_time : float
+    gps_time : float | np.ndarray | int
         GPS time in seconds.
     leap_seconds : array_like
         GPS time of leap seconds.
@@ -188,19 +188,6 @@ def n_leap_seconds(gps_time, leap_seconds):
 
 @dispatch
 def n_leap_seconds(gps_time: np.ndarray | float | int):  # noqa F811
-    """
-    Calculate the number of leap seconds that have occurred up to a given GPS time.
-
-    Parameters
-    ----------
-    gps_time : float | np.ndarray | int
-        GPS time in seconds.
-
-    Returns
-    -------
-    float
-        Number of leap seconds
-    """
     xp = array_module(gps_time)
     return n_leap_seconds(gps_time, xp.array(LEAP_SECONDS))
 
