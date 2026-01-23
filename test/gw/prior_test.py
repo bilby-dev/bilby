@@ -280,7 +280,7 @@ class TestPriorConversion(unittest.TestCase):
         result.priors = bilby_prior
         result.posterior = pd.DataFrame(bilby_samples)
         result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(
-            result
+            result, fraction=0.1
         )
 
         if "plot" in sys.argv:
