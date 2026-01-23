@@ -102,7 +102,7 @@ addopts = [
 packages = [
   "bilby",
   "bilby.bilby_mcmc",
-  "bilby.compat"
+  "bilby.compat",
   "bilby.core",
   "bilby.core.prior",
   "bilby.core.sampler",
