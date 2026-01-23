@@ -1113,10 +1113,7 @@ class GravitationalWaveTransient(Likelihood):
         =======
         dict: dictionary containing ra, dec, and geocent_time
         """
-        from ..conversion import convert_orientation_quaternion, convert_cartesian
         parameters = _fallback_to_parameters(self, parameters)
-        if "orientation_w" in parameters:
-            convert_orientation_quaternion(parameters)
         time = parameters.get(f'{self.time_reference}_time', None)
         if time is None and "geocent_time" in parameters:
             logger.warning(
@@ -1124,26 +1121,20 @@ class GravitationalWaveTransient(Likelihood):
                 "Falling back to geocent time"
             )
         if not self.reference_frame == "sky":
-            if "sky_x" in parameters:
-                zenith, azimuth = convert_cartesian(parameters, "sky")
-            elif "zenith" in parameters:
-                zenith = parameters["zenith"]
-                azimuth = parameters["azimuth"]
-            elif "ra" in parameters and "dec" in parameters:
-                ra = parameters["ra"]
-                dec = parameters["dec"]
-                logger.warning(
-                    "Cannot convert from zenith/azimuth to ra/dec falling "
-                    "back to provided ra/dec"
-                )
-                zenith = None
-            else:
-                raise KeyError("No sky location parameters recognised")
-            if zenith is not None:
+            try:
                 ra, dec = zenith_azimuth_to_ra_dec(
-                    zenith, azimuth, time, self.reference_frame
-                )
-        else:
+                    parameters['zenith'], parameters['azimuth'],
+                    time, self.reference_frame)
+            except KeyError:
+                if "ra" in parameters and "dec" in parameters:
+                    ra = parameters["ra"]
+                    dec = parameters["dec"]
+                    logger.warning(
+                        "Cannot convert from zenith/azimuth to ra/dec falling "
+                        "back to provided ra/dec"
+                    )
+                else:
+                    raise
             ra = parameters["ra"]
             dec = parameters["dec"]
         if "geocent" not in self.time_reference and f"{self.time_reference}_time" in parameters:
