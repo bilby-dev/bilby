@@ -1,6 +1,7 @@
 import os
 import unittest
 import tempfile
+from functools import cached_property
 from itertools import product
 from parameterized import parameterized
 import pytest
@@ -289,31 +290,6 @@ class TestROQLikelihood(unittest.TestCase):
         self.duration = 4
         self.sampling_frequency = 2048
 
-        # Possible locations for the ROQ: in the docker image, local, or on CIT
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
-        quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
-
-        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
-        fnodes_linear = np.load(fnodes_linear_file).T
-        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
-        fnodes_quadratic = np.load(fnodes_quadratic_file).T
-        self.linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
-        self.quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
-        self.params_file = "{}/params.dat".format(roq_dir)
-
         self.test_parameters = dict(
             mass_1=36.0,
             mass_2=36.0,
@@ -362,20 +338,6 @@ class TestROQLikelihood(unittest.TestCase):
 
         self.ifos = ifos
 
-        roq_wfg = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=self.duration,
-            sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
-            waveform_arguments=dict(
-                frequency_nodes_linear=fnodes_linear,
-                frequency_nodes_quadratic=fnodes_quadratic,
-                reference_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
-            ),
-        )
-
-        self.roq_wfg = roq_wfg
-
         self.non_roq = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=ifos, waveform_generator=non_roq_wfg
         )
@@ -387,31 +349,79 @@ class TestROQLikelihood(unittest.TestCase):
             priors=self.priors.copy(),
         )
 
-        self.roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
-            interferometers=ifos,
-            waveform_generator=roq_wfg,
-            linear_matrix=linear_matrix_file,
-            quadratic_matrix=quadratic_matrix_file,
+    def tearDown(self):
+        del (
+            self.non_roq,
+            self.non_roq_phase,
+            self.ifos,
+            self.priors,
+        )
+
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        print(trial_roq_paths)
+        for path in trial_roq_paths:
+            print(path, os.path.isdir(path))
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
+    @property
+    def linear_matrix_file(self):
+        return f"{self.roq_dir}/B_linear.npy"
+
+    @property
+    def quadratic_matrix_file(self):
+        return f"{self.roq_dir}/B_quadratic.npy"
+
+    @property
+    def params_file(self):
+        return f"{self.roq_dir}/params.dat"
+
+    @cached_property
+    def roq_wfg(self):
+        fnodes_linear_file = f"{self.roq_dir}/fnodes_linear.npy"
+        fnodes_quadratic_file = f"{self.roq_dir}/fnodes_quadratic.npy"
+        fnodes_linear = np.load(fnodes_linear_file).T
+        fnodes_quadratic = np.load(fnodes_quadratic_file).T
+        return bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            waveform_arguments=dict(
+                frequency_nodes_linear=fnodes_linear,
+                frequency_nodes_quadratic=fnodes_quadratic,
+                reference_frequency=20.0,
+                waveform_approximant="IMRPhenomPv2",
+            ),
+        )
+
+    @cached_property
+    def roq(self):
+        return bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=self.ifos,
+            waveform_generator=self.roq_wfg,
+            linear_matrix=self.linear_matrix_file,
+            quadratic_matrix=self.quadratic_matrix_file,
             priors=self.priors,
         )
 
-        self.roq_phase = bilby.gw.likelihood.ROQGravitationalWaveTransient(
-            interferometers=ifos,
-            waveform_generator=roq_wfg,
-            linear_matrix=linear_matrix_file,
-            quadratic_matrix=quadratic_matrix_file,
+    @cached_property
+    def roq_phase(self):
+        return bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=self.ifos,
+            waveform_generator=self.roq_wfg,
+            linear_matrix=self.linear_matrix_file,
+            quadratic_matrix=self.quadratic_matrix_file,
             phase_marginalization=True,
             priors=self.priors.copy(),
-        )
-
-    def tearDown(self):
-        del (
-            self.roq,
-            self.non_roq,
-            self.non_roq_phase,
-            self.roq_phase,
-            self.ifos,
-            self.priors,
         )
 
     def test_matches_non_roq(self):
