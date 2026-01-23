@@ -39,7 +39,7 @@ dependencies:
   - ligo-gracedb
   - gwpy
   - ligo.skymap
-  - sphinx
+  - sphinx<9 # needed for sphinx_rtd_theme<3.1
   - numpydoc
   - nbsphinx
   - sphinx_rtd_theme
