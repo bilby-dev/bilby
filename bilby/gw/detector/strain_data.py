@@ -1,8 +1,9 @@
 import numpy as np
 
 from ...core import utils
-from ...core.series import create_frequency_series, CoupledTimeAndFrequencySeries
+from ...core.series import CoupledTimeAndFrequencySeries
 from ...core.utils import logger, PropertyAccessor
+from ...core.utils.series import create_frequency_series
 from .. import utils as gwutils
 
 
