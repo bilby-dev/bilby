@@ -731,11 +731,14 @@ class ConditionalPriorDict(PriorDict):
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
-        conditions_resolved = True
         for k in self[key].required_variables:
             if k not in sampled_keys:
-                conditions_resolved = False
-        return conditions_resolved
+                return False
+            elif isinstance(self[k], JointPrior):
+                for name in self[k].dist.names:
+                    if name not in sampled_keys and name != key:
+                        return False
+        return True
 
     def sample_subset(self, keys=iter([]), size=None):
         self.convert_floats_to_delta_functions()
@@ -874,36 +877,32 @@ class ConditionalPriorDict(PriorDict):
             result[key] = self[key].rescale(
                 theta[index], **self.get_required_variables(key)
             )
-            self[key].least_recently_sampled = result[key]
-            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
-                joint[self[key].dist.distname] = [key]
-            elif isinstance(self[key], JointPrior):
-                joint[self[key].dist.distname].append(key)
-        for names in joint.values():
-            # this is needed to unpack how joint prior rescaling works
-            # as an example of a joint prior over {a, b, c, d} we might
-            # get the following based on the order within the joint prior
-            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
-            # -> [1, 2, 3, 4]
-            # -> {a: 1, b: 2, c: 3, d: 4}
-            values = list()
-            for key in names:
-                values = np.concatenate([values, result[key]])
-            for key, value in zip(names, values):
-                result[key] = value
 
-        def safe_flatten(value):
-            """
-            this is gross but can be removed whenever we switch to returning
-            arrays, flatten converts 0-d arrays to 1-d so has to be special
-            cased
-            """
-            if isinstance(value, (float, int)):
-                return value
+            # if any requested key depends on some joint prior `jp_key`
+            # self[jp_key].least_recently_sampled needs to be set before
+            # rescaling those requested keys.
+            # Thus we keep track of joint priors here
+            if isinstance(self[key], JointPrior):
+                # if joint prior, keep track if all names have been rescaled
+                distname = self[key].dist.distname
+                names = set(self[key].dist.names)
+                if distname not in joint:
+                    joint[distname] = {key}
+                else:
+                    joint[distname].add(key)
+                # only when all names have been rescaled, we can set the values
+                # we use sets because the order does not matter here
+                if names == joint[distname]:
+                    for name, value in zip(names, result[key]):
+                        result[name] = value
+                        self[name].least_recently_sampled = value
+                    joint.pop(distname)
             else:
-                return result[key].flatten()
+                # if not joint prior, set value immediately
+                self[key].least_recently_sampled = result[key]
 
-        return [safe_flatten(result[key]) for key in keys]
+        # finally return results in the order requested
+        return [result[key] for key in keys]
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:
