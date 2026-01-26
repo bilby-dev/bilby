@@ -43,7 +43,7 @@ def create_pool(
     pool: schwimmbad.MPIPool, multiprocessing.Pool, None
         Returns either a pool that can be used for mapping function calls.
         Each process attached to the pool has been initialized with
-        the bilby.core.sampler._SamplingContainer.
+        the :code:`bilby.core.sampler.base_sampler._sampling_convenience_dump`.
 
     Examples
     ========
@@ -158,7 +158,7 @@ def bilby_pool(
     pool: schwimmbad.MPIPool, multiprocessing.Pool, None
         Returns either a pool that can be used for mapping function calls.
         Each process attached to the pool has been initialized with
-        the bilby.core.sampler._SamplingContainer.
+        the :code:`bilby.core.sampler.base_sampler._sampling_convenience_dump`.
 
     Examples
     ========
