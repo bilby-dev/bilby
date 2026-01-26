@@ -240,22 +240,21 @@ def get_weights_for_reweighting(
 
     # Helper function to compute likelihoods in parallel
     def eval_pool(this_logl):
-        from .utils.parallel import create_pool, close_pool
+        from .utils.parallel import bilby_pool
 
         chunksize = max(100, n // (2 * npool))
-        my_pool = create_pool(likelihood=this_logl, npool=npool)
-        if my_pool is None:
-            map_fn = map
-        else:
-            map_fn = partial(my_pool.imap, chunksize=chunksize)
-        likelihood_fn = partial(_safe_likelihood_call, this_logl)
+        with bilby_pool(likelihood=this_logl, npool=npool) as my_pool:
+            if my_pool is None:
+                map_fn = map
+            else:
+                map_fn = partial(my_pool.imap, chunksize=chunksize)
+            likelihood_fn = partial(_safe_likelihood_call, this_logl)
 
-        log_l = list(tqdm(
-            map_fn(likelihood_fn, dict_samples[starting_index:]),
-            desc='Computing likelihoods',
-            total=n,
-        ))
-        close_pool(my_pool)
+            log_l = list(tqdm(
+                map_fn(likelihood_fn, dict_samples[starting_index:]),
+                desc='Computing likelihoods',
+                total=n,
+            ))
         return log_l
 
     if old_likelihood is None:

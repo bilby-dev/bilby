@@ -119,7 +119,8 @@ def close_pool(pool):
 
 @contextmanager
 def bilby_pool(
-    likelihood, priors,
+    likelihood=None,
+    priors=None,
     use_ratio=None,
     search_parameter_keys=None,
     npool=None,

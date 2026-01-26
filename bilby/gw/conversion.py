@@ -2330,17 +2330,16 @@ def compute_per_detector_log_likelihoods(samples, likelihood, npool=1, block=10,
                     continue
 
                 if _pool is not None:
-                    subset_samples = _pool.map(
-                        _compute_per_detector_log_likelihoods,
-                        fill_args[ii: ii + block]
-                    )
+                    map_fn = _pool.map
                 else:
+                    map_fn = map
                     from ..core.sampler.base_sampler import _sampling_convenience_dump
                     _sampling_convenience_dump.likelihood = likelihood
-                    subset_samples = [
-                        list(_compute_per_detector_log_likelihoods(xx))
-                        for xx in fill_args[ii: ii + block]
-                    ]
+
+                subset_samples = list(map_fn(
+                    _compute_per_detector_log_likelihoods,
+                    fill_args[ii: ii + block],
+                ))
 
                 cached_samples_dict[ii] = subset_samples
 
@@ -2462,7 +2461,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
             if _pool is not None:
                 subset_samples = _pool.map(fill_sample, fill_args[ii: ii + block])
             else:
-                subset_samples = [list(fill_sample(xx)) for xx in fill_args[ii: ii + block]]
+                subset_samples = list(map(fill_sample, fill_args[ii: ii + block]))
 
             cached_samples_dict[ii] = subset_samples
 
