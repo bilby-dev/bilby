@@ -11,7 +11,6 @@ from ..core.utils import (
 )
 from .utils import plot_spline_pos, spline_angle_xform, asd_from_freq_series
 from .detector import get_empty_interferometer, Interferometer
-from .waveform_generator import GWSignalWaveformGenerator
 
 
 class CompactBinaryCoalescenceResult(CoreResult):
@@ -107,13 +106,10 @@ class CompactBinaryCoalescenceResult(CoreResult):
             'likelihood', 'waveform_arguments')
 
     @property
-    def waveform_generator_constructor_dict(self):
-        """ Constructor dict for the waveform generator (if applicable) """
-        if not issubclass(self.waveform_generator_class, GWSignalWaveformGenerator):
-            return None
-        else:
-            return self.__get_from_nested_meta_data(
-                'likelihood', 'waveform_generator_constructor_dict')
+    def waveform_generator_meta_data(self):
+        """ Dict of metadata for reconstructing the waveform generator. """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'waveform_generator_constructor_dict')
 
     @property
     def reference_frequency(self):
@@ -427,19 +423,14 @@ class CompactBinaryCoalescenceResult(CoreResult):
         end_time -= interferometer.strain_data.start_time
         plot_frequencies = interferometer.frequency_array[frequency_idxs]
 
-        base_dict = dict(
+        waveform_generator = self.waveform_generator_class(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             start_time=self.start_time,
             frequency_domain_source_model=self.frequency_domain_source_model,
             time_domain_source_model=self.time_domain_source_model,
             parameter_conversion=self.parameter_conversion,
-            waveform_arguments=self.waveform_arguments)
-
-        constructor_dict = self.waveform_generator_constructor_dict or {}
-
-        waveform_generator = self.waveform_generator_class(
-            **base_dict,
-            **constructor_dict)
+            waveform_arguments=self.waveform_arguments,
+            **self.waveform_generator_meta_data)
 
         if format == "html":
             fig = make_subplots(
