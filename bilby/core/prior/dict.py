@@ -882,18 +882,25 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
+        joint = dict()
         for key, index in zip(
             self.sorted_keys_without_fixed_parameters, self._rescale_indexes
         ):
             result[key] = self[key].rescale(
                 theta[index], **self.get_required_variables(key)
             )
-            if isinstance(self[key], JointPrior) and result[key] is not None:
-                for key, val in zip(self[key].dist.names, result[key]):
-                    self[key].least_recently_sampled = val
-                    result[key] = val
-            else:
-                self[key].least_recently_sampled = result[key]
+            self[key].least_recently_sampled = result[key]
+            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
+                joint[self[key].dist.distname] = [key]
+            elif isinstance(self[key], JointPrior):
+                joint[self[key].dist.distname].append(key)
+        for names in joint.values():
+            for key in names:
+                if result[key] is None:
+                    continue
+                for subkey, val in zip(self[key].dist.names, result[key]):
+                    self[subkey].least_recently_sampled = val
+                    result[subkey] = val
 
         return xp.array([result[key] for key in keys])
 

@@ -7,7 +7,6 @@ one can modify for the study of injected CBC events.
 This will take many hours to run.
 """
 import bilby
-import numpy as np
 from bilby.core.utils import random
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
@@ -77,32 +76,28 @@ ifos.inject_signal(
     waveform_generator=waveform_generator, parameters=injection_parameters
 )
 
-# For this analysis, we implement the standard BBH priors defined, except for
-# the definition of the time prior, which is defined as uniform about the
-# injected value.
-# We change the mass boundaries to be more targeted for the source we
-# injected.
-# We define priors in the time at the Hanford interferometer and two
-# parameters (zenith, azimuth) defining the sky position wrt the two
-# interferometers.
-priors = bilby.gw.prior.BBHPriorDict()
-
 time_delay = ifos[0].time_delay_from_geocenter(
     injection_parameters["ra"],
     injection_parameters["dec"],
     injection_parameters["geocent_time"],
 )
+
+injection_parameters["H1_time"] = injection_parameters["geocent_time"] + time_delay
+
+# For this analysis, we implement the standard BBH priors defined, except for
+# the definition of the time prior, which is defined as uniform about the
+# injected value.
+# We change the mass boundaries to be more targeted for the source we
+# injected.
+# We define a prior in the time at the Hanford interferometer
+priors = bilby.gw.prior.BBHPriorDict()
+
 priors["H1_time"] = bilby.core.prior.Uniform(
-    minimum=injection_parameters["geocent_time"] + time_delay - 0.1,
-    maximum=injection_parameters["geocent_time"] + time_delay + 0.1,
+    minimum=injection_parameters["H1_time"] - 0.1,
+    maximum=injection_parameters["H1_time"] + 0.1,
     name="H1_time",
     latex_label="$t_H$",
     unit="$s$",
-)
-del priors["ra"], priors["dec"]
-priors["zenith"] = bilby.core.prior.Sine(latex_label="$\\kappa$")
-priors["azimuth"] = bilby.core.prior.Uniform(
-    minimum=0, maximum=2 * np.pi, latex_label="$\\epsilon$", boundary="periodic"
 )
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and

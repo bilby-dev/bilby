@@ -725,6 +725,10 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         self._full_d_h = np.zeros(N, dtype=complex)
         # idxs to convert full frequency points to banded frequency points, used for filling _full_d_h.
         self._full_to_multiband = [int(f * self.durations[0]) for f in self.banded_frequency_points]
+        self._beam_pattern_reference_time = (
+            self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
+        ) / 2
+        self.interferometers.reference_time = self._beam_pattern_reference_time
 
     def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
         """
@@ -748,10 +752,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
         parameters = _fallback_to_parameters(self, parameters)
-        if self.time_marginalization:
-            original_time = parameters["geocent_time"]
-            parameters["geocent_time"] = self._beam_pattern_reference_time
-
         modes = {
             mode: value[self.unique_to_original_frequencies]
             for mode, value in waveform_polarizations.items()
@@ -759,9 +759,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         strain = interferometer.get_detector_response(
             modes, parameters, frequencies=self.banded_frequency_points
         )
-
-        if self.time_marginalization:
-            parameters["geocent_time"] = original_time
 
         d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conjugate()
 
