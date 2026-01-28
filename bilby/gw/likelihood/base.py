@@ -1180,4 +1180,5 @@ class GravitationalWaveTransient(Likelihood):
             time_reference=self.time_reference,
             reference_frame=self._reference_frame_str,
             lal_version=self.lal_version,
-            lalsimulation_version=self.lalsimulation_version)
+            lalsimulation_version=self.lalsimulation_version,
+            waveform_generator_meta_data=self.waveform_generator.meta_data)
