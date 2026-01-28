@@ -898,7 +898,7 @@ class ConditionalPriorDict(PriorDict):
             arrays, flatten converts 0-d arrays to 1-d so has to be special
             cased
             """
-            if isinstance(value, (float, int)):
+            if isinstance(value, (float, int, np.int64)):
                 return value
             else:
                 return result[key].flatten()
