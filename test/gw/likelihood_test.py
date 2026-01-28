@@ -225,6 +225,7 @@ class TestGWTransient(unittest.TestCase):
             reference_frame="sky",
             lal_version=self.likelihood.lal_version,
             lalsimulation_version=self.likelihood.lalsimulation_version,
+            waveform_generator_meta_data=self.waveform_generator.meta_data,
         )
         self.assertDictEqual(expected, self.likelihood.meta_data)
 
