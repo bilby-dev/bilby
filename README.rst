@@ -34,8 +34,8 @@ Please refer to the `Acknowledging/citing bilby guide <https://bilby-dev.github.
 
 .. |pipeline status| image:: https://github.com/bilby-dev/bilby/actions/workflows/unit-tests.yml/badge.svg
    :target: https://github.com/bilby-dev/bilby/commits/master
-.. |coverage report| image:: https://github.com/bilby-dev/bilby/badges/master/coverage.svg
-   :target: https://lscsoft.docs.ligo.org/bilby/htmlcov/
+.. |coverage report| image:: https://codecov.io/gh/bilby-dev/bilby/graph/badge.svg?token=BpfcD0hFSu
+   :target: https://codecov.io/gh/bilby-dev/bilby
 .. |pypi| image:: https://badge.fury.io/py/bilby.svg
    :target: https://pypi.org/project/bilby/
 .. |conda| image:: https://img.shields.io/conda/vn/conda-forge/bilby.svg
