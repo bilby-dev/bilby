@@ -5,11 +5,10 @@ from functools import lru_cache
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import i0e
-from bilby_cython.geometry import (
-    zenith_azimuth_to_theta_phi as _zenith_azimuth_to_theta_phi,
-)
-from bilby_cython.time import greenwich_mean_sidereal_time
 
+from .geometry import zenith_azimuth_to_theta_phi
+from .time import greenwich_mean_sidereal_time
+from ..compat.utils import array_module
 from ..core.utils import (logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)
@@ -76,14 +75,15 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     array_like: A 3D representation of the geocentric vertex position
 
     """
+    xp = array_module(latitude)
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
-    radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(latitude)**2 +
-                                   semi_minor_axis**2 * np.sin(latitude)**2)**(-0.5)
-    x_comp = (radius + elevation) * np.cos(latitude) * np.cos(longitude)
-    y_comp = (radius + elevation) * np.cos(latitude) * np.sin(longitude)
-    z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * np.sin(latitude)
-    return np.array([x_comp, y_comp, z_comp])
+    radius = semi_major_axis**2 * (semi_major_axis**2 * xp.cos(latitude)**2 +
+                                   semi_minor_axis**2 * xp.sin(latitude)**2)**(-0.5)
+    x_comp = (radius + elevation) * xp.cos(latitude) * xp.cos(longitude)
+    y_comp = (radius + elevation) * xp.cos(latitude) * xp.sin(longitude)
+    z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * xp.sin(latitude)
+    return xp.array([x_comp, y_comp, z_comp])
 
 
 def inner_product(aa, bb, frequency, PSD):
@@ -132,9 +132,8 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     =======
     Noise-weighted inner product.
     """
-
-    integrand = np.conj(aa) * bb / power_spectral_density
-    return 4 / duration * np.sum(integrand)
+    integrand = aa.conjugate() * bb / power_spectral_density
+    return 4 / duration * integrand.sum()
 
 
 def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
@@ -228,28 +227,6 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     return sum(integral).real
 
 
-def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
-    """
-    Convert from the 'detector frame' to the Earth frame.
-
-    Parameters
-    ==========
-    kappa: float
-        The zenith angle in the detector frame
-    eta: float
-        The azimuthal angle in the detector frame
-    ifos: list
-        List of Interferometer objects defining the detector frame
-
-    Returns
-    =======
-    theta, phi: float
-        The zenith and azimuthal angles in the earth frame.
-    """
-    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
-    return _zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
-
-
 def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
@@ -270,6 +247,8 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
+    # delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    # theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
     theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
     gmst = greenwich_mean_sidereal_time(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
@@ -1038,7 +1017,8 @@ def ln_i0(value):
     array-like:
         The natural logarithm of the bessel function
     """
-    return np.log(i0e(value)) + np.abs(value)
+    xp = array_module(value)
+    return xp.log(i0e(value)) + xp.abs(value)
 
 
 def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):

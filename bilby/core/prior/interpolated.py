@@ -2,7 +2,9 @@ import numpy as np
 from scipy.integrate import trapezoid
 
 from .base import Prior
-from ..utils import logger, WrappedInterp1d as interp1d
+from ..utils import logger
+from ..utils.calculus import interp1d
+from ...compat.utils import xp_wrap
 
 
 class Interped(Prior):
@@ -75,18 +77,19 @@ class Interped(Prior):
         =======
          Union[float, array_like]: Prior probability of val
         """
-        return self.probability_density(val)
+        return self.probability_density(val)[()]
 
     def cdf(self, val):
-        return self.cumulative_distribution(val)
+        return self.cumulative_distribution(val)[()]
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=np):
         """
         'Rescale' a sample from the unit line element to the prior.
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        return self.inverse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)[()]
 
     @property
     def minimum(self):

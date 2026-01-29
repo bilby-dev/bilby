@@ -6,9 +6,28 @@ import scipy.stats as ss
 from scipy.integrate import trapezoid
 
 
+aligned_prior_complex = bilby.gw.prior.AlignedSpin(
+    a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
+    z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
+    name="test",
+    unit="unit",
+    num_interp=1000,
+)
+
+hp_map_file = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "prior_files/GW150914_testing_skymap.fits",
+)
+hp_dist = bilby.gw.prior.HealPixMapPriorDist(
+    hp_map_file, names=["testra", "testdec"]
+)
+hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
+    hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
+)
+
+
 class TestPriorClasses(unittest.TestCase):
     def setUp(self):
-
         # set multivariate Gaussian
         mvg = bilby.core.prior.MultivariateGaussianDist(
             names=["testa", "testb"],
@@ -22,16 +41,10 @@ class TestPriorClasses(unittest.TestCase):
             covs=np.array([[2.0, 0.5], [0.5, 2.0]]),
             weights=1.0,
         )
-        hp_map_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/GW150914_testing_skymap.fits",
-        )
-        hp_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec"]
-        )
-        hp_3d_dist = bilby.gw.prior.HealPixMapPriorDist(
-            hp_map_file, names=["testra", "testdec", "testdistance"], distance=True
-        )
+
+        # need to reset this for the repr test to get equality correct
+        hp_dist.requested_parameters = {"testra": None, "testdec": None}
+        hp_3d_dist.requested_parameters = {"testra": None, "testdec": None, "testdistance": None}
 
         def condition_func(reference_params, test_param):
             return reference_params.copy()
@@ -102,13 +115,7 @@ class TestPriorClasses(unittest.TestCase):
                 name="test", unit="unit", minimum=1e-2, maximum=1e2
             ),
             bilby.gw.prior.AlignedSpin(name="test", unit="unit"),
-            bilby.gw.prior.AlignedSpin(
-                a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
-                z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
-                name="test",
-                unit="unit",
-                num_interp=1000,
-            ),
+            aligned_prior_complex,
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
             bilby.core.prior.MultivariateNormal(dist=mvn, name="testa", unit="unit"),
@@ -564,10 +571,14 @@ class TestPriorClasses(unittest.TestCase):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
         for prior in self.priors:
             if prior.minimum == -np.inf:
-                prior.minimum = -1e5
+                minimum = -1e5
+            else:
+                minimum = prior.minimum
             if prior.maximum == np.inf:
-                prior.maximum = 1e5
-            domain = np.linspace(prior.minimum, prior.maximum, 1000)
+                maximum = 1e5
+            else:
+                maximum = prior.maximum
+            domain = np.linspace(minimum, maximum, 1000)
             self.assertTrue(all(prior.prob(domain) >= 0))
 
     def test_probability_surrounding_domain(self):
@@ -579,13 +590,14 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
                 continue
-            surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
-            indomain = (surround_domain >= prior.minimum) | (
-                surround_domain <= prior.maximum
-            )
-            outdomain = (surround_domain < prior.minimum) | (
-                surround_domain > prior.maximum
-            )
+            with np.errstate(invalid="ignore"):
+                surround_domain = np.linspace(prior.minimum - 1, prior.maximum + 1, 1000)
+                indomain = (surround_domain >= prior.minimum) | (
+                    surround_domain <= prior.maximum
+                )
+                outdomain = (surround_domain < prior.minimum) | (
+                    surround_domain > prior.maximum
+                )
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_request():
                     continue
@@ -848,6 +860,24 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000)) > prior.minimum)
+
+    def test_jax_methods(self):
+        import jax
+
+        points = jax.numpy.linspace(1e-3, 1 - 1e-3, 10)
+        for prior in self.priors:
+            if bilby.core.prior.JointPrior in prior.__class__.__mro__:
+                continue
+            scaled = prior.rescale(points)
+            assert isinstance(scaled, jax.Array)
+            if isinstance(prior, bilby.core.prior.DeltaFunction):
+                continue
+            probs = prior.prob(scaled)
+            assert min(probs) > 0
+            assert max(abs(jax.numpy.log(probs) - prior.ln_prob(scaled))) < 1e-6
+            if isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
+                continue
+            assert max(abs(prior.cdf(scaled) - points)) < 1e-6
 
 
 if __name__ == "__main__":

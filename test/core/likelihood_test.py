@@ -403,7 +403,7 @@ class TestPoissonLikelihood(unittest.TestCase):
         poisson_likelihood = PoissonLikelihood(
             x=self.x, y=self.y, func=lambda x: np.linspace(1, 100, self.N)
         )
-        with mock.patch("numpy.sum") as m:
+        with mock.patch("array_api_compat.numpy.sum") as m:
             m.return_value = 1
             self.assertEqual(1, poisson_likelihood.log_likelihood())
 
@@ -495,7 +495,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         exponential_likelihood = ExponentialLikelihood(
             x=self.x, y=self.y, func=lambda x: np.array([4.2])
         )
-        with mock.patch("numpy.sum") as m:
+        with mock.patch("array_api_compat.numpy.sum") as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood())
 
