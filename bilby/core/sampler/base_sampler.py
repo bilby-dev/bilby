@@ -20,6 +20,7 @@ from ..utils import (
     command_line_args,
     logger,
 )
+from ..utils.parallel import close_pool, create_pool
 from ..utils.random import seed as set_seed
 
 
@@ -234,6 +235,7 @@ class Sampler(object):
         soft_init=False,
         exit_code=130,
         npool=1,
+        pool=None,
         **kwargs,
     ):
         self.likelihood = likelihood
@@ -247,6 +249,7 @@ class Sampler(object):
         self.injection_parameters = injection_parameters
         self.meta_data = meta_data
         self.use_ratio = use_ratio
+        self.pool = pool
         self._npool = npool
         if not skip_import_verification:
             self._verify_external_sampler()
@@ -763,41 +766,44 @@ class Sampler(object):
                 sys.exit(self.exit_code)
 
     def _close_pool(self):
-        if getattr(self, "pool", None) is not None:
+        if getattr(self, "pool", None) is not None and not getattr(
+            self, "_user_pool", True
+        ):
             logger.info("Starting to close worker pool.")
-            self.pool.close()
-            self.pool.join()
+            close_pool(self.pool)
             self.pool = None
             self.kwargs["pool"] = self.pool
             logger.info("Finished closing worker pool.")
 
     def _setup_pool(self):
-        if self.kwargs.get("pool", None) is not None:
-            logger.info("Using user defined pool.")
-            self.pool = self.kwargs["pool"]
-        elif self.npool is not None and self.npool > 1:
-            logger.info(f"Setting up multiproccesing pool with {self.npool} processes")
-            import multiprocessing
+        parameters = self.priors.sample()
 
-            self.pool = multiprocessing.Pool(
-                processes=self.npool,
-                initializer=_initialize_global_variables,
-                initargs=(
-                    self.likelihood,
-                    self.priors,
-                    self._search_parameter_keys,
-                    self.use_ratio,
-                    deepcopy(self.parameters),
-                ),
-            )
+        if hasattr(self.pool, "map"):
+            self._user_pool = True
+        elif self.npool in (1, None):
+            self._user_pool = False
         else:
-            self.pool = None
+            self._user_pool = False
+            self.pool = create_pool(
+                likelihood=self.likelihood,
+                priors=self.priors,
+                search_parameter_keys=self._search_parameter_keys,
+                use_ratio=self.use_ratio,
+                npool=self.npool,
+                pool=self.pool,
+                parameters=parameters,
+            )
+            if self.pool is not None:
+                logger.warning(
+                    "Setting up parallel pool in sampler is deprecated. Use "
+                    "bilby.utils.parallel.bilby_pool context instead."
+                )
         _initialize_global_variables(
             likelihood=self.likelihood,
             priors=self.priors,
             search_parameter_keys=self._search_parameter_keys,
             use_ratio=self.use_ratio,
-            parameters=deepcopy(self.parameters),
+            parameters=parameters,
         )
         self.kwargs["pool"] = self.pool
 
