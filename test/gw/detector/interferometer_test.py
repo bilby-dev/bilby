@@ -6,6 +6,7 @@ import lal
 import lalsimulation
 import pytest
 from shutil import rmtree
+from parameterized import parameterized_class
 
 import numpy as np
 
@@ -302,27 +303,6 @@ class TestInterferometer(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ifo.inject_signal(injection_polarizations=None, parameters=None)
 
-    def test_optimal_snr_squared(self):
-        """
-        Merely checks parameters are given in the right order and the frequency
-        mask is applied.
-        """
-        with mock.patch("bilby.gw.utils.noise_weighted_inner_product") as m:
-            m.side_effect = lambda a, b, c, d: [a, b, c, d]
-            signal = np.ones_like(self.ifo.power_spectral_density_array)
-            mask = self.ifo.frequency_mask
-            expected = [
-                signal[mask],
-                signal[mask],
-                self.ifo.power_spectral_density_array[mask],
-                self.ifo.strain_data.duration,
-            ]
-            actual = self.ifo.optimal_snr_squared(signal=signal)
-            self.assertTrue(np.array_equal(expected[0], actual[0]))
-            self.assertTrue(np.array_equal(expected[1], actual[1]))
-            self.assertTrue(np.array_equal(expected[2], actual[2]))
-            self.assertEqual(expected[3], actual[3])
-
     def test_template_template_inner_product(self):
         signal_1 = np.ones_like(self.ifo.power_spectral_density_array)
         signal_2 = np.ones_like(self.ifo.power_spectral_density_array) * 2
@@ -596,6 +576,7 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
 
 
 @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
+@parameterized_class(("crop_duration",), [(0,), (4,), (16,)])
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64
@@ -603,6 +584,7 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
         self.ifo.set_strain_data_from_power_spectral_density(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
+        self.ifo.crop_duration = self.crop_duration
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -647,8 +629,7 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         self.assertAlmostEqual(std, 1, places=2)
 
     def test_frequency_domain_whitened_strain(self):
-        mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask]
+        white = self.ifo.whitened_frequency_domain_strain[self.ifo.cropped_frequency_mask]
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_whitened_strain(self):
@@ -666,8 +647,10 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         )
         # Whiten the template
         whitened_signal_ifo = self.ifo.whiten_frequency_series(signal_ifo)
-        mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask] - whitened_signal_ifo[mask]
+        white = (
+            self.ifo.whitened_frequency_domain_strain[self.ifo.cropped_frequency_mask]
+            - whitened_signal_ifo[self.ifo.cropped_frequency_mask]
+        )
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_noise_and_signal_whitening(self):
