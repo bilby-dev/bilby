@@ -716,11 +716,8 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         ) / 2
         N = self.Nbs[-1] // 2
         self._delta_tc = self.durations[0] / N
-        self._times = (
-            np.arange(N) * self._delta_tc + (self._beam_pattern_reference_time - self.interferometers.start_time)
-        ) % self.interferometers.duration + self.interferometers.start_time
-        self.time_prior_array = \
-            self.priors['geocent_time'].prob(self._times) * self._delta_tc
+        self._times = self.interferometers.start_time + np.arange(N) * self._delta_tc
+        self.time_prior_array = self.priors['geocent_time'].prob(self._times) * self._delta_tc
         # allocate array which is FFTed at each likelihood evaluation
         self._full_d_h = np.zeros(N, dtype=complex)
         # idxs to convert full frequency points to banded frequency points, used for filling _full_d_h.
