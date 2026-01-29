@@ -616,7 +616,9 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float:
+            The noise-weighted inner product between the passed signal
+            and the data stored in the :code:`Interferometer`.
         """
         whitened_signal = self.whiten_frequency_series(signal)
         whitened_data = self.whitened_frequency_domain_strain
