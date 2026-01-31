@@ -1,9 +1,15 @@
+import importlib
 import pytest
 
 
 def pytest_addoption(parser):
     parser.addoption(
         "--skip-roqs", action="store_true", default=False, help="Skip all tests that require ROQs"
+    )
+    parser.addoption(
+        "--array-backend",
+        default="numpy",
+        help="Which array to use for testing",
     )
 
 
@@ -17,3 +23,35 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "requires_roqs" in item.keywords:
                 item.add_marker(skip_roqs)
+    if config.getoption("--array-backend") is not None:
+        array_only = pytest.mark.skip(reason="Only running backend dependent tests")
+        for item in items:
+            if "array_backend" not in item.keywords:
+                item.add_marker(array_only)
+
+
+def _xp(request):
+    backend = request.config.getoption("--array-backend")
+    match backend:
+        case None | "numpy":
+            import numpy
+            return numpy
+        case "jax" | "jax.numpy":
+            import jax
+            jax.config.update("jax_enable_x64", True)
+            return jax.numpy
+        case _:
+            try:
+                importlib.import_module(backend)
+            except ImportError:
+                raise ValueError(f"Unknown backend for testing: {backend}")
+
+
+@pytest.fixture
+def xp(request):
+    return _xp(request)
+
+
+@pytest.fixture(scope="class")
+def xp_class(request):
+    request.cls.xp = _xp(request)

@@ -6,7 +6,7 @@ from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
-from ...compat.utils import array_module
+from ...compat.utils import array_module, xp_wrap
 
 
 def derivatives(
@@ -154,7 +154,8 @@ def derivatives(
     return grads
 
 
-def logtrapzexp(lnf, dx):
+@xp_wrap
+def logtrapzexp(lnf, dx, *, xp=np):
     """
     Perform trapezium rule integration for the logarithm of a function on a grid.
 
@@ -173,18 +174,23 @@ def logtrapzexp(lnf, dx):
 
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
-    if isinstance(dx, (int, float)):
+    
+    if (
+        isinstance(dx, (int, float)) or
+        (aac.is_array_api_obj(dx) and dx.size == 1)
+    ):
         C = np.log(dx / 2.0)
-    elif isinstance(dx, (list, np.ndarray)):
-        if len(dx) != len(lnf) - 1:
+    elif isinstance(dx, (list, xp.ndarray)):
+        dx = xp.asarray(dx)
+        if dx.size != len(lnf) - 1:
             raise ValueError(
                 "Step size array must have length one less than the function length"
             )
 
-        lndx = np.log(dx)
+        lndx = xp.log(dx)
         lnfdx1 = lnfdx1.copy() + lndx
         lnfdx2 = lnfdx2.copy() + lndx
-        C = -np.log(2.0)
+        C = -xp.log(2.0)
     else:
         raise TypeError("Step size must be a single value or array-like")
 
@@ -235,7 +241,7 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
     def __call__(self, x, y, dx=0, dy=0, grid=False):
-        xp = array_module(x)
+        xp = array_module([x, y])
         if aac.is_numpy_namespace(xp):
             return self._call_scipy(x, y, dx=dx, dy=dy, grid=grid)
         elif aac.is_jax_namespace(xp):
@@ -269,7 +275,7 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
             jnp.asarray(self.x),
             jnp.asarray(self.y),
             jnp.asarray(self.z),
-            extrap=self.fill_value,
+            extrap=self.fill_value if self.fill_value is not None else False,
             method="cubic2",
         )
 
