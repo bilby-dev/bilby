@@ -10,6 +10,7 @@ from .utils import (
     BilbyJsonEncoder, load_json, move_old_file
 )
 from .result import FileMovedError
+from ..compat.utils import array_module
 
 
 def grid_file_name(outdir, label, gzip=False):
@@ -36,8 +37,11 @@ def grid_file_name(outdir, label, gzip=False):
 
 class Grid(object):
 
-    def __init__(self, likelihood=None, priors=None, grid_size=101,
-                 save=False, label='no_label', outdir='.', gzip=False):
+    def __init__(
+        self, likelihood=None, priors=None, grid_size=101,
+        save=False, label='no_label', outdir='.', gzip=False,
+        xp=None,
+    ):
         """
 
         Parameters
@@ -58,7 +62,15 @@ class Grid(object):
             The output directory to which the grid will be saved
         gzip: bool
             Set whether to gzip the output grid file
+        xp: array module | None
+            The array module to use for calculations (e.g., :code:`numpy`,
+            :code:`cupy`). If :code:`None`, defaults to :code:`numpy`.
+
         """
+
+        if xp is None:
+            xp = np
+            logger.debug("No array module given for grid, defaulting to numpy.")
 
         if priors is None:
             priors = dict()
@@ -68,13 +80,15 @@ class Grid(object):
         self.parameter_names = list(self.priors.keys())
 
         self.sample_points = dict()
-        self._get_sample_points(grid_size)
+        self._get_sample_points(grid_size, xp=xp)
         # evaluate the prior on the grid points
         if self.n_dims > 0:
             self._ln_prior = self.priors.ln_prob(
                 {key: self.mesh_grid[i].flatten() for i, key in
                  enumerate(self.parameter_names)}, axis=0).reshape(
                 self.mesh_grid[0].shape)
+        else:
+            self._ln_prior = xp.array(0.0)
         self._ln_likelihood = None
 
         # evaluate the likelihood on the grid points
@@ -97,12 +111,14 @@ class Grid(object):
 
     @property
     def prior(self):
-        return np.exp(self.ln_prior)
+        lnp = self.ln_prior
+        xp = array_module(lnp)
+        return xp.exp(lnp)
 
     @property
     def ln_likelihood(self):
         if self._ln_likelihood is None:
-            self._evaluate()
+            self._evaluate(xp=array_module(self._ln_prior))
         return self._ln_likelihood
 
     @property
@@ -116,7 +132,8 @@ class Grid(object):
         Parameters
         ==========
         log_array: array_like
-            A :class:`numpy.ndarray` of log likelihood/posterior values.
+            A :code:`Python` array-api compatible array of log
+            likelihood/posterior values.
         parameters: list, str
             A list, or single string, of parameters to marginalize over. If None
             then all parameters will be marginalized over.
@@ -166,7 +183,8 @@ class Grid(object):
         Parameters
         ==========
         log_array: array_like
-            A :class:`numpy.ndarray` of log likelihood/posterior values.
+            A :code:`Python` array-api compatible array of log
+            likelihood/posterior values.
         name: str
             The name of the parameter to marginalize over.
         non_marg_names: list
@@ -189,17 +207,19 @@ class Grid(object):
         non_marg_names.remove(name)
 
         places = self.sample_points[name]
+        xp = log_array.__array_namespace__()
+        print(xp)
 
         if len(places) > 1:
-            dx = np.diff(places)
-            out = np.apply_along_axis(
+            dx = xp.diff(places)
+            out = xp.apply_along_axis(
                 logtrapzexp, axis, log_array, dx
             )
         else:
             # no marginalisation required, just remove the singleton dimension
             z = log_array.shape
-            q = np.arange(0, len(z)).astype(int) != axis
-            out = np.reshape(log_array, tuple((np.array(list(z)))[q]))
+            q = xp.arange(0, len(z)).astype(int) != axis
+            out = xp.reshape(log_array, tuple((xp.array(list(z)))[q]))
 
         return out
 
@@ -277,8 +297,9 @@ class Grid(object):
         """
         ln_like = self.marginalize(self.ln_likelihood, parameters=parameters,
                                    not_parameters=not_parameters)
+        xp = ln_like.__array_namespace__()
         # NOTE: the output will not be properly normalised
-        return np.exp(ln_like - np.max(ln_like))
+        return xp.exp(ln_like - xp.max(ln_like))
 
     def marginalize_posterior(self, parameters=None, not_parameters=None):
         """
@@ -301,20 +322,31 @@ class Grid(object):
         ln_post = self.marginalize(self.ln_posterior, parameters=parameters,
                                    not_parameters=not_parameters)
         # NOTE: the output will not be properly normalised
-        return np.exp(ln_post - np.max(ln_post))
+        xp = ln_post.__array_namespace__()
+        return xp.exp(ln_post - xp.max(ln_post))
 
     def _evaluate(self):
-        self._ln_likelihood = np.empty(self.mesh_grid[0].shape)
-        self._evaluate_recursion(0, parameters=dict())
+        xp = self.mesh_grid[0].__array_namespace__()
+        if xp.__name__ == "jax.numpy":
+            from jax import vmap
+            self._ln_likelihood = vmap(self.likelihood.log_likelihood)(
+                {key: self.mesh_grid[i].flatten() for i, key in enumerate(self.parameter_names)}
+            ).reshape(self.mesh_grid[0].shape)
+            print(type(self._ln_likelihood))
+
+        else:
+            self._ln_likelihood = xp.empty(self.mesh_grid[0].shape)
+            self._evaluate_recursion(0, parameters=dict())
         self.ln_noise_evidence = self.likelihood.noise_log_likelihood()
 
     def _evaluate_recursion(self, dimension, parameters):
         if dimension == self.n_dims:
-            current_point = tuple([[int(np.where(
+            xp = self.mesh_grid[0].__array_namespace__()
+            current_point = tuple([[xp.where(
                 parameters[name] ==
-                self.sample_points[name])[0])] for name in self.parameter_names])
-            self._ln_likelihood[current_point] = _safe_likelihood_call(
-                self.likelihood, parameters
+                self.sample_points[name])[0].item()] for name in self.parameter_names])
+            self._ln_likelihood[current_point] = (
+_safe_likelihood_call(self.likelihood, parameters)
             )
         else:
             name = self.parameter_names[dimension]
@@ -322,29 +354,29 @@ class Grid(object):
                 parameters[name] = self.sample_points[name][ii]
                 self._evaluate_recursion(dimension + 1, parameters)
 
-    def _get_sample_points(self, grid_size):
+    def _get_sample_points(self, grid_size, *, xp=np):
         for ii, key in enumerate(self.parameter_names):
             if isinstance(self.priors[key], Prior):
                 if isinstance(grid_size, int):
                     self.sample_points[key] = self.priors[key].rescale(
-                        np.linspace(0, 1, grid_size))
+                        xp.linspace(0, 1, grid_size))
                 elif isinstance(grid_size, list):
                     if isinstance(grid_size[ii], int):
                         self.sample_points[key] = self.priors[key].rescale(
-                            np.linspace(0, 1, grid_size[ii]))
+                            xp.linspace(0, 1, grid_size[ii]))
                     else:
                         self.sample_points[key] = grid_size[ii]
                 elif isinstance(grid_size, dict):
                     if isinstance(grid_size[key], int):
                         self.sample_points[key] = self.priors[key].rescale(
-                            np.linspace(0, 1, grid_size[key]))
+                            xp.linspace(0, 1, grid_size[key]))
                     else:
                         self.sample_points[key] = grid_size[key]
                 else:
                     raise TypeError("Unrecognized 'grid_size' type")
 
         # set the mesh of points
-        self.mesh_grid = np.meshgrid(
+        self.mesh_grid = xp.meshgrid(
             *(self.sample_points[key] for key in self.parameter_names),
             indexing='ij')
 

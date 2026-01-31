@@ -1,30 +1,38 @@
 import unittest
-import numpy as np
 import shutil
 import os
-from scipy.stats import multivariate_normal
+
+import numpy as np
+import pytest
 
 import bilby
+from bilby.compat.patches import multivariate_logpdf
+
+import jax
+from functools import partial
 
 
-# set 2D multivariate Gaussian likelihood
 class MultiGaussian(bilby.Likelihood):
-    def __init__(self, mean, cov):
-        super(MultiGaussian, self).__init__(parameters=dict())
-        self.cov = np.array(cov)
-        self.mean = np.array(mean)
-        self.sigma = np.sqrt(np.diag(self.cov))
-        self.pdf = multivariate_normal(mean=self.mean, cov=self.cov)
+    # set 2D multivariate Gaussian likelihood
+    def __init__(self, mean, cov, *, xp=np):
+        super(MultiGaussian, self).__init__()
+        self.xp = xp
+        self.cov = xp.array(cov)
+        self.mean = xp.array(mean)
+        self.sigma = xp.sqrt(xp.diag(self.cov))
+        self.logpdf = multivariate_logpdf(xp=xp, mean=self.mean, cov=self.cov)
 
     @property
     def dim(self):
         return len(self.cov[0])
 
-    def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
-        return self.pdf.logpdf(x)
+    def log_likelihood(self, parameters):
+        x = self.xp.array([parameters["x{0}".format(i)] for i in range(self.dim)])
+        return self.logpdf(x)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestGrid(unittest.TestCase):
     def setUp(self):
         bilby.core.utils.random.seed(7)
@@ -33,7 +41,7 @@ class TestGrid(unittest.TestCase):
         self.mus = [0.0, 0.0]
         self.cov = [[1.0, 0.0], [0.0, 1.0]]
         dim = len(self.mus)
-        self.likelihood = MultiGaussian(self.mus, self.cov)
+        self.likelihood = MultiGaussian(self.mus, self.cov, xp=self.xp)
 
         # set priors out to +/- 5 sigma
         self.priors = bilby.core.prior.PriorDict()
@@ -61,6 +69,7 @@ class TestGrid(unittest.TestCase):
             grid_size=self.grid_size,
             likelihood=self.likelihood,
             save=True,
+            xp=self.xp,
         )
 
         self.grid = grid
@@ -151,6 +160,7 @@ class TestGrid(unittest.TestCase):
                 grid_size=2.3,
                 likelihood=self.likelihood,
                 save=True,
+                xp=self.xp,
             )
 
     def test_mesh_grid(self):
@@ -165,7 +175,8 @@ class TestGrid(unittest.TestCase):
             outdir="outdir",
             priors=self.priors,
             grid_size=n_points,
-            likelihood=self.likelihood
+            likelihood=self.likelihood,
+            xp=self.xp,
         )
 
         self.assertTupleEqual(tuple(n_points), grid.mesh_grid[0].shape)
@@ -179,7 +190,8 @@ class TestGrid(unittest.TestCase):
             outdir="outdir",
             priors=self.priors,
             grid_size=n_points,
-            likelihood=self.likelihood
+            likelihood=self.likelihood,
+            xp=self.xp,
         )
         self.assertTupleEqual((n_points["x0"], n_points["x1"]), grid.mesh_grid[0].shape)
         self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
@@ -196,6 +208,8 @@ class TestGrid(unittest.TestCase):
             priors=self.priors,
             grid_size=n_points,
             likelihood=self.likelihood,
+            xp=self.xp,
+            vectorized=True,
         )
 
         self.assertTupleEqual((len(x0s), len(x1s)), grid.mesh_grid[0].shape)
