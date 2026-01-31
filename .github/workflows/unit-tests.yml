@@ -58,6 +58,9 @@ jobs:
     - name: Run unit tests
       run: |
         pytest --cov=bilby --durations 10
+    - name: Run jax-backend unit tests
+      run: |
+        pytest --array-backend jax --durations 10
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v
