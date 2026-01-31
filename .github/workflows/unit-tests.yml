@@ -48,6 +48,8 @@ jobs:
     - name: Install package
       run: |
         # activate env so that conda list shows the correct environment
+        apt-get update
+        apt-get install -y gnupg curl
         source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
         python -m pip install .
         conda list --show-channel-urls
@@ -57,10 +59,25 @@ jobs:
     #     pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Run unit tests
       run: |
-        pytest --cov=bilby --durations 10
+        python -m pytest --cov=bilby --cov-branch --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Run jax-backend unit tests
       run: |
         pytest --array-backend jax --durations 10
     - name: Run sampler tests
       run: |
-        pytest test/integration/sampler_run_test.py --durations 10 -v
+        pytest test/integration/sampler_run_test.py --durations 10 -v        
+    - name: Publish coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.xml
+        flags: python${{ matrix.python.short-version }}
+        slug: bilby-dev/bilby
+    - name: Coverage report
+      run: python -m coverage report --show-missing
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-${{ matrix.python.short-version }}
+        path: pytest.xml
