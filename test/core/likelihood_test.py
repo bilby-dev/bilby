@@ -3,6 +3,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
+import array_api_extra as xpx
 
 import bilby.core.likelihood
 from bilby.core.likelihood import (
@@ -223,18 +224,21 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.assertEqual(logl.__array_namespace__(), self.xp)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestStudentTLikelihood(unittest.TestCase):
     def setUp(self):
         self.N = 100
         self.nu = self.N - 2
         self.sigma = 1
-        self.x = np.linspace(0, 1, self.N)
-        self.y = 2 * self.x + 1 + np.random.normal(0, self.sigma, self.N)
+        self.x = self.xp.linspace(0, 1, self.N)
+        self.y = 2 * self.x + 1 + self.xp.array(np.random.normal(0, self.sigma, self.N))
 
         def test_function(x, m, c):
             return m * x + c
 
         self.function = test_function
+        self.parameters = dict(m=self.xp.array(2.0), c=self.xp.array(0.0))
 
     def tearDown(self):
         del self.N
@@ -273,6 +277,11 @@ class TestStudentTLikelihood(unittest.TestCase):
         with self.assertRaises(ValueError):
             likelihood.log_likelihood(parameters)
 
+    def test_setting_nu_positive_does_not_change_class_attribute(self):
+        likelihood = StudentTLikelihood(self.x, self.y, self.function, nu=None)
+        likelihood.nu = 98
+        self.assertEqual(likelihood.nu, 98)
+
     def test_lam(self):
         likelihood = StudentTLikelihood(self.x, self.y, self.function, nu=0, sigma=0.5)
 
@@ -290,25 +299,28 @@ class TestStudentTLikelihood(unittest.TestCase):
         self.assertEqual(expected, repr(likelihood))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestPoissonLikelihood(unittest.TestCase):
     def setUp(self):
         self.N = 100
         self.mu = 5
-        self.x = np.linspace(0, 1, self.N)
-        self.y = np.random.poisson(self.mu, self.N)
-        self.yfloat = np.copy(self.y) * 1.0
-        self.yneg = np.copy(self.y)
-        self.yneg[0] = -1
+        self.x = self.xp.linspace(0, 1, self.N)
+        self.y = self.xp.array(np.random.poisson(self.mu, self.N))
+        self.yfloat = self.y.copy() * 1.0
+        self.yneg = self.y.copy()
+        self.yneg = xpx.at(self.yneg, 0).set(-1)
 
         def test_function(x, c):
             return c
 
         def test_function_array(x, c):
-            return np.ones(len(x)) * c
+            return self.xp.ones(len(x)) * c
 
         self.function = test_function
         self.function_array = test_function_array
         self.poisson_likelihood = PoissonLikelihood(self.x, self.y, self.function)
+        self.bad_parameters = dict(c=self.xp.array(-2.0))
 
     def tearDown(self):
         del self.N
@@ -341,12 +353,12 @@ class TestPoissonLikelihood(unittest.TestCase):
             likelihood.log_likelihood(parameters)
 
     def test_init_y(self):
-        self.assertTrue(np.array_equal(self.y, self.poisson_likelihood.y))
+        self.assertTrue(self.xp.array_equal(self.y, self.poisson_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = np.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(start=0, stop=50, step=2)
         self.poisson_likelihood.y = new_y
-        self.assertTrue(np.array_equal(new_y, self.poisson_likelihood.y))
+        self.assertTrue(self.xp.array_equal(new_y, self.poisson_likelihood.y))
 
     def test_set_y_to_positive_int(self):
         new_y = 5
@@ -371,25 +383,25 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_log_likelihood_negative_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([3, 6, -2])
+            x=self.x, y=self.y, func=lambda x: self.xp.array([3, 6, -2])
         )
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood(dict())
 
     def test_log_likelihood_zero_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([3, 6, 0])
+            x=self.x, y=self.y, func=lambda x: self.xp.array([3, 6, 0])
         )
         self.assertEqual(-np.inf, poisson_likelihood.log_likelihood(dict()))
 
     def test_log_likelihood_dummy(self):
         """ Merely tests if it goes into the right if else bracket """
         poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.linspace(1, 100, self.N)
+            x=self.x, y=self.y, func=lambda x: self.xp.linspace(1, 100, self.N)
         )
-        with mock.patch("array_api_compat.numpy.sum") as m:
+        with mock.patch(f"{self.xp.__name__}.sum") as m:
             m.return_value = 1
-            self.assertEqual(1, poisson_likelihood.log_likelihood(dict()))
+            self.assertEqual(1, poisson_likelihood.log_likelihood(dict(c=5)))
 
     def test_repr(self):
         likelihood = PoissonLikelihood(self.x, self.y, self.function)
@@ -399,26 +411,29 @@ class TestPoissonLikelihood(unittest.TestCase):
         self.assertEqual(expected, repr(likelihood))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestExponentialLikelihood(unittest.TestCase):
     def setUp(self):
         self.N = 100
         self.mu = 5
-        self.x = np.linspace(0, 1, self.N)
-        self.y = np.random.exponential(self.mu, self.N)
-        self.yneg = np.copy(self.y)
-        self.yneg[0] = -1.0
+        self.x = self.xp.linspace(0, 1, self.N)
+        self.y = self.xp.array(np.random.exponential(self.mu, self.N))
+        self.yneg = self.y.copy()
+        self.yneg = xpx.at(self.yneg, 0).set(-1.0)
 
         def test_function(x, c):
             return c
 
         def test_function_array(x, c):
-            return c * np.ones(len(x))
+            return c * self.xp.ones(len(x))
 
         self.function = test_function
         self.function_array = test_function_array
         self.exponential_likelihood = ExponentialLikelihood(
             x=self.x, y=self.y, func=self.function
         )
+        self.bad_parameters = dict(c=self.xp.array(-1.0))
 
     def tearDown(self):
         del self.N
@@ -447,7 +462,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.y, self.exponential_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = np.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(start=0, stop=50, step=2)
         self.exponential_likelihood.y = new_y
         self.assertTrue(np.array_equal(new_y, self.exponential_likelihood.y))
 
@@ -472,14 +487,14 @@ class TestExponentialLikelihood(unittest.TestCase):
 
     def test_set_y_to_nd_array_with_negative_element(self):
         with self.assertRaises(ValueError):
-            self.exponential_likelihood.y = np.array([4.3, -1.2, 4])
+            self.exponential_likelihood.y = self.xp.array([4.3, -1.2, 4])
 
     def test_log_likelihood_default(self):
         """ Merely tests that it ends up at the right place in the code """
         exponential_likelihood = ExponentialLikelihood(
-            x=self.x, y=self.y, func=lambda x: np.array([4.2])
+            x=self.x, y=self.y, func=lambda x: self.xp.array([4.2])
         )
-        with mock.patch("array_api_compat.numpy.sum") as m:
+        with mock.patch(f"{self.xp.__name__}.sum") as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood(dict()))
 
@@ -490,11 +505,17 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.assertEqual(expected, repr(self.exponential_likelihood))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
     def setUp(self):
         self.cov = [[1, 0, 0], [0, 4, 0], [0, 0, 9]]
         self.sigma = [1, 2, 3]
         self.mean = [10, 11, 12]
+        if self.xp != np:
+            self.cov = self.xp.array(self.cov)
+            self.sigma = self.xp.array(self.sigma)
+            self.mean = self.xp.array(self.mean)
         self.likelihood = AnalyticalMultidimensionalCovariantGaussian(
             mean=self.mean, cov=self.cov
         )
@@ -518,16 +539,30 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
         self.assertEqual(3, self.likelihood.dim)
 
     def test_log_likelihood(self):
-        likelihood = AnalyticalMultidimensionalCovariantGaussian(mean=[0], cov=[1])
-        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood(dict(x0=0)))
+        likelihood = AnalyticalMultidimensionalCovariantGaussian(
+            mean=self.xp.array([0]), cov=self.xp.array([1])
+        )
+        logl = likelihood.log_likelihood(dict(x0=self.xp.array(0.0)))
+        self.assertEqual(
+            -np.log(2 * np.pi) / 2,
+            likelihood.log_likelihood(dict(x0=self.xp.array(0.0))),
+        )
+        self.assertEqual(logl.__array_namespace__(), self.xp)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
     def setUp(self):
         self.cov = [[1, 0, 0], [0, 4, 0], [0, 0, 9]]
         self.sigma = [1, 2, 3]
         self.mean_1 = [10, 11, 12]
         self.mean_2 = [20, 21, 22]
+        if self.xp != np:
+            self.cov = self.xp.array(self.cov)
+            self.sigma = self.xp.array(self.sigma)
+            self.mean_1 = self.xp.array(self.mean_1)
+            self.mean_2 = self.xp.array(self.mean_2)
         self.likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
             mean_1=self.mean_1, mean_2=self.mean_2, cov=self.cov
         )
@@ -558,7 +593,10 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
             mean_1=[0], mean_2=[0], cov=[1]
         )
-        self.assertEqual(-np.log(2 * np.pi) / 2, likelihood.log_likelihood(dict(x0=0)))
+        self.assertEqual(
+            -np.log(2 * np.pi) / 2,
+            likelihood.log_likelihood(dict(x0=self.xp.array(0.0))),
+        )
 
 
 class TestJointLikelihood(unittest.TestCase):
