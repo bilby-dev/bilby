@@ -1,3 +1,5 @@
+array_api_compat
+array_api_extra
 dynesty>=2.0.1
 emcee
 corner
@@ -11,4 +13,3 @@ tqdm
 h5py
 attrs
 plum-dispatch
-array_api_compat

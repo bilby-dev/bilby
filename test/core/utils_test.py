@@ -1,6 +1,7 @@
 import unittest
 import os
 
+import array_api_extra as xpx
 import dill
 import numpy as np
 from astropy import constants
@@ -49,35 +50,39 @@ class TestConstants(unittest.TestCase):
         self.assertEqual(bilby.core.utils.gravitational_constant, lal.G_SI)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestFFT(unittest.TestCase):
     def setUp(self):
-        self.sampling_frequency = 10
+        self.sampling_frequency = self.xp.array(10)
 
     def tearDown(self):
         del self.sampling_frequency
 
     def test_nfft_sine_function(self):
-        injected_frequency = 2.7324
-        duration = 100
-        times = utils.create_time_series(self.sampling_frequency, duration)
+        xp = self.xp
+        injected_frequency = xp.array(2.7324)
+        duration = xp.array(100)
+        times = utils.create_time_series(xp.array(self.sampling_frequency), duration)
 
-        time_domain_strain = np.sin(2 * np.pi * times * injected_frequency + 0.4)
+        time_domain_strain = xp.sin(2 * np.pi * times * injected_frequency + 0.4)
 
         frequency_domain_strain, frequencies = bilby.core.utils.nfft(
             time_domain_strain, self.sampling_frequency
         )
-        frequency_at_peak = frequencies[np.argmax(np.abs(frequency_domain_strain))]
+        frequency_at_peak = frequencies[xp.argmax(abs(frequency_domain_strain))]
         self.assertAlmostEqual(injected_frequency, frequency_at_peak, places=1)
 
     def test_nfft_infft(self):
-        time_domain_strain = np.random.normal(0, 1, 10)
+        xp = self.xp
+        time_domain_strain = xp.array(np.random.normal(0, 1, 10))
         frequency_domain_strain, _ = bilby.core.utils.nfft(
             time_domain_strain, self.sampling_frequency
         )
         new_time_domain_strain = bilby.core.utils.infft(
             frequency_domain_strain, self.sampling_frequency
         )
-        self.assertTrue(np.allclose(time_domain_strain, new_time_domain_strain))
+        self.assertTrue(xp.allclose(time_domain_strain, new_time_domain_strain))
 
 
 class TestInferParameters(unittest.TestCase):
@@ -119,11 +124,13 @@ class TestInferParameters(unittest.TestCase):
         self.assertListEqual(expected, actual)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestTimeAndFrequencyArrays(unittest.TestCase):
     def setUp(self):
-        self.start_time = 1.3
-        self.sampling_frequency = 5
-        self.duration = 1.6
+        self.start_time = self.xp.array(1.3)
+        self.sampling_frequency = self.xp.array(5)
+        self.duration = self.xp.array(1.6)
         self.frequency_array = utils.create_frequency_series(
             sampling_frequency=self.sampling_frequency, duration=self.duration
         )
@@ -141,12 +148,13 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         del self.time_array
 
     def test_create_time_array(self):
-        expected_time_array = np.array([1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7])
+        expected_time_array = self.xp.array([1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7])
         time_array = utils.create_time_series(
             sampling_frequency=self.sampling_frequency,
             duration=self.duration,
             starting_time=self.start_time,
         )
+        self.assertEqual(time_array.__array_namespace__(), self.xp)
         self.assertTrue(np.allclose(expected_time_array, time_array))
 
     def test_create_frequency_array(self):
@@ -164,7 +172,7 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
 
     def test_get_sampling_frequency_from_time_array_unequally_sampled(self):
-        self.time_array[-1] += 0.0001
+        self.time_array = xpx.at(self.time_array, -1).set(self.time_array[-1] + 0.0001)
         with self.assertRaises(ValueError):
             _, _ = utils.get_sampling_frequency_and_duration_from_time_array(
                 self.time_array
@@ -190,7 +198,9 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
 
     def test_get_sampling_frequency_from_frequency_array_unequally_sampled(self):
-        self.frequency_array[-1] += 0.0001
+        self.frequency_array = xpx.at(
+            self.frequency_array, -1
+        ).set(self.frequency_array[-1] + 0.0001)
         with self.assertRaises(ValueError):
             _, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(
                 self.frequency_array
@@ -233,34 +243,38 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
     def test_illegal_sampling_frequency_and_duration(self):
         with self.assertRaises(utils.IllegalDurationAndSamplingFrequencyException):
             _ = utils.create_time_series(
-                sampling_frequency=7.7, duration=1.3, starting_time=0
+                sampling_frequency=self.xp.array(7.7),
+                duration=self.xp.array(1.3),
+                starting_time=self.xp.array(0),
             )
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestReflect(unittest.TestCase):
     def test_in_range(self):
-        xprime = np.array([0.1, 0.5, 0.9])
-        x = np.array([0.1, 0.5, 0.9])
+        xprime = self.xp.array([0.1, 0.5, 0.9])
+        x = self.xp.array([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_one_to_two(self):
-        xprime = np.array([1.1, 1.5, 1.9])
-        x = np.array([0.9, 0.5, 0.1])
+        xprime = self.xp.array([1.1, 1.5, 1.9])
+        x = self.xp.array([0.9, 0.5, 0.1])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_two_to_three(self):
-        xprime = np.array([2.1, 2.5, 2.9])
-        x = np.array([0.1, 0.5, 0.9])
+        xprime = self.xp.array([2.1, 2.5, 2.9])
+        x = self.xp.array([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_minus_one_to_zero(self):
-        xprime = np.array([-0.9, -0.5, -0.1])
-        x = np.array([0.9, 0.5, 0.1])
+        xprime = self.xp.array([-0.9, -0.5, -0.1])
+        x = self.xp.array([0.9, 0.5, 0.1])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_minus_two_to_minus_one(self):
-        xprime = np.array([-1.9, -1.5, -1.1])
-        x = np.array([0.1, 0.5, 0.9])
+        xprime = self.xp.array([-1.9, -1.5, -1.1])
+        x = self.xp.array([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
 
@@ -325,6 +339,8 @@ class TestLatexPlotFormat(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.filename))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestUnsortedInterp2d(unittest.TestCase):
     def setUp(self):
         self.xx = np.linspace(0, 1, 10)
@@ -343,36 +359,42 @@ class TestUnsortedInterp2d(unittest.TestCase):
         self.assertIsNone(self.interpolant(-0.5, 0.5))
 
     def test_returns_float_for_float_and_array(self):
-        self.assertIsInstance(self.interpolant(0.5, np.random.random(10)), np.ndarray)
-        self.assertIsInstance(self.interpolant(np.random.random(10), 0.5), np.ndarray)
-        self.assertIsInstance(
-            self.interpolant(np.random.random(10), np.random.random(10)), np.ndarray
+        input_array = self.xp.array(np.random.random(10))
+        self.assertEqual(self.interpolant(input_array, 0.5).__array_namespace__(), self.xp)
+        self.assertEqual(
+            self.interpolant(input_array, input_array).__array_namespace__(), self.xp
         )
+        self.assertEqual(self.interpolant(0.5, input_array).__array_namespace__(), self.xp)
 
     def test_raises_for_mismatched_arrays(self):
         with self.assertRaises(ValueError):
-            self.interpolant(np.random.random(10), np.random.random(20))
+            self.interpolant(
+                self.xp.array(np.random.random(10)),
+                self.xp.array(np.random.random(20)),
+            )
 
     def test_returns_fill_in_correct_place(self):
-        x_data = np.random.random(10)
-        y_data = np.random.random(10)
-        x_data[3] = -1
-        self.assertTrue(np.isnan(self.interpolant(x_data, y_data)[3]))
+        x_data = self.xp.array(np.random.random(10))
+        y_data = self.xp.array(np.random.random(10))
+        x_data = xpx.at(x_data, 3).set(-1)
+        self.assertTrue(self.xp.isnan(self.interpolant(x_data, y_data)[3]))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestTrapeziumRuleIntegration(unittest.TestCase):
     def setUp(self):
-        self.x = np.linspace(0, 1, 100)
-        self.dxs = np.diff(self.x)
+        self.x = self.xp.linspace(0, 1, 100)
+        self.dxs = self.xp.diff(self.x)
         self.dx = self.dxs[0]
         with np.errstate(divide="ignore"):
-            self.lnfunc1 = np.log(self.x)
+            self.lnfunc1 = self.xp.log(self.x)
         self.func1int = (self.x[-1] ** 2 - self.x[0] ** 2) / 2
         with np.errstate(divide="ignore"):
-            self.lnfunc2 = np.log(self.x ** 2)
+            self.lnfunc2 = self.xp.log(self.x ** 2)
         self.func2int = (self.x[-1] ** 3 - self.x[0] ** 3) / 3
 
-        self.irregularx = np.array(
+        self.irregularx = self.xp.array(
             [
                 self.x[0],
                 self.x[12],
@@ -390,9 +412,9 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
             ]
         )
         with np.errstate(divide="ignore"):
-            self.lnfunc1irregular = np.log(self.irregularx)
-            self.lnfunc2irregular = np.log(self.irregularx ** 2)
-        self.irregulardxs = np.diff(self.irregularx)
+            self.lnfunc1irregular = self.xp.log(self.irregularx)
+            self.lnfunc2irregular = self.xp.log(self.irregularx ** 2)
+        self.irregulardxs = self.xp.diff(self.irregularx)
 
     def test_incorrect_step_type(self):
         with self.assertRaises(TypeError):
@@ -407,19 +429,19 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
         res2 = utils.logtrapzexp(self.lnfunc1, self.dxs)
 
         self.assertTrue(np.abs(res1 - res2) < 1e-12)
-        self.assertTrue(np.abs((np.exp(res1) - self.func1int) / self.func1int) < 1e-12)
+        self.assertTrue(np.abs((self.xp.exp(res1) - self.func1int) / self.func1int) < 1e-12)
 
     def test_integral_func2(self):
         res = utils.logtrapzexp(self.lnfunc2, self.dxs)
-        self.assertTrue(np.abs((np.exp(res) - self.func2int) / self.func2int) < 1e-4)
+        self.assertTrue(np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-4)
 
     def test_integral_func1_irregular_steps(self):
         res = utils.logtrapzexp(self.lnfunc1irregular, self.irregulardxs)
-        self.assertTrue(np.abs((np.exp(res) - self.func1int) / self.func1int) < 1e-12)
+        self.assertTrue(np.abs((self.xp.exp(res) - self.func1int) / self.func1int) < 1e-12)
 
     def test_integral_func2_irregular_steps(self):
         res = utils.logtrapzexp(self.lnfunc2irregular, self.irregulardxs)
-        self.assertTrue(np.abs((np.exp(res) - self.func2int) / self.func2int) < 1e-2)
+        self.assertTrue(np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-2)
 
 
 class TestSavingNumpyRandomGenerator(unittest.TestCase):

@@ -1,5 +1,6 @@
 celerite
 george
+parameterized
 plotly
 pytest-requires
 pytest-rerunfailures

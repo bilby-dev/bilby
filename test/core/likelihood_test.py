@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 
 import bilby.core.likelihood
 from bilby.core.likelihood import (
@@ -51,10 +52,12 @@ class TestLikelihoodBase(unittest.TestCase):
         self.assertEqual(self.likelihood.meta_data, meta_data)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestAnalytical1DLikelihood(unittest.TestCase):
     def setUp(self):
-        self.x = np.arange(start=0, stop=100, step=1)
-        self.y = np.arange(start=0, stop=100, step=1)
+        self.x = self.xp.arange(start=0, stop=100, step=1)
+        self.y = self.xp.arange(start=0, stop=100, step=1)
 
         def test_func(x, parameter1, parameter2):
             return parameter1 * x + parameter2
@@ -80,7 +83,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.x, self.analytical_1d_likelihood.x))
 
     def test_set_x_to_array(self):
-        new_x = np.arange(start=0, stop=50, step=2)
+        new_x = self.xp.arange(start=0, stop=50, step=2)
         self.analytical_1d_likelihood.x = new_x
         self.assertTrue(np.array_equal(new_x, self.analytical_1d_likelihood.x))
 
@@ -100,7 +103,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.y, self.analytical_1d_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = np.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(start=0, stop=50, step=2)
         self.analytical_1d_likelihood.y = new_y
         self.assertTrue(np.array_equal(new_y, self.analytical_1d_likelihood.y))
 
@@ -161,17 +164,20 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.assertEqual(expected, repr(self.analytical_1d_likelihood))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestGaussianLikelihood(unittest.TestCase):
     def setUp(self):
         self.N = 100
         self.sigma = 0.1
-        self.x = np.linspace(0, 1, self.N)
-        self.y = 2 * self.x + 1 + np.random.normal(0, self.sigma, self.N)
+        self.x = self.xp.linspace(0, 1, self.N)
+        self.y = 2 * self.x + 1 + self.xp.array(np.random.normal(0, self.sigma, self.N))
 
         def test_function(x, m, c):
             return m * x + c
 
         self.function = test_function
+        self.parameters = dict(m=self.xp.array(2.0), c=self.xp.array(0.0))
 
     def tearDown(self):
         del self.N
@@ -182,34 +188,30 @@ class TestGaussianLikelihood(unittest.TestCase):
 
     def test_known_sigma(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, self.sigma)
-        likelihood.parameters["m"] = 2
-        likelihood.parameters["c"] = 0
-        likelihood.log_likelihood()
+        likelihood.log_likelihood(self.parameters)
         self.assertEqual(likelihood.sigma, self.sigma)
 
     def test_known_array_sigma(self):
         sigma_array = np.ones(self.N) * self.sigma
         likelihood = GaussianLikelihood(self.x, self.y, self.function, sigma_array)
-        likelihood.parameters["m"] = 2
-        likelihood.parameters["c"] = 0
-        likelihood.log_likelihood()
+        likelihood.log_likelihood(self.parameters)
         self.assertTrue(type(likelihood.sigma) == type(sigma_array))  # noqa: E721
         self.assertTrue(all(likelihood.sigma == sigma_array))
 
     def test_set_sigma_None(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, sigma=None)
-        likelihood.parameters["m"] = 2
-        likelihood.parameters["c"] = 0
         self.assertTrue(likelihood.sigma is None)
         with self.assertRaises(TypeError):
-            likelihood.log_likelihood()
+            likelihood.log_likelihood(self.parameters)
 
     def test_sigma_float(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, sigma=None)
         likelihood.parameters["m"] = 2
         likelihood.parameters["c"] = 0
         likelihood.parameters["sigma"] = 1
-        likelihood.log_likelihood()
+        parameters = self.parameters.copy()
+        parameters["sigma"] = 1
+        likelihood.log_likelihood(parameters)
         self.assertEqual(likelihood.sigma, 1)
 
     def test_sigma_other(self):
@@ -223,6 +225,11 @@ class TestGaussianLikelihood(unittest.TestCase):
             self.x, self.y, self.function.__name__, self.sigma
         )
         self.assertEqual(expected, repr(likelihood))
+
+    def test_return_class(self):
+        likelihood = GaussianLikelihood(self.x, self.y, self.function, self.sigma)
+        logl = likelihood.log_likelihood(self.parameters)
+        self.assertEqual(logl.__array_namespace__(), self.xp)
 
 
 class TestStudentTLikelihood(unittest.TestCase):
