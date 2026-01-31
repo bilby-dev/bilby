@@ -174,7 +174,7 @@ def logtrapzexp(lnf, dx, *, xp=np):
 
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
-    
+
     if (
         isinstance(dx, (int, float)) or
         (aac.is_array_api_obj(dx) and dx.size == 1)
