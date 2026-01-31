@@ -62,6 +62,7 @@ jobs:
         python -m pytest --cov=bilby --cov-branch --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Run jax-backend unit tests
       run: |
+        python -m pip install .[jax]
         pytest --array-backend jax --durations 10
     - name: Run sampler tests
       run: |

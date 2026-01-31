@@ -135,11 +135,13 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.dynamic.optional-dependencies]
 all = {file = [
   "gw_requirements.txt",
+  "jax_requirements.txt",
   "mcmc_requirements.txt",
   "sampler_requirements.txt",
   "optional_requirements.txt"
 ]}
 gw = {file = ["gw_requirements.txt"]}
+jax = {file = ["jax_requirements.txt"]}
 mcmc = {file = ["mcmc_requirements.txt"]}
 
 [tool.setuptools.package-data]
