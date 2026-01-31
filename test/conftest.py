@@ -8,7 +8,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--array-backend",
-        default="numpy",
+        default=None,
         help="Which array to use for testing",
     )
 
