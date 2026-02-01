@@ -10,6 +10,7 @@ from astropy import cosmology
 from scipy.stats import ks_2samp
 import matplotlib.pyplot as plt
 import pandas as pd
+import pytest
 
 import bilby
 from bilby.core.prior import Uniform, Constraint
@@ -557,14 +558,16 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
         self.assertEqual(new_prior.name, "comoving_distance")
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestAlignedSpin(unittest.TestCase):
     def setUp(self):
         pass
 
     def test_default_prior_matches_analytic(self):
         prior = bilby.gw.prior.AlignedSpin()
-        chis = np.linspace(-1, 1, 20)
-        analytic = -np.log(np.abs(chis)) / 2
+        chis = self.xp.linspace(-1, 1, 20)
+        analytic = -self.xp.log(self.xp.abs(chis)) / 2
         max_difference = max(abs(analytic - prior.prob(chis)))
         self.assertAlmostEqual(max_difference, 0, 2)
 
@@ -572,12 +575,15 @@ class TestAlignedSpin(unittest.TestCase):
         a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
         z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
         chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
-        chis = chi_prior.sample(100000)
-        alts = a_prior.sample(100000) * z_prior.sample(100000)
+        chis = chi_prior.sample(100000, xp=self.xp)
+        alts = a_prior.sample(100000, xp=self.xp) * z_prior.sample(100000, xp=self.xp)
         self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
         self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
+        self.assertEqual(chis.__array_namespace__(), self.xp)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
 
     def setUp(self):
@@ -588,9 +594,10 @@ class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
         priors["a_1"] = bilby.gw.prior.ConditionalChiUniformSpinMagnitude(
             minimum=0.1, maximum=priors["chi_1"].maximum, name="a_1"
         )
-        samples = priors.sample(100000)["a_1"]
+        samples = priors.sample(100000, xp=self.xp)["a_1"]
         ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
         self.assertTrue(ks.pvalue > 0.001)
+        self.assertEqual(samples.__array_namespace__(), self.xp)
 
 
 if __name__ == "__main__":

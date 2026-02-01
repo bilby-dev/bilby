@@ -209,7 +209,6 @@ class TestGrid(unittest.TestCase):
             grid_size=n_points,
             likelihood=self.likelihood,
             xp=self.xp,
-            vectorized=True,
         )
 
         self.assertTupleEqual((len(x0s), len(x1s)), grid.mesh_grid[0].shape)

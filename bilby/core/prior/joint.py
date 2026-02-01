@@ -1,5 +1,6 @@
 import re
 
+import array_api_extra as xpx
 import numpy as np
 import scipy.stats
 from scipy.special import erfinv
@@ -173,13 +174,14 @@ class BaseJointPriorDist(object):
             kwargs[key.strip()] = arg
         return kwargs
 
-    def prob(self, samp):
+    @xp_wrap
+    def prob(self, samp, *, xp=None):
         """
         Get the probability of a sample. For bounded priors the
         probability will not be properly normalised.
         """
 
-        return np.exp(self.ln_prob(samp))
+        return xp.exp(self.ln_prob(samp, xp=xp))
 
     def _check_samp(self, value):
         """
@@ -217,7 +219,8 @@ class BaseJointPriorDist(object):
                 break
         return samp, outbounds
 
-    def ln_prob(self, value):
+    @xp_wrap
+    def ln_prob(self, value, *, xp=None):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised.
@@ -231,14 +234,12 @@ class BaseJointPriorDist(object):
         """
 
         samp, outbounds = self._check_samp(value)
-        lnprob = -np.inf * np.ones(samp.shape[0])
-        lnprob = self._ln_prob(samp, lnprob, outbounds)
-        if samp.shape[0] == 1:
-            return lnprob[0]
-        else:
-            return lnprob
+        lnprob = -np.inf * xp.ones(samp.shape[0])
+        lnprob = self._ln_prob(samp, lnprob, outbounds, xp=xp)
+        return lnprob[()]
 
-    def _ln_prob(self, samp, lnprob, outbounds):
+    @xp_wrap
+    def _ln_prob(self, samp, lnprob, outbounds, *, xp=None):
         """
         Get the log-probability of a sample. For bounded priors the
         probability will not be properly normalised. **this method needs overwritten by child class**
@@ -262,7 +263,7 @@ class BaseJointPriorDist(object):
         """
         return lnprob
 
-    def sample(self, size=1, **kwargs):
+    def sample(self, size=1, *, xp=np, **kwargs):
         """
         Draw, and set, a sample from the Dist, accompanying method _sample needs to overwritten
 
@@ -274,14 +275,11 @@ class BaseJointPriorDist(object):
 
         if size is None:
             size = 1
-        samps = self._sample(size=size, **kwargs)
+        samps = self._sample(size=size, xp=xp, **kwargs)
         for i, name in enumerate(self.names):
-            if size == 1:
-                self.current_sample[name] = samps[:, i].flatten()[0]
-            else:
-                self.current_sample[name] = samps[:, i].flatten()
+            self.current_sample[name] = samps[:, i].flatten()[()]
 
-    def _sample(self, size, **kwargs):
+    def _sample(self, size, *, xp=np, **kwargs):
         """
         Draw, and set, a sample from the joint dist (**needs to be ovewritten by child class**)
 
@@ -290,14 +288,14 @@ class BaseJointPriorDist(object):
         size: int
             number of samples to generate, defaults to 1
         """
-        samps = np.zeros((size, len(self)))
+        samps = xp.zeros((size, len(self)))
         """
         Here is where the subclass where overwrite sampling method
         """
         return samps
 
     @xp_wrap
-    def rescale(self, value, *, xp=np, **kwargs):
+    def rescale(self, value, *, xp=None, **kwargs):
         """
         Rescale from a unit hypercube to JointPriorDist. Note that no
         bounds are applied in the rescale function. (child classes need to
@@ -614,8 +612,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         )
 
     @xp_wrap
-    def _rescale(self, samp, *, xp=np, **kwargs):
-        print(samp, xp)
+    def _rescale(self, samp, *, xp=None, **kwargs):
         try:
             mode = kwargs["mode"]
         except KeyError:
@@ -630,12 +627,12 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = self.mus[mode] + self.sigmas[mode] * xp.einsum(
+        samp = xp.array(self.mus[mode]) + self.sigmas[mode] * xp.einsum(
             "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
         )
         return samp
 
-    def _sample(self, size, **kwargs):
+    def _sample(self, size, *, xp=np, **kwargs):
         try:
             mode = kwargs["mode"]
         except KeyError:
@@ -677,18 +674,21 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if not outbound:
                     inbound = True
 
-        return samps
+        return xp.array(samps)
 
-    def _ln_prob(self, samp, lnprob, outbounds):
+    @xp_wrap
+    def _ln_prob(self, samp, lnprob, outbounds, *, xp=None):
         for j in range(samp.shape[0]):
             # loop over the modes and sum the probabilities
             for i in range(self.nmodes):
                 # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
                 z = (samp[j] - self.mus[i]) / self.sigmas[i]
-                lnprob[j] = np.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
+                lnprob = xpx.at(lnprob, j).set(
+                    xp.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
+                )
 
         # set out-of-bounds values to -inf
-        lnprob[outbounds] = -np.inf
+        lnprob = xp.where(outbounds, -xp.inf, lnprob)
         return lnprob
 
     def __eq__(self, other):
@@ -783,7 +783,7 @@ class JointPrior(Prior):
         self.dist.bounds[self.name] = (self.dist.bounds[self.name][0], maximum)
 
     @xp_wrap
-    def rescale(self, val, *, xp=np, **kwargs):
+    def rescale(self, val, *, xp=None, **kwargs):
         """
         Scale a unit hypercube sample to the prior.
 
@@ -808,7 +808,7 @@ class JointPrior(Prior):
         else:
             return []  # return empty list
 
-    def sample(self, size=1, **kwargs):
+    def sample(self, size=1, *, xp=np, **kwargs):
         """
         Draw a sample from the prior.
 
@@ -833,7 +833,7 @@ class JointPrior(Prior):
 
         if len(self.dist.current_sample) == 0:
             # generate a sample
-            self.dist.sample(size=size, **kwargs)
+            self.dist.sample(size=size, xp=xp, **kwargs)
 
         sample = self.dist.current_sample[self.name]
 
@@ -846,7 +846,8 @@ class JointPrior(Prior):
         self.least_recently_sampled = sample
         return sample
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=None):
         """
         Return the natural logarithm of the prior probability. Note that this
         will not be correctly normalised if there are bounds on the
@@ -868,25 +869,16 @@ class JointPrior(Prior):
             values = list(self.dist.requested_parameters.values())
 
             # check for the same number of values for each parameter
-            for i in range(len(self.dist) - 1):
-                if isinstance(values[i], (list, np.ndarray)) or isinstance(
-                    values[i + 1], (list, np.ndarray)
-                ):
-                    if isinstance(values[i], (list, np.ndarray)) and isinstance(
-                        values[i + 1], (list, np.ndarray)
-                    ):
-                        if len(values[i]) != len(values[i + 1]):
-                            raise ValueError(
-                                "Each parameter must have the same "
-                                "number of requested values."
-                            )
-                    else:
-                        raise ValueError(
-                            "Each parameter must have the same "
-                            "number of requested values."
-                        )
+            shapes = set()
+            for v in values:
+                shapes.add(xp.array(v).shape)
+            if len(shapes) > 1:
+                raise ValueError(
+                    "Each parameter must have the same "
+                    "number of requested values."
+                )
 
-            lnp = self.dist.ln_prob(np.asarray(values).T)
+            lnp = self.dist.ln_prob(xp.array(values).T)
 
             # reset the requested parameters
             self.dist.reset_request()
@@ -905,9 +897,10 @@ class JointPrior(Prior):
                 if len(val) == 1:
                     return 0.0
                 else:
-                    return np.zeros_like(val)
+                    return xp.zeros_like(val)
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val
 
         Parameters
@@ -921,7 +914,7 @@ class JointPrior(Prior):
             the p value for the prior at given sample
         """
 
-        return np.exp(self.ln_prob(val))
+        return xp.exp(self.ln_prob(val, xp=xp))
 
 
 class MultivariateGaussian(JointPrior):

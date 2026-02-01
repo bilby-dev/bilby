@@ -66,7 +66,8 @@ class Interped(Prior):
             return True
         return False
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val.
 
         Parameters
@@ -79,11 +80,12 @@ class Interped(Prior):
         """
         return self.probability_density(val)[()]
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
         return self.cumulative_distribution(val)[()]
 
     @xp_wrap
-    def rescale(self, val, *, xp=np):
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 

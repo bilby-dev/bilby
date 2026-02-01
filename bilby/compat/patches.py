@@ -1,4 +1,5 @@
 import array_api_compat as aac
+import numpy as np
 
 from .utils import BackendNotImplementedError
 
@@ -35,3 +36,16 @@ def multivariate_logpdf(xp, mean, cov):
     else:
         raise BackendNotImplementedError
     return logpdf
+
+
+def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False, *, xp=None):
+    if xp is None:
+        xp = a.__array_namespace__()
+
+    if "jax" in xp.__name__:
+        # the scipy version of logsumexp cannot be vmapped
+        from jax.scipy.special import logsumexp as lse
+    else:
+        from scipy.special import logsumexp as lse
+
+    return lse(a=a, axis=axis, b=b, keepdims=keepdims, return_sign=return_sign)

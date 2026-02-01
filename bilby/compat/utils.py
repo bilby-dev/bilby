@@ -43,14 +43,39 @@ def promote_to_array(args, backend, skip=None):
     return args
 
 
-def xp_wrap(func):
+def xp_wrap(func, no_xp=False):
+    """
+    A decorator that will figure out the array module from the input
+    arguments and pass it to the function as the 'xp' keyword argument.
 
-    def wrapped(self, *args, **kwargs):
-        if "xp" not in kwargs:
+    Parameters
+    ==========
+    func: function
+        The function to be decorated.
+    no_xp: bool
+        If True, the decorator will not attempt to add the 'xp' keyword
+        argument and so the wrapper is a no-op.
+    
+    Returns
+    =======
+    function
+        The decorated function.
+    """
+
+    def wrapped(self, *args, xp=None, **kwargs):
+        if not no_xp and xp is None:
             try:
-                kwargs["xp"] = array_module(*args)
+                if len(args) > 0:
+                    array_module = array_namespace(*args)
+                elif len(kwargs) > 0:
+                    array_module = array_namespace(*kwargs.values())
+                else:
+                    array_module = np
+                kwargs["xp"] = array_module
             except TypeError:
-                pass
+                kwargs["xp"] = np
+        elif not no_xp:
+            kwargs["xp"] = xp
         return func(self, *args, **kwargs)
 
     return wrapped
