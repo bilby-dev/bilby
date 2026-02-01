@@ -37,7 +37,10 @@ def _xp(request):
             import numpy
             return numpy
         case "jax" | "jax.numpy":
+            import os
             import jax
+
+            os.environ["SCIPY_ARRAY_API"] = "1"
             jax.config.update("jax_enable_x64", True)
             return jax.numpy
         case _:

@@ -16,7 +16,7 @@ from ..utils import (
     BilbyJsonEncoder,
     decode_bilby_json,
 )
-from ...compat.utils import array_module
+from ...compat.utils import array_module, xp_wrap
 
 
 class PriorDict(dict):
@@ -353,7 +353,7 @@ class PriorDict(dict):
         for key in self:
             self.test_redundancy(key)
 
-    def sample(self, size=None):
+    def sample(self, size=None, *, xp=np):
         """Draw samples from the prior set
 
         Parameters
@@ -365,9 +365,9 @@ class PriorDict(dict):
         =======
         dict: Dictionary of the samples
         """
-        return self.sample_subset_constrained(keys=list(self.keys()), size=size)
+        return self.sample_subset_constrained(keys=list(self.keys()), size=size, xp=xp)
 
-    def sample_subset_constrained_as_array(self, keys=iter([]), size=None):
+    def sample_subset_constrained_as_array(self, keys=iter([]), size=None, *, xp=np):
         """Return an array of samples
 
         Parameters
@@ -382,12 +382,12 @@ class PriorDict(dict):
         array: array_like
             An array of shape (len(key), size) of the samples (ordered by keys)
         """
-        samples_dict = self.sample_subset_constrained(keys=keys, size=size)
-        samples_dict = {key: np.atleast_1d(val) for key, val in samples_dict.items()}
+        samples_dict = self.sample_subset_constrained(keys=keys, size=size, xp=xp)
+        samples_dict = {key: xp.atleast_1d(val) for key, val in samples_dict.items()}
         samples_list = [samples_dict[key] for key in keys]
-        return np.array(samples_list)
+        return xp.array(samples_list)
 
-    def sample_subset(self, keys=iter([]), size=None):
+    def sample_subset(self, keys=iter([]), size=None, *, xp=np):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -407,7 +407,7 @@ class PriorDict(dict):
             if isinstance(self[key], Constraint):
                 continue
             elif isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
+                samples[key] = self[key].sample(size=size, xp=xp)
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
@@ -430,7 +430,7 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
-    def sample_subset_constrained(self, keys=iter([]), size=None):
+    def sample_subset_constrained(self, keys=iter([]), size=None, *, xp=np):
         """
         Sample a subset of priors while ensuring constraints are satisfied.
 
@@ -446,7 +446,7 @@ class PriorDict(dict):
         dict: Dictionary of valid samples.
         """
         if not any(isinstance(self[key], Constraint) for key in self):
-            return self.sample_subset(keys=keys, size=size)
+            return self.sample_subset(keys=keys, size=size, xp=xp)
 
         efficiency_warning_was_issued = False
 
@@ -462,7 +462,7 @@ class PriorDict(dict):
         n_tested_samples, n_valid_samples = 0, 0
         if size is None or size == 1:
             while True:
-                sample = self.sample_subset(keys=keys, size=size)
+                sample = self.sample_subset(keys=keys, size=size, xp=xp)
                 is_valid = self.evaluate_constraints(sample)
                 n_tested_samples += 1
                 n_valid_samples += int(is_valid)
@@ -477,17 +477,17 @@ class PriorDict(dict):
             all_samples = {key: np.array([]) for key in keys}
             _first_key = list(all_samples.keys())[0]
             while len(all_samples[_first_key]) < needed:
-                samples = self.sample_subset(keys=keys, size=needed)
+                samples = self.sample_subset(keys=keys, size=needed, xp=xp)
                 keep = np.array(self.evaluate_constraints(samples), dtype=bool)
                 for key in keys:
-                    all_samples[key] = np.hstack(
+                    all_samples[key] = xp.hstack(
                         [all_samples[key], samples[key][keep].flatten()]
                     )
                 n_tested_samples += needed
                 n_valid_samples += np.sum(keep)
                 check_efficiency(n_tested_samples, n_valid_samples)
             all_samples = {
-                key: np.reshape(all_samples[key][:needed], size) for key in keys
+                key: xp.reshape(all_samples[key][:needed], size) for key in keys
             }
             return all_samples
 
@@ -512,15 +512,15 @@ class PriorDict(dict):
             self._cached_normalizations[keys] = factor_rounded
             return factor_rounded
 
-    def _estimate_normalization(self, keys, min_accept, sampling_chunk):
-        samples = self.sample_subset(keys=keys, size=sampling_chunk)
+    def _estimate_normalization(self, keys, min_accept, sampling_chunk, *, xp=np):
+        samples = self.sample_subset(keys=keys, size=sampling_chunk, xp=xp)
         keep = np.atleast_1d(self.evaluate_constraints(samples))
         if len(keep) == 1:
             self._cached_normalizations[keys] = 1
             return 1
         all_samples = {key: np.array([]) for key in keys}
         while np.count_nonzero(keep) < min_accept:
-            samples = self.sample_subset(keys=keys, size=sampling_chunk)
+            samples = self.sample_subset(keys=keys, size=sampling_chunk, xp=xp)
             for key in samples:
                 all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
             keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
@@ -610,7 +610,8 @@ class PriorDict(dict):
                 constrained_ln_prob[in_bounds] = ln_prob[in_bounds] + keep + np.log(ratio)
                 return constrained_ln_prob
 
-    def cdf(self, sample):
+    @xp_wrap
+    def cdf(self, sample, *, xp=None):
         """Evaluate the cumulative distribution function at the provided points
 
         Parameters
@@ -624,10 +625,10 @@ class PriorDict(dict):
 
         """
         return sample.__class__(
-            {key: self[key].cdf(sample) for key, sample in sample.items()}
+            {key: self[key].cdf(sample, xp=xp) for key, sample in sample.items()}
         )
 
-    def rescale(self, keys, theta):
+    def rescale(self, keys, theta, *, xp=None):
         """Rescale samples from unit cube to prior
 
         Parameters
@@ -643,9 +644,10 @@ class PriorDict(dict):
         """
         if isinstance(theta, {}.values().__class__):
             theta = list(theta)
-        xp = array_module(theta)
+        if xp is None:
+            xp = array_module(theta)
 
-        return xp.asarray([self[key].rescale(sample) for key, sample in zip(keys, theta)])
+        return xp.asarray([self[key].rescale(sample, xp=xp) for key, sample in zip(keys, theta)])
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -745,7 +747,7 @@ class ConditionalPriorDict(PriorDict):
                 conditions_resolved = False
         return conditions_resolved
 
-    def sample_subset(self, keys=iter([]), size=None):
+    def sample_subset(self, keys=iter([]), size=None, *, xp=np):
         self.convert_floats_to_delta_functions()
         add_delta_keys = [
             key
@@ -765,7 +767,9 @@ class ConditionalPriorDict(PriorDict):
             if isinstance(self[key], Prior):
                 try:
                     samples[key] = subset_dict[key].sample(
-                        size=size, **subset_dict.get_required_variables(key)
+                        size=size,
+                        xp=xp,
+                        **subset_dict.get_required_variables(key),
                     )
                 except ValueError:
                     # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
@@ -776,7 +780,10 @@ class ConditionalPriorDict(PriorDict):
                         rvars = {
                             key: value[i] for key, value in required_variables.items()
                         }
-                        samples[key][i] = subset_dict[key].sample(**rvars)
+                        samples[key][i] = subset_dict[key].sample(
+                            **rvars,
+                            xp=xp,
+                        )
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
@@ -798,7 +805,8 @@ class ConditionalPriorDict(PriorDict):
             for k in getattr(self[key], "required_variables", [])
         }
 
-    def prob(self, sample, **kwargs):
+    @xp_wrap
+    def prob(self, sample, *, xp=None, **kwargs):
         """
 
         Parameters
@@ -814,9 +822,9 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        xp = array_module(sample.values())
+        print(sample, xp)
         res = xp.asarray([
-            self[key].prob(sample[key], **self.get_required_variables(key))
+            self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
         ])
         prob = xp.prod(res, **kwargs)
@@ -852,10 +860,11 @@ class ConditionalPriorDict(PriorDict):
         # return self.check_ln_prob(sample, ln_prob,
         #                           normalized=normalized)
 
-    def cdf(self, sample):
+    @xp_wrap
+    def cdf(self, sample, *, xp=None):
         self._prepare_evaluation(*zip(*sample.items()))
         res = {
-            key: self[key].cdf(sample[key], **self.get_required_variables(key))
+            key: self[key].cdf(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
         }
         return sample.__class__(res)

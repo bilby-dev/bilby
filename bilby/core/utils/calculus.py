@@ -3,9 +3,9 @@ import math
 import array_api_compat as aac
 import numpy as np
 from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
-from scipy.special import logsumexp
 
 from .log import logger
+from ...compat.patches import logsumexp
 from ...compat.utils import array_module, xp_wrap
 
 

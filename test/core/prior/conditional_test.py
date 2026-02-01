@@ -6,6 +6,7 @@ from unittest import mock
 import numpy as np
 import pandas as pd
 import pickle
+import pytest
 
 import bilby
 
@@ -172,6 +173,8 @@ class TestConditionalPrior(unittest.TestCase):
         self.assertIsNone(prior.boundary)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestConditionalPriorDict(unittest.TestCase):
     def setUp(self):
         def condition_func_1(reference_parameters, var_0):
@@ -208,7 +211,12 @@ class TestConditionalPriorDict(unittest.TestCase):
         self.conditional_priors_manually_set_items = (
             bilby.core.prior.ConditionalPriorDict()
         )
-        self.test_sample = dict(var_0=0.7, var_1=0.6, var_2=0.5, var_3=0.4)
+        self.test_sample = dict(
+            var_0=self.xp.array(0.7),
+            var_1=self.xp.array(0.6),
+            var_2=self.xp.array(0.5),
+            var_3=self.xp.array(0.4),
+        )
         self.test_value = 1 / np.prod([self.test_sample[f"var_{ii}"] for ii in range(3)])
         for key, value in dict(
             var_0=self.prior_0,
@@ -260,12 +268,14 @@ class TestConditionalPriorDict(unittest.TestCase):
         )
 
     def test_prob(self):
-        self.assertEqual(self.test_value, self.conditional_priors.prob(sample=self.test_sample))
+        prob = self.conditional_priors.prob(sample=self.test_sample)
+        self.assertEqual(self.test_value, prob)
+        self.assertEqual(prob.__array_namespace__(), self.xp)
 
     def test_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
-            self.conditional_priors.prob(sample=self.test_sample)
+            self.conditional_priors.prob(sample=self.test_sample, xp=self.xp)
 
     def test_ln_prob(self):
         self.assertEqual(np.log(self.test_value), self.conditional_priors.ln_prob(sample=self.test_sample))
@@ -356,7 +366,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertEqual(np.shape(res), (6,))
-        self.assertListEqual([isinstance(r, float) for r in res], 6 * [True])
+        self.assertEqual(res.__array_namespace__(), self.xp)
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
@@ -447,6 +457,8 @@ class TestConditionalPriorDict(unittest.TestCase):
             prior.sample_subset(["tp"], 1000)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestDirichletPrior(unittest.TestCase):
 
     def setUp(self):
@@ -455,6 +467,10 @@ class TestDirichletPrior(unittest.TestCase):
     def tearDown(self):
         if os.path.isdir("priors"):
             shutil.rmtree("priors")
+
+    def test_samples_correct_type(self):
+        samples = self.priors.sample(10, xp=self.xp)
+        self.assertEqual(samples["dirichlet_1"].__array_namespace__(), self.xp)
 
     def test_samples_sum_to_less_than_one(self):
         """

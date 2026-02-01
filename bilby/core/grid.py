@@ -207,7 +207,6 @@ class Grid(object):
 
         places = self.sample_points[name]
         xp = log_array.__array_namespace__()
-        print(xp)
 
         if len(places) > 1:
             dx = xp.diff(places)

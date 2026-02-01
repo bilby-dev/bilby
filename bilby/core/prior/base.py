@@ -2,7 +2,9 @@ from importlib import import_module
 import json
 import os
 import re
+import warnings
 
+import array_api_compat as aac
 import numpy as np
 import scipy.stats
 
@@ -14,6 +16,7 @@ from ..utils import (
     get_dict_with_properties,
     WrappedInterp1d as interp1d,
 )
+from ...compat.utils import xp_wrap
 
 
 class Prior(object):
@@ -56,6 +59,27 @@ class Prior(object):
         self.least_recently_sampled = None
         self.boundary = boundary
         self._is_fixed = False
+
+    def __init_subclass__(cls):
+        for method_name in ["prob", "ln_prob", "rescale", "cdf", "sample"]:
+            method = getattr(cls, method_name, None)
+            if method is not None:
+                from inspect import signature
+
+                sig = signature(method)
+                if "xp" not in sig.parameters:
+                    warnings.warn(
+                        f"The method {method_name} of the prior class "
+                        f"{cls.__name__} does not accept an 'xp' keyword "
+                        "argument. This may cause some behaviour to fail. "
+                        "Please see the bilby documentation for more "
+                        "information: https://bilby-dev.github.io/bilby/"
+                        "array_api.html"
+                        f" {sig}",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                    setattr(cls, method_name, xp_wrap(method, no_xp=True))
 
     def __call__(self):
         """Overrides the __call__ special method. Calls the sample method.
@@ -106,7 +130,7 @@ class Prior(object):
         for key in this_dict:
             if key == "least_recently_sampled":
                 continue
-            if isinstance(this_dict[key], np.ndarray):
+            if aac.is_array_api_obj(this_dict[key]):
                 if not np.array_equal(this_dict[key], other_dict[key]):
                     return False
             elif isinstance(this_dict[key], type(scipy.stats.beta(1., 1.))):
@@ -116,7 +140,7 @@ class Prior(object):
                     return False
         return True
 
-    def sample(self, size=None):
+    def sample(self, size=None, *, xp=np):
         """Draw a sample from the prior
 
         Parameters
@@ -131,10 +155,12 @@ class Prior(object):
         """
         from ..utils import random
 
-        self.least_recently_sampled = self.rescale(random.rng.uniform(0, 1, size))
+        self.least_recently_sampled = self.rescale(
+            xp.array(random.rng.uniform(0, 1, size))
+        )
         return self.least_recently_sampled
 
-    def rescale(self, val):
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 
@@ -152,7 +178,7 @@ class Prior(object):
         """
         return None
 
-    def prob(self, val):
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val, this should be overwritten
 
         Parameters
@@ -166,24 +192,22 @@ class Prior(object):
         """
         return np.nan
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
         """ Generic method to calculate CDF, can be overwritten in subclass """
         from scipy.integrate import cumulative_trapezoid
         if np.any(np.isinf([self.minimum, self.maximum])):
             raise ValueError(
                 "Unable to use the generic CDF calculation for priors with"
                 "infinite support")
-        x = np.linspace(self.minimum, self.maximum, 1000)
-        pdf = self.prob(x)
+        x = xp.linspace(self.minimum, self.maximum, 1000)
+        pdf = self.prob(x, xp=xp)
         cdf = cumulative_trapezoid(pdf, x, initial=0)
-        interp = interp1d(x, cdf, assume_sorted=True, bounds_error=False,
-                          fill_value=(0, 1))
-        output = interp(val)
-        if isinstance(val, (int, float)):
-            output = float(output)
-        return output
+        output = xp.interp(val, x, cdf / cdf[-1], left=0, right=1)
+        return output[()]
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=None):
         """Return the prior ln probability of val, this should be overwritten
 
         Parameters
@@ -196,7 +220,7 @@ class Prior(object):
 
         """
         with np.errstate(divide='ignore'):
-            return np.log(self.prob(val))
+            return xp.log(self.prob(val, xp=xp))
 
     def is_in_prior_range(self, val):
         """Returns True if val is in the prior boundaries, zero otherwise
@@ -473,7 +497,7 @@ class Constraint(Prior):
                                          latex_label=latex_label, unit=unit)
         self._is_fixed = True
 
-    def prob(self, val):
+    def prob(self, val, *, xp=None):
         return (val > self.minimum) & (val < self.maximum)
 
 

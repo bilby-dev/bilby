@@ -73,7 +73,7 @@ class SlabSpikePrior(Prior):
         return float(self.slab.cdf(self.spike_location)) * self.slab_fraction
 
     @xp_wrap
-    def rescale(self, val, *, xp=np):
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 
@@ -93,15 +93,20 @@ class SlabSpikePrior(Prior):
         )
         higher_indices = val >= (self.inverse_cdf_below_spike + self.spike_height)
 
-        slab_scaled = self._contracted_rescale(val - self.spike_height * higher_indices)
+        slab_scaled = self._contracted_rescale(
+            val - self.spike_height * higher_indices, xp=xp
+        )
+        print(type(slab_scaled))
 
         res = xp.select(
             [lower_indices | higher_indices, intermediate_indices],
             [slab_scaled, self.spike_location],
         )
+        print(type(res))
         return res
 
-    def _contracted_rescale(self, val):
+    @xp_wrap
+    def _contracted_rescale(self, val, *, xp=None):
         """
         Contracted version of the rescale function that implements the `rescale` function
         on the pure slab part of the prior.
@@ -115,10 +120,10 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Associated prior value with input value.
         """
-        return self.slab.rescale(val / self.slab_fraction)
+        return self.slab.rescale(val / self.slab_fraction, xp=xp)
 
     @xp_wrap
-    def prob(self, val, *, xp=np):
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val.
         Returns np.inf for the spike location
 
@@ -136,7 +141,7 @@ class SlabSpikePrior(Prior):
         return res
 
     @xp_wrap
-    def ln_prob(self, val, *, xp=np):
+    def ln_prob(self, val, *, xp=None):
         """Return the Log prior probability of val.
         Returns np.inf for the spike location
 
@@ -153,7 +158,8 @@ class SlabSpikePrior(Prior):
             res += xp.nan_to_num(xp.inf * (val == self.spike_location), posinf=xp.inf)
         return res
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
         """ Return the CDF of the prior.
         This calls to the slab CDF and adds a discrete step
         at the spike location.
@@ -167,6 +173,6 @@ class SlabSpikePrior(Prior):
         array_like: CDF value of val
 
         """
-        res = self.slab.cdf(val) * self.slab_fraction
+        res = self.slab.cdf(val, xp=xp) * self.slab_fraction
         res += (val > self.spike_location) * self.spike_height
         return res
