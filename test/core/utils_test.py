@@ -361,11 +361,11 @@ class TestUnsortedInterp2d(unittest.TestCase):
 
     def test_returns_float_for_float_and_array(self):
         input_array = self.xp.asarray(np.random.random(10))
-        aac.get_namespace(self.assertEqual(self.interpolant(input_array, 0.5)), self.xp)
-        aac.get_namespace(self.assertEqual(
+        self.assertEqual(aac.get_namespace(self.interpolant(input_array, 0.5)), self.xp)
+        self.assertEqual(aac.get_namespace(
             self.interpolant(input_array, input_array)), self.xp
         )
-        aac.get_namespace(self.assertEqual(self.interpolant(0.5, input_array)), self.xp)
+        self.assertEqual(aac.get_namespace(self.interpolant(0.5, input_array)), self.xp)
 
     def test_raises_for_mismatched_arrays(self):
         with self.assertRaises(ValueError):

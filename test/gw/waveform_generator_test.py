@@ -126,12 +126,11 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 
     def test_duration(self):
         self.assertEqual(self.waveform_generator.duration, 1)
-        self.assertEqual(self.waveform_generator.aac.get_namespace(duration), self.xp)
+        self.assertEqual(aac.get_namespace(self.waveform_generator.duration), self.xp)
 
     def test_sampling_frequency(self):
         self.assertEqual(self.waveform_generator.sampling_frequency, 4096)
-        self.assertEqual(self.waveform_generator.aac.get_namespace(sampling_frequency), self.xp)
-
+        self.assertEqual(aac.get_namespace(self.waveform_generator.sampling_frequency), self.xp)
     def test_source_model(self):
         self.assertEqual(
             self.waveform_generator.frequency_domain_source_model,
