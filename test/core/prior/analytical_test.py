@@ -201,7 +201,6 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
             self.assertAlmostEqual(case / N, categorical_prior.prob(i), places=int(np.log10(np.sqrt(N))))
             self.assertAlmostEqual(case / N, weights[i] / np.sum(weights), places=int(np.log10(np.sqrt(N))))
         self.assertEqual(cases, N)
-        
 
     def test_single_probability(self):
         N = 3
