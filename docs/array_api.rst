@@ -40,7 +40,7 @@ Basic Prior Usage (Automatic Detection)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The array backend is automatically detected from your input arrays. You typically don't need 
-to specify the ``xp`` parameter::
+to specify the ``xp`` parameter:
 
 .. code-block:: python
 
@@ -62,7 +62,7 @@ Sampling with Array Backends (Explicit xp Required)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When sampling from priors, you **must** explicitly specify the array backend using the ``xp`` parameter, 
-as there's no input array to infer the backend from::
+as there's no input array to infer the backend from:
 
 .. code-block:: python
 
@@ -84,7 +84,7 @@ as there's no input array to infer the backend from::
 Prior Dictionaries
 ~~~~~~~~~~~~~~~~~~
 
-Prior dictionaries work the same way - automatic detection for most methods, explicit ``xp`` for sampling::
+Prior dictionaries work the same way - automatic detection for most methods, explicit ``xp`` for sampling:
 
 .. code-block:: python
 
@@ -237,12 +237,14 @@ Performance Considerations
 3. Avoid mixing array types in the same computation
 4. For JAX, consider using ``jax.jit`` for repeated computations
 5. Profile your code to ensure the chosen backend provides benefits
+6. If you find :code:`xp_wrap` is a bottleneck in your code, you can explicitly pass
+   :code:`xp` to the function/method to skip the automatic backend detection step.
 
 Bilby and JIT compilation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, Bilby functions are not JIT-compiled by default.
-Additionally, many Bilby types are not defined as :code:`JAX`` :code:`PyTrees`,
+Additionally, many Bilby types are not defined as :code:`JAX` :code:`PyTrees`,
 and so cannot be passed as arguments to JIT-compiled functions.
 We plan to support JIT-compilation for at least some Bilby types in future releases.
 
@@ -254,9 +256,9 @@ When creating custom priors, ensure they support the Array API:
 Example Implementation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Always include the ``xp`` parameter with a default value::
+Always include the ``xp`` parameter with a default value:
 
-... code-block:: python
+.. code-block:: python
 
     from bilby.core.prior import Prior
     
@@ -286,7 +288,7 @@ it will be automatically inferred from their input arrays. They only need to spe
 Using the :code:`xp_wrap`` Decorator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For methods that perform array operations, use the ``@xp_wrap`` decorator::
+For methods that perform array operations, use the ``@xp_wrap`` decorator:
 
 .. code-block:: python
 
@@ -334,7 +336,7 @@ Method Signature Pattern
 
 All array-processing methods in prior classes follow this pattern:
 
-**For methods with @xp_wrap decorator**::
+**For methods with @xp_wrap decorator**:
 
 .. code-block:: python
 
@@ -343,7 +345,7 @@ All array-processing methods in prior classes follow this pattern:
         """Method that uses xp for array operations."""
         return xp.some_operation(val) * self.is_in_prior_range(val)
 
-**For methods without @xp_wrap (that use xp directly)**::
+**For methods without @xp_wrap (that use xp directly)**:
 
 .. code-block:: python
 
@@ -367,9 +369,9 @@ Located in ``bilby/compat/utils.py``, this decorator:
 2. **Provides the appropriate xp** when ``xp=None``
 3. **Maintains backward compatibility** with code that doesn't pass ``xp``
 
-Example implementation pattern::
+Example implementation pattern:
 
-... code-block:: python
+.. code-block:: python
 
     from bilby.compat.utils import xp_wrap
     
@@ -388,7 +390,9 @@ Test Structure
 ~~~~~~~~~~~~~~
 
 When appropriate, tests should verify functionality across different
-backends using the ``array_backend`` marker::
+backends using the ``array_backend`` marker:
+
+.. code-block:: python
 
     @pytest.mark.array_backend
     @pytest.mark.usefixtures("xp_class")
@@ -473,7 +477,7 @@ The ``array_api_extra.at`` function provides a unified interface for array updat
 Usage Examples
 ~~~~~~~~~~~~~~
 
-**Conditional update**::
+**Conditional update**:
 
 .. code-block:: python
 
@@ -486,7 +490,7 @@ Usage Examples
         arr = xpx.at(arr)[mask].set(value)
         return arr
 
-**Increment operation**::
+**Increment operation**:
 
 .. code-block:: python
 
@@ -513,7 +517,7 @@ Important Notes
 
 1. **Return value**: Always use the returned array. The operation may create a new array (JAX) or modify in-place (NumPy).
 
-2. **Import**: Import ``array_api_extra`` at the module level::
+2. **Import**: Import ``array_api_extra`` at the module level:
 
 .. code-block:: python
 
