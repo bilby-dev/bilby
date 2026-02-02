@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 
@@ -188,7 +189,7 @@ class TestPriorSubclassWithoutXpWarning(unittest.TestCase):
             prior = CustomPriorWithoutXp(name="custom_prior")
             import jax.numpy as jnp
             rescaled = prior.rescale(jnp.array([0.1, 0.2, 3]))
-            self.assertEqual(rescaled.__array_namespace__(), jnp)
+            self.assertEqual(aac.get_namespace(rescaled), jnp)
 
 
 if __name__ == "__main__":

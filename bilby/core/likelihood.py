@@ -1,5 +1,6 @@
 import copy
 
+import array_api_compat as aac
 import numpy as np
 from array_api_compat import is_array_api_obj
 from scipy.special import gammaln, xlogy
@@ -260,7 +261,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
             raise ValueError(
                 "Poisson rate function returns wrong value type! "
                 "Is {} when it should be numpy.ndarray".format(type(rate)))
-        xp = rate.__array_namespace__()
+        xp = aac.get_namespace(rate)
         if xp.any(rate < 0.):
             raise ValueError(("Poisson rate function returns a negative",
                               " value!"))
@@ -281,7 +282,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
     def y(self, y):
         if not is_array_api_obj(y):
             y = np.atleast_1d(y)
-        xp = y.__array_namespace__()
+        xp = aac.get_namespace(y)
         # check array is a non-negative integer array
         if y.dtype.kind not in 'ui' or xp.any(y < 0):
             raise ValueError("Data must be non-negative integers")
@@ -309,7 +310,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters):
         mu = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
-        xp = mu.__array_namespace__()
+        xp = aac.get_namespace(mu)
         if xp.any(mu < 0.):
             return -np.inf
         return -xp.sum(xp.log(mu) + (self.y / mu))
@@ -326,7 +327,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
     def y(self, y):
         if not is_array_api_obj(y):
             y = np.atleast_1d(y)
-        xp = y.__array_namespace__()
+        xp = aac.get_namespace(y)
         if xp.any(y < 0):
             raise ValueError("Data must be non-negative")
         self._y = y
@@ -497,7 +498,7 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
 
     def log_likelihood(self, parameters):
         xp = array_module(self.cov)
-        x = xp.array([parameters["x{0}".format(i)] for i in range(self.dim)])
+        x = xp.asarray([parameters["x{0}".format(i)] for i in range(self.dim)])
         return self.logpdf(x)
 
 
@@ -536,7 +537,7 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
 
     def log_likelihood(self, parameters):
         xp = array_module(self.cov)
-        x = xp.array([parameters["x{0}".format(i)] for i in range(self.dim)])
+        x = xp.asarray([parameters["x{0}".format(i)] for i in range(self.dim)])
         return -xp.log(2) + xp.logaddexp(self.logpdf_1(x), self.logpdf_2(x))
 
 

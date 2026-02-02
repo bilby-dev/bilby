@@ -30,7 +30,7 @@ def multivariate_logpdf(xp, mean, cov):
     elif aac.is_torch_namespace(xp):
         from torch.distributions.multivariate_normal import MultivariateNormal
 
-        mvn = MultivariateNormal(loc=mean, covariance_matrix=xp.array(cov))
+        mvn = MultivariateNormal(loc=mean, covariance_matrix=xp.asarray(cov))
         logpdf = mvn.log_prob
     else:
         raise BackendNotImplementedError
@@ -39,7 +39,7 @@ def multivariate_logpdf(xp, mean, cov):
 
 def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False, *, xp=None):
     if xp is None:
-        xp = a.__array_namespace__()
+        xp = aac.get_namespace(a)
 
     if "jax" in xp.__name__:
         # the scipy version of logsumexp cannot be vmapped

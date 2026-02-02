@@ -30,7 +30,7 @@ class TestJson(unittest.TestCase):
         self.assertTrue(np.all(data["x"] == decoded["x"]))
 
     def test_array_encoding(self):
-        data = dict(x=self.xp.array([1, 2, 3.4]))
+        data = dict(x=self.xp.asarray([1, 2, 3.4]))
         encoded = json.dumps(data, cls=self.encoder)
         decoded = json.loads(encoded, object_hook=self.decoder)
         self.assertEqual(data.keys(), decoded.keys())

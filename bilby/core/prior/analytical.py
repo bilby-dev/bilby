@@ -1441,7 +1441,7 @@ class WeightedDiscreteValues(Prior):
 
         xp = array_module(values)
         nvalues = len(values)
-        values = xp.array(values)
+        values = xp.asarray(values)
         if values.shape != (nvalues,):
             raise ValueError(
                 f"Shape of argument 'values' must be 1d array-like but has shape {values.shape}"
@@ -1461,7 +1461,7 @@ class WeightedDiscreteValues(Prior):
         self.values = self._values_array.tolist()
 
         weights = (
-            xp.array(weights) / xp.sum(weights)
+            xp.asarray(weights) / xp.sum(weights)
             if weights is not None
             else xp.ones(self.nvalues) / self.nvalues
         )
@@ -1497,7 +1497,7 @@ class WeightedDiscreteValues(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        index = xp.searchsorted(self._cumulative_weights_array[1:], val)
+        index = xp.searchsorted(xp.asarray(self._cumulative_weights_array[1:]), val)
         return xp.asarray(self._values_array)[index]
 
     @xp_wrap
@@ -1512,7 +1512,7 @@ class WeightedDiscreteValues(Prior):
         =======
         float: cumulative prior probability of val
         """
-        index = xp.searchsorted(self._values_array, val, side="right")
+        index = xp.searchsorted(xp.asarray(self._values_array), val, side="right")
         return xp.asarray(self._cumulative_weights_array)[index]
 
     @xp_wrap
@@ -1527,9 +1527,13 @@ class WeightedDiscreteValues(Prior):
         =======
         float: Prior probability of val
         """
-        index = xp.searchsorted(self._values_array, val)
+        index = xp.searchsorted(xp.asarray(self._values_array), val)
         index = xp.clip(index, 0, self.nvalues - 1)
-        p = xp.where(self._values_array[index] == val, self._weights_array[index], 0)
+        p = xp.where(
+            xp.asarray(self._values_array[index])== val,
+            xp.asarray(self._weights_array[index]),
+            xp.asarray(0.0),
+        )
         # turn 0d numpy array to scalar
         return p[()]
 
@@ -1546,10 +1550,12 @@ class WeightedDiscreteValues(Prior):
         float:
 
         """
-        index = xp.searchsorted(self._values_array, val)
+        index = xp.searchsorted(xp.asarray(self._values_array), val)
         index = xp.clip(index, 0, self.nvalues - 1)
         lnp = xp.where(
-            self._values_array[index] == val, self._lnweights_array[index], -np.inf
+            xp.asarray(self._values_array[index]) == val,
+            xp.asarray(self._lnweights_array[index]),
+            -np.inf,
         )
         # turn 0d array to scalar
         return lnp[()]

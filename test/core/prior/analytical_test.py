@@ -1,5 +1,6 @@
 import unittest
 
+import array_api_compat as aac
 import bilby
 import numpy as np
 import pytest
@@ -38,23 +39,23 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         N = 3
         values = [1.1, 2.2, 300.0]
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(1.1)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(2.2)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(300.0)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(0.5)), 0)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(200)), 0)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(1.1)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(2.2)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(300.0)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(0.5)), 0)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(200)), 0)
 
     def test_single_probability_unsorted(self):
         N = 3
         values = [1.1, 300, 2.2]
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(1.1)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(2.2)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(300.0)), 1 / N)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(0.5)), 0)
-        self.assertEqual(discrete_value_prior.prob(self.xp.array(200)), 0)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(1.1)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(2.2)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(300.0)), 1 / N)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(0.5)), 0)
+        self.assertEqual(discrete_value_prior.prob(self.xp.asarray(200)), 0)
         self.assertEqual(
-            discrete_value_prior.prob(self.xp.array(0.5)).__array_namespace__(),
+            aac.get_namespace(discrete_value_prior.prob(self.xp.asarray(0.5))),
             self.xp,
         )
 
@@ -64,7 +65,7 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
         self.assertTrue(
             np.all(
-                discrete_value_prior.prob(self.xp.array([1.1, 2.2, 2.2, 300.0, 200.0]))
+                discrete_value_prior.prob(self.xp.asarray([1.1, 2.2, 2.2, 300.0, 200.0]))
                 == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
             )
         )
@@ -73,12 +74,12 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         N = 3
         values = [1.1, 2.2, 300.0]
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
-        self.assertEqual(discrete_value_prior.ln_prob(self.xp.array(1.1)), -np.log(N))
-        self.assertEqual(discrete_value_prior.ln_prob(self.xp.array(2.2)), -np.log(N))
-        self.assertEqual(discrete_value_prior.ln_prob(self.xp.array(300)), -np.log(N))
-        self.assertEqual(discrete_value_prior.ln_prob(self.xp.array(150)), -np.inf)
+        self.assertEqual(discrete_value_prior.ln_prob(self.xp.asarray(1.1)), -np.log(N))
+        self.assertEqual(discrete_value_prior.ln_prob(self.xp.asarray(2.2)), -np.log(N))
+        self.assertEqual(discrete_value_prior.ln_prob(self.xp.asarray(300)), -np.log(N))
+        self.assertEqual(discrete_value_prior.ln_prob(self.xp.asarray(150)), -np.inf)
         self.assertEqual(
-            discrete_value_prior.ln_prob(self.xp.array(0.5)).__array_namespace__(),
+            aac.get_namespace(discrete_value_prior.ln_prob(self.xp.asarray(0.5))),
             self.xp,
         )
 
@@ -88,7 +89,7 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
         self.assertTrue(
             np.all(
-                discrete_value_prior.ln_prob(self.xp.array([1.1, 2.2, 2.2, 300, 150]))
+                discrete_value_prior.ln_prob(self.xp.asarray([1.1, 2.2, 2.2, 300, 150]))
                 == np.array([-np.log(N), -np.log(N), -np.log(N), -np.log(N), -np.inf])
             )
         )
@@ -111,6 +112,8 @@ class TestCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.Categorical(ncat)
         N = 100000
         s = categorical_prior.sample(N, xp=self.xp)
+        self.assertEqual(aac.get_namespace(s), self.xp)
+        s = np.asarray(s)
         zeros = np.sum(s == 0)
         ones = np.sum(s == 1)
         twos = np.sum(s == 2)
@@ -120,46 +123,48 @@ class TestCategoricalPrior(unittest.TestCase):
         self.assertAlmostEqual(ones / N, 1 / ncat, places=int(np.log10(np.sqrt(N))))
         self.assertAlmostEqual(twos / N, 1 / ncat, places=int(np.log10(np.sqrt(N))))
         self.assertAlmostEqual(threes / N, 1 / ncat, places=int(np.log10(np.sqrt(N))))
-        self.assertEqual(s.__array_namespace__(), self.xp)
 
     def test_single_probability(self):
         N = 3
         categorical_prior = bilby.core.prior.Categorical(N)
-        self.assertEqual(categorical_prior.prob(self.xp.array(0)), 1 / N)
-        self.assertEqual(categorical_prior.prob(self.xp.array(1)), 1 / N)
-        self.assertEqual(categorical_prior.prob(self.xp.array(2)), 1 / N)
-        self.assertEqual(categorical_prior.prob(self.xp.array(0.5)), 0)
+        self.assertEqual(categorical_prior.prob(self.xp.asarray(0)), 1 / N)
+        self.assertEqual(categorical_prior.prob(self.xp.asarray(1)), 1 / N)
+        self.assertEqual(categorical_prior.prob(self.xp.asarray(2)), 1 / N)
+        self.assertEqual(categorical_prior.prob(self.xp.asarray(0.5)), 0)
         self.assertEqual(
-            categorical_prior.prob(self.xp.array(0.5)).__array_namespace__(),
+            aac.get_namespace(categorical_prior.prob(self.xp.asarray(0.5))),
             self.xp,
         )
 
     def test_array_probability(self):
         N = 3
         categorical_prior = bilby.core.prior.Categorical(N)
+        probs = categorical_prior.prob(self.xp.asarray([0, 1, 1, 2, 3]))
+        self.assertEqual(aac.get_namespace(probs), self.xp)
+
         self.assertTrue(np.all(
-            categorical_prior.prob(self.xp.array([0, 1, 1, 2, 3]))
-            == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
+            np.asarray(probs) == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
         ))
 
     def test_single_lnprobability(self):
         N = 3
         categorical_prior = bilby.core.prior.Categorical(N)
-        self.assertEqual(categorical_prior.ln_prob(self.xp.array(0)), -np.log(N))
-        self.assertEqual(categorical_prior.ln_prob(self.xp.array(1)), -np.log(N))
-        self.assertEqual(categorical_prior.ln_prob(self.xp.array(2)), -np.log(N))
-        self.assertEqual(categorical_prior.ln_prob(self.xp.array(0.5)), -np.inf)
+        self.assertEqual(categorical_prior.ln_prob(self.xp.asarray(0)), -np.log(N))
+        self.assertEqual(categorical_prior.ln_prob(self.xp.asarray(1)), -np.log(N))
+        self.assertEqual(categorical_prior.ln_prob(self.xp.asarray(2)), -np.log(N))
+        self.assertEqual(categorical_prior.ln_prob(self.xp.asarray(0.5)), -np.inf)
         self.assertEqual(
-            categorical_prior.ln_prob(self.xp.array(0.5)).__array_namespace__(),
+            aac.get_namespace(categorical_prior.ln_prob(self.xp.asarray(0.5))),
             self.xp,
         )
 
     def test_array_lnprobability(self):
         N = 3
         categorical_prior = bilby.core.prior.Categorical(N)
+        ln_prob = categorical_prior.ln_prob(self.xp.asarray([0, 1, 1, 2, 3]))
+        self.assertEqual(aac.get_namespace(ln_prob), self.xp)
         self.assertTrue(np.all(
-            categorical_prior.ln_prob(self.xp.array([0, 1, 1, 2, 3]))
-            == np.array([-np.log(N), -np.log(N), -np.log(N), -np.log(N), -np.inf])
+            np.asarray(ln_prob) == np.array([-np.log(N)] * 4 + [-np.inf])
         ))
 
 
@@ -187,48 +192,50 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.WeightedCategorical(ncat, weights=weights)
         N = 100000
         s = categorical_prior.sample(N, xp=self.xp)
+        self.assertEqual(aac.get_namespace(s), self.xp)
+        s = np.asarray(s)
         cases = 0
-        for i in self.xp.array(categorical_prior.values):
+        for i in categorical_prior.values:
             case = np.sum(s == i)
             cases += case
             self.assertAlmostEqual(case / N, categorical_prior.prob(i), places=int(np.log10(np.sqrt(N))))
             self.assertAlmostEqual(case / N, weights[i] / np.sum(weights), places=int(np.log10(np.sqrt(N))))
         self.assertEqual(cases, N)
-        self.assertEqual(s.__array_namespace__(), self.xp)
+        
 
     def test_single_probability(self):
         N = 3
         weights = np.arange(1, N + 1)
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
-        for i in self.xp.array(categorical_prior.values):
+        for i in self.xp.asarray(categorical_prior.values):
             self.assertEqual(categorical_prior.prob(i), weights[i] / np.sum(weights))
-        prob = categorical_prior.prob(self.xp.array(0.5))
+        prob = categorical_prior.prob(self.xp.asarray(0.5))
         self.assertEqual(prob, 0)
-        self.assertEqual(prob.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
 
     def test_array_probability(self):
         N = 3
-        test_cases = self.xp.array([0, 1, 1, 2, 3])
+        test_cases = self.xp.asarray([0, 1, 1, 2, 3])
         weights = np.arange(1, N + 1)
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
         probs = np.arange(1, N + 2) / np.sum(weights)
         probs[-1] = 0
         new = categorical_prior.prob(test_cases)
-        self.assertTrue(np.all(new == probs[test_cases]))
-        self.assertEqual(new.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(new), self.xp)
+        self.assertTrue(np.all(np.asarray(new) == probs[test_cases]))
 
     def test_single_lnprobability(self):
         N = 3
         weights = np.arange(1, N + 1)
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
-        for i in self.xp.array(categorical_prior.values):
+        for i in self.xp.asarray(categorical_prior.values):
             self.assertEqual(
-                categorical_prior.ln_prob(self.xp.array(i)),
+                categorical_prior.ln_prob(self.xp.asarray(i)),
                 np.log(weights[i] / np.sum(weights)),
             )
-        prob = categorical_prior.prob(self.xp.array(0.5))
+        prob = categorical_prior.prob(self.xp.asarray(0.5))
         self.assertEqual(prob, 0)
-        self.assertEqual(prob.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
 
     def test_array_lnprobability(self):
         N = 3
@@ -239,9 +246,9 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         ln_probs = np.log(np.arange(1, N + 2) / np.sum(weights))
         ln_probs[-1] = -np.inf
 
-        new = categorical_prior.ln_prob(self.xp.array(test_cases))
-        self.assertTrue(np.all(new == ln_probs[test_cases]))
-        self.assertEqual(new.__array_namespace__(), self.xp)
+        new = categorical_prior.ln_prob(self.xp.asarray(test_cases))
+        self.assertEqual(aac.get_namespace(new), self.xp)
+        self.assertTrue(np.all(np.asarray(new) == ln_probs[test_cases]))
 
     def test_cdf(self):
         """
@@ -255,7 +262,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
         sample = categorical_prior.sample(size=10)
         original = self.xp.asarray(sample)
-        new = self.xp.array(categorical_prior.rescale(
+        new = self.xp.asarray(categorical_prior.rescale(
             categorical_prior.cdf(sample)
         ))
         np.testing.assert_array_equal(original, new)

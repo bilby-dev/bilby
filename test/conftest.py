@@ -1,4 +1,6 @@
 import importlib
+
+import array_api_compat as aac
 import pytest
 
 
@@ -38,20 +40,20 @@ def _xp(request):
     backend = request.config.getoption("--array-backend")
     match backend:
         case None | "numpy":
-            import numpy
-            return numpy
+            import numpy as xp
         case "jax" | "jax.numpy":
             import os
             import jax
 
             os.environ["SCIPY_ARRAY_API"] = "1"
             jax.config.update("jax_enable_x64", True)
-            return jax.numpy
+            xp = jax.numpy
         case _:
             try:
-                importlib.import_module(backend)
+                xp = importlib.import_module(backend)                
             except ImportError:
                 raise ValueError(f"Unknown backend for testing: {backend}")
+    return aac.get_namespace(xp.ones(1))
 
 
 @pytest.fixture

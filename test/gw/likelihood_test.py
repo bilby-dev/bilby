@@ -7,6 +7,7 @@ from parameterized import parameterized
 import pytest
 from copy import deepcopy
 
+import array_api_compat as aac
 import h5py
 import numpy as np
 import bilby
@@ -27,7 +28,7 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
 
     def convert_nested_dict(self, data):
         if is_array_api_obj(data):
-            return self.xp.array(data)
+            return self.xp.asarray(data)
         elif isinstance(data, dict):
             return {key: self.convert_nested_dict(value) for key, value in data.items()}
         else:
@@ -70,8 +71,8 @@ class TestBasicGWTransient(unittest.TestCase):
         )
         self.interferometers.set_array_backend(self.xp)
         base_wfg = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
-            duration=self.xp.array(4.0),
-            sampling_frequency=self.xp.array(2048.0),
+            duration=self.xp.asarray(4.0),
+            sampling_frequency=self.xp.asarray(2048.0),
             waveform_arguments=dict(waveform_approximant="IMRPhenomPv2"),
         )
         self.waveform_generator = BackendWaveformGenerator(base_wfg, self.xp)
@@ -93,13 +94,13 @@ class TestBasicGWTransient(unittest.TestCase):
         self.assertAlmostEqual(
             -4014.1787704539474, nll, 3
         )
-        self.assertEqual(nll.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(nll), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         logl = self.likelihood.log_likelihood(self.parameters)
         self.assertAlmostEqual(logl, -4032.4397343470005, 3)
-        self.assertEqual(logl.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -109,7 +110,7 @@ class TestBasicGWTransient(unittest.TestCase):
             llr,
             3,
         )
-        self.assertEqual(llr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llr), self.xp)
 
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
@@ -129,8 +130,8 @@ class TestBasicGWTransient(unittest.TestCase):
 class TestGWTransient(unittest.TestCase):
     def setUp(self):
         bilby.core.utils.random.seed(500)
-        self.duration = self.xp.array(4.0)
-        self.sampling_frequency = self.xp.array(2048.0)
+        self.duration = self.xp.asarray(4.0)
+        self.sampling_frequency = self.xp.asarray(2048.0)
         self.parameters = dict(
             mass_1=31.0,
             mass_2=29.0,
@@ -185,13 +186,13 @@ class TestGWTransient(unittest.TestCase):
         self.assertAlmostEqual(
             -4014.1787704539474, nll, 3
         )
-        self.assertEqual(nll.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(nll), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         logl = self.likelihood.log_likelihood(self.parameters)
         self.assertAlmostEqual(logl, -4032.4397343470005, 3)
-        self.assertEqual(logl.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -201,7 +202,7 @@ class TestGWTransient(unittest.TestCase):
             llr,
             3,
         )
-        self.assertEqual(llr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llr), self.xp)
 
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
@@ -281,16 +282,16 @@ class TestGWTransient(unittest.TestCase):
         )
         parameters = self.parameters.copy()
         del parameters["ra"], parameters["dec"]
-        parameters["zenith"] = self.xp.array(1.0)
-        parameters["azimuth"] = self.xp.array(1.0)
+        parameters["zenith"] = self.xp.asarray(1.0)
+        parameters["azimuth"] = self.xp.asarray(1.0)
         parameters["ra"], parameters["dec"] = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zenith=parameters["zenith"],
             azimuth=parameters["azimuth"],
             geocent_time=parameters["geocent_time"],
             ifos=new_likelihood.reference_frame,
         )
-        self.assertEqual(parameters["ra"].__array_namespace__(), self.xp)
-        self.assertEqual(parameters["dec"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(parameters["ra"]), self.xp)
+        self.assertEqual(aac.get_namespace(parameters["dec"]), self.xp)
         self.assertEqual(
             new_likelihood.log_likelihood_ratio(parameters),
             self.likelihood.log_likelihood_ratio(parameters)
@@ -322,8 +323,8 @@ class TestGWTransient(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestROQLikelihood(unittest.TestCase):
     def setUp(self):
-        self.duration = self.xp.array(4.0)
-        self.sampling_frequency = self.xp.array(2048.0)
+        self.duration = self.xp.asarray(4.0)
+        self.sampling_frequency = self.xp.asarray(2048.0)
 
         self.test_parameters = dict(
             mass_1=36.0,
@@ -469,7 +470,7 @@ class TestROQLikelihood(unittest.TestCase):
             abs(non_roq_llr - roq_llr) / non_roq_llr,
             1e-3,
         )
-        self.assertEqual(roq_llr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(roq_llr), self.xp)
 
     def test_time_prior_out_of_bounds_returns_zero(self):
         parameters = deepcopy(self.test_parameters)
@@ -490,7 +491,7 @@ class TestROQLikelihood(unittest.TestCase):
             roq_llr,
             self.roq.log_likelihood_ratio(self.test_parameters)
         )
-        self.assertEqual(roq_llr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(roq_llr), self.xp)
 
     def test_create_roq_weights_frequency_mismatch_works_with_params(self):
 
@@ -689,9 +690,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
     _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
 
     def setUp(self):
-        self.minimum_frequency = self.xp.array(20.0)
-        self.sampling_frequency = self.xp.array(2048.0)
-        self.duration = self.xp.array(16.0)
+        self.minimum_frequency = self.xp.asarray(20.0)
+        self.sampling_frequency = self.xp.asarray(2048.0)
+        self.duration = self.xp.asarray(16.0)
         self.reference_frequency = 20.0
         self.waveform_approximant = "IMRPhenomD"
         # The SNRs of injections are 130-160 for roq_scale_factor=1 and 70-80 for roq_scale_factor=2
@@ -733,9 +734,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.priors["chirp_mass"].maximum = 9
         interferometers = bilby.gw.detector.InterferometerList(["H1"])
         interferometers.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=self.xp.array(2 * maximum_frequency),
-            duration=self.xp.array(duration),
-            start_time=self.xp.array(self.injection_parameters["geocent_time"] - duration + 1)
+            sampling_frequency=self.xp.asarray(2 * maximum_frequency),
+            duration=self.xp.asarray(duration),
+            start_time=self.xp.asarray(self.injection_parameters["geocent_time"] - duration + 1)
         )
         interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
@@ -767,9 +768,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.priors["chirp_mass"].maximum = chirp_mass_max
         interferometers = bilby.gw.detector.InterferometerList(["H1"])
         interferometers.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=self.xp.array(self.sampling_frequency),
-            duration=self.xp.array(self.duration),
-            start_time=self.xp.array(self.injection_parameters["geocent_time"] - self.duration + 1)
+            sampling_frequency=self.xp.asarray(self.sampling_frequency),
+            duration=self.xp.asarray(self.duration),
+            start_time=self.xp.asarray(self.injection_parameters["geocent_time"] - self.duration + 1)
         )
         interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
@@ -985,7 +986,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             llr = likelihood.log_likelihood_ratio(parameters)
             llr_roq = likelihood_roq.log_likelihood_ratio(parameters)
             self.assertLess(np.abs(llr - llr_roq), max_llr_error)
-            self.assertEqual(llr_roq.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(llr_roq), self.xp)
 
 
 @pytest.mark.requires_roqs
@@ -1317,9 +1318,9 @@ class TestBBHLikelihoodSetUp(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestMBLikelihood(unittest.TestCase):
     def setUp(self):
-        self.duration = self.xp.array(16.0)
-        self.fmin = self.xp.array(20.0)
-        self.sampling_frequency = self.xp.array(2048.0)
+        self.duration = self.xp.asarray(16.0)
+        self.fmin = self.xp.asarray(20.0)
+        self.sampling_frequency = self.xp.asarray(2048.0)
         self.test_parameters = dict(
             chirp_mass=6.0,
             mass_ratio=0.5,
@@ -1431,7 +1432,7 @@ class TestMBLikelihood(unittest.TestCase):
             abs(likelihood.log_likelihood_ratio(parameters) - llmb),
             tolerance
         )
-        self.assertEqual(llmb.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llmb), self.xp)
 
     def test_large_accuracy_factor(self):
         """
@@ -1590,7 +1591,7 @@ class TestMBLikelihood(unittest.TestCase):
             )
 
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
-        self.assertEqual(llr_from_weights.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llr_from_weights), self.xp)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1626,7 +1627,7 @@ class TestMBLikelihood(unittest.TestCase):
             linear_interpolation=linear_interpolation,
         )
         llr = likelihood_mb.log_likelihood_ratio(self.test_parameters)
-        self.assertEqual(llr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llr), self.xp)
 
         # reset waveform generator to check if likelihood recovered from the weights properly adds banded
         # frequency points to waveform arguments
@@ -1643,7 +1644,7 @@ class TestMBLikelihood(unittest.TestCase):
             interferometers=self.ifos, waveform_generator=wfg_mb, weights=weights
         )
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
-        self.assertEqual(llr_from_weights.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llr_from_weights), self.xp)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1696,7 +1697,7 @@ class TestMBLikelihood(unittest.TestCase):
             abs(likelihood.log_likelihood_ratio(parameters) - llrmb),
             tolerance
         )
-        self.assertEqual(llrmb.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(llrmb), self.xp)
 
 
 if __name__ == "__main__":

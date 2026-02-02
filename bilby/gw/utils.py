@@ -85,7 +85,7 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     x_comp = (radius + elevation) * xp.cos(latitude) * xp.cos(longitude)
     y_comp = (radius + elevation) * xp.cos(latitude) * xp.sin(longitude)
     z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * xp.sin(latitude)
-    return xp.array([x_comp, y_comp, z_comp])
+    return xp.asarray([x_comp, y_comp, z_comp])
 
 
 def inner_product(aa, bb, frequency, PSD):

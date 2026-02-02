@@ -1554,11 +1554,11 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         for i, val in enumerate(pix_rescale):
             theta, ra = self.hp.pix2ang(self.nside, int(round(val)))
             dec = 0.5 * np.pi - theta
-            sample = xpx.at(sample, i).set(xp.array(self.draw_from_pixel(ra, dec, int(round(val)))))
+            sample = xpx.at(sample, i).set(xp.asarray(self.draw_from_pixel(ra, dec, int(round(val)))))
             if self.distance:
                 self.update_distance(int(round(val)))
                 dist_samples = xpx.at(dist_samples, i).set(
-                    xp.array(self.distance_icdf(dist_samp[i]))
+                    xp.asarray(self.distance_icdf(dist_samp[i]))
                 )
         if self.distance:
             sample = xp.vstack([sample[:, 0], sample[:, 1], dist_samples])
@@ -1638,7 +1638,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                 sample[samp, :] = [ra_dec[0], ra_dec[1], dist]
             else:
                 sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp])
-        return xp.array(sample.reshape((-1, self.num_vars)))
+        return xp.asarray(sample.reshape((-1, self.num_vars)))
 
     def draw_distance(self, pix):
         """

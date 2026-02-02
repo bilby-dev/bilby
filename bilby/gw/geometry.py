@@ -30,15 +30,15 @@ def antenna_response(detector_tensor, ra, dec, time, psi, mode):
 def calculate_arm(arm_tilt, arm_azimuth, longitude, latitude):
     """"""
     xp = array_module(arm_tilt)
-    e_long = xp.array([-xp.sin(longitude), xp.cos(longitude), longitude * 0])
-    e_lat = xp.array(
+    e_long = xp.asarray([-xp.sin(longitude), xp.cos(longitude), longitude * 0])
+    e_lat = xp.asarray(
         [
             -xp.sin(latitude) * xp.cos(longitude),
             -xp.sin(latitude) * xp.sin(longitude),
             xp.cos(latitude),
         ]
     )
-    e_h = xp.array(
+    e_h = xp.asarray(
         [
             xp.cos(latitude) * xp.cos(longitude),
             xp.cos(latitude) * xp.sin(longitude),
@@ -70,17 +70,17 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
     gmst = greenwich_mean_sidereal_time(time) % (2 * xp.pi)
     phi = ra - gmst
     theta = xp.atleast_1d(xp.pi / 2 - dec).squeeze()
-    u = xp.array(
+    u = xp.asarray(
         [
             xp.cos(phi) * xp.cos(theta),
             xp.cos(theta) * xp.sin(phi),
             -xp.sin(theta) * xp.ones_like(phi),
         ]
     )
-    v = xp.array([
+    v = xp.asarray([
         -xp.sin(phi), xp.cos(phi), xp.zeros_like(phi)
     ]) * xp.ones_like(theta)
-    omega = xp.array([
+    omega = xp.asarray([
         xp.sin(xp.pi - theta) * xp.cos(xp.pi + phi),
         xp.sin(xp.pi - theta) * xp.sin(xp.pi + phi),
         xp.cos(xp.pi - theta) * xp.ones_like(phi),
@@ -124,21 +124,21 @@ def rotation_matrix_from_delta(delta_x):
     alpha = xp.arctan2(-delta_x[1] * delta_x[2], delta_x[0])
     beta = xp.arccos(delta_x[2])
     gamma = xp.arctan2(delta_x[1], delta_x[0])
-    rotation_1 = xp.array(
+    rotation_1 = xp.asarray(
         [
             [xp.cos(alpha), -xp.sin(alpha), xp.zeros(alpha.shape)],
             [xp.sin(alpha), xp.cos(alpha), xp.zeros(alpha.shape)],
             [xp.zeros(alpha.shape), xp.zeros(alpha.shape), xp.ones(alpha.shape)],
         ]
     )
-    rotation_2 = xp.array(
+    rotation_2 = xp.asarray(
         [
             [xp.cos(beta), xp.zeros(beta.shape), xp.sin(beta)],
             [xp.zeros(beta.shape), xp.ones(beta.shape), xp.zeros(beta.shape)],
             [-xp.sin(beta), xp.zeros(beta.shape), xp.cos(beta)],
         ]
     )
-    rotation_3 = xp.array(
+    rotation_3 = xp.asarray(
         [
             [xp.cos(gamma), -xp.sin(gamma), xp.zeros(gamma.shape)],
             [xp.sin(gamma), xp.cos(gamma), xp.zeros(gamma.shape)],
@@ -163,7 +163,7 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
     speed_of_light = 299792458.0
     phi = ra - gmst
     theta = xp.pi / 2 - dec
-    omega = xp.array(
+    omega = xp.asarray(
         [xp.sin(theta) * xp.cos(phi), xp.sin(theta) * xp.sin(phi), xp.cos(theta)]
     )
     delta_d = detector2 - detector1
@@ -181,7 +181,7 @@ def time_delay_from_geocenter(detector1, ra, dec, time):
 def zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x):
     """"""
     xp = array_module(delta_x)
-    omega_prime = xp.array(
+    omega_prime = xp.asarray(
         [
             xp.sin(zenith) * xp.cos(azimuth),
             xp.sin(zenith) * xp.sin(azimuth),

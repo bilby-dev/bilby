@@ -8,6 +8,7 @@ from importlib import import_module
 from pathlib import Path
 from datetime import timedelta
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 
@@ -62,7 +63,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
         if hasattr(obj, "__array_namespace__"):
             return {
                 "__array__": True,
-                "__array_namespace__": obj.__array_namespace__().__name__,
+                "__array_namespace__": aac.get_namespace(obj).__name__,
                 "content": obj.tolist(),
             }
         if isinstance(obj, complex):

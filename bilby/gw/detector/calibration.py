@@ -42,6 +42,7 @@ specify which method is being used as :code:`"data"` for :math:`\eta` or
 import copy
 import os
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 from array_api_compat import is_jax_namespace
@@ -333,9 +334,9 @@ class CubicSpline(Recalibrate):
     def _evaluate_spline(self, kind, a, b, c, d, previous_nodes):
         """Evaluate Eq. (1) in https://dcc.ligo.org/LIGO-T2300140"""
         xp = array_module(self.params[f"{kind}_0"])
-        parameters = xp.array([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
+        parameters = xp.asarray([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
         next_nodes = previous_nodes + 1
-        nodes = xp.array(self.nodes_to_spline_coefficients)
+        nodes = xp.asarray(self.nodes_to_spline_coefficients)
         spline_coefficients = nodes.dot(parameters)
         return (
             a * parameters[previous_nodes]
@@ -377,7 +378,7 @@ class CubicSpline(Recalibrate):
         delta_amplitude = self._evaluate_spline("amplitude", a, b, c, d, previous_nodes)
         delta_phase = self._evaluate_spline("phase", a, b, c, d, previous_nodes)
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
-        xp = calibration_factor.__array_namespace__()
+        xp = aac.get_namespace(calibration_factor)
 
         return xp.nan_to_num(calibration_factor)
 
@@ -412,7 +413,7 @@ class Precomputed(Recalibrate):
         if idx is None:
             raise KeyError(f"Calibration index for {self.label} not found.")
 
-        xp = frequency_array.__array_namespace__()
+        xp = aac.get_namespace(frequency_array)
         if not xp.array_equal(frequency_array, self.frequency_array):
             intersection, mask, _ = xp.intersect1d(
                 frequency_array, self.frequency_array, return_indices=True

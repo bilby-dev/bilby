@@ -189,7 +189,7 @@ def n_leap_seconds(gps_time, leap_seconds):
 @dispatch
 def n_leap_seconds(gps_time: np.ndarray | float | int):  # noqa F811
     xp = array_module(gps_time)
-    return n_leap_seconds(gps_time, xp.array(LEAP_SECONDS))
+    return n_leap_seconds(gps_time, xp.asarray(LEAP_SECONDS))
 
 
 @dispatch
