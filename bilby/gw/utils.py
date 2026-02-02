@@ -15,7 +15,8 @@ from ..core.utils import (logger, run_commandline,
 from ..core.utils.constants import solar_mass
 
 
-def asd_from_freq_series(freq_data, df):
+@xp_wrap
+def asd_from_freq_series(freq_data, df, *, xp=None):
     """
     Calculate the ASD from the frequency domain output of gaussian_noise()
 
@@ -31,10 +32,11 @@ def asd_from_freq_series(freq_data, df):
     array_like: array of real-valued normalized frequency domain ASD data
 
     """
-    return abs(freq_data) * 2 * df**0.5
+    return xp.abs(freq_data) * 2 * df**0.5
 
 
-def psd_from_freq_series(freq_data, df):
+@xp_wrap
+def psd_from_freq_series(freq_data, df, *, xp=None):
     """
     Calculate the PSD from the frequency domain output of gaussian_noise()
     Calls asd_from_freq_series() and squares the output
@@ -51,7 +53,7 @@ def psd_from_freq_series(freq_data, df):
     array_like: Real-valued normalized frequency domain PSD data
 
     """
-    return asd_from_freq_series(freq_data, df) ** 2
+    return asd_from_freq_series(freq_data, df, xp=xp) ** 2
 
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
