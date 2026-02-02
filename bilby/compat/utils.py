@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Iterable
 
 import numpy as np
@@ -61,8 +62,7 @@ def xp_wrap(func, no_xp=False):
     function
         The decorated function.
     """
-
-    def wrapped(self, *args, xp=None, **kwargs):
+    def parse_args_kwargs_for_xp(*args, xp=None, **kwargs):
         if not no_xp and xp is None:
             try:
                 # if the user specified the target arrays in kwargs
@@ -78,7 +78,16 @@ def xp_wrap(func, no_xp=False):
                 kwargs["xp"] = np
         elif not no_xp:
             kwargs["xp"] = xp
-        return func(self, *args, **kwargs)
+        return args, kwargs
+
+    if inspect.isfunction(func):
+        def wrapped(*args, xp=None, **kwargs):
+            args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
+            return func(*args, **kwargs)
+    else:        
+        def wrapped(self, *args, xp=None, **kwargs):
+            args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
+            return func(self, *args, **kwargs)
 
     return wrapped
 

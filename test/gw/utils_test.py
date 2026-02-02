@@ -31,14 +31,14 @@ class TestGWUtils(unittest.TestCase):
 
     def test_asd_from_freq_series(self):
         freq_data = self.xp.asarray([1, 2, 3])
-        df = self.xp.asarray(0.1)
+        df = 0.1
         asd = gwutils.asd_from_freq_series(freq_data, df)
         self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
         self.assertEqual(aac.get_namespace(asd), self.xp)
 
     def test_psd_from_freq_series(self):
         freq_data = self.xp.asarray([1, 2, 3])
-        df = self.xp.asarray(0.1)
+        df = 0.1
         psd = gwutils.psd_from_freq_series(freq_data, df)
         self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
         self.assertEqual(aac.get_namespace(psd), self.xp)
