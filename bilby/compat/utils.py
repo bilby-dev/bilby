@@ -55,7 +55,7 @@ def xp_wrap(func, no_xp=False):
     no_xp: bool
         If True, the decorator will not attempt to add the 'xp' keyword
         argument and so the wrapper is a no-op.
-    
+
     Returns
     =======
     function
@@ -65,13 +65,15 @@ def xp_wrap(func, no_xp=False):
     def wrapped(self, *args, xp=None, **kwargs):
         if not no_xp and xp is None:
             try:
+                # if the user specified the target arrays in kwargs
+                # we need to be able to support this
                 if len(args) > 0:
-                    array_module = array_namespace(*args)
+                    xp = array_module(*args)
                 elif len(kwargs) > 0:
-                    array_module = array_namespace(*kwargs.values())
+                    xp = array_module(*kwargs.values())
                 else:
-                    array_module = np
-                kwargs["xp"] = array_module
+                    xp = np
+                kwargs["xp"] = xp
             except TypeError:
                 kwargs["xp"] = np
         elif not no_xp:

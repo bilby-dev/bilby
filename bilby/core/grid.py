@@ -331,7 +331,6 @@ class Grid(object):
             self._ln_likelihood = vmap(self.likelihood.log_likelihood)(
                 {key: self.mesh_grid[i].flatten() for i, key in enumerate(self.parameter_names)}
             ).reshape(self.mesh_grid[0].shape)
-            print(type(self._ln_likelihood))
 
         else:
             self._ln_likelihood = xp.empty(self.mesh_grid[0].shape)

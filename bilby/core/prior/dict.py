@@ -822,7 +822,6 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        print(sample, xp)
         res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
