@@ -96,13 +96,11 @@ class SlabSpikePrior(Prior):
         slab_scaled = self._contracted_rescale(
             val - self.spike_height * higher_indices, xp=xp
         )
-        print(type(slab_scaled))
 
         res = xp.select(
             [lower_indices | higher_indices, intermediate_indices],
             [slab_scaled, self.spike_location],
         )
-        print(type(res))
         return res
 
     @xp_wrap
