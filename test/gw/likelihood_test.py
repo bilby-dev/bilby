@@ -24,7 +24,7 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
         if name == "xp":
             return self.xp
         return getattr(self.wfg, name)
-    
+
     def convert_nested_dict(self, data):
         if is_array_api_obj(data):
             return self.xp.array(data)
@@ -36,7 +36,7 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
     def frequency_domain_strain(self, parameters):
         wf = self.wfg.frequency_domain_strain(parameters)
         return self.convert_nested_dict(wf)
-    
+
     def time_domain_strain(self, parameters):
         wf = self.wfg.time_domain_strain(parameters)
         return self.convert_nested_dict(wf)

@@ -640,6 +640,7 @@ class TestGenerateMassParameters(unittest.TestCase):
                                 'total_mass_source': self.xp.array(6),
                                 'symmetric_mass_ratio': self.xp.array(0.2222222222222222),
                                 'mass_ratio': self.xp.array(0.5)}
+
     def helper_generation_from_keys(self, keys, expected_values, source=False):
         # Explicitly test the helper generate_component_masses
         local_test_vars = \
