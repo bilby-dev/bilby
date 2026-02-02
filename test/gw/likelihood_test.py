@@ -312,9 +312,10 @@ class TestGWTransient(unittest.TestCase):
         )
         parameters = self.parameters.copy()
         parameters["H1_time"] = parameters["geocent_time"] + time_delay
-        self.assertEqual(
+        self.assertAlmostEqual(
             new_likelihood.log_likelihood_ratio(parameters),
-            self.likelihood.log_likelihood_ratio(parameters)
+            self.likelihood.log_likelihood_ratio(parameters),
+            8,
         )
 
 

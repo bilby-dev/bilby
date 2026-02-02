@@ -66,28 +66,35 @@ def xp_wrap(func, no_xp=False):
         if not no_xp and xp is None:
             try:
                 # if the user specified the target arrays in kwargs
-                # we need to be able to support this
+                # we need to be able to support this, if there is
+                # only one kwargs, pass it through alone, this is
+                # sometimes a dictionary of arrays so this is needed
+                # to remove a level of nesting
                 if len(args) > 0:
-                    xp = array_module(*args)
-                elif len(kwargs) > 0:
-                    xp = array_module(*kwargs.values())
+                    xp = array_module(args)
+                elif len(kwargs) == 1:
+                    xp = array_module(next(iter(kwargs.values())))
+                elif len(kwargs) > 1:
+                    xp = array_module(kwargs)
                 else:
                     xp = np
                 kwargs["xp"] = xp
-            except TypeError:
+            except TypeError as e:
+                print("type failed", e)
                 kwargs["xp"] = np
         elif not no_xp:
             kwargs["xp"] = xp
         return args, kwargs
 
-    if inspect.isfunction(func):
-        def wrapped(*args, xp=None, **kwargs):
-            args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
-            return func(*args, **kwargs)
-    else:        
+    sig = inspect.signature(func)
+    if any(name in sig.parameters for name in ("self", "cls")):
         def wrapped(self, *args, xp=None, **kwargs):
             args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
             return func(self, *args, **kwargs)
+    else:
+        def wrapped(*args, xp=None, **kwargs):
+            args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
+            return func(*args, **kwargs)
 
     return wrapped
 
