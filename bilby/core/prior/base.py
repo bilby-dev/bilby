@@ -14,7 +14,6 @@ from ..utils import (
     decode_bilby_json,
     logger,
     get_dict_with_properties,
-    WrappedInterp1d as interp1d,
 )
 from ...compat.utils import xp_wrap
 

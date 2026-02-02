@@ -184,7 +184,7 @@ class TestPriorSubclassWithoutXpWarning(unittest.TestCase):
                 def rescale(self, val):
                     """Custom rescale without xp parameter"""
                     return val * 2
-            
+
             prior = CustomPriorWithoutXp(name="custom_prior")
             import jax.numpy as jnp
             rescaled = prior.rescale(jnp.array([0.1, 0.2, 3]))

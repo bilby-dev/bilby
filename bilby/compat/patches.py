@@ -1,5 +1,4 @@
 import array_api_compat as aac
-import numpy as np
 
 from .utils import BackendNotImplementedError
 
