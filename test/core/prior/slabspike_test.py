@@ -129,8 +129,8 @@ class TestSlabSpikeClasses(unittest.TestCase):
 
     def test_ln_prob_on_spike(self):
         for slab_spike in self.slab_spikes:
-            expected = slab_spike.ln_prob(self.spike_loc)
-            self.assertEqual(np.inf, expected)
+            actual = slab_spike.ln_prob(self.spike_loc)
+            self.assertEqual(np.inf, actual)
             self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_inverse_cdf_below_spike_with_spike_at_minimum(self):
