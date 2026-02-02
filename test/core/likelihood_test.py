@@ -58,8 +58,8 @@ class TestLikelihoodBase(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestAnalytical1DLikelihood(unittest.TestCase):
     def setUp(self):
-        self.x = self.xp.arange(start=0, stop=100, step=1)
-        self.y = self.xp.arange(start=0, stop=100, step=1)
+        self.x = self.xp.arange(0, 100, step=1)
+        self.y = self.xp.arange(0, 100, step=1)
 
         def test_func(x, parameter1, parameter2):
             return parameter1 * x + parameter2
@@ -85,7 +85,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.x, self.analytical_1d_likelihood.x))
 
     def test_set_x_to_array(self):
-        new_x = self.xp.arange(start=0, stop=50, step=2)
+        new_x = self.xp.arange(0, 50, step=2)
         self.analytical_1d_likelihood.x = new_x
         self.assertTrue(np.array_equal(new_x, self.analytical_1d_likelihood.x))
 
@@ -105,7 +105,7 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.y, self.analytical_1d_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = self.xp.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(0, 50, step=2)
         self.analytical_1d_likelihood.y = new_y
         self.assertTrue(np.array_equal(new_y, self.analytical_1d_likelihood.y))
 
@@ -355,7 +355,7 @@ class TestPoissonLikelihood(unittest.TestCase):
         self.assertTrue(self.xp.array_equal(self.y, self.poisson_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = self.xp.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(0, 50, step=2)
         self.poisson_likelihood.y = new_y
         self.assertTrue(self.xp.array_equal(new_y, self.poisson_likelihood.y))
 
@@ -459,7 +459,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.assertTrue(np.array_equal(self.y, self.exponential_likelihood.y))
 
     def test_set_y_to_array(self):
-        new_y = self.xp.arange(start=0, stop=50, step=2)
+        new_y = self.xp.arange(0, 50, step=2)
         self.exponential_likelihood.y = new_y
         self.assertTrue(np.array_equal(new_y, self.exponential_likelihood.y))
 
