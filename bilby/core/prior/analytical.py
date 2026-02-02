@@ -1530,7 +1530,7 @@ class WeightedDiscreteValues(Prior):
         index = xp.searchsorted(xp.asarray(self._values_array), val)
         index = xp.clip(index, 0, self.nvalues - 1)
         p = xp.where(
-            xp.asarray(self._values_array[index])== val,
+            xp.asarray(self._values_array[index]) == val,
             xp.asarray(self._weights_array[index]),
             xp.asarray(0.0),
         )

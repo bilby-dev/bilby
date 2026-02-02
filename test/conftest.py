@@ -50,7 +50,7 @@ def _xp(request):
             xp = jax.numpy
         case _:
             try:
-                xp = importlib.import_module(backend)                
+                xp = importlib.import_module(backend)
             except ImportError:
                 raise ValueError(f"Unknown backend for testing: {backend}")
     return aac.get_namespace(xp.ones(1))
