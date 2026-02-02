@@ -47,7 +47,7 @@ def get_polarization_tensor(ra: Real, dec: Real, time: Real, psi: Real, mode: st
 
 @dispatch(precedence=1)
 def rotation_matrix_from_delta(delta: ArrayLike):
-    return _geometry.rotation_matrix_from_delta_x(delta)
+    return _geometry.rotation_matrix_from_delta(delta)
 
 
 @dispatch(precedence=1)
