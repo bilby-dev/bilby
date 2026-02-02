@@ -175,13 +175,14 @@ def logtrapzexp(lnf, dx, *, xp=np):
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
 
-    if (
-        isinstance(dx, (int, float)) or
-        (aac.is_array_api_obj(dx) and dx.size == 1)
-    ):
-        C = np.log(dx / 2.0)
-    elif isinstance(dx, (list, xp.ndarray)):
+    try:
         dx = xp.asarray(dx)
+    except TypeError:
+        raise TypeError(f"Step size dx={dx} could not be converted to an array")
+
+    if dx.size == 1:
+        C = np.log(dx / 2.0)
+    else:
         if dx.size != len(lnf) - 1:
             raise ValueError(
                 "Step size array must have length one less than the function length"
@@ -191,8 +192,6 @@ def logtrapzexp(lnf, dx, *, xp=np):
         lnfdx1 = lnfdx1.copy() + lndx
         lnfdx2 = lnfdx2.copy() + lndx
         C = -xp.log(2.0)
-    else:
-        raise TypeError("Step size must be a single value or array-like")
 
     return C + logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)]))
 
