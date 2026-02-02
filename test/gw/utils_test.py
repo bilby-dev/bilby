@@ -3,6 +3,7 @@ import os
 from shutil import rmtree
 from importlib.metadata import version
 
+import array_api_compat as aac
 import numpy as np
 import lal
 import lalsimulation as lalsim
@@ -29,32 +30,32 @@ class TestGWUtils(unittest.TestCase):
             pass
 
     def test_asd_from_freq_series(self):
-        freq_data = self.xp.array([1, 2, 3])
+        freq_data = self.xp.asarray([1, 2, 3])
         df = 0.1
         asd = gwutils.asd_from_freq_series(freq_data, df)
         self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
-        self.assertEqual(asd.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(asd), self.xp)
 
     def test_psd_from_freq_series(self):
-        freq_data = self.xp.array([1, 2, 3])
+        freq_data = self.xp.asarray([1, 2, 3])
         df = 0.1
         psd = gwutils.psd_from_freq_series(freq_data, df)
         self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
-        self.assertEqual(psd.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(psd), self.xp)
 
     def test_inner_product(self):
-        aa = self.xp.array([1, 2, 3])
-        bb = self.xp.array([5, 6, 7])
-        frequency = self.xp.array([0.2, 0.4, 0.6])
+        aa = self.xp.asarray([1, 2, 3])
+        bb = self.xp.asarray([5, 6, 7])
+        frequency = self.xp.asarray([0.2, 0.4, 0.6])
         PSD = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         ip = gwutils.inner_product(aa, bb, frequency, PSD)
         self.assertEqual(ip, 0)
-        self.assertEqual(ip.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(ip), self.xp)
 
     def test_noise_weighted_inner_product(self):
-        aa = self.xp.array([1e-23, 2e-23, 3e-23])
-        bb = self.xp.array([5e-23, 6e-23, 7e-23])
-        frequency = self.xp.array([100, 101, 102])
+        aa = self.xp.asarray([1e-23, 2e-23, 3e-23])
+        bb = self.xp.asarray([5e-23, 6e-23, 7e-23])
+        frequency = self.xp.asarray([100, 101, 102])
         PSD = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         psd = PSD.power_spectral_density_interpolated(frequency)
         duration = 4
@@ -65,12 +66,12 @@ class TestGWUtils(unittest.TestCase):
             gwutils.optimal_snr_squared(aa, psd, duration),
             gwutils.noise_weighted_inner_product(aa, aa, psd, duration),
         )
-        self.assertEqual(nwip.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(nwip), self.xp)
 
     def test_matched_filter_snr(self):
-        signal = self.xp.array([1e-23, 2e-23, 3e-23])
-        frequency_domain_strain = self.xp.array([5e-23, 6e-23, 7e-23])
-        frequency = self.xp.array([100, 101, 102])
+        signal = self.xp.asarray([1e-23, 2e-23, 3e-23])
+        frequency_domain_strain = self.xp.asarray([5e-23, 6e-23, 7e-23])
+        frequency = self.xp.asarray([100, 101, 102])
         PSD = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         psd = PSD.power_spectral_density_interpolated(frequency)
         duration = 4
@@ -79,7 +80,7 @@ class TestGWUtils(unittest.TestCase):
             signal, frequency_domain_strain, psd, duration
         )
         self.assertEqual(mfsnr, 25.510869054168282)
-        self.assertEqual(mfsnr.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mfsnr), self.xp)
 
     def test_overlap(self):
         signal = self.xp.linspace(1e-23, 21e-23, 21)
@@ -99,7 +100,7 @@ class TestGWUtils(unittest.TestCase):
             norm_b=gwutils.optimal_snr_squared(frequency_domain_strain, psd, duration),
         )
         self.assertAlmostEqual(overlap, 2.76914407e-05)
-        self.assertEqual(overlap.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(overlap), self.xp)
 
     @pytest.mark.skip(reason="GWOSC unstable: avoiding this test")
     def test_get_event_time(self):
@@ -319,8 +320,8 @@ class TestSkyFrameConversion(unittest.TestCase):
         ra, dec = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zenith, azimuth, time, self.ifos
         )
-        self.assertEqual(ra.__array_namespace__(), self.xp)
-        self.assertEqual(dec.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(ra), self.xp)
+        self.assertEqual(aac.get_namespace(dec), self.xp)
 
     def test_conversion_gives_correct_prior(self) -> None:
         zeniths = self.xp.asarray(self.samples["zenith"])
@@ -332,8 +333,8 @@ class TestSkyFrameConversion(unittest.TestCase):
         )
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
-        self.assertEqual(ras.__array_namespace__(), self.xp)
-        self.assertEqual(decs.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(ras), self.xp)
+        self.assertEqual(aac.get_namespace(decs), self.xp)
 
 
 @pytest.mark.array_backend

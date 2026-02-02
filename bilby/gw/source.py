@@ -1292,7 +1292,7 @@ def supernova_pca_model(
     coefficients = [pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5]
 
     strain = xp.sum(
-        xp.array([coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)]),
+        xp.asarray([coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)]),
         axis=0
     )
 

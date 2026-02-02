@@ -3,6 +3,7 @@ import shutil
 import unittest
 from unittest import mock
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 import pickle
@@ -212,10 +213,10 @@ class TestConditionalPriorDict(unittest.TestCase):
             bilby.core.prior.ConditionalPriorDict()
         )
         self.test_sample = dict(
-            var_0=self.xp.array(0.7),
-            var_1=self.xp.array(0.6),
-            var_2=self.xp.array(0.5),
-            var_3=self.xp.array(0.4),
+            var_0=self.xp.asarray(0.7),
+            var_1=self.xp.asarray(0.6),
+            var_2=self.xp.asarray(0.5),
+            var_3=self.xp.asarray(0.4),
         )
         self.test_value = 1 / np.prod([self.test_sample[f"var_{ii}"] for ii in range(3)])
         for key, value in dict(
@@ -270,7 +271,7 @@ class TestConditionalPriorDict(unittest.TestCase):
     def test_prob(self):
         prob = self.conditional_priors.prob(sample=self.test_sample)
         self.assertEqual(self.test_value, prob)
-        self.assertEqual(prob.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
 
     def test_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
@@ -366,7 +367,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertEqual(np.shape(res), (6,))
-        self.assertEqual(res.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(res), self.xp)
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
@@ -470,7 +471,7 @@ class TestDirichletPrior(unittest.TestCase):
 
     def test_samples_correct_type(self):
         samples = self.priors.sample(10, xp=self.xp)
-        self.assertEqual(samples["dirichlet_1"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(samples["dirichlet_1"]), self.xp)
 
     def test_samples_sum_to_less_than_one(self):
         """

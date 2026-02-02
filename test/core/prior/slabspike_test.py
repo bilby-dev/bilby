@@ -70,7 +70,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
     def setUp(self):
         self.minimum = 0.4
         self.maximum = 2.4
-        self.spike_loc = self.xp.array(1.5)
+        self.spike_loc = self.xp.asarray(1.5)
         self.spike_height = 0.3
 
         self.slabs = [
@@ -114,7 +114,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.prob(test_nodes) * slab_spike.slab_fraction
             actual = slab_spike.prob(test_nodes)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_prob_on_spike(self):
         for slab_spike in self.slab_spikes:
@@ -125,13 +125,13 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.ln_prob(test_nodes) + np.log(slab_spike.slab_fraction)
             actual = slab_spike.ln_prob(test_nodes)
             self.assertTrue(np.array_equal(expected, actual))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_ln_prob_on_spike(self):
         for slab_spike in self.slab_spikes:
             expected = slab_spike.ln_prob(self.spike_loc)
             self.assertEqual(np.inf, expected)
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_inverse_cdf_below_spike_with_spike_at_minimum(self):
         for slab in self.slabs:
@@ -154,14 +154,14 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.cdf(test_nodes) * slab_spike.slab_fraction
             actual = slab_spike.cdf(test_nodes)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(actual.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_cdf_at_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
             expected = slab.cdf(self.spike_loc) * slab_spike.slab_fraction
             actual = slab_spike.cdf(self.xp.asarray(self.spike_loc))
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(actual.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_cdf_above_spike(self):
         for slab, slab_spike, test_nodes in zip(self.slabs, self.slab_spikes, self.test_nodes):
@@ -169,7 +169,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.cdf(test_nodes) * slab_spike.slab_fraction + self.spike_height
             actual = slab_spike.cdf(test_nodes)
             np.testing.assert_allclose(expected, actual, rtol=1e-12)
-            self.assertEqual(actual.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_cdf_at_minimum(self):
         for slab_spike in self.slab_spikes:
@@ -190,7 +190,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.rescale(vals)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_rescale_below_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
@@ -198,7 +198,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = slab.rescale(vals / slab_spike.slab_fraction)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_rescale_at_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
@@ -209,7 +209,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
             expected = self.xp.ones(len(vals)) * slab.rescale(vals[0] / slab_spike.slab_fraction)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_rescale_above_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
@@ -218,4 +218,4 @@ class TestSlabSpikeClasses(unittest.TestCase):
                 (vals - self.spike_height) / slab_spike.slab_fraction)
             actual = slab_spike.rescale(vals)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
-            self.assertEqual(expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)

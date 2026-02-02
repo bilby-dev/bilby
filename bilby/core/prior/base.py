@@ -155,7 +155,7 @@ class Prior(object):
         from ..utils import random
 
         self.least_recently_sampled = self.rescale(
-            xp.array(random.rng.uniform(0, 1, size))
+            xp.asarray(random.rng.uniform(0, 1, size))
         )
         return self.least_recently_sampled
 

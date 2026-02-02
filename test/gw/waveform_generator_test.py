@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import array_api_compat as aac
 import bilby
 import lalsimulation
 import numpy as np
@@ -42,7 +43,7 @@ def dummy_func_dict_return_value(
 def dummy_func_array_return_value_2(
     array, amplitude, mu, sigma, ra, dec, geocent_time, psi, *, xp=None
 ):
-    return dict(plus=xp.array(array), cross=xp.array(array))
+    return dict(plus=xp.asarray(array), cross=xp.asarray(array))
 
 
 @pytest.mark.array_backend
@@ -50,8 +51,8 @@ def dummy_func_array_return_value_2(
 class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestCase):
     def setUp(self):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            self.xp.array(1.0),
-            self.xp.array(4096.0),
+            self.xp.asarray(1.0),
+            self.xp.asarray(4096.0),
             frequency_domain_source_model=dummy_func_dict_return_value,
         )
         self.simulation_parameters = dict(
@@ -125,11 +126,11 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
 
     def test_duration(self):
         self.assertEqual(self.waveform_generator.duration, 1)
-        self.assertEqual(self.waveform_generator.duration.__array_namespace__(), self.xp)
+        self.assertEqual(self.waveform_generator.aac.get_namespace(duration), self.xp)
 
     def test_sampling_frequency(self):
         self.assertEqual(self.waveform_generator.sampling_frequency, 4096)
-        self.assertEqual(self.waveform_generator.sampling_frequency.__array_namespace__(), self.xp)
+        self.assertEqual(self.waveform_generator.aac.get_namespace(sampling_frequency), self.xp)
 
     def test_source_model(self):
         self.assertEqual(
@@ -315,8 +316,8 @@ class TestSetters(unittest.TestCase):
 class TestFrequencyDomainStrainMethod(unittest.TestCase):
     def setUp(self):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=self.xp.array(1.0),
-            sampling_frequency=self.xp.array(4096.0),
+            duration=self.xp.asarray(1.0),
+            sampling_frequency=self.xp.asarray(4096.0),
             frequency_domain_source_model=dummy_func_dict_return_value,
         )
         self.simulation_parameters = dict(
@@ -358,8 +359,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         )
         self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
         self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
-        self.assertEqual(actual["plus"].__array_namespace__(), self.xp)
-        self.assertEqual(actual["cross"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
+        self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
 
     def test_time_domain_source_model_call_with_ndarray(self):
         self.waveform_generator.frequency_domain_source_model = None
@@ -377,7 +378,7 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
                 parameters=self.simulation_parameters
             )
             self.assertTrue(np.array_equal(expected, actual))
-            self.assertEqual(actual.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_time_domain_source_model_call_with_dict(self):
         self.waveform_generator.frequency_domain_source_model = None
@@ -396,8 +397,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
             )
             self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
             self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
-            self.assertEqual(actual["plus"].__array_namespace__(), self.xp)
-            self.assertEqual(actual["cross"].__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
+            self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
 
     def test_no_source_model_given(self):
         self.waveform_generator.time_domain_source_model = None
@@ -507,8 +508,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
 
     def test_time_domain_caching_changing_model(self):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=self.xp.array(1.0),
-            sampling_frequency=self.xp.array(4096.0),
+            duration=self.xp.asarray(1.0),
+            sampling_frequency=self.xp.asarray(4096.0),
             time_domain_source_model=dummy_func_dict_return_value,
         )
         original_waveform = self.waveform_generator.frequency_domain_strain(
@@ -523,8 +524,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
         self.assertFalse(
             np.array_equal(original_waveform["plus"], new_waveform["plus"])
         )
-        self.assertEqual(new_waveform["plus"].__array_namespace__(), self.xp)
-        self.assertEqual(new_waveform["cross"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(new_waveform["plus"]), self.xp)
+        self.assertEqual(aac.get_namespace(new_waveform["cross"]), self.xp)
 
 
 @pytest.mark.array_backend
@@ -532,8 +533,8 @@ class TestFrequencyDomainStrainMethod(unittest.TestCase):
 class TestTimeDomainStrainMethod(unittest.TestCase):
     def setUp(self):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            self.xp.array(1.0),
-            self.xp.array(4096.0),
+            self.xp.asarray(1.0),
+            self.xp.asarray(4096.0),
             time_domain_source_model=dummy_func_dict_return_value,
         )
         self.simulation_parameters = dict(
@@ -575,8 +576,8 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         )
         self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
         self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
-        self.assertEqual(actual["plus"].__array_namespace__(), self.xp)
-        self.assertEqual(actual["cross"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
+        self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
 
     def test_frequency_domain_source_model_call_with_ndarray(self):
         self.waveform_generator.time_domain_source_model = None
@@ -596,7 +597,7 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
                 parameters=self.simulation_parameters
             )
             self.assertTrue(np.array_equal(expected, actual))
-            self.assertEqual(actual.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_frequency_domain_source_model_call_with_dict(self):
         self.waveform_generator.time_domain_source_model = None
@@ -617,8 +618,8 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
             )
             self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
             self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
-            self.assertEqual(actual["plus"].__array_namespace__(), self.xp)
-            self.assertEqual(actual["cross"].__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
+            self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
 
     def test_no_source_model_given(self):
         self.waveform_generator.time_domain_source_model = None

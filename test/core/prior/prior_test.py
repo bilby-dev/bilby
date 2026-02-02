@@ -1,3 +1,4 @@
+import array_api_compat as aac
 import bilby
 import unittest
 import numpy as np
@@ -268,27 +269,27 @@ class TestPriorClasses(unittest.TestCase):
                 # and so the rescale function doesn't quite return the lower bound
                 continue
             elif bilby.core.prior.JointPrior in prior.__class__.__mro__:
-                minimum_sample = prior.rescale(self.xp.array(0))
+                minimum_sample = prior.rescale(self.xp.asarray(0))
                 if prior.dist.filled_rescale():
                     self.assertAlmostEqual(minimum_sample[0], prior.minimum)
                     self.assertAlmostEqual(minimum_sample[1], prior.minimum)
             else:
-                minimum_sample = prior.rescale(self.xp.array(0))
+                minimum_sample = prior.rescale(self.xp.asarray(0))
                 self.assertAlmostEqual(minimum_sample, prior.minimum)
 
     def test_maximum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
-                maximum_sample = prior.rescale(self.xp.array(0))
+                maximum_sample = prior.rescale(self.xp.asarray(0))
                 if prior.dist.filled_rescale():
                     self.assertAlmostEqual(maximum_sample[0], prior.maximum)
                     self.assertAlmostEqual(maximum_sample[1], prior.maximum)
             elif isinstance(prior, bilby.gw.prior.AlignedSpin):
-                maximum_sample = prior.rescale(self.xp.array(1))
+                maximum_sample = prior.rescale(self.xp.asarray(1))
                 self.assertGreater(maximum_sample, 0.997)
             else:
-                maximum_sample = prior.rescale(self.xp.array(1))
+                maximum_sample = prior.rescale(self.xp.asarray(1))
                 self.assertAlmostEqual(maximum_sample, prior.maximum)
 
     def test_many_sample_rescaling(self):
@@ -297,14 +298,14 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
                 continue
-            many_samples = prior.rescale(self.xp.array(np.random.uniform(0, 1, 1000)))
+            many_samples = prior.rescale(self.xp.asarray(np.random.uniform(0, 1, 1000)))
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 if not prior.dist.filled_rescale():
                     continue
             self.assertTrue(
                 all((many_samples >= prior.minimum) & (many_samples <= prior.maximum))
             )
-            self.assertEqual(many_samples.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(many_samples), self.xp)
 
     def test_least_recently_sampled(self):
         for prior in self.priors:
@@ -312,7 +313,7 @@ class TestPriorClasses(unittest.TestCase):
             self.assertEqual(
                 least_recently_sampled_expected, prior.least_recently_sampled
             )
-            self.assertEqual(least_recently_sampled_expected.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(least_recently_sampled_expected), self.xp)
 
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -324,7 +325,7 @@ class TestPriorClasses(unittest.TestCase):
             self.assertTrue(
                 (single_sample >= prior.minimum) & (single_sample <= prior.maximum)
             )
-            self.assertEqual(single_sample.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(single_sample), self.xp)
 
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -337,7 +338,7 @@ class TestPriorClasses(unittest.TestCase):
                 (all(many_samples >= prior.minimum))
                 & (all(many_samples <= prior.maximum))
             )
-            self.assertEqual(many_samples.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(many_samples), self.xp)
 
     def test_probability_above_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
@@ -372,7 +373,7 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             lrs = prior.sample(xp=self.xp)
             self.assertEqual(lrs, prior.least_recently_sampled)
-            self.assertEqual(lrs.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(lrs), self.xp)
 
     def test_prob_and_ln_prob(self):
         for prior in self.priors:
@@ -386,8 +387,8 @@ class TestPriorClasses(unittest.TestCase):
                 self.assertAlmostEqual(
                     self.xp.log(prob), lnprob, 6
                 )
-                self.assertEqual(lnprob.__array_namespace__(), self.xp)
-                self.assertEqual(prob.__array_namespace__(), self.xp)
+                self.assertEqual(aac.get_namespace(lnprob), self.xp)
+                self.assertEqual(aac.get_namespace(prob), self.xp)
 
     def test_many_prob_and_many_ln_prob(self):
         for prior in self.priors:
@@ -398,8 +399,8 @@ class TestPriorClasses(unittest.TestCase):
                 for sample, logp, p in zip(samples, ln_probs, probs):
                     self.assertAlmostEqual(prior.ln_prob(sample), logp)
                     self.assertAlmostEqual(prior.prob(sample), p)
-                self.assertEqual(ln_probs.__array_namespace__(), self.xp)
-                self.assertEqual(probs.__array_namespace__(), self.xp)
+                self.assertEqual(aac.get_namespace(ln_probs), self.xp)
+                self.assertEqual(aac.get_namespace(probs), self.xp)
 
     def test_cdf_is_inverse_of_rescaling(self):
         domain = self.xp.linspace(0, 1, 100)
@@ -421,11 +422,11 @@ class TestPriorClasses(unittest.TestCase):
                 self.assertTrue(np.array_equal(rescaled, rescaled_2))
                 max_difference = max(np.abs(cdf_vals - cdf_vals_2))
                 for arr in [rescaled, rescaled_2, cdf_vals, cdf_vals_2]:
-                    self.assertEqual(arr.__array_namespace__(), self.xp)
+                    self.assertEqual(aac.get_namespace(arr), self.xp)
             else:
                 rescaled = prior.rescale(domain)
                 max_difference = max(np.abs(domain - prior.cdf(rescaled)))
-                self.assertEqual(rescaled.__array_namespace__(), self.xp)
+                self.assertEqual(aac.get_namespace(rescaled), self.xp)
             self.assertLess(max_difference, threshold)
 
     def test_cdf_one_above_domain(self):
@@ -669,13 +670,13 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(prior.minimum, prior.maximum, 10000)
             elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
                 domain = prior.values
-                self.assertTrue(np.sum(prior.prob(self.xp.array(domain))) == 1)
+                self.assertTrue(np.sum(prior.prob(self.xp.asarray(domain))) == 1)
                 continue
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
-            probs = prior.prob(self.xp.array(domain))
+            probs = prior.prob(self.xp.asarray(domain))
             self.assertAlmostEqual(trapezoid(np.array(probs), domain), 1, 3)
-            self.assertEqual(probs.__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(probs), self.xp)
 
     def test_accuracy(self):
         """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
@@ -771,14 +772,14 @@ class TestPriorClasses(unittest.TestCase):
             )
             if isinstance(prior, (testTuple)):
                 print(prior)
-                np.testing.assert_almost_equal(prior.prob(self.xp.array(domain)), scipy_prob)
-                np.testing.assert_almost_equal(prior.ln_prob(self.xp.array(domain)), scipy_lnprob)
-                np.testing.assert_almost_equal(prior.cdf(self.xp.array(domain)), scipy_cdf)
+                np.testing.assert_almost_equal(prior.prob(self.xp.asarray(domain)), scipy_prob)
+                np.testing.assert_almost_equal(prior.ln_prob(self.xp.asarray(domain)), scipy_lnprob)
+                np.testing.assert_almost_equal(prior.cdf(self.xp.asarray(domain)), scipy_cdf)
                 if isinstance(prior, bilby.core.prior.StudentT) and "jax" in str(self.xp):
                     # JAX implementation of StudentT prior rescale is not accurate enough
                     continue
                 np.testing.assert_almost_equal(
-                    prior.rescale(self.xp.array(rescale_domain)), scipy_rescale
+                    prior.rescale(self.xp.asarray(rescale_domain)), scipy_rescale
                 )
 
     def test_unit_setting(self):

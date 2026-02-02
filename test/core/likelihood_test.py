@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 import array_api_extra as xpx
@@ -172,13 +173,13 @@ class TestGaussianLikelihood(unittest.TestCase):
         self.N = 100
         self.sigma = 0.1
         self.x = self.xp.linspace(0, 1, self.N)
-        self.y = 2 * self.x + 1 + self.xp.array(np.random.normal(0, self.sigma, self.N))
+        self.y = 2 * self.x + 1 + self.xp.asarray(np.random.normal(0, self.sigma, self.N))
 
         def test_function(x, m, c):
             return m * x + c
 
         self.function = test_function
-        self.parameters = dict(m=self.xp.array(2.0), c=self.xp.array(0.0))
+        self.parameters = dict(m=self.xp.asarray(2.0), c=self.xp.asarray(0.0))
 
     def tearDown(self):
         del self.N
@@ -225,7 +226,7 @@ class TestGaussianLikelihood(unittest.TestCase):
     def test_return_class(self):
         likelihood = GaussianLikelihood(self.x, self.y, self.function, self.sigma)
         logl = likelihood.log_likelihood(self.parameters)
-        self.assertEqual(logl.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
 
 @pytest.mark.array_backend
@@ -236,13 +237,13 @@ class TestStudentTLikelihood(unittest.TestCase):
         self.nu = self.N - 2
         self.sigma = 1
         self.x = self.xp.linspace(0, 1, self.N)
-        self.y = 2 * self.x + 1 + self.xp.array(np.random.normal(0, self.sigma, self.N))
+        self.y = 2 * self.x + 1 + self.xp.asarray(np.random.normal(0, self.sigma, self.N))
 
         def test_function(x, m, c):
             return m * x + c
 
         self.function = test_function
-        self.parameters = dict(m=self.xp.array(2.0), c=self.xp.array(0.0))
+        self.parameters = dict(m=self.xp.asarray(2.0), c=self.xp.asarray(0.0))
 
     def tearDown(self):
         del self.N
@@ -306,7 +307,7 @@ class TestPoissonLikelihood(unittest.TestCase):
         self.N = 100
         self.mu = 5
         self.x = self.xp.linspace(0, 1, self.N)
-        self.y = self.xp.array(np.random.poisson(self.mu, self.N))
+        self.y = self.xp.asarray(np.random.poisson(self.mu, self.N))
         self.yfloat = self.y.copy() * 1.0
         self.yneg = self.y.copy()
         self.yneg = xpx.at(self.yneg, 0).set(-1)
@@ -320,7 +321,7 @@ class TestPoissonLikelihood(unittest.TestCase):
         self.function = test_function
         self.function_array = test_function_array
         self.poisson_likelihood = PoissonLikelihood(self.x, self.y, self.function)
-        self.bad_parameters = dict(c=self.xp.array(-2.0))
+        self.bad_parameters = dict(c=self.xp.asarray(-2.0))
 
     def tearDown(self):
         del self.N
@@ -381,14 +382,14 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_log_likelihood_negative_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: self.xp.array([3, 6, -2])
+            x=self.x, y=self.y, func=lambda x: self.xp.asarray([3, 6, -2])
         )
         with self.assertRaises(ValueError):
             poisson_likelihood.log_likelihood()
 
     def test_log_likelihood_zero_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
-            x=self.x, y=self.y, func=lambda x: self.xp.array([3, 6, 0])
+            x=self.x, y=self.y, func=lambda x: self.xp.asarray([3, 6, 0])
         )
         self.assertEqual(-np.inf, poisson_likelihood.log_likelihood())
 
@@ -416,7 +417,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.N = 100
         self.mu = 5
         self.x = self.xp.linspace(0, 1, self.N)
-        self.y = self.xp.array(np.random.exponential(self.mu, self.N))
+        self.y = self.xp.asarray(np.random.exponential(self.mu, self.N))
         self.yneg = self.y.copy()
         self.yneg = xpx.at(self.yneg, 0).set(-1.0)
 
@@ -431,7 +432,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         self.exponential_likelihood = ExponentialLikelihood(
             x=self.x, y=self.y, func=self.function
         )
-        self.bad_parameters = dict(c=self.xp.array(-1.0))
+        self.bad_parameters = dict(c=self.xp.asarray(-1.0))
 
     def tearDown(self):
         del self.N
@@ -483,12 +484,12 @@ class TestExponentialLikelihood(unittest.TestCase):
 
     def test_set_y_to_nd_array_with_negative_element(self):
         with self.assertRaises(ValueError):
-            self.exponential_likelihood.y = self.xp.array([4.3, -1.2, 4])
+            self.exponential_likelihood.y = self.xp.asarray([4.3, -1.2, 4])
 
     def test_log_likelihood_default(self):
         """ Merely tests that it ends up at the right place in the code """
         exponential_likelihood = ExponentialLikelihood(
-            x=self.x, y=self.y, func=lambda x: self.xp.array([4.2])
+            x=self.x, y=self.y, func=lambda x: self.xp.asarray([4.2])
         )
         with mock.patch(f"{self.xp.__name__}.sum") as m:
             m.return_value = 3
@@ -509,9 +510,9 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
         self.sigma = [1, 2, 3]
         self.mean = [10, 11, 12]
         if self.xp != np:
-            self.cov = self.xp.array(self.cov)
-            self.sigma = self.xp.array(self.sigma)
-            self.mean = self.xp.array(self.mean)
+            self.cov = self.xp.asarray(self.cov)
+            self.sigma = self.xp.asarray(self.sigma)
+            self.mean = self.xp.asarray(self.mean)
         self.likelihood = AnalyticalMultidimensionalCovariantGaussian(
             mean=self.mean, cov=self.cov
         )
@@ -537,14 +538,14 @@ class TestAnalyticalMultidimensionalCovariantGaussian(unittest.TestCase):
 
     def test_log_likelihood(self):
         likelihood = AnalyticalMultidimensionalCovariantGaussian(
-            mean=self.xp.array([0]), cov=self.xp.array([1])
+            mean=self.xp.asarray([0]), cov=self.xp.asarray([1])
         )
-        logl = likelihood.log_likelihood(dict(x0=self.xp.array(0.0)))
+        logl = likelihood.log_likelihood(dict(x0=self.xp.asarray(0.0)))
         self.assertEqual(
             -np.log(2 * np.pi) / 2,
-            likelihood.log_likelihood(dict(x0=self.xp.array(0.0))),
+            likelihood.log_likelihood(dict(x0=self.xp.asarray(0.0))),
         )
-        self.assertEqual(logl.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
 
 @pytest.mark.array_backend
@@ -556,10 +557,10 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         self.mean_1 = [10, 11, 12]
         self.mean_2 = [20, 21, 22]
         if self.xp != np:
-            self.cov = self.xp.array(self.cov)
-            self.sigma = self.xp.array(self.sigma)
-            self.mean_1 = self.xp.array(self.mean_1)
-            self.mean_2 = self.xp.array(self.mean_2)
+            self.cov = self.xp.asarray(self.cov)
+            self.sigma = self.xp.asarray(self.sigma)
+            self.mean_1 = self.xp.asarray(self.mean_1)
+            self.mean_2 = self.xp.asarray(self.mean_2)
         self.likelihood = AnalyticalMultidimensionalBimodalCovariantGaussian(
             mean_1=self.mean_1, mean_2=self.mean_2, cov=self.cov
         )
@@ -593,7 +594,7 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         )
         self.assertEqual(
             -np.log(2 * np.pi) / 2,
-            likelihood.log_likelihood(dict(x0=self.xp.array(0.0))),
+            likelihood.log_likelihood(dict(x0=self.xp.asarray(0.0))),
         )
 
 

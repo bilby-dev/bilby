@@ -11,9 +11,9 @@ from bilby.core.series import CoupledTimeAndFrequencySeries
 @pytest.mark.usefixtures("xp_class")
 class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
     def setUp(self):
-        self.duration = self.xp.array(2.0)
-        self.sampling_frequency = self.xp.array(4096.0)
-        self.start_time = self.xp.array(-1.0)
+        self.duration = self.xp.asarray(2.0)
+        self.sampling_frequency = self.xp.asarray(4096.0)
+        self.start_time = self.xp.asarray(-1.0)
         self.series = CoupledTimeAndFrequencySeries(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -67,8 +67,8 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.assertTrue(np.array_equal(expected, self.series.time_array))
 
     def test_frequency_array_setter(self):
-        new_sampling_frequency = self.xp.array(100.0)
-        new_duration = self.xp.array(3.0)
+        new_sampling_frequency = self.xp.asarray(100.0)
+        new_duration = self.xp.asarray(3.0)
         new_frequency_array = create_frequency_series(
             sampling_frequency=new_sampling_frequency, duration=new_duration
         )
@@ -83,9 +83,9 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.assertAlmostEqual(self.start_time, self.series.start_time)
 
     def test_time_array_setter(self):
-        new_sampling_frequency = self.xp.array(100.0)
-        new_duration = self.xp.array(3.0)
-        new_start_time = self.xp.array(4.0)
+        new_sampling_frequency = self.xp.asarray(100.0)
+        new_duration = self.xp.asarray(3.0)
+        new_start_time = self.xp.asarray(4.0)
         new_time_array = create_time_series(
             sampling_frequency=new_sampling_frequency,
             duration=new_duration,
@@ -101,24 +101,24 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
 
     def test_time_array_without_sampling_frequency(self):
         self.series.sampling_frequency = None
-        self.series.duration = self.xp.array(4)
+        self.series.duration = self.xp.asarray(4)
         with self.assertRaises(ValueError):
             _ = self.series.time_array
 
     def test_time_array_without_duration(self):
-        self.series.sampling_frequency = self.xp.array(4096)
+        self.series.sampling_frequency = self.xp.asarray(4096)
         self.series.duration = None
         with self.assertRaises(ValueError):
             _ = self.series.time_array
 
     def test_frequency_array_without_sampling_frequency(self):
         self.series.sampling_frequency = None
-        self.series.duration = self.xp.array(4)
+        self.series.duration = self.xp.asarray(4)
         with self.assertRaises(ValueError):
             _ = self.series.frequency_array
 
     def test_frequency_array_without_duration(self):
-        self.series.sampling_frequency = self.xp.array(4096)
+        self.series.sampling_frequency = self.xp.asarray(4096)
         self.series.duration = None
         with self.assertRaises(ValueError):
             _ = self.series.frequency_array

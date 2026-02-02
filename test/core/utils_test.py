@@ -1,6 +1,7 @@
 import unittest
 import os
 
+import array_api_compat as aac
 import array_api_extra as xpx
 import dill
 import numpy as np
@@ -54,16 +55,16 @@ class TestConstants(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestFFT(unittest.TestCase):
     def setUp(self):
-        self.sampling_frequency = self.xp.array(10)
+        self.sampling_frequency = self.xp.asarray(10)
 
     def tearDown(self):
         del self.sampling_frequency
 
     def test_nfft_sine_function(self):
         xp = self.xp
-        injected_frequency = xp.array(2.7324)
-        duration = xp.array(100)
-        times = utils.create_time_series(xp.array(self.sampling_frequency), duration)
+        injected_frequency = xp.asarray(2.7324)
+        duration = xp.asarray(100)
+        times = utils.create_time_series(xp.asarray(self.sampling_frequency), duration)
 
         time_domain_strain = xp.sin(2 * np.pi * times * injected_frequency + 0.4)
 
@@ -75,7 +76,7 @@ class TestFFT(unittest.TestCase):
 
     def test_nfft_infft(self):
         xp = self.xp
-        time_domain_strain = xp.array(np.random.normal(0, 1, 10))
+        time_domain_strain = xp.asarray(np.random.normal(0, 1, 10))
         frequency_domain_strain, _ = bilby.core.utils.nfft(
             time_domain_strain, self.sampling_frequency
         )
@@ -128,9 +129,9 @@ class TestInferParameters(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestTimeAndFrequencyArrays(unittest.TestCase):
     def setUp(self):
-        self.start_time = self.xp.array(1.3)
-        self.sampling_frequency = self.xp.array(5)
-        self.duration = self.xp.array(1.6)
+        self.start_time = self.xp.asarray(1.3)
+        self.sampling_frequency = self.xp.asarray(5)
+        self.duration = self.xp.asarray(1.6)
         self.frequency_array = utils.create_frequency_series(
             sampling_frequency=self.sampling_frequency, duration=self.duration
         )
@@ -148,13 +149,13 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         del self.time_array
 
     def test_create_time_array(self):
-        expected_time_array = self.xp.array([1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7])
+        expected_time_array = self.xp.asarray([1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7])
         time_array = utils.create_time_series(
             sampling_frequency=self.sampling_frequency,
             duration=self.duration,
             starting_time=self.start_time,
         )
-        self.assertEqual(time_array.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(time_array), self.xp)
         self.assertTrue(np.allclose(expected_time_array, time_array))
 
     def test_create_frequency_array(self):
@@ -243,9 +244,9 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
     def test_illegal_sampling_frequency_and_duration(self):
         with self.assertRaises(utils.IllegalDurationAndSamplingFrequencyException):
             _ = utils.create_time_series(
-                sampling_frequency=self.xp.array(7.7),
-                duration=self.xp.array(1.3),
-                starting_time=self.xp.array(0),
+                sampling_frequency=self.xp.asarray(7.7),
+                duration=self.xp.asarray(1.3),
+                starting_time=self.xp.asarray(0),
             )
 
 
@@ -253,28 +254,28 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestReflect(unittest.TestCase):
     def test_in_range(self):
-        xprime = self.xp.array([0.1, 0.5, 0.9])
-        x = self.xp.array([0.1, 0.5, 0.9])
+        xprime = self.xp.asarray([0.1, 0.5, 0.9])
+        x = self.xp.asarray([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_one_to_two(self):
-        xprime = self.xp.array([1.1, 1.5, 1.9])
-        x = self.xp.array([0.9, 0.5, 0.1])
+        xprime = self.xp.asarray([1.1, 1.5, 1.9])
+        x = self.xp.asarray([0.9, 0.5, 0.1])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_two_to_three(self):
-        xprime = self.xp.array([2.1, 2.5, 2.9])
-        x = self.xp.array([0.1, 0.5, 0.9])
+        xprime = self.xp.asarray([2.1, 2.5, 2.9])
+        x = self.xp.asarray([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_minus_one_to_zero(self):
-        xprime = self.xp.array([-0.9, -0.5, -0.1])
-        x = self.xp.array([0.9, 0.5, 0.1])
+        xprime = self.xp.asarray([-0.9, -0.5, -0.1])
+        x = self.xp.asarray([0.9, 0.5, 0.1])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
     def test_in_minus_two_to_minus_one(self):
-        xprime = self.xp.array([-1.9, -1.5, -1.1])
-        x = self.xp.array([0.1, 0.5, 0.9])
+        xprime = self.xp.asarray([-1.9, -1.5, -1.1])
+        x = self.xp.asarray([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
 
 
@@ -359,23 +360,23 @@ class TestUnsortedInterp2d(unittest.TestCase):
         self.assertIsNone(self.interpolant(-0.5, 0.5))
 
     def test_returns_float_for_float_and_array(self):
-        input_array = self.xp.array(np.random.random(10))
-        self.assertEqual(self.interpolant(input_array, 0.5).__array_namespace__(), self.xp)
-        self.assertEqual(
-            self.interpolant(input_array, input_array).__array_namespace__(), self.xp
+        input_array = self.xp.asarray(np.random.random(10))
+        aac.get_namespace(self.assertEqual(self.interpolant(input_array, 0.5)), self.xp)
+        aac.get_namespace(self.assertEqual(
+            self.interpolant(input_array, input_array)), self.xp
         )
-        self.assertEqual(self.interpolant(0.5, input_array).__array_namespace__(), self.xp)
+        aac.get_namespace(self.assertEqual(self.interpolant(0.5, input_array)), self.xp)
 
     def test_raises_for_mismatched_arrays(self):
         with self.assertRaises(ValueError):
             self.interpolant(
-                self.xp.array(np.random.random(10)),
-                self.xp.array(np.random.random(20)),
+                self.xp.asarray(np.random.random(10)),
+                self.xp.asarray(np.random.random(20)),
             )
 
     def test_returns_fill_in_correct_place(self):
-        x_data = self.xp.array(np.random.random(10))
-        y_data = self.xp.array(np.random.random(10))
+        x_data = self.xp.asarray(np.random.random(10))
+        y_data = self.xp.asarray(np.random.random(10))
         x_data = xpx.at(x_data, 3).set(-1)
         self.assertTrue(self.xp.isnan(self.interpolant(x_data, y_data)[3]))
 
@@ -394,7 +395,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
             self.lnfunc2 = self.xp.log(self.x ** 2)
         self.func2int = (self.x[-1] ** 3 - self.x[0] ** 3) / 3
 
-        self.irregularx = self.xp.array(
+        self.irregularx = self.xp.asarray(
             [
                 self.x[0],
                 self.x[12],

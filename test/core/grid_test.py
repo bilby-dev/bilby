@@ -14,8 +14,8 @@ class MultiGaussian(bilby.Likelihood):
     def __init__(self, mean, cov, *, xp=np):
         super(MultiGaussian, self).__init__()
         self.xp = xp
-        self.cov = xp.array(cov)
-        self.mean = xp.array(mean)
+        self.cov = xp.asarray(cov)
+        self.mean = xp.asarray(mean)
         self.sigma = xp.sqrt(xp.diag(self.cov))
         self.logpdf = multivariate_logpdf(xp=xp, mean=self.mean, cov=self.cov)
 
@@ -24,7 +24,7 @@ class MultiGaussian(bilby.Likelihood):
         return len(self.cov[0])
 
     def log_likelihood(self, parameters):
-        x = self.xp.array([parameters["x{0}".format(i)] for i in range(self.dim)])
+        x = self.xp.asarray([parameters["x{0}".format(i)] for i in range(self.dim)])
         return self.logpdf(x)
 
 

@@ -385,7 +385,7 @@ class PriorDict(dict):
         samples_dict = self.sample_subset_constrained(keys=keys, size=size, xp=xp)
         samples_dict = {key: xp.atleast_1d(val) for key, val in samples_dict.items()}
         samples_list = [samples_dict[key] for key in keys]
-        return xp.array(samples_list)
+        return xp.asarray(samples_list)
 
     def sample_subset(self, keys=iter([]), size=None, *, xp=np):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
@@ -850,7 +850,7 @@ class ConditionalPriorDict(PriorDict):
         """
         self._prepare_evaluation(*zip(*sample.items()))
         xp = array_module(sample.values())
-        res = xp.array([
+        res = xp.asarray([
             self[key].ln_prob(sample[key], **self.get_required_variables(key))
             for key in sample
         ])
@@ -910,7 +910,7 @@ class ConditionalPriorDict(PriorDict):
                     self[subkey].least_recently_sampled = val
                     result[subkey] = val
 
-        return xp.array([result[key] for key in keys])
+        return xp.asarray([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

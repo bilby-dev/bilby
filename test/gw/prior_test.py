@@ -5,6 +5,7 @@ import os
 import sys
 import pickle
 
+import array_api_compat as aac
 import numpy as np
 from astropy import cosmology
 from scipy.stats import ks_2samp
@@ -582,7 +583,7 @@ class TestAlignedSpin(unittest.TestCase):
         alts = a_prior.sample(100000, xp=self.xp) * z_prior.sample(100000, xp=self.xp)
         self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
         self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
-        self.assertEqual(chis.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(chis), self.xp)
 
 
 @pytest.mark.array_backend
@@ -600,7 +601,7 @@ class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
         samples = priors.sample(100000, xp=self.xp)["a_1"]
         ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
         self.assertTrue(ks.pvalue > 0.001)
-        self.assertEqual(samples.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(samples), self.xp)
 
 
 if __name__ == "__main__":

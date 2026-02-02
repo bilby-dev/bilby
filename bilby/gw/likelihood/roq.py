@@ -1,4 +1,5 @@
 
+import array_api_compat as aac
 import numpy as np
 
 from .base import GravitationalWaveTransient
@@ -567,7 +568,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         value: float
             The value of the function at the input time
         """
-        xp = time_samples.__array_namespace__()
+        xp = aac.get_namespace(time_samples)
         r1 = (-values[0] + 8. * values[1] - 14. * values[2] + 8. * values[3] - values[4]) / 4.
         r2 = values[2] - 2. * values[3] + values[4]
         a = (time_samples[3] - time) / xp.maximum(time_samples[1] - time_samples[0], 1e-12)

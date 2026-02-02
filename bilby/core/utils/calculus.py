@@ -194,7 +194,7 @@ def logtrapzexp(lnf, dx, *, xp=np):
     else:
         raise TypeError("Step size must be a single value or array-like")
 
-    return C + logsumexp(xp.array([logsumexp(lnfdx1), logsumexp(lnfdx2)]))
+    return C + logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)]))
 
 
 class interp1d(_interp1d):

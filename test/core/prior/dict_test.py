@@ -2,6 +2,7 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 
@@ -277,7 +278,7 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
         for key in samples:
             self.assertEqual(size, len(samples[key]))
-            self.assertEqual(samples[key].__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_correct_size_when_non_priors_in_dict(self):
         self.prior_set_from_dict["asdf"] = "not_a_prior"
@@ -287,16 +288,16 @@ class TestPriorDict(unittest.TestCase):
         )
         self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
         for key in samples:
-            self.assertIsNotNone(samples[key].__array_namespace__(), self.xp)
+            self.assertIsNotNone(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_with_actual_subset(self):
         size = 3
         samples = self.prior_set_from_dict.sample_subset(
             keys=["length"], size=size, xp=self.xp
         )
-        expected = dict(length=self.xp.array([42.0, 42.0, 42.0]))
+        expected = dict(length=self.xp.asarray([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
-        self.assertEqual(samples["length"].__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(samples["length"]), self.xp)
 
     def test_sample_subset_constrained_as_array(self):
         size = 3
@@ -304,7 +305,7 @@ class TestPriorDict(unittest.TestCase):
         out = self.prior_set_from_dict.sample_subset_constrained_as_array(
             keys, size, xp=self.xp
         )
-        self.assertEqual(out.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(out), self.xp)
         self.assertTrue(out.shape == (len(keys), size))
 
     def test_sample_subset_constrained(self):
@@ -356,8 +357,8 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
             self.assertTrue(np.array_equal(samples1[key], samples2[key]))
-            self.assertEqual(samples1[key].__array_namespace__(), self.xp)
-            self.assertEqual(samples2[key].__array_namespace__(), self.xp)
+            self.assertEqual(aac.get_namespace(samples1[key]), self.xp)
+            self.assertEqual(aac.get_namespace(samples2[key]), self.xp)
 
     def test_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], xp=self.xp)
@@ -365,7 +366,7 @@ class TestPriorDict(unittest.TestCase):
             samples["speed"]
         )
         self.assertEqual(expected, self.prior_set_from_dict.prob(samples))
-        self.assertEqual(expected.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], xp=self.xp)
@@ -373,7 +374,7 @@ class TestPriorDict(unittest.TestCase):
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
-        self.assertEqual(expected.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]
@@ -398,13 +399,13 @@ class TestPriorDict(unittest.TestCase):
         Note that the format of inputs/outputs is different between the two methods.
         """
         sample = self.prior_set_from_dict.sample(xp=self.xp)
-        original = self.xp.array(list(sample.values()))
-        new = self.xp.array(self.prior_set_from_dict.rescale(
+        original = self.xp.asarray(list(sample.values()))
+        new = self.xp.asarray(self.prior_set_from_dict.rescale(
             sample.keys(),
             self.prior_set_from_dict.cdf(sample=sample).values()
         ))
         self.assertLess(max(abs(original - new)), 1e-10)
-        self.assertEqual(new.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(new), self.xp)
 
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():

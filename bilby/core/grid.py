@@ -1,6 +1,7 @@
 import json
 import os
 
+import array_api_compat as aac
 import numpy as np
 
 from .likelihood import _safe_likelihood_call
@@ -88,7 +89,7 @@ class Grid(object):
                  enumerate(self.parameter_names)}, axis=0).reshape(
                 self.mesh_grid[0].shape)
         else:
-            self._ln_prior = xp.array(0.0)
+            self._ln_prior = xp.asarray(0.0)
         self._ln_likelihood = None
 
         # evaluate the likelihood on the grid points
@@ -207,7 +208,7 @@ class Grid(object):
         non_marg_names.remove(name)
 
         places = self.sample_points[name]
-        xp = log_array.__array_namespace__()
+        xp = aac.get_namespace(log_array)
 
         if len(places) > 1:
             dx = xp.diff(places)
@@ -218,7 +219,7 @@ class Grid(object):
             # no marginalisation required, just remove the singleton dimension
             z = log_array.shape
             q = xp.arange(0, len(z)).astype(int) != axis
-            out = xp.reshape(log_array, tuple((xp.array(list(z)))[q]))
+            out = xp.reshape(log_array, tuple((xp.asarray(list(z)))[q]))
 
         return out
 
@@ -296,7 +297,7 @@ class Grid(object):
         """
         ln_like = self.marginalize(self.ln_likelihood, parameters=parameters,
                                    not_parameters=not_parameters)
-        xp = ln_like.__array_namespace__()
+        xp = aac.get_namespace(ln_like)
         # NOTE: the output will not be properly normalised
         return xp.exp(ln_like - xp.max(ln_like))
 
@@ -321,11 +322,11 @@ class Grid(object):
         ln_post = self.marginalize(self.ln_posterior, parameters=parameters,
                                    not_parameters=not_parameters)
         # NOTE: the output will not be properly normalised
-        xp = ln_post.__array_namespace__()
+        xp = aac.get_namespace(ln_post)
         return xp.exp(ln_post - xp.max(ln_post))
 
     def _evaluate(self):
-        xp = self.mesh_grid[0].__array_namespace__()
+        xp = aac.get_namespace(self.mesh_grid[0])
         if xp.__name__ == "jax.numpy":
             from jax import vmap
             self._ln_likelihood = vmap(self.likelihood.log_likelihood)(
@@ -339,7 +340,7 @@ class Grid(object):
 
     def _evaluate_recursion(self, dimension, parameters):
         if dimension == self.n_dims:
-            xp = self.mesh_grid[0].__array_namespace__()
+            xp = aac.get_namespace(self.mesh_grid[0])
             current_point = tuple([[xp.where(
                 parameters[name] ==
                 self.sample_points[name])[0].item()] for name in self.parameter_names])

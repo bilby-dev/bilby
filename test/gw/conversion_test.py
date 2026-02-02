@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 import pytest
@@ -13,17 +14,17 @@ from bilby.gw import conversion
 @pytest.mark.usefixtures("xp_class")
 class TestBasicConversions(unittest.TestCase):
     def setUp(self):
-        self.mass_1 = self.xp.array(1.4)
-        self.mass_2 = self.xp.array(1.3)
-        self.mass_ratio = self.xp.array(13 / 14)
-        self.total_mass = self.xp.array(2.7)
+        self.mass_1 = self.xp.asarray(1.4)
+        self.mass_2 = self.xp.asarray(1.3)
+        self.mass_ratio = self.xp.asarray(13 / 14)
+        self.total_mass = self.xp.asarray(2.7)
         self.chirp_mass = (self.mass_1 * self.mass_2) ** 0.6 / self.total_mass ** 0.2
         self.symmetric_mass_ratio = (self.mass_1 * self.mass_2) / self.total_mass ** 2
-        self.cos_angle = self.xp.array(-1.0)
+        self.cos_angle = self.xp.asarray(-1.0)
         self.angle = self.xp.pi
-        self.lambda_1 = self.xp.array(300.0)
-        self.lambda_2 = self.xp.array(300.0 * (14 / 13) ** 5)
-        self.lambda_tilde = self.xp.array(
+        self.lambda_1 = self.xp.asarray(300.0)
+        self.lambda_2 = self.xp.asarray(300.0 * (14 / 13) ** 5)
+        self.lambda_tilde = self.xp.asarray(
             8
             / 13
             * (
@@ -42,7 +43,7 @@ class TestBasicConversions(unittest.TestCase):
                 * (self.lambda_1 - self.lambda_2)
             )
         )
-        self.delta_lambda_tilde = self.xp.array(
+        self.delta_lambda_tilde = self.xp.asarray(
             1
             / 2
             * (
@@ -78,36 +79,36 @@ class TestBasicConversions(unittest.TestCase):
         self.assertTrue(
             all([abs(mass_1 - self.mass_1) < 1e-5, abs(mass_2 - self.mass_2) < 1e-5])
         )
-        self.assertEqual(mass_1.__array_namespace__(), self.xp)
-        self.assertEqual(mass_2.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_1), self.xp)
+        self.assertEqual(aac.get_namespace(mass_2), self.xp)
 
     def test_chirp_mass_and_primary_mass_to_mass_ratio(self):
         mass_ratio = conversion.chirp_mass_and_primary_mass_to_mass_ratio(
             self.chirp_mass, self.mass_1
         )
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
-        self.assertEqual(mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_symmetric_mass_ratio_to_mass_ratio(self):
         mass_ratio = conversion.symmetric_mass_ratio_to_mass_ratio(
             self.symmetric_mass_ratio
         )
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
-        self.assertEqual(mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_chirp_mass_and_total_mass_to_symmetric_mass_ratio(self):
         symmetric_mass_ratio = conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(
             self.chirp_mass, self.total_mass
         )
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
-        self.assertEqual(symmetric_mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(symmetric_mass_ratio), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_total_mass(self):
         total_mass = conversion.chirp_mass_and_mass_ratio_to_total_mass(
             self.chirp_mass, self.mass_ratio
         )
         self.assertAlmostEqual(self.total_mass, total_mass)
-        self.assertEqual(total_mass.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(total_mass), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_component_masses(self):
         mass_1, mass_2 = \
@@ -115,37 +116,37 @@ class TestBasicConversions(unittest.TestCase):
                 self.chirp_mass, self.mass_ratio)
         self.assertAlmostEqual(self.mass_1, mass_1)
         self.assertAlmostEqual(self.mass_2, mass_2)
-        self.assertEqual(mass_1.__array_namespace__(), self.xp)
-        self.assertEqual(mass_2.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_1), self.xp)
+        self.assertEqual(aac.get_namespace(mass_2), self.xp)
 
     def test_component_masses_to_chirp_mass(self):
         chirp_mass = conversion.component_masses_to_chirp_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.chirp_mass, chirp_mass)
-        self.assertEqual(chirp_mass.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(chirp_mass), self.xp)
 
     def test_component_masses_to_total_mass(self):
         total_mass = conversion.component_masses_to_total_mass(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.total_mass, total_mass)
-        self.assertEqual(total_mass.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(total_mass), self.xp)
 
     def test_component_masses_to_symmetric_mass_ratio(self):
         symmetric_mass_ratio = conversion.component_masses_to_symmetric_mass_ratio(
             self.mass_1, self.mass_2
         )
         self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
-        self.assertEqual(symmetric_mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(symmetric_mass_ratio), self.xp)
 
     def test_component_masses_to_mass_ratio(self):
         mass_ratio = conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
-        self.assertEqual(mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_mass_1_and_chirp_mass_to_mass_ratio(self):
         mass_ratio = conversion.mass_1_and_chirp_mass_to_mass_ratio(
             self.mass_1, self.chirp_mass
         )
         self.assertAlmostEqual(self.mass_ratio, mass_ratio)
-        self.assertEqual(mass_ratio.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_lambda_tilde_to_lambda_1_lambda_2(self):
         lambda_1, lambda_2 = conversion.lambda_tilde_to_lambda_1_lambda_2(
@@ -159,8 +160,8 @@ class TestBasicConversions(unittest.TestCase):
                 ]
             )
         )
-        self.assertEqual(lambda_1.__array_namespace__(), self.xp)
-        self.assertEqual(lambda_2.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(lambda_1), self.xp)
+        self.assertEqual(aac.get_namespace(lambda_2), self.xp)
 
     def test_lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(self):
         (
@@ -177,22 +178,22 @@ class TestBasicConversions(unittest.TestCase):
                 ]
             )
         )
-        self.assertEqual(lambda_1.__array_namespace__(), self.xp)
-        self.assertEqual(lambda_2.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(lambda_1), self.xp)
+        self.assertEqual(aac.get_namespace(lambda_2), self.xp)
 
     def test_lambda_1_lambda_2_to_lambda_tilde(self):
         lambda_tilde = conversion.lambda_1_lambda_2_to_lambda_tilde(
             self.lambda_1, self.lambda_2, self.mass_1, self.mass_2
         )
         self.assertTrue((self.lambda_tilde - lambda_tilde) < 1e-5)
-        self.assertEqual(lambda_tilde.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(lambda_tilde), self.xp)
 
     def test_lambda_1_lambda_2_to_delta_lambda_tilde(self):
         delta_lambda_tilde = conversion.lambda_1_lambda_2_to_delta_lambda_tilde(
             self.lambda_1, self.lambda_2, self.mass_1, self.mass_2
         )
         self.assertTrue((self.delta_lambda_tilde - delta_lambda_tilde) < 1e-5)
-        self.assertEqual(delta_lambda_tilde.__array_namespace__(), self.xp)
+        self.assertEqual(aac.get_namespace(delta_lambda_tilde), self.xp)
 
     def test_identity_conversion(self):
         original_samples = dict(
@@ -630,16 +631,16 @@ class TestDistanceTransformations(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestGenerateMassParameters(unittest.TestCase):
     def setUp(self):
-        self.expected_values = {'mass_1': self.xp.array(2.0),
-                                'mass_2': self.xp.array(1.0),
-                                'chirp_mass': self.xp.array(1.2167286837864113),
-                                'total_mass': self.xp.array(3.0),
-                                'mass_1_source': self.xp.array(4.0),
-                                'mass_2_source': self.xp.array(2.0),
-                                'chirp_mass_source': self.xp.array(2.433457367572823),
-                                'total_mass_source': self.xp.array(6),
-                                'symmetric_mass_ratio': self.xp.array(0.2222222222222222),
-                                'mass_ratio': self.xp.array(0.5)}
+        self.expected_values = {'mass_1': self.xp.asarray(2.0),
+                                'mass_2': self.xp.asarray(1.0),
+                                'chirp_mass': self.xp.asarray(1.2167286837864113),
+                                'total_mass': self.xp.asarray(3.0),
+                                'mass_1_source': self.xp.asarray(4.0),
+                                'mass_2_source': self.xp.asarray(2.0),
+                                'chirp_mass_source': self.xp.asarray(2.433457367572823),
+                                'total_mass_source': self.xp.asarray(6),
+                                'symmetric_mass_ratio': self.xp.asarray(0.2222222222222222),
+                                'mass_ratio': self.xp.asarray(0.5)}
 
     def helper_generation_from_keys(self, keys, expected_values, source=False):
         # Explicitly test the helper generate_component_masses
@@ -688,7 +689,7 @@ class TestGenerateMassParameters(unittest.TestCase):
         for key in local_all_mass_parameters.keys():
             self.assertAlmostEqual(expected_values[key], local_all_mass_parameters[key])
             self.assertEqual(
-                local_all_mass_parameters[key].__array_namespace__(),
+                aac.get_namespace(local_all_mass_parameters[key]),
                 self.xp,
             )
 
@@ -767,42 +768,42 @@ class TestEquationOfStateConversions(unittest.TestCase):
 
     '''
     def setUp(self):
-        self.mass_1_source_spectral = self.xp.array([
+        self.mass_1_source_spectral = self.xp.asarray([
             4.922542724434885,
             4.350626907771598,
             4.206155335439082,
             1.7822696459661311,
             1.3091740103047926
         ])
-        self.mass_2_source_spectral = self.xp.array([
+        self.mass_2_source_spectral = self.xp.asarray([
             3.459974694590303,
             1.2276461777181447,
             3.7287707089639976,
             0.3724016563531846,
             1.055042934805801
         ])
-        self.spectral_pca_gamma_0 = self.xp.array([
+        self.spectral_pca_gamma_0 = self.xp.asarray([
             0.7074873121348357,
             0.05855931126849878,
             0.7795329261793462,
             1.467907561566463,
             2.9066488405635624
         ])
-        self.spectral_pca_gamma_1 = self.xp.array([
+        self.spectral_pca_gamma_1 = self.xp.asarray([
             -0.29807111670823816,
             2.027708558522935,
             -1.4415775226512115,
             -0.7104870098896858,
             -0.4913817181089619
         ])
-        self.spectral_pca_gamma_2 = self.xp.array([
+        self.spectral_pca_gamma_2 = self.xp.asarray([
             0.25625095371021156,
             -0.19574096643220049,
             -0.2710238103460012,
             0.22815820981582358,
             -0.1543413205016374
         ])
-        self.spectral_pca_gamma_3 = self.xp.array([
+        self.spectral_pca_gamma_3 = self.xp.asarray([
             -0.04030365100175101,
             0.05698030777919032,
             -0.045595911403040264,
@@ -914,7 +915,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             self.assertAlmostEqual(spectral_gamma_2, self.spectral_gamma_2[i], places=5)
             self.assertAlmostEqual(spectral_gamma_3, self.spectral_gamma_3[i], places=5)
             for val in [spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3]:
-                self.assertEqual(val.__array_namespace__(), self.xp)
+                self.assertEqual(aac.get_namespace(val), self.xp)
 
     def test_spectral_params_to_lambda_1_lambda_2(self):
         '''

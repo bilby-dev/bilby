@@ -317,7 +317,7 @@ class BaseJointPriorDist(object):
             An vector sample drawn from the multivariate Gaussian
             distribution.
         """
-        samp = xp.array(value)
+        samp = xp.asarray(value)
         if len(samp.shape) == 1:
             samp = samp.reshape(1, self.num_vars)
 
@@ -627,7 +627,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = xp.array(self.mus[mode]) + self.sigmas[mode] * xp.einsum(
+        samp = xp.asarray(self.mus[mode]) + self.sigmas[mode] * xp.einsum(
             "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
         )
         return samp
@@ -674,7 +674,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if not outbound:
                     inbound = True
 
-        return xp.array(samps)
+        return xp.asarray(samps)
 
     @xp_wrap
     def _ln_prob(self, samp, lnprob, outbounds, *, xp=None):
@@ -801,7 +801,7 @@ class JointPrior(Prior):
         self.dist.rescale_parameters[self.name] = val
 
         if self.dist.filled_rescale():
-            values = xp.array(list(self.dist.rescale_parameters.values())).T
+            values = xp.asarray(list(self.dist.rescale_parameters.values())).T
             samples = self.dist.rescale(values, **kwargs)
             self.dist.reset_rescale()
             return samples
@@ -871,14 +871,14 @@ class JointPrior(Prior):
             # check for the same number of values for each parameter
             shapes = set()
             for v in values:
-                shapes.add(xp.array(v).shape)
+                shapes.add(xp.asarray(v).shape)
             if len(shapes) > 1:
                 raise ValueError(
                     "Each parameter must have the same "
                     "number of requested values."
                 )
 
-            lnp = self.dist.ln_prob(xp.array(values).T)
+            lnp = self.dist.ln_prob(xp.asarray(values).T)
 
             # reset the requested parameters
             self.dist.reset_request()

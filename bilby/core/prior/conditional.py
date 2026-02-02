@@ -80,7 +80,7 @@ def conditional_prior_factory(prior_class):
             from ..utils import random
 
             self.least_recently_sampled = self.rescale(
-                xp.array(random.rng.uniform(0, 1, size)),
+                xp.asarray(random.rng.uniform(0, 1, size)),
                 xp=xp,
                 **required_variables,
             )

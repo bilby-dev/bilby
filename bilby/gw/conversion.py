@@ -632,8 +632,8 @@ def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3)
 
     '''
     xp = array_module(gamma_pca_0)
-    sampled_pca_gammas = xp.array([gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3])
-    transformation_matrix = xp.array(
+    sampled_pca_gammas = xp.asarray([gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3])
+    transformation_matrix = xp.asarray(
         [
             [0.43801, -0.76705, 0.45143, 0.12646],
             [-0.53573, 0.17169, 0.67968, 0.47070],
@@ -642,8 +642,8 @@ def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3)
         ]
     )
 
-    model_space_mean = xp.array([0.89421, 0.33878, -0.07894, 0.00393])
-    model_space_standard_deviation = xp.array([0.35700, 0.25769, 0.05452, 0.00312])
+    model_space_mean = xp.asarray([0.89421, 0.33878, -0.07894, 0.00393])
+    model_space_standard_deviation = xp.asarray([0.35700, 0.25769, 0.05452, 0.00312])
     converted_gamma_parameters = \
         model_space_mean + model_space_standard_deviation * xp.dot(transformation_matrix, sampled_pca_gammas)
 

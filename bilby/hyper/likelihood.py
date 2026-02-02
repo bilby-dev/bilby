@@ -111,5 +111,5 @@ class HyperparameterLikelihood(Likelihood):
             for key in data:
                 data[key].append(temp[key])
         for key in data:
-            data[key] = xp.array(data[key])
+            data[key] = xp.asarray(data[key])
         return data

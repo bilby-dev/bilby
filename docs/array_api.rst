@@ -351,7 +351,7 @@ All array-processing methods in prior classes follow this pattern:
 
     def sample(self, size=None, *, xp=np):
         """Method that uses xp but isn't wrapped."""
-        return xp.array(random.rng.uniform(0, 1, size))
+        return xp.asarray(random.rng.uniform(0, 1, size))
 
 Key rules:
 
@@ -399,17 +399,17 @@ backends using the ``array_backend`` marker:
     class TestMyPrior:
         def test_prob(self):
             prior = MyPrior()
-            val = self.xp.array([0.5, 1.5, 2.5])
+            val = self.xp.asarray([0.5, 1.5, 2.5])
             # No need to pass xp - automatically detected
             prob = prior.prob(val)
             assert self.xp.all(prob >= 0)
-            assert prob.__array_namespace__() == self.xp
+            assert aac.get_namespace(prob) == self.xp
         
         def test_sample(self):
             prior = MyPrior()
             # Sampling requires explicit xp
             samples = prior.sample(size=100, xp=self.xp)
-            assert samples.__array_namespace__() == self.xp
+            assert aac.get_namespace(samples) == self.xp
 
 The array_backend Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~
