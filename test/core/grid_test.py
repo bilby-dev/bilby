@@ -8,9 +8,6 @@ import pytest
 import bilby
 from bilby.compat.patches import multivariate_logpdf
 
-import jax
-from functools import partial
-
 
 class MultiGaussian(bilby.Likelihood):
     # set 2D multivariate Gaussian likelihood

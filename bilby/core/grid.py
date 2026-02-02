@@ -345,7 +345,7 @@ class Grid(object):
                 parameters[name] ==
                 self.sample_points[name])[0].item()] for name in self.parameter_names])
             self._ln_likelihood[current_point] = (
-_safe_likelihood_call(self.likelihood, parameters)
+                _safe_likelihood_call(self.likelihood, parameters)
             )
         else:
             name = self.parameter_names[dimension]

@@ -358,7 +358,7 @@ class TestPriorDict(unittest.TestCase):
             self.assertTrue(np.array_equal(samples1[key], samples2[key]))
             self.assertEqual(samples1[key].__array_namespace__(), self.xp)
             self.assertEqual(samples2[key].__array_namespace__(), self.xp)
-    
+
     def test_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], xp=self.xp)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
