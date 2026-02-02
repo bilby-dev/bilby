@@ -15,6 +15,7 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_roqs: mark a test that requires ROQs")
+    config.addinivalue_line("markers", "array_backend: mark that a test uses all array backends")
 
 
 def pytest_collection_modifyitems(config, items):

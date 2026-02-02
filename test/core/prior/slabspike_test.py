@@ -150,6 +150,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
 
     def test_cdf_below_spike(self):
         for slab, slab_spike, test_nodes in zip(self.slabs, self.slab_spikes, self.test_nodes):
+            print(slab)
             test_nodes = test_nodes[np.where(test_nodes < self.spike_loc)]
             expected = slab.cdf(test_nodes) * slab_spike.slab_fraction
             actual = slab_spike.cdf(test_nodes)
@@ -158,6 +159,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
 
     def test_cdf_at_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):
+            print(slab)
             expected = slab.cdf(self.spike_loc) * slab_spike.slab_fraction
             actual = slab_spike.cdf(self.spike_loc)
             self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
@@ -165,6 +167,7 @@ class TestSlabSpikeClasses(unittest.TestCase):
 
     def test_cdf_above_spike(self):
         for slab, slab_spike, test_nodes in zip(self.slabs, self.slab_spikes, self.test_nodes):
+            print(slab)
             test_nodes = test_nodes[np.where(test_nodes > self.spike_loc)]
             expected = slab.cdf(test_nodes) * slab_spike.slab_fraction + self.spike_height
             actual = slab_spike.cdf(test_nodes)
