@@ -626,19 +626,20 @@ class TestDistanceTransformations(unittest.TestCase):
         self.assertAlmostEqual(max(abs(dl - self.distances)), 0, 4)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestGenerateMassParameters(unittest.TestCase):
     def setUp(self):
-        self.expected_values = {'mass_1': 2.0,
-                                'mass_2': 1.0,
-                                'chirp_mass': 1.2167286837864113,
-                                'total_mass': 3.0,
-                                'mass_1_source': 4.0,
-                                'mass_2_source': 2.0,
-                                'chirp_mass_source': 2.433457367572823,
-                                'total_mass_source': 6,
-                                'symmetric_mass_ratio': 0.2222222222222222,
-                                'mass_ratio': 0.5}
-
+        self.expected_values = {'mass_1': self.xp.array(2.0),
+                                'mass_2': self.xp.array(1.0),
+                                'chirp_mass': self.xp.array(1.2167286837864113),
+                                'total_mass': self.xp.array(3.0),
+                                'mass_1_source': self.xp.array(4.0),
+                                'mass_2_source': self.xp.array(2.0),
+                                'chirp_mass_source': self.xp.array(2.433457367572823),
+                                'total_mass_source': self.xp.array(6),
+                                'symmetric_mass_ratio': self.xp.array(0.2222222222222222),
+                                'mass_ratio': self.xp.array(0.5)}
     def helper_generation_from_keys(self, keys, expected_values, source=False):
         # Explicitly test the helper generate_component_masses
         local_test_vars = \
@@ -685,6 +686,10 @@ class TestGenerateMassParameters(unittest.TestCase):
             )
         for key in local_all_mass_parameters.keys():
             self.assertAlmostEqual(expected_values[key], local_all_mass_parameters[key])
+            self.assertEqual(
+                local_all_mass_parameters[key].__array_namespace__(),
+                self.xp,
+            )
 
     def test_from_mass_1_and_mass_2(self):
         self.helper_generation_from_keys(["mass_1", "mass_2"],
@@ -751,6 +756,8 @@ class TestGenerateMassParameters(unittest.TestCase):
                                          self.expected_values, source=True)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestEquationOfStateConversions(unittest.TestCase):
     '''
     Class to test equation of state conversions.
@@ -759,48 +766,48 @@ class TestEquationOfStateConversions(unittest.TestCase):
 
     '''
     def setUp(self):
-        self.mass_1_source_spectral = [
+        self.mass_1_source_spectral = self.xp.array([
             4.922542724434885,
             4.350626907771598,
             4.206155335439082,
             1.7822696459661311,
             1.3091740103047926
-        ]
-        self.mass_2_source_spectral = [
+        ])
+        self.mass_2_source_spectral = self.xp.array([
             3.459974694590303,
             1.2276461777181447,
             3.7287707089639976,
             0.3724016563531846,
             1.055042934805801
-        ]
-        self.spectral_pca_gamma_0 = [
+        ])
+        self.spectral_pca_gamma_0 = self.xp.array([
             0.7074873121348357,
             0.05855931126849878,
             0.7795329261793462,
             1.467907561566463,
             2.9066488405635624
-        ]
-        self.spectral_pca_gamma_1 = [
+        ])
+        self.spectral_pca_gamma_1 = self.xp.array([
             -0.29807111670823816,
             2.027708558522935,
             -1.4415775226512115,
             -0.7104870098896858,
             -0.4913817181089619
-        ]
-        self.spectral_pca_gamma_2 = [
+        ])
+        self.spectral_pca_gamma_2 = self.xp.array([
             0.25625095371021156,
             -0.19574096643220049,
             -0.2710238103460012,
             0.22815820981582358,
             -0.1543413205016374
-        ]
-        self.spectral_pca_gamma_3 = [
+        ])
+        self.spectral_pca_gamma_3 = self.xp.array([
             -0.04030365100175101,
             0.05698030777919032,
             -0.045595911403040264,
             -0.023480394227900117,
             -0.07114492992285618
-        ]
+        ])
         self.spectral_gamma_0 = [
             1.1259406796075457,
             0.3191335618787259,
@@ -905,6 +912,8 @@ class TestEquationOfStateConversions(unittest.TestCase):
             self.assertAlmostEqual(spectral_gamma_1, self.spectral_gamma_1[i], places=5)
             self.assertAlmostEqual(spectral_gamma_2, self.spectral_gamma_2[i], places=5)
             self.assertAlmostEqual(spectral_gamma_3, self.spectral_gamma_3[i], places=5)
+            for val in [spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3]:
+                self.assertEqual(val.__array_namespace__(), self.xp)
 
     def test_spectral_params_to_lambda_1_lambda_2(self):
         '''

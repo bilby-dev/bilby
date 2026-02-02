@@ -1,3 +1,4 @@
+import array_api_compat as aac
 import numpy as np
 
 from ..core import utils
@@ -201,7 +202,7 @@ class WaveformGenerator(object):
             transformed_model_data_points, transformed_model, parameters
         )
 
-        if isinstance(transformed_model_strain, np.ndarray):
+        if aac.is_array_api_obj(transformed_model_strain):
             return transformation_function(transformed_model_strain, self.sampling_frequency)
 
         model_strain = dict()

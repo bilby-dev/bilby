@@ -2,10 +2,13 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 
 import bilby
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestInterferometerGeometry(unittest.TestCase):
     def setUp(self):
         self.length = 30
@@ -26,6 +29,7 @@ class TestInterferometerGeometry(unittest.TestCase):
             xarm_tilt=self.xarm_tilt,
             yarm_tilt=self.yarm_tilt,
         )
+        self.geometry.set_array_backend(self.xp)
 
     def tearDown(self):
         del self.length
@@ -40,27 +44,35 @@ class TestInterferometerGeometry(unittest.TestCase):
 
     def test_length_setting(self):
         self.assertEqual(self.geometry.length, self.length)
+        self.assertEqual(self.geometry.length.__array_namespace__(), self.xp)
 
     def test_latitude_setting(self):
         self.assertEqual(self.geometry.latitude, self.latitude)
+        self.assertEqual(self.geometry.latitude.__array_namespace__(), self.xp)
 
     def test_longitude_setting(self):
         self.assertEqual(self.geometry.longitude, self.longitude)
+        self.assertEqual(self.geometry.longitude.__array_namespace__(), self.xp)
 
     def test_elevation_setting(self):
         self.assertEqual(self.geometry.elevation, self.elevation)
+        self.assertEqual(self.geometry.elevation.__array_namespace__(), self.xp)
 
     def test_xarm_azi_setting(self):
         self.assertEqual(self.geometry.xarm_azimuth, self.xarm_azimuth)
+        self.assertEqual(self.geometry.xarm_azimuth.__array_namespace__(), self.xp)
 
     def test_yarm_azi_setting(self):
         self.assertEqual(self.geometry.yarm_azimuth, self.yarm_azimuth)
+        self.assertEqual(self.geometry.yarm_azimuth.__array_namespace__(), self.xp)
 
     def test_xarm_tilt_setting(self):
         self.assertEqual(self.geometry.xarm_tilt, self.xarm_tilt)
+        self.assertEqual(self.geometry.xarm_tilt.__array_namespace__(), self.xp)
 
     def test_yarm_tilt_setting(self):
         self.assertEqual(self.geometry.yarm_tilt, self.yarm_tilt)
+        self.assertEqual(self.geometry.yarm_tilt.__array_namespace__(), self.xp)
 
     def test_vertex_without_update(self):
         _ = self.geometry.vertex
@@ -142,31 +154,37 @@ class TestInterferometerGeometry(unittest.TestCase):
         original = self.geometry.detector_tensor
         self.geometry.xarm_azimuth += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_detector_tensor_with_y_azimuth_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_azimuth += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_detector_tensor_with_x_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.xarm_tilt += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_detector_tensor_with_y_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_tilt += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_detector_tensor_with_longitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.longitude += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_detector_tensor_with_latitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.latitude += 1
         self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertEqual(self.geometry.detector_tensor.__array_namespace__(), self.xp)
 
     def test_unit_vector_along_arm_default(self):
         with self.assertRaises(ValueError):
@@ -177,17 +195,20 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.geometry.xarm_tilt = 0
         self.geometry.xarm_azimuth = 0
+        self.geometry.set_array_backend(self.xp)
         arm = self.geometry.unit_vector_along_arm("x")
         self.assertTrue(np.allclose(arm, np.array([0, 1, 0])))
+        self.assertEqual(arm.__array_namespace__(), self.xp)
 
     def test_unit_vector_along_arm_y(self):
         self.geometry.longitude = 0
         self.geometry.latitude = 0
         self.geometry.yarm_tilt = 0
         self.geometry.yarm_azimuth = 90
+        self.geometry.set_array_backend(self.xp)
         arm = self.geometry.unit_vector_along_arm("y")
-        print(arm)
         self.assertTrue(np.allclose(arm, np.array([0, 0, 1])))
+        self.assertEqual(arm.__array_namespace__(), self.xp)
 
     def test_repr(self):
         expected = (

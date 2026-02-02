@@ -10,9 +10,40 @@ from copy import deepcopy
 import h5py
 import numpy as np
 import bilby
+from array_api_compat import is_array_api_obj
 from bilby.gw.likelihood import BilbyROQParamsRangeError
 
 
+class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
+    """A thin wrapper to emulate different backends in the waveform generator."""
+    def __init__(self, wfg, xp):
+        self.wfg = wfg
+        self.xp = xp
+
+    def __getattr__(self, name):
+        if name == "xp":
+            return self.xp
+        return getattr(self.wfg, name)
+    
+    def convert_nested_dict(self, data):
+        if is_array_api_obj(data):
+            return self.xp.array(data)
+        elif isinstance(data, dict):
+            return {key: self.convert_nested_dict(value) for key, value in data.items()}
+        else:
+            raise ValueError("Input must be an array API object or a dict of such objects.")
+
+    def frequency_domain_strain(self, parameters):
+        wf = self.wfg.frequency_domain_strain(parameters)
+        return self.convert_nested_dict(wf)
+    
+    def time_domain_strain(self, parameters):
+        wf = self.wfg.time_domain_strain(parameters)
+        return self.convert_nested_dict(wf)
+
+
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestBasicGWTransient(unittest.TestCase):
     def setUp(self):
         bilby.core.utils.random.seed(500)
@@ -37,11 +68,13 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=2048, duration=4
         )
-        self.waveform_generator = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
-            duration=4,
-            sampling_frequency=2048,
+        self.interferometers.set_array_backend(self.xp)
+        base_wfg = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
+            duration=self.xp.array(4.0),
+            sampling_frequency=self.xp.array(2048.0),
             waveform_arguments=dict(waveform_approximant="IMRPhenomPv2"),
         )
+        self.waveform_generator = BackendWaveformGenerator(base_wfg, self.xp)
 
         self.likelihood = bilby.gw.likelihood.BasicGravitationalWaveTransient(
             interferometers=self.interferometers,
@@ -57,29 +90,33 @@ class TestBasicGWTransient(unittest.TestCase):
 
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
-        self.likelihood.noise_log_likelihood()
+        nll = self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(
-            -4014.1787704539474, self.likelihood.noise_log_likelihood(), 3
+            -4014.1787704539474, nll, 3
         )
+        self.assertEqual(nll.__array_namespace__(), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(), -4032.4397343470005, 3)
+        logl = self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(logl, -4032.4397343470005, 3)
+        self.assertEqual(logl.__array_namespace__(), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
+        llr = self.likelihood.log_likelihood_ratio(self.parameters)
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood() - self.likelihood.noise_log_likelihood(),
-            self.likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            llr,
             3,
         )
+        self.assertEqual(llr.__array_namespace__(), self.xp)
 
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
 
     def test_repr(self):
         expected = "BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})".format(
@@ -88,11 +125,13 @@ class TestBasicGWTransient(unittest.TestCase):
         self.assertEqual(expected, repr(self.likelihood))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestGWTransient(unittest.TestCase):
     def setUp(self):
         bilby.core.utils.random.seed(500)
-        self.duration = 4
-        self.sampling_frequency = 2048
+        self.duration = self.xp.array(4.0)
+        self.sampling_frequency = self.xp.array(2048.0)
         self.parameters = dict(
             mass_1=31.0,
             mass_2=29.0,
@@ -114,11 +153,13 @@ class TestGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration
         )
-        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+        self.interferometers.set_array_backend(self.xp)
+        wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
         )
+        self.waveform_generator = BackendWaveformGenerator(wfg, self.xp)
 
         self.prior = bilby.gw.prior.BBHPriorDict()
         self.prior["geocent_time"] = bilby.prior.Uniform(
@@ -131,7 +172,6 @@ class TestGWTransient(unittest.TestCase):
             waveform_generator=self.waveform_generator,
             priors=self.prior.copy(),
         )
-        self.likelihood.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.parameters
@@ -142,30 +182,33 @@ class TestGWTransient(unittest.TestCase):
 
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
-        self.likelihood.noise_log_likelihood()
+        nll = self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(
-            -4014.1787704539474, self.likelihood.noise_log_likelihood(), 3
+            -4014.1787704539474, nll, 3
         )
+        self.assertEqual(nll.__array_namespace__(), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -4032.4397343470005, 3)
+        logl = self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(logl, -4032.4397343470005, 3)
+        self.assertEqual(logl.__array_namespace__(), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
+        llr = self.likelihood.log_likelihood_ratio(self.parameters)
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood() - self.likelihood.noise_log_likelihood(),
-            self.likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            llr,
             3,
         )
+        self.assertEqual(llr.__array_namespace__(), self.xp)
 
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
 
     def test_repr(self):
         expected = (
@@ -239,14 +282,16 @@ class TestGWTransient(unittest.TestCase):
         )
         parameters = self.parameters.copy()
         del parameters["ra"], parameters["dec"]
-        parameters["zenith"] = 1.0
-        parameters["azimuth"] = 1.0
+        parameters["zenith"] = self.xp.array(1.0)
+        parameters["azimuth"] = self.xp.array(1.0)
         parameters["ra"], parameters["dec"] = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zenith=parameters["zenith"],
             azimuth=parameters["azimuth"],
             geocent_time=parameters["geocent_time"],
-            ifos=bilby.gw.detector.InterferometerList(["H1", "L1"])
+            ifos=new_likelihood.reference_frame,
         )
+        self.assertEqual(parameters["ra"].__array_namespace__(), self.xp)
+        self.assertEqual(parameters["dec"].__array_namespace__(), self.xp)
         self.assertEqual(
             new_likelihood.log_likelihood_ratio(parameters),
             self.likelihood.log_likelihood_ratio(parameters)
@@ -286,10 +331,12 @@ class TestGWTransient(unittest.TestCase):
 
 
 @pytest.mark.requires_roqs
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestROQLikelihood(unittest.TestCase):
     def setUp(self):
-        self.duration = 4
-        self.sampling_frequency = 2048
+        self.duration = self.xp.array(4.0)
+        self.sampling_frequency = self.xp.array(2048.0)
 
         self.test_parameters = dict(
             mass_1=36.0,
@@ -313,6 +360,7 @@ class TestROQLikelihood(unittest.TestCase):
         ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration
         )
+        ifos.set_array_backend(self.xp)
 
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
@@ -332,6 +380,7 @@ class TestROQLikelihood(unittest.TestCase):
                 waveform_approximant="IMRPhenomPv2",
             ),
         )
+        non_roq_wfg = BackendWaveformGenerator(non_roq_wfg, self.xp)
 
         ifos.inject_signal(
             parameters=self.test_parameters, waveform_generator=non_roq_wfg
@@ -392,7 +441,7 @@ class TestROQLikelihood(unittest.TestCase):
         fnodes_quadratic_file = f"{self.roq_dir}/fnodes_quadratic.npy"
         fnodes_linear = np.load(fnodes_linear_file).T
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
-        return bilby.gw.waveform_generator.WaveformGenerator(
+        wfg = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
@@ -403,6 +452,7 @@ class TestROQLikelihood(unittest.TestCase):
                 waveform_approximant="IMRPhenomPv2",
             ),
         )
+        return BackendWaveformGenerator(wfg, self.xp)
 
     @cached_property
     def roq(self):
@@ -426,13 +476,14 @@ class TestROQLikelihood(unittest.TestCase):
         )
 
     def test_matches_non_roq(self):
+        roq_llr = self.roq.log_likelihood_ratio(self.test_parameters)
         self.assertLess(
             abs(
-                self.non_roq.log_likelihood_ratio(self.test_parameters)
-                - self.roq.log_likelihood_ratio(self.test_parameters)
+                self.non_roq.log_likelihood_ratio(self.test_parameters) - roq_llr
             ) / self.non_roq.log_likelihood_ratio(self.test_parameters),
             1e-3,
         )
+        self.assertEqual(roq_llr.__array_namespace__(), self.xp)
         self.non_roq.parameters.update(self.test_parameters)
         self.roq.parameters.update(self.test_parameters)
         self.assertLess(
@@ -457,10 +508,12 @@ class TestROQLikelihood(unittest.TestCase):
             quadratic_matrix=self.quadratic_matrix_file,
             priors=self.priors,
         )
+        roq_llr = roq.log_likelihood_ratio(self.test_parameters)
         self.assertEqual(
-            roq.log_likelihood_ratio(self.test_parameters),
+            roq_llr,
             self.roq.log_likelihood_ratio(self.test_parameters)
         )
+        self.assertEqual(roq_llr.__array_namespace__(), self.xp)
         roq.parameters.update(self.test_parameters)
         self.roq.parameters.update(self.test_parameters)
         self.assertEqual(roq.log_likelihood_ratio(), self.roq.log_likelihood_ratio())
@@ -647,6 +700,8 @@ class TestRescaledROQLikelihood(unittest.TestCase):
 
 
 @pytest.mark.requires_roqs
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestROQLikelihoodHDF5(unittest.TestCase):
     """
     Test ROQ likelihood constructed from .hdf5 basis
@@ -660,9 +715,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
     _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
 
     def setUp(self):
-        self.minimum_frequency = 20
-        self.sampling_frequency = 2048
-        self.duration = 16
+        self.minimum_frequency = self.xp.array(20.0)
+        self.sampling_frequency = self.xp.array(2048.0)
+        self.duration = self.xp.array(16.0)
         self.reference_frequency = 20.0
         self.waveform_approximant = "IMRPhenomD"
         # The SNRs of injections are 130-160 for roq_scale_factor=1 and 70-80 for roq_scale_factor=2
@@ -704,10 +759,11 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.priors["chirp_mass"].maximum = 9
         interferometers = bilby.gw.detector.InterferometerList(["H1"])
         interferometers.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=2 * maximum_frequency,
-            duration=duration,
-            start_time=self.injection_parameters["geocent_time"] - duration + 1
+            sampling_frequency=self.xp.array(2 * maximum_frequency),
+            duration=self.xp.array(duration),
+            start_time=self.xp.array(self.injection_parameters["geocent_time"] - duration + 1)
         )
+        interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
             ifo.minimum_frequency = minimum_frequency
             ifo.maximum_frequency = maximum_frequency
@@ -737,10 +793,11 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.priors["chirp_mass"].maximum = chirp_mass_max
         interferometers = bilby.gw.detector.InterferometerList(["H1"])
         interferometers.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=self.sampling_frequency,
-            duration=self.duration,
-            start_time=self.injection_parameters["geocent_time"] - self.duration + 1
+            sampling_frequency=self.xp.array(self.sampling_frequency),
+            duration=self.xp.array(self.duration),
+            start_time=self.xp.array(self.injection_parameters["geocent_time"] - self.duration + 1)
         )
+        interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
             ifo.minimum_frequency = self.minimum_frequency
         search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -879,6 +936,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.priors["chirp_mass"].maximum = mc_max
 
         interferometers = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
             if minimum_frequency is None:
                 ifo.minimum_frequency = self.minimum_frequency
@@ -920,6 +978,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
                 waveform_approximant=self.waveform_approximant
             )
         )
+        waveform_generator = BackendWaveformGenerator(waveform_generator, self.xp)
         interferometers.inject_signal(waveform_generator=waveform_generator, parameters=self.injection_parameters)
 
         likelihood = bilby.gw.GravitationalWaveTransient(
@@ -937,6 +996,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
                 waveform_approximant=self.waveform_approximant
             )
         )
+        search_waveform_generator = BackendWaveformGenerator(search_waveform_generator, self.xp)
         likelihood_roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=interferometers,
             priors=self.priors,
@@ -951,6 +1011,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             llr = likelihood.log_likelihood_ratio(parameters)
             llr_roq = likelihood_roq.log_likelihood_ratio(parameters)
             self.assertLess(np.abs(llr - llr_roq), max_llr_error)
+            self.assertEqual(llr_roq.__array_namespace__(), self.xp)
             likelihood.parameters.update(parameters)
             likelihood_roq.parameters.update(parameters)
             llr = likelihood.log_likelihood_ratio()
@@ -1283,11 +1344,13 @@ class TestBBHLikelihoodSetUp(unittest.TestCase):
         self.like = bilby.gw.likelihood.get_binary_black_hole_likelihood(self.ifos)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestMBLikelihood(unittest.TestCase):
     def setUp(self):
-        self.duration = 16
-        self.fmin = 20.
-        self.sampling_frequency = 2048.
+        self.duration = self.xp.array(16.0)
+        self.fmin = self.xp.array(20.0)
+        self.sampling_frequency = self.xp.array(2048.0)
         self.test_parameters = dict(
             chirp_mass=6.0,
             mass_ratio=0.5,
@@ -1315,6 +1378,7 @@ class TestMBLikelihood(unittest.TestCase):
         )
         for ifo in self.ifos:
             ifo.minimum_frequency = self.fmin
+        self.ifos.set_array_backend(self.xp)
 
         spline_calibration_nodes = 10
         self.calibration_parameters = {}
@@ -1370,6 +1434,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg = BackendWaveformGenerator(wfg, self.xp)
         self.ifos.inject_signal(parameters=self.test_parameters, waveform_generator=wfg)
 
         wfg_mb = bilby.gw.WaveformGenerator(
@@ -1379,6 +1444,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg
         )
@@ -1391,10 +1457,12 @@ class TestMBLikelihood(unittest.TestCase):
         parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
             parameters.update(self.calibration_parameters)
+        llmb = likelihood_mb.log_likelihood_ratio(parameters)
         self.assertLess(
-            abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
+            abs(likelihood.log_likelihood_ratio(parameters) - llmb),
             tolerance
         )
+        self.assertEqual(llmb.__array_namespace__(), self.xp)
         likelihood.parameters.update(parameters)
         likelihood_mb.parameters.update(parameters)
         self.assertLess(
@@ -1414,6 +1482,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg = BackendWaveformGenerator(wfg, self.xp)
         self.ifos.inject_signal(parameters=self.test_parameters, waveform_generator=wfg)
 
         wfg_mb = bilby.gw.WaveformGenerator(
@@ -1423,6 +1492,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg
         )
@@ -1559,12 +1629,14 @@ class TestMBLikelihood(unittest.TestCase):
                     reference_frequency=self.fmin, waveform_approximant=waveform_approximant
                 )
             )
+            wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
             likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
                 interferometers=self.ifos, waveform_generator=wfg_mb, weights=filepath
             )
 
         # likelihood_mb_from_weights.parameters.update(self.test_parameters)
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
+        self.assertEqual(llr_from_weights.__array_namespace__(), self.xp)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1581,6 +1653,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg = BackendWaveformGenerator(wfg, self.xp)
         self.ifos.inject_signal(
             parameters=self.test_parameters, waveform_generator=wfg
         )
@@ -1592,6 +1665,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         likelihood_mb = bilby.gw.likelihood.MBGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg_mb,
             reference_chirp_mass=self.test_parameters['chirp_mass'],
@@ -1599,6 +1673,7 @@ class TestMBLikelihood(unittest.TestCase):
         )
         likelihood_mb.parameters.update(self.test_parameters)
         llr = likelihood_mb.log_likelihood_ratio()
+        self.assertEqual(llr.__array_namespace__(), self.xp)
 
         # reset waveform generator to check if likelihood recovered from the weights properly adds banded
         # frequency points to waveform arguments
@@ -1609,12 +1684,14 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         weights = likelihood_mb.weights
         likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg_mb, weights=weights
         )
         # likelihood_mb_from_weights.parameters.update(self.test_parameters)
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
+        self.assertEqual(llr_from_weights.__array_namespace__(), self.xp)
 
         self.assertAlmostEqual(llr, llr_from_weights)
 
@@ -1639,6 +1716,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg = BackendWaveformGenerator(wfg, self.xp)
         self.ifos.inject_signal(parameters=self.test_parameters, waveform_generator=wfg)
 
         wfg_mb = bilby.gw.WaveformGenerator(
@@ -1648,6 +1726,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg
         )
@@ -1660,10 +1739,12 @@ class TestMBLikelihood(unittest.TestCase):
         parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
             parameters.update(self.calibration_parameters)
+        llrmb = likelihood_mb.log_likelihood_ratio(parameters)
         self.assertLess(
-            abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
+            abs(likelihood.log_likelihood_ratio(parameters) - llrmb),
             tolerance
         )
+        self.assertEqual(llrmb.__array_namespace__(), self.xp)
         likelihood.parameters.update(parameters)
         likelihood_mb.parameters.update(parameters)
         self.assertLess(
