@@ -222,6 +222,8 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertEqual(priors, priors_loaded)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestPriorConversion(unittest.TestCase):
     def test_bilby_to_lalinference(self):
         mass_1 = [1, 20]
@@ -256,10 +258,11 @@ class TestPriorConversion(unittest.TestCase):
         )
 
         nsamples = 5000
-        bilby_samples = bilby_prior.sample(nsamples)
+        bilby_samples = bilby_prior.sample(nsamples, xp=self.xp)
         bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
             bilby_samples
         )
+        bilby_samples = pd.DataFrame(bilby_samples)
 
         # Quicker way to generate LA prior samples (rather than specifying Constraint)
         lalinf_samples = []
@@ -279,7 +282,7 @@ class TestPriorConversion(unittest.TestCase):
         result.search_parameter_keys = ["mass_ratio", "chirp_mass"]
         result.meta_data = dict()
         result.priors = bilby_prior
-        result.posterior = pd.DataFrame(bilby_samples)
+        result.posterior = bilby_samples
         result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(
             result, fraction=0.1
         )

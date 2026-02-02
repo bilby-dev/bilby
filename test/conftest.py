@@ -21,14 +21,17 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     if config.getoption("--skip-roqs"):
         skip_roqs = pytest.mark.skip(reason="Skipping tests that require ROQs")
-        for item in items:
-            if "requires_roqs" in item.keywords:
-                item.add_marker(skip_roqs)
+    else:
+        skip_roqs = pytest.mark.noop
     if config.getoption("--array-backend") is not None:
         array_only = pytest.mark.skip(reason="Only running backend dependent tests")
-        for item in items:
-            if "array_backend" not in item.keywords:
-                item.add_marker(array_only)
+    else:
+        array_only = pytest.mark.noop
+    for item in items:
+        if "requires_roqs" in item.keywords and config.getoption("--skip-roqs"):
+            item.add_marker(skip_roqs)
+        elif "array_backend" not in item.keywords:
+            item.add_marker(array_only)
 
 
 def _xp(request):

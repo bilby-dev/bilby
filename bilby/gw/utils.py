@@ -8,7 +8,7 @@ from scipy.special import i0e
 
 from .geometry import zenith_azimuth_to_theta_phi
 from .time import greenwich_mean_sidereal_time
-from ..compat.utils import array_module
+from ..compat.utils import array_module, xp_wrap
 from ..core.utils import (logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)
@@ -31,7 +31,7 @@ def asd_from_freq_series(freq_data, df):
     array_like: array of real-valued normalized frequency domain ASD data
 
     """
-    return np.absolute(freq_data) * 2 * df**0.5
+    return abs(freq_data) * 2 * df**0.5
 
 
 def psd_from_freq_series(freq_data, df):
@@ -51,7 +51,7 @@ def psd_from_freq_series(freq_data, df):
     array_like: Real-valued normalized frequency domain PSD data
 
     """
-    return np.power(asd_from_freq_series(freq_data, df), 2)
+    return asd_from_freq_series(freq_data, df) ** 2
 
 
 def get_vertex_position_geocentric(latitude, longitude, elevation):
@@ -221,7 +221,7 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     """
     low_index = int(lower_cut_off / delta_frequency)
     up_index = int(upper_cut_off / delta_frequency)
-    integrand = np.conj(signal_a) * signal_b
+    integrand = signal_a.conjugate() * signal_b
     integrand = integrand[low_index:up_index] / power_spectral_density[low_index:up_index]
     integral = (4 * delta_frequency * integrand) / norm_a / norm_b
     return sum(integral).real
@@ -247,8 +247,6 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec: float
         The zenith and azimuthal angles in the sky frame.
     """
-    # delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
-    # theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
     theta, phi = zenith_azimuth_to_theta_phi(zenith, azimuth, ifos)
     gmst = greenwich_mean_sidereal_time(geocent_time)
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
@@ -924,7 +922,8 @@ def lalsim_SimNeutronStarLoveNumberK2(mass_in_SI, fam):
     return SimNeutronStarLoveNumberK2(mass_in_SI, fam)
 
 
-def spline_angle_xform(delta_psi):
+@xp_wrap
+def spline_angle_xform(delta_psi, *, xp=None):
     """
     Returns the angle in degrees corresponding to the spline
     calibration parameters delta_psi.
@@ -941,7 +940,7 @@ def spline_angle_xform(delta_psi):
     """
     rotation = (2.0 + 1.0j * delta_psi) / (2.0 - 1.0j * delta_psi)
 
-    return 180.0 / np.pi * np.arctan2(np.imag(rotation), np.real(rotation))
+    return 180.0 / np.pi * xp.arctan2(xp.imag(rotation), xp.real(rotation))
 
 
 def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=None, xform=None):
@@ -1002,7 +1001,8 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
 
 
-def ln_i0(value):
+@xp_wrap
+def ln_i0(value, *, xp=None):
     """
     A numerically stable method to evaluate ln(I_0) a modified Bessel function
     of order 0 used in the phase-marginalized likelihood.
@@ -1017,7 +1017,6 @@ def ln_i0(value):
     array-like:
         The natural logarithm of the bessel function
     """
-    xp = array_module(value)
     return xp.log(i0e(value)) + xp.abs(value)
 
 
@@ -1047,10 +1046,10 @@ def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
 
     import lalsimulation
     return safety * lalsimulation.SimInspiralTaylorF2ReducedSpinChirpTime(
-        frequency,
-        mass_1 * solar_mass,
-        mass_2 * solar_mass,
-        chi,
+        float(frequency),
+        float(mass_1 * solar_mass),
+        float(mass_2 * solar_mass),
+        float(chi),
         -1
     )
 
