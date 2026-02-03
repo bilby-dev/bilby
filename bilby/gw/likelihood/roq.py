@@ -472,13 +472,13 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         xp = array_module(h_linear)
         calib_factor = interferometer.calibration_model.get_calibration_factor(
-            frequency_nodes, prefix='recalib_{}_'.format(interferometer.name), **parameters)
+            xp.asarray(frequency_nodes), prefix=f'recalib_{interferometer.name}_', xp=xp, **parameters)
         h_linear *= calib_factor[linear_indices]
         h_quadratic *= calib_factor[quadratic_indices]
 
         optimal_snr_squared = xp.vdot(
             xp.abs(h_quadratic)**2,
-            self.weights[interferometer.name + '_quadratic'][self.basis_number_quadratic]
+            xp.asarray(self.weights[interferometer.name + '_quadratic'][self.basis_number_quadratic])
         )
 
         dt = interferometer.time_delay_from_geocenter(
@@ -487,7 +487,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         ifo_time = dt_geocent + dt
 
         indices, in_bounds = self._closest_time_indices(
-            ifo_time, self.weights['time_samples'])
+            ifo_time, xp.asarray(self.weights['time_samples']))
         indices = xp.clip(indices, 0, len(self.weights['time_samples']) - 1)
         d_inner_h_tc_array = xp.einsum(
             'i,ji->j',
