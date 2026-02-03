@@ -335,10 +335,12 @@ class TestSkyFrameConversion(unittest.TestCase):
         ras, decs = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zeniths, azimuths, times, self.ifos
         )
-        self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
-        self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
         self.assertEqual(aac.get_namespace(ras), self.xp)
         self.assertEqual(aac.get_namespace(decs), self.xp)
+        ras = np.asarray(ras)
+        decs = np.asarray(decs)
+        self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
+        self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
 
 
 @pytest.mark.array_backend

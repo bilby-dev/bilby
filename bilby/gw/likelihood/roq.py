@@ -873,7 +873,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                     basis_element = linear_matrix_single[i][roq_idxs[ifo.name]]
                     ifft_input[nonzero_idxs[ifo.name]] = data_over_psd[ifo.name] * np.conj(basis_element)
                     linear_weights[:, i] = ifft(ifft_input)[start_idx:end_idx + 1]
-                linear_weights *= 4. * number_of_time_samples / self.interferometers.duration
+                linear_weights *= 4. * number_of_time_samples / float(self.interferometers.duration)
                 self.weights[ifo.name + '_linear'].append(linear_weights)
         if pyfftw is not None:
             pyfftw.forget_wisdom()
@@ -913,7 +913,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 )[start_frequency_bin:end_frequency_bin + 1]
                 start_idx_of_next_band = start_idx_of_band + end_frequency_bin - start_frequency_bin + 1
                 tc_shifted_data[ifo.name][start_idx_of_band:start_idx_of_next_band] = 4. / Tb * Db[:, None] * np.exp(
-                    2. * np.pi * 1j * fs[:, None] * (self.weights['time_samples'][None, :] - ifo.duration + Tb))
+                    2. * np.pi * 1j * fs[:, None] * (self.weights['time_samples'][None, :] - float(ifo.duration) + Tb))
                 start_idx_of_band = start_idx_of_next_band
         # compute inner products
         for basis_idx in basis_idxs:

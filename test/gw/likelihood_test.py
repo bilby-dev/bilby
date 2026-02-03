@@ -770,11 +770,11 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         )
         interferometers.set_array_backend(self.xp)
         for ifo in interferometers:
-            ifo.minimum_frequency = minimum_frequency
-            ifo.maximum_frequency = maximum_frequency
+            ifo.minimum_frequency = self.xp.asarray(minimum_frequency)
+            ifo.maximum_frequency = self.xp.asarray(maximum_frequency)
         search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=duration,
-            sampling_frequency=2 * maximum_frequency,
+            duration=self.xp.asarray(duration),
+            sampling_frequency=self.xp.asarray(2 * maximum_frequency),
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
             waveform_arguments=dict(
                 reference_frequency=self.reference_frequency,
@@ -946,9 +946,9 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             if minimum_frequency is None:
                 ifo.minimum_frequency = self.minimum_frequency
             else:
-                ifo.minimum_frequency = minimum_frequency
+                ifo.minimum_frequency = self.xp.asarray(minimum_frequency)
             if maximum_frequency is not None:
-                ifo.maximum_frequency = maximum_frequency
+                ifo.maximum_frequency = self.xp.asarray(maximum_frequency)
         interferometers.set_strain_data_from_zero_noise(
             sampling_frequency=self.sampling_frequency,
             duration=self.duration,
