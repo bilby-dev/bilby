@@ -940,7 +940,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                     )
                 )
                 tc_shifted_data[ifo.name] = xpx.at(tc_shifted_data[ifo.name], sl).set(this_data)
-                
+
                 start_idx_of_band = start_idx_of_next_band
         # compute inner products
         for basis_idx in basis_idxs:
