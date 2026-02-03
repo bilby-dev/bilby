@@ -33,15 +33,19 @@ class TestGWUtils(unittest.TestCase):
         freq_data = self.xp.asarray([1, 2, 3])
         df = 0.1
         asd = gwutils.asd_from_freq_series(freq_data, df)
-        self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
         self.assertEqual(aac.get_namespace(asd), self.xp)
+        asd = np.asarray(asd)
+        freq_data = np.asarray(freq_data)
+        self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
 
     def test_psd_from_freq_series(self):
         freq_data = self.xp.asarray([1, 2, 3])
         df = 0.1
         psd = gwutils.psd_from_freq_series(freq_data, df)
-        self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
         self.assertEqual(aac.get_namespace(psd), self.xp)
+        psd = np.asarray(psd)
+        freq_data = np.asarray(freq_data)
+        self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
 
     def test_inner_product(self):
         aa = self.xp.asarray([1, 2, 3])
@@ -99,8 +103,8 @@ class TestGWUtils(unittest.TestCase):
             norm_a=gwutils.optimal_snr_squared(signal, psd, duration),
             norm_b=gwutils.optimal_snr_squared(frequency_domain_strain, psd, duration),
         )
-        self.assertAlmostEqual(overlap, 2.76914407e-05)
         self.assertEqual(aac.get_namespace(overlap), self.xp)
+        self.assertAlmostEqual(float(overlap), 2.76914407e-05)
 
     @pytest.mark.skip(reason="GWOSC unstable: avoiding this test")
     def test_get_event_time(self):

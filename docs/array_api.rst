@@ -27,6 +27,9 @@ Bilby is currently tested with the following array backends:
 
 - **NumPy** (default): Standard CPU-based computations
 - **JAX**: GPU/TPU acceleration and automatic differentiation
+- **PyTorch**: GPU acceleration and deep learning integration.
+  :code:`PyTorch` support is not complete, for example, functionality
+  requiring interpolation is not available.
 
 While :code:`Bilby` should be compatible with other Array API compliant libraries,
 these are not currently tested or officially supported.
@@ -213,6 +216,12 @@ and the analysis is then performed using the JIT-compiled likelihood.
     However, there is currently a performance issue with the distance marginalized likelihood
     using the :code:`JAX` backend.
 
+.. warning::
+
+    Some array backends (notably :code:`torch`) are more picky than others about data types.
+    For maximal consistency, try to consistently pass zero-dimensional arrays rather than :code:`Python`
+    scalars, e.g., :code:`torch.array(1.0)` instead of :code:`1.0`.
+
 Performance Considerations
 --------------------------
 
@@ -313,6 +322,15 @@ The ``@xp_wrap`` decorator:
 - Infers the array backend from input arrays when they are :code:`JAX`/:code:`CuPy`/:code:`PyTorch` arrays
 - Falls back to NumPy when the input is a standard Python type or NumPy array
 - Handles the conversion seamlessly so users don't need to specify ``xp``
+
+Missing functionality
+---------------------
+
+The most significant missing functionality is the lack of a consistent random number generation
+interface across different array backends.
+Currently, all random calls use :code:`numpy.random` with the seed specified as described in :doc:`rng`.
+This means that functionality like prior sampling and generating noise realizations in gravitational-wave
+detectors will not be :code:`JIT`-compatible.
 
 For Bilby Developers
 =====================
