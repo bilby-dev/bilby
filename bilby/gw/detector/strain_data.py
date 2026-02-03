@@ -1,5 +1,7 @@
+import array_api_compat as aac
 import numpy as np
 
+from ...compat.utils import array_module
 from ...core import utils
 from ...core.series import CoupledTimeAndFrequencySeries
 from ...core.utils import logger, PropertyAccessor
@@ -498,7 +500,7 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("Data times do not match time array")
 
-    def set_from_gwpy_timeseries(self, time_series):
+    def set_from_gwpy_timeseries(self, time_series, *, xp=np):
         """ Set the strain data from a gwpy TimeSeries
 
         This sets the time_domain_strain attribute, the frequency_domain_strain
@@ -509,17 +511,23 @@ class InterferometerStrainData(object):
         ==========
         time_series: gwpy.timeseries.timeseries.TimeSeries
             The data to use
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
         from gwpy.timeseries import TimeSeries
         logger.debug('Setting data using provided gwpy TimeSeries object')
         if not isinstance(time_series, TimeSeries):
             raise ValueError("Input time_series is not a gwpy TimeSeries")
+        duration = xp.asarray(time_series.duration.value)
+        sampling_frequency = xp.asarray(time_series.sample_rate.value)
+        start_time = xp.asarray(time_series.epoch.value)
         self._times_and_frequencies = \
-            CoupledTimeAndFrequencySeries(duration=time_series.duration.value,
-                                          sampling_frequency=time_series.sample_rate.value,
-                                          start_time=time_series.epoch.value)
-        self._time_domain_strain = time_series.value
+            CoupledTimeAndFrequencySeries(duration=duration,
+                                          sampling_frequency=sampling_frequency,
+                                          start_time=start_time)
+        self._time_domain_strain = xp.asarray(time_series.value)
         self._frequency_domain_strain = None
         self._channel = time_series.channel
 
@@ -529,7 +537,7 @@ class InterferometerStrainData(object):
 
     def set_from_open_data(
             self, name, start_time, duration=4, outdir='outdir', cache=True,
-            **kwargs):
+            *, xp=None, **kwargs):
         """ Set the strain data from open LOSC data
 
         This sets the time_domain_strain attribute, the frequency_domain_strain
@@ -548,30 +556,38 @@ class InterferometerStrainData(object):
             Directory where the psd files are saved
         cache: bool, optional
             Whether or not to store/use the acquired data.
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
         **kwargs:
             All keyword arguments are passed to
             `gwpy.timeseries.TimeSeries.fetch_open_data()`.
 
         """
-
         timeseries = gwutils.get_open_strain_data(
-            name, start_time, start_time + duration, outdir=outdir, cache=cache,
+            name, float(start_time), float(start_time + duration), outdir=outdir, cache=cache,
             **kwargs)
 
-        self.set_from_gwpy_timeseries(timeseries)
+        if xp is None:
+            xp = array_module((duration, start_time))
 
-    def set_from_csv(self, filename):
+        self.set_from_gwpy_timeseries(timeseries, xp=xp)
+
+    def set_from_csv(self, filename, xp=None):
         """ Set the strain data from a csv file
 
         Parameters
         ==========
         filename: str
             The path to the file to read in
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
         from gwpy.timeseries import TimeSeries
         timeseries = TimeSeries.read(filename, format='csv')
-        self.set_from_gwpy_timeseries(timeseries)
+        self.set_from_gwpy_timeseries(timeseries, xp=xp)
 
     def set_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
@@ -661,12 +677,13 @@ class InterferometerStrainData(object):
                                                                     sampling_frequency=sampling_frequency,
                                                                     start_time=start_time)
         logger.debug('Setting zero noise data')
-        self._frequency_domain_strain = np.zeros_like(self.frequency_array,
+        xp = aac.get_namespace(self.frequency_array)
+        self._frequency_domain_strain = xp.zeros_like(self.frequency_array,
                                                       dtype=complex)
 
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel=None, buffer_time=1):
+            channel=None, buffer_time=1, *, xp=None):
         """ Set the `frequency_domain_strain` from a frame fiile
 
         Parameters
@@ -684,6 +701,10 @@ class InterferometerStrainData(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified, it will be inferred from the provided duration/
+            sampling frequency.
 
         """
 
@@ -697,9 +718,12 @@ class InterferometerStrainData(object):
             buffer_time=buffer_time, channel=channel,
             resample=sampling_frequency)
 
-        self.set_from_gwpy_timeseries(strain)
+        if xp is None:
+            xp = aac.get_namespace(self.frequency_array)
 
-    def set_from_channel_name(self, channel, duration, start_time, sampling_frequency):
+        self.set_from_gwpy_timeseries(strain, xp=xp)
+
+    def set_from_channel_name(self, channel, duration, start_time, sampling_frequency, *, xp=None):
         """ Set the `frequency_domain_strain` by fetching from given channel
         using gwpy.TimesSeries.get(), which dynamically accesses either frames
         on disk, or a remote NDS2 server to find and return data. This function
@@ -715,6 +739,10 @@ class InterferometerStrainData(object):
             The GPS start-time of the data
         sampling_frequency: float
             The sampling frequency (in Hz)
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified, it will be inferred from the provided duration/
+            sampling frequency.
 
         """
         from gwpy.timeseries import TimeSeries
@@ -730,7 +758,10 @@ class InterferometerStrainData(object):
         strain = TimeSeries.get(channel, start_time, start_time + duration)
         strain = strain.resample(sampling_frequency)
 
-        self.set_from_gwpy_timeseries(strain)
+        if xp is None:
+            xp = aac.get_namespace(self.frequency_array)
+
+        self.set_from_gwpy_timeseries(strain, xp=xp)
 
 
 class Notch(object):
