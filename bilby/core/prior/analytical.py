@@ -1011,7 +1011,7 @@ class Beta(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        ln_prob = xlog1py(self.beta - 1.0, -val) + xlogy(self.alpha - 1.0, val)
+        ln_prob = xlog1py(self.beta - 1.0, -val) + xlogy(xp.asarray(self.alpha - 1.0), val)
         ln_prob -= betaln(self.alpha, self.beta)
         return xp.nan_to_num(ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
 
