@@ -1,5 +1,6 @@
 import json
 import os
+from copy import copy
 
 import array_api_compat as aac
 import numpy as np
@@ -169,7 +170,7 @@ class Grid(object):
         else:
             raise TypeError("Parameters names must be a list or string")
 
-        out_array = log_array.copy()
+        out_array = copy(log_array)
         names = list(self.parameter_names)
 
         for name in params:
@@ -212,9 +213,17 @@ class Grid(object):
 
         if len(places) > 1:
             dx = xp.diff(places)
-            out = xp.apply_along_axis(
-                logtrapzexp, axis, log_array, dx
-            )
+            if log_array.ndim == 1:
+                out = logtrapzexp(log_array, dx=dx, xp=xp)
+            elif aac.is_torch_namespace(xp):
+                # https://discuss.pytorch.org/t/apply-a-function-along-an-axis/130440
+                out = xp.stack([
+                    logtrapzexp(x_i, dx=dx, xp=xp)  for x_i in xp.unbind(log_array, dim=axis)
+                ], dim=min(axis, log_array.ndim - 2))
+            else:
+                out = xp.apply_along_axis(
+                    logtrapzexp, axis, log_array, dx
+                )
         else:
             # no marginalisation required, just remove the singleton dimension
             z = log_array.shape
@@ -327,8 +336,11 @@ class Grid(object):
 
     def _evaluate(self):
         xp = aac.get_namespace(self.mesh_grid[0])
-        if xp.__name__ == "jax.numpy":
-            from jax import vmap
+        if aac.is_torch_namespace(xp) or aac.is_jax_namespace(xp):
+            if aac.is_torch_namespace(xp):
+                from torch import vmap
+            else:
+                from jax import vmap
             self._ln_likelihood = vmap(self.likelihood.log_likelihood)(
                 {key: self.mesh_grid[i].flatten() for i, key in enumerate(self.parameter_names)}
             ).reshape(self.mesh_grid[0].shape)
@@ -364,13 +376,13 @@ class Grid(object):
                         self.sample_points[key] = self.priors[key].rescale(
                             xp.linspace(0, 1, grid_size[ii]))
                     else:
-                        self.sample_points[key] = grid_size[ii]
+                        self.sample_points[key] = xp.asarray(grid_size[ii])
                 elif isinstance(grid_size, dict):
                     if isinstance(grid_size[key], int):
                         self.sample_points[key] = self.priors[key].rescale(
                             xp.linspace(0, 1, grid_size[key]))
                     else:
-                        self.sample_points[key] = grid_size[key]
+                        self.sample_points[key] = xp.asarray(grid_size[key])
                 else:
                     raise TypeError("Unrecognized 'grid_size' type")
 
@@ -451,7 +463,7 @@ class Grid(object):
                          "following message:\n {} \n\n".format(e))
 
     @classmethod
-    def read(cls, filename=None, outdir=None, label=None, gzip=False):
+    def read(cls, filename=None, outdir=None, label=None, gzip=False, xp=None):
         """ Read in a saved .json grid file
 
         Parameters
@@ -464,6 +476,9 @@ class Grid(object):
             If given, whether the file is gzipped or not (only required if the
             file is gzipped, but does not have the standard '.gz' file
             extension)
+        xp: array module | None
+            The array module to use for calculations (e.g., :code:`numpy`,
+            :code:`jax.numpy`). If :code:`None`, defaults to :code:`numpy`.
 
         Returns
         =======
@@ -487,7 +502,7 @@ class Grid(object):
             try:
                 grid = cls(likelihood=None, priors=dictionary['priors'],
                            grid_size=dictionary['sample_points'],
-                           label=dictionary['label'], outdir=dictionary['outdir'])
+                           label=dictionary['label'], outdir=dictionary['outdir'], xp=xp)
 
                 # set the likelihood
                 grid._ln_likelihood = dictionary['ln_likelihood']

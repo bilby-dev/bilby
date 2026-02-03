@@ -288,7 +288,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         xp = array_module(self.x)
         sigma = parameters.get("sigma", self.sigma)
         log_l = xp.sum(- (self.residual(parameters) / sigma)**2 / 2 -
-                       xp.log(2 * np.pi * sigma**2) / 2)
+                       xp.log(xp.asarray(2 * np.pi * sigma**2)) / 2)
         return log_l
 
     def __repr__(self):
@@ -374,7 +374,8 @@ class PoissonLikelihood(Analytical1DLikelihood):
             y = np.atleast_1d(y)
         xp = aac.get_namespace(y)
         # check array is a non-negative integer array
-        if y.dtype.kind not in 'ui' or xp.any(y < 0):
+        # torch doesn't support checking dtype kind
+        if (not aac.is_torch_namespace(xp) and y.dtype.kind not in 'ui') or xp.any(y < 0):
             raise ValueError("Data must be non-negative integers")
         self.__y = y
 
@@ -468,7 +469,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
         xp = array_module(self.x)
         log_l =\
             xp.sum(- (nu + 1) * xp.log1p(self.lam * self.residual(parameters=parameters)**2 / nu) / 2 +
-                   xp.log(self.lam / (nu * np.pi)) / 2 +
+                   xp.log(xp.asarray(self.lam / (nu * np.pi))) / 2 +
                    gammaln((nu + 1) / 2) - gammaln(nu / 2))
         return log_l
 

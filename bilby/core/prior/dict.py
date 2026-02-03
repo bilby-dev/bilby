@@ -5,6 +5,7 @@ from importlib import import_module
 from io import open as ioopen
 from warnings import warn
 
+import array_api_extra as xpx
 import numpy as np
 
 from .analytical import DeltaFunction
@@ -58,12 +59,13 @@ class PriorDict(dict):
     def __hash__(self):
         return hash(str(self))
 
-    def evaluate_constraints(self, sample):
+    @xp_wrap
+    def evaluate_constraints(self, sample, *, xp=None):
         out_sample = self.conversion_function(sample)
         try:
-            prob = np.ones_like(next(iter(out_sample.values())))
+            prob = xp.ones_like(next(iter(out_sample.values())), dtype=bool)
         except TypeError:
-            prob = np.ones_like(out_sample)
+            prob = xp.ones_like(out_sample, dtype=bool)
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
@@ -385,7 +387,7 @@ class PriorDict(dict):
         samples_dict = self.sample_subset_constrained(keys=keys, size=size, xp=xp)
         samples_dict = {key: xp.atleast_1d(val) for key, val in samples_dict.items()}
         samples_list = [samples_dict[key] for key in keys]
-        return xp.asarray(samples_list)
+        return xp.stack(samples_list)
 
     def sample_subset(self, keys=iter([]), size=None, *, xp=np):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
@@ -474,18 +476,20 @@ class PriorDict(dict):
             for key in keys.copy():
                 if isinstance(self[key], Constraint):
                     del keys[keys.index(key)]
-            all_samples = {key: np.array([]) for key in keys}
+            all_samples = {key: xp.asarray([]) for key in keys}
             _first_key = list(all_samples.keys())[0]
             while len(all_samples[_first_key]) < needed:
                 samples = self.sample_subset(keys=keys, size=needed, xp=xp)
-                keep = np.array(self.evaluate_constraints(samples), dtype=bool)
+                keep = self.evaluate_constraints(samples, xp=xp)
                 for key in keys:
                     all_samples[key] = xp.hstack(
                         [all_samples[key], samples[key][keep].flatten()]
                     )
                 n_tested_samples += needed
-                n_valid_samples += np.sum(keep)
+                n_valid_samples += int(xp.sum(keep))
                 check_efficiency(n_tested_samples, n_valid_samples)
+            if not isinstance(size, tuple):
+                size = (size,)
             all_samples = {
                 key: xp.reshape(all_samples[key][:needed], size) for key in keys
             }
@@ -527,7 +531,8 @@ class PriorDict(dict):
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
-    def prob(self, sample, **kwargs):
+    @xp_wrap
+    def prob(self, sample, *, xp=None, **kwargs):
         """
 
         Parameters
@@ -542,31 +547,31 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        xp = array_module(sample.values())
-        prob = xp.prod(xp.asarray([self[key].prob(sample[key]) for key in sample]), **kwargs)
+        prob = xp.prod(xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs)
 
-        return prob
-        # return self.check_prob(sample, prob)
+        return self.check_prob(sample, prob, xp=xp)
 
-    def check_prob(self, sample, prob):
+    @xp_wrap
+    def check_prob(self, sample, prob, *, xp=None):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
-        if np.all(prob == 0.0):
+        if xp.all(prob == 0.0):
             return prob * ratio
         else:
             if isinstance(prob, float):
-                if self.evaluate_constraints(sample):
+                if self.evaluate_constraints(sample, xp=xp):
                     return prob * ratio
                 else:
                     return 0.0
             else:
-                constrained_prob = np.zeros_like(prob)
-                in_bounds = np.isfinite(prob)
+                constrained_prob = xp.zeros_like(prob)
+                in_bounds = xp.isfinite(prob)
                 subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = np.array(self.evaluate_constraints(subsample), dtype=bool)
-                constrained_prob[in_bounds] = prob[in_bounds] * keep * ratio
+                keep = self.evaluate_constraints(subsample, xp=xp)
+                constrained_prob = xpx.at(constrained_prob, in_bounds).set(prob[in_bounds] * keep * ratio)
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None, normalized=True):
+    @xp_wrap
+    def ln_prob(self, sample, axis=None, normalized=True, *, xp=None):
         """
 
         Parameters
@@ -585,29 +590,32 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
+        ln_prob = xp.sum(xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]), axis=axis)
         return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized)
+                                  normalized=normalized, xp=xp)
 
-    def check_ln_prob(self, sample, ln_prob, normalized=True):
+    @xp_wrap
+    def check_ln_prob(self, sample, ln_prob, normalized=True, *, xp=None):
         if normalized:
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             ratio = 1
-        if np.all(np.isinf(ln_prob)):
+        if xp.all(xp.isfinite(ln_prob)):
             return ln_prob
         else:
             if isinstance(ln_prob, float):
-                if np.all(self.evaluate_constraints(sample)):
-                    return ln_prob + np.log(ratio)
+                if xp.all(self.evaluate_constraints(sample, xp=xp)):
+                    return ln_prob + xp.log(ratio)
                 else:
                     return -np.inf
             else:
-                constrained_ln_prob = -np.inf * np.ones_like(ln_prob)
-                in_bounds = np.isfinite(ln_prob)
+                constrained_ln_prob = -np.inf * xp.ones_like(ln_prob)
+                in_bounds = xp.isfinite(ln_prob)
                 subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = np.log(np.array(self.evaluate_constraints(subsample), dtype=bool))
-                constrained_ln_prob[in_bounds] = ln_prob[in_bounds] + keep + np.log(ratio)
+                keep = xp.log(self.evaluate_constraints(subsample, xp=xp))
+                constrained_ln_prob = xpx.at(constrained_ln_prob, in_bounds).set(
+                    ln_prob[in_bounds] + keep + xp.log(ratio)   
+                )
                 return constrained_ln_prob
 
     @xp_wrap
@@ -827,8 +835,7 @@ class ConditionalPriorDict(PriorDict):
             for key in sample
         ])
         prob = xp.prod(res, **kwargs)
-        return prob
-        # return self.check_prob(sample, prob)
+        return self.check_prob(sample, prob, xp=xp)
 
     def ln_prob(self, sample, axis=None, normalized=True):
         """

@@ -122,7 +122,7 @@ class PowerLaw(Prior):
         Union[float, array_like]: Rescaled probability
         """
         if self.alpha == -1:
-            return self.minimum * xp.exp(val * xp.log(self.maximum / self.minimum))
+            return self.minimum * xp.exp(val * xp.log(xp.asarray(self.maximum / self.minimum)))
         else:
             return (self.minimum ** (1 + self.alpha) + val *
                     (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
@@ -140,7 +140,7 @@ class PowerLaw(Prior):
         float: Prior probability of val
         """
         if self.alpha == -1:
-            return xp.nan_to_num(1 / val / xp.log(self.maximum / self.minimum)) * self.is_in_prior_range(val)
+            return xp.nan_to_num(1 / val / xp.log(xp.asarray(self.maximum / self.minimum))) * self.is_in_prior_range(val)
         else:
             return xp.nan_to_num(val ** self.alpha * (1 + self.alpha) /
                                  (self.maximum ** (1 + self.alpha) -
@@ -160,10 +160,11 @@ class PowerLaw(Prior):
 
         """
         if self.alpha == -1:
-            normalising = 1. / xp.log(self.maximum / self.minimum)
+            normalising = 1. / xp.log(xp.asarray(self.maximum / self.minimum))
         else:
-            normalising = (1 + self.alpha) / (self.maximum ** (1 + self.alpha) -
-                                              self.minimum ** (1 + self.alpha))
+            normalising = (1 + self.alpha) / xp.asarray(
+                self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)
+            )
 
         with np.errstate(divide='ignore', invalid='ignore'):
             ln_in_range = xp.log(1. * self.is_in_prior_range(val))
@@ -175,7 +176,7 @@ class PowerLaw(Prior):
     def cdf(self, val, *, xp=None):
         if self.alpha == -1:
             with np.errstate(invalid="ignore"):
-                _cdf = xp.log(val / self.minimum) / xp.log(self.maximum / self.minimum)
+                _cdf = xp.log(val / self.minimum) / xp.log(xp.asarray(self.maximum / self.minimum))
         else:
             _cdf = (
                 (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
@@ -334,7 +335,11 @@ class SymmetricLogUniform(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        return xp.sign(2 * val - 1) * self.minimum * xp.exp(abs(2 * val - 1) * xp.log(self.maximum / self.minimum))
+        return (
+            xp.sign(2 * val - 1)
+            * self.minimum
+            * xp.exp(xp.abs(2 * val - 1) * xp.log(xp.asarray(self.maximum / self.minimum)))
+        )
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -349,7 +354,7 @@ class SymmetricLogUniform(Prior):
         float: Prior probability of val
         """
         val = xp.abs(val)
-        return (xp.nan_to_num(0.5 / val / xp.log(self.maximum / self.minimum)) *
+        return (xp.nan_to_num(0.5 / val / xp.log(xp.asarray(self.maximum / self.minimum))) *
                 self.is_in_prior_range(val))
 
     @xp_wrap
@@ -365,11 +370,11 @@ class SymmetricLogUniform(Prior):
         float:
 
         """
-        return xp.nan_to_num(- xp.log(2 * xp.abs(val)) - xp.log(xp.log(self.maximum / self.minimum)))
+        return xp.nan_to_num(- xp.log(2 * xp.abs(val)) - xp.log(xp.log(xp.asarray(self.maximum / self.minimum))))
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        asymmetric = xp.log(abs(val) / self.minimum) / xp.log(self.maximum / self.minimum)
+        asymmetric = xp.log(xp.abs(val) / self.minimum) / xp.log(xp.asarray(self.maximum / self.minimum))
         return xp.clip(0.5 * (1 + xp.sign(val) * asymmetric), 0, 1)
 
 
@@ -404,8 +409,8 @@ class Cosine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        norm = 1 / (xp.sin(self.maximum) - xp.sin(self.minimum))
-        return xp.arcsin(val / norm + xp.sin(self.minimum))
+        norm = 1 / (xp.sin(xp.asarray(self.maximum)) - xp.sin(xp.asarray(self.minimum)))
+        return xp.arcsin(val / norm + xp.sin(xp.asarray(self.minimum)))
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -424,8 +429,8 @@ class Cosine(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=None):
         _cdf = (
-            (xp.sin(val) - xp.sin(self.minimum)) /
-            (xp.sin(self.maximum) - xp.sin(self.minimum))
+            (xp.sin(val) - xp.sin(xp.asarray(self.minimum))) /
+            (xp.sin(xp.asarray(self.maximum)) - xp.sin(xp.asarray(self.minimum)))
         )
         _cdf *= val >= self.minimum
         _cdf *= val <= self.maximum
@@ -464,8 +469,8 @@ class Sine(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        norm = 1 / (xp.cos(self.minimum) - xp.cos(self.maximum))
-        return xp.arccos(xp.cos(self.minimum) - val / norm)
+        norm = 1 / (xp.cos(xp.asarray(self.minimum)) - xp.cos(xp.asarray(self.maximum)))
+        return xp.arccos(xp.cos(xp.asarray(self.minimum)) - val / norm)
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -484,8 +489,8 @@ class Sine(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=None):
         _cdf = (
-            (xp.cos(val) - xp.cos(self.minimum))
-            / (xp.cos(self.maximum) - xp.cos(self.minimum))
+            (xp.cos(val) - xp.cos(xp.asarray(self.minimum)))
+            / (xp.cos(xp.asarray(self.maximum)) - xp.cos(xp.asarray(self.minimum)))
         )
         _cdf *= val >= self.minimum
         _cdf *= val <= self.maximum
@@ -560,7 +565,7 @@ class Gaussian(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + xp.log(2 * np.pi * self.sigma ** 2))
+        return -0.5 * ((self.mu - val) ** 2 / self.sigma ** 2 + xp.log(xp.asarray(2 * np.pi * self.sigma ** 2)))
 
     def cdf(self, val, *, xp=None):
         return (1 - erf((self.mu - val) / 2 ** 0.5 / self.sigma)) / 2
@@ -754,15 +759,15 @@ class LogNormal(Prior):
         """
         with np.errstate(divide="ignore", invalid="ignore"):
             return xp.nan_to_num((
-                -(xp.log(xp.maximum(val, self.minimum)) - self.mu) ** 2 / self.sigma ** 2 / 2
-                - xp.log(xp.sqrt(2 * np.pi) * val * self.sigma)
+                -(xp.log(xp.maximum(val, xp.asarray(self.minimum))) - self.mu) ** 2 / self.sigma ** 2 / 2
+                - xp.log((2 * np.pi)**0.5 * val * self.sigma)
             ) + xp.log(val > self.minimum), nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
         with np.errstate(divide="ignore"):
             return 0.5 + erf(
-                (xp.log(xp.maximum(val, self.minimum)) - self.mu) / self.sigma / np.sqrt(2)
+                (xp.log(xp.maximum(val, xp.asarray(self.minimum))) - self.mu) / self.sigma / np.sqrt(2)
             ) / 2
 
 
@@ -828,12 +833,12 @@ class Exponential(Prior):
         Union[float, array_like]: Prior probability of val
         """
         with np.errstate(divide="ignore"):
-            return -val / self.mu - xp.log(self.mu) + xp.log(val >= self.minimum)
+            return -val / self.mu - xp.log(xp.asarray(self.mu)) + xp.log(val >= self.minimum)
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
         with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
-            return xp.maximum(1. - xp.exp(-val / self.mu), 0)
+            return xp.maximum(1. - xp.exp(-val / self.mu), xp.asarray(0.0))
 
 
 class StudentT(Prior):
@@ -916,7 +921,7 @@ class StudentT(Prior):
         """
         return (
             gammaln(0.5 * (self.df + 1)) - gammaln(0.5 * self.df)
-            - xp.log((np.pi * self.df)**0.5 * self.scale) - (self.df + 1) / 2
+            - xp.log(xp.asarray((np.pi * self.df)**0.5 * self.scale)) - (self.df + 1) / 2
             * xp.log(1 + ((val - self.mu) / self.scale) ** 2 / self.df)
         )
 
@@ -1053,7 +1058,7 @@ class Logistic(Prior):
         """
         with np.errstate(divide="ignore"):
             val = xp.asarray(val)
-            return self.mu + self.scale * xp.log(xp.maximum(val / (1 - val), 0))
+            return self.mu + self.scale * xp.log(xp.maximum(val / (1 - val), xp.asarray(0)))
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -1083,7 +1088,7 @@ class Logistic(Prior):
         """
         with np.errstate(over="ignore"):
             return -(val - self.mu) / self.scale -\
-                2. * xp.log1p(xp.exp(-(val - self.mu) / self.scale)) - xp.log(self.scale)
+                2. * xp.log1p(xp.exp(-(val - self.mu) / self.scale)) - xp.log(xp.asarray(self.scale))
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
@@ -1155,7 +1160,7 @@ class Cauchy(Prior):
         =======
         Union[float, array_like]: Log prior probability of val
         """
-        return - xp.log(self.beta * np.pi) - xp.log(1. + ((val - self.alpha) / self.beta) ** 2)
+        return - xp.log(xp.asarray(self.beta * np.pi)) - xp.log(1. + ((val - self.alpha) / self.beta) ** 2)
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
@@ -1240,7 +1245,7 @@ class Gamma(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        return gammainc(xp.asarray(self.k), xp.maximum(val, self.minimum) / self.theta)
+        return gammainc(xp.asarray(self.k), xp.maximum(val, xp.asarray(self.minimum)) / self.theta)
 
 
 class ChiSquared(Gamma):
@@ -1327,7 +1332,7 @@ class FermiDirac(Prior):
             raise ValueError("For the Fermi-Dirac prior the values of sigma and r "
                              "must be positive.")
 
-        xp = array_module(np)
+        xp = array_module((mu, sigma, r))
         self.expr = xp.exp(self.r)
 
     @xp_wrap
@@ -1349,7 +1354,7 @@ class FermiDirac(Prior):
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
         inv = -1 / self.expr + (1 + self.expr)**-val + (1 + self.expr)**-val / self.expr
-        return -self.sigma * xp.log(xp.maximum(inv, 0))
+        return -self.sigma * xp.log(xp.maximum(inv, xp.asarray(0)))
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -1365,7 +1370,7 @@ class FermiDirac(Prior):
         """
         return (
             (xp.exp((val - self.mu) / self.sigma) + 1)**-1
-            / (self.sigma * xp.log1p(self.expr))
+            / (self.sigma * xp.log1p(xp.asarray(self.expr)))
             * (val >= self.minimum)
         )
 
@@ -1406,8 +1411,8 @@ class FermiDirac(Prior):
            <https:arxiv.org/abs/1705.08978v1>`_, 2017.
         """
         result = (
-            (xp.logaddexp(0, -self.r) - xp.logaddexp(-val / self.sigma, -self.r))
-            / xp.logaddexp(0, self.r)
+            (xp.logaddexp(xp.asarray(0.0), -xp.asarray(self.r)) - xp.logaddexp(-val / self.sigma, -xp.asarray(self.r)))
+            / xp.logaddexp(xp.asarray(0.0), xp.asarray(self.r))
         )
         return xp.clip(result, 0, 1)
 

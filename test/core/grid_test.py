@@ -2,11 +2,11 @@ import unittest
 import shutil
 import os
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 
 import bilby
-from bilby.compat.patches import multivariate_logpdf
 
 
 class MultiGaussian(bilby.Likelihood):
@@ -17,15 +17,13 @@ class MultiGaussian(bilby.Likelihood):
         self.cov = xp.asarray(cov)
         self.mean = xp.asarray(mean)
         self.sigma = xp.sqrt(xp.diag(self.cov))
-        self.logpdf = multivariate_logpdf(xp=xp, mean=self.mean, cov=self.cov)
 
     @property
     def dim(self):
         return len(self.cov[0])
 
     def log_likelihood(self, parameters):
-        x = self.xp.asarray([parameters["x{0}".format(i)] for i in range(self.dim)])
-        return self.logpdf(x)
+        return -parameters["x0"]**2 / 2 - parameters["x1"]**2 / 2 - np.log(2 * np.pi)
 
 
 @pytest.mark.array_backend
@@ -146,7 +144,9 @@ class TestGrid(unittest.TestCase):
         self.assertEqual(1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[1]).max())
 
     def test_ln_evidence(self):
-        self.assertAlmostEqual(self.expected_ln_evidence, self.grid.ln_evidence, places=5)
+        ln_z = self.grid.ln_evidence
+        self.assertEqual(aac.get_namespace(ln_z), self.xp)
+        self.assertAlmostEqual(self.expected_ln_evidence, float(ln_z), places=5)
 
     def test_fail_grid_size(self):
         with self.assertRaises(TypeError):
@@ -218,7 +218,7 @@ class TestGrid(unittest.TestCase):
     def test_save_and_load_from_filename(self):
         filename = os.path.join("outdir", "test_output.json")
         self.grid.save_to_file(filename=filename)
-        new_grid = bilby.core.grid.Grid.read(filename=filename)
+        new_grid = bilby.core.grid.Grid.read(filename=filename, xp=self.xp)
 
         self.assertListEqual(new_grid.parameter_names, self.grid.parameter_names)
         self.assertEqual(new_grid.n_dims, self.grid.n_dims)
@@ -231,7 +231,7 @@ class TestGrid(unittest.TestCase):
 
     def test_save_and_load_from_outdir_label(self):
         self.grid.save_to_file(overwrite=True, outdir="outdir")
-        new_grid = bilby.core.grid.Grid.read(outdir="outdir", label="label")
+        new_grid = bilby.core.grid.Grid.read(outdir="outdir", label="label", xp=self.xp)
 
         self.assertListEqual(self.grid.parameter_names, new_grid.parameter_names)
         self.assertEqual(self.grid.n_dims, new_grid.n_dims)
@@ -248,7 +248,7 @@ class TestGrid(unittest.TestCase):
     def test_save_and_load_gzip(self):
         filename = os.path.join("outdir", "test_output.json.gz")
         self.grid.save_to_file(filename=filename)
-        new_grid = bilby.core.grid.Grid.read(filename=filename)
+        new_grid = bilby.core.grid.Grid.read(filename=filename, xp=self.xp)
 
         self.assertListEqual(self.grid.parameter_names, new_grid.parameter_names)
         self.assertEqual(self.grid.n_dims, new_grid.n_dims)

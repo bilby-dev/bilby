@@ -10,6 +10,8 @@ __all__ = ["array_module", "promote_to_array"]
 
 
 def array_module(arr):
+    if isinstance(arr, tuple) and len(arr) == 1:
+        arr = arr[0]
     try:
         return array_namespace(arr)
     except TypeError:

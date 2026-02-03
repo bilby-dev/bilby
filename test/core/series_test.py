@@ -1,5 +1,6 @@
 import unittest
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 
@@ -47,10 +48,10 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.assertEqual(self.start_time, self.series.start_time)
 
     def test_frequency_array_type(self):
-        self.assertIsInstance(self.series.frequency_array, self.xp.ndarray)
+        self.assertEqual(aac.get_namespace(self.series.frequency_array), self.xp)
 
     def test_time_array_type(self):
-        self.assertIsInstance(self.series.time_array, self.xp.ndarray)
+        self.assertEqual(aac.get_namespace(self.series.time_array), self.xp)
 
     def test_frequency_array_from_init(self):
         expected = create_frequency_series(
@@ -94,10 +95,10 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.series.time_array = new_time_array
         self.assertTrue(np.array_equal(new_time_array, self.series.time_array))
         self.assertAlmostEqual(
-            new_sampling_frequency, self.series.sampling_frequency, places=1
+            np.asarray(new_sampling_frequency), np.asarray(self.series.sampling_frequency), places=1
         )
-        self.assertAlmostEqual(new_duration, self.series.duration, places=1)
-        self.assertAlmostEqual(new_start_time, self.series.start_time, places=1)
+        self.assertAlmostEqual(np.asarray(new_duration), np.asarray(self.series.duration), places=1)
+        self.assertAlmostEqual(np.asarray(new_start_time), np.asarray(self.series.start_time), places=1)
 
     def test_time_array_without_sampling_frequency(self):
         self.series.sampling_frequency = None

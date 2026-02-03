@@ -1744,13 +1744,13 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                     phi, dec = samp[0]
                 theta = 0.5 * np.pi - dec
                 pixel = self.hp.ang2pix(self.nside, theta, phi)
-                xpx.at(lnprob, i).set(xp.log(self.prob[pixel] / self.pixel_area))
+                xpx.at(lnprob, i).set(xp.log(xp.asarray(self.prob[pixel] / self.pixel_area)))
                 if self.distance:
                     self.update_distance(pixel)
                     lnprob = xpx.at(lnprob, i).set(
-                        lnprob[i] + xp.log(self.distance_pdf(dist) * dist ** 2)
+                        lnprob[i] + xp.log(xp.asarray(self.distance_pdf(dist) * dist ** 2))
                     )
-        lnprob = xp.where(outbounds, -np.inf, lnprob)
+        lnprob = xp.where(xp.asarray(outbounds), -np.inf, lnprob)
         return lnprob
 
     def __eq__(self, other):

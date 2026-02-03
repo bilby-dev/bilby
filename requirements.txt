@@ -1,4 +1,5 @@
-array_api_compat
+# see https://github.com/data-apis/array-api-compat/pull/341
+array_api_compat>=1.13
 array_api_extra
 dynesty>=2.0.1
 emcee

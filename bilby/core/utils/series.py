@@ -123,7 +123,7 @@ def create_frequency_series(sampling_frequency, duration):
     """
     xp = array_module(sampling_frequency)
     _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
-    number_of_samples = int(xp.round(duration * sampling_frequency))
+    number_of_samples = xp.round(duration * sampling_frequency)
     number_of_frequencies = int(xp.round(number_of_samples / 2) + 1)
 
     return xp.linspace(0, sampling_frequency / 2, num=number_of_frequencies)
