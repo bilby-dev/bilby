@@ -360,6 +360,7 @@ class ROQBasisMixin:
                 return path
         raise Exception("Unable to load ROQ basis: cannot proceed with tests")
 
+
 @pytest.mark.requires_roqs
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")

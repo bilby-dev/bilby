@@ -918,7 +918,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             over_whitened_frequency_data = xp.zeros(int(fhigh_basis * ifo.duration) + 1, dtype=complex)
             over_whitened_frequency_data = xpx.at(
                 over_whitened_frequency_data, xp.arange(len(ifo.frequency_domain_strain))[ifo.frequency_mask]
-            ).set(ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask])
+            ).set(
+                ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask]
+            )
             over_whitened_time_data = xp.fft.irfft(over_whitened_frequency_data)
             tc_shifted_data[ifo.name] = xp.zeros((basis_dimension, len(self.weights['time_samples'])), dtype=complex)
             start_idx_of_band = 0
@@ -933,7 +935,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 sl = slice(start_idx_of_band, start_idx_of_next_band)
                 this_data = (
                     4. / Tb * Db[:, None] * xp.exp(
-                        2. * np.pi * 1j * fs[:, None] * (xp.asarray(self.weights['time_samples'][None, :]) - ifo.duration + Tb)
+                        2. * np.pi * 1j * fs[:, None]
+                        * (xp.asarray(self.weights['time_samples'][None, :]) - ifo.duration + Tb)
                     )
                 )
                 tc_shifted_data[ifo.name] = xpx.at(tc_shifted_data[ifo.name], sl).set(this_data)
@@ -973,7 +976,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             for ifo in self.interferometers:
                 inv_psd = xp.asarray(1 / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]])
                 self.weights[ifo.name + '_quadratic'].append(
-                    4. / ifo.strain_data.duration *  quadratic_matrix_single[:, roq_idxs[ifo.name]] @ inv_psd
+                    4. / ifo.strain_data.duration * quadratic_matrix_single[:, roq_idxs[ifo.name]] @ inv_psd
                 )
             del quadratic_matrix_single
 
