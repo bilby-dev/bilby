@@ -566,7 +566,8 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestAlignedSpin(unittest.TestCase):
     def setUp(self):
-        pass
+        if aac.is_torch_namespace(self.xp):
+            self.skipTest("Torch doesn't support interpolated priors.")
 
     def test_default_prior_matches_analytic(self):
         prior = bilby.gw.prior.AlignedSpin()
@@ -591,7 +592,8 @@ class TestAlignedSpin(unittest.TestCase):
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
 
     def setUp(self):
-        pass
+        if aac.is_torch_namespace(self.xp):
+            self.skipTest("Torch doesn't support interpolated priors.")
 
     def test_marginalized_prior_is_uniform(self):
         priors = bilby.gw.prior.BBHPriorDict(aligned_spin=True)

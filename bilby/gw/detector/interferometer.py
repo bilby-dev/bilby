@@ -313,13 +313,14 @@ class Interferometer(object):
         used to set the time at which the antenna response is evaluated,
         otherwise the provided :code:`Parameters["geocent_time"]` is used.
         """
+        xp = array_module(waveform_polarizations)
         if frequencies is None:
             # frequencies = self.frequency_array[self.frequency_mask]
             frequencies = self.frequency_array
             mask = self.frequency_mask
         else:
-            xp = array_module(frequencies)
             mask = xp.ones(len(frequencies), dtype=bool)
+        frequencies = xp.asarray(frequencies)
 
         if self.reference_time is None:
             antenna_time = parameters["geocent_time"]

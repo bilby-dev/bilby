@@ -181,7 +181,7 @@ def time_delay_from_geocenter(detector1, ra, dec, time):
 def zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x):
     """"""
     xp = array_module(delta_x)
-    omega_prime = xp.asarray(
+    omega_prime = xp.stack(
         [
             xp.sin(zenith) * xp.cos(azimuth),
             xp.sin(zenith) * xp.sin(azimuth),

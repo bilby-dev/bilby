@@ -154,37 +154,37 @@ class TestInterferometerGeometry(unittest.TestCase):
     def test_detector_tensor_with_x_azimuth_update(self):
         original = self.geometry.detector_tensor
         self.geometry.xarm_azimuth += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_y_azimuth_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_azimuth += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_x_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.xarm_tilt += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_y_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_tilt += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_longitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.longitude += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_latitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.latitude += 1
-        self.assertNotEqual(np.max(abs(self.geometry.detector_tensor - original)), 0)
+        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_unit_vector_along_arm_default(self):

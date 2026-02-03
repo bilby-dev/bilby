@@ -34,12 +34,14 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
         else:
             raise ValueError("Input must be an array API object or a dict of such objects.")
 
-    def frequency_domain_strain(self, parameters):
-        wf = self.wfg.frequency_domain_strain(parameters)
-        return self.convert_nested_dict(wf)
+    def _strain_from_model(self, model_data_points, model, parameters):
+        # we can't pass a frequency array through as a torch array
+        model_data_points = np.asarray(model_data_points)
+        return super()._strain_from_model(model_data_points, model, parameters)
 
-    def time_domain_strain(self, parameters):
-        wf = self.wfg.time_domain_strain(parameters)
+    def frequency_domain_strain(self, parameters):
+        self.wfg.frequency_array = np.asarray(self.wfg.frequency_array)
+        wf = self.wfg.__class__.frequency_domain_strain(self, parameters)
         return self.convert_nested_dict(wf)
 
 
@@ -59,15 +61,15 @@ class TestBasicGWTransient(unittest.TestCase):
             phi_jl=0.3,
             luminosity_distance=4000.0,
             theta_jn=0.4,
-            psi=2.659,
+            psi=self.xp.asarray(2.659),
             phase=1.3,
-            geocent_time=1126259642.413,
-            ra=1.375,
-            dec=-1.2108,
+            geocent_time=self.xp.asarray(1126259642.413),
+            ra=self.xp.asarray(1.375),
+            dec=self.xp.asarray(-1.2108),
         )
         self.interferometers = bilby.gw.detector.InterferometerList(["H1"])
         self.interferometers.set_strain_data_from_power_spectral_densities(
-            sampling_frequency=2048, duration=4
+            sampling_frequency=self.xp.asarray(2048.0), duration=self.xp.asarray(4.0)
         )
         self.interferometers.set_array_backend(self.xp)
         base_wfg = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
@@ -100,7 +102,7 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         logl = self.likelihood.log_likelihood(self.parameters)
-        self.assertAlmostEqual(logl, -4032.4397343470005, 3)
+        self.assertAlmostEqual(float(logl), -4032.4397343470005, 3)
         self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_ratio(self):
@@ -144,11 +146,11 @@ class TestGWTransient(unittest.TestCase):
             phi_jl=0.3,
             luminosity_distance=4000.0,
             theta_jn=0.4,
-            psi=2.659,
-            phase=1.3,
-            geocent_time=1126259642.413,
-            ra=1.375,
-            dec=-1.2108,
+            psi=self.xp.asarray(2.659),
+            phase=self.xp.asarray(1.3),
+            geocent_time=self.xp.asarray(1126259642.413),
+            ra=self.xp.asarray(1.375),
+            dec=self.xp.asarray(-1.2108),
         )
         self.interferometers = bilby.gw.detector.InterferometerList(["H1"])
         self.interferometers.set_strain_data_from_power_spectral_densities(
@@ -184,23 +186,23 @@ class TestGWTransient(unittest.TestCase):
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
         nll = self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(
-            -4014.1787704539474, nll, 3
-        )
         self.assertEqual(aac.get_namespace(nll), self.xp)
+        self.assertAlmostEqual(
+            -4014.1787704539474, float(nll), 3
+        )
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
         logl = self.likelihood.log_likelihood(self.parameters)
-        self.assertAlmostEqual(logl, -4032.4397343470005, 3)
+        self.assertAlmostEqual(float(logl), -4032.4397343470005, 3)
         self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
         llr = self.likelihood.log_likelihood_ratio(self.parameters)
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
-            llr,
+            float(self.likelihood.log_likelihood(self.parameters)) - float(self.likelihood.noise_log_likelihood()),
+            float(llr),
             3,
         )
         self.assertEqual(aac.get_namespace(llr), self.xp)
@@ -1365,12 +1367,13 @@ class TestMBLikelihood(unittest.TestCase):
             phi_jl=0.0,
             luminosity_distance=200.0,
             theta_jn=0.4,
-            psi=0.659,
+            psi=self.xp.asarray(0.659),
             phase=1.3,
-            geocent_time=1187008882,
-            ra=1.3,
-            dec=-1.2
+            geocent_time=self.xp.asarray(1187008882),
+            ra=self.xp.asarray(1.3),
+            dec=self.xp.asarray(-1.2)
         )  # Network SNR is ~50
+        # torch needs sky parameters to be tensors
 
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
         bilby.core.utils.random.seed(70817)
@@ -1598,6 +1601,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg = BackendWaveformGenerator(wfg, self.xp)
         self.ifos.inject_signal(
             parameters=self.test_parameters, waveform_generator=wfg
         )
@@ -1609,6 +1613,7 @@ class TestMBLikelihood(unittest.TestCase):
                 reference_frequency=self.fmin, waveform_approximant=waveform_approximant
             )
         )
+        wfg_mb = BackendWaveformGenerator(wfg_mb, self.xp)
         likelihood_mb = bilby.gw.likelihood.MBGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg_mb,
             reference_chirp_mass=self.test_parameters['chirp_mass'],

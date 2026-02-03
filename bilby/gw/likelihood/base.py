@@ -304,7 +304,7 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization and self.calibration_marginalization:
 
             d_inner_h_integrand = np.tile(
-                interferometer.frequency_domain_strain.conjugate() * signal /
+                interferometer.frequency_domain_strain.conj() * signal /
                 interferometer.power_spectral_density_array, (self.number_of_response_curves, 1)).T
 
             d_inner_h_integrand[_mask] *= self.calibration_draws[interferometer.name].T
@@ -324,14 +324,14 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization and not self.calibration_marginalization:
             d_inner_h_array = normalization * np.fft.fft(
                 signal[0:-1]
-                * interferometer.frequency_domain_strain.conjugate()[0:-1]
+                * interferometer.frequency_domain_strain.conj()[0:-1]
                 / interferometer.power_spectral_density_array[0:-1]
             )
 
         elif self.calibration_marginalization and ('recalib_index' not in parameters):
             d_inner_h_integrand = (
                 normalization *
-                interferometer.frequency_domain_strain.conjugate() * signal
+                interferometer.frequency_domain_strain.conj() * signal
                 / interferometer.power_spectral_density_array
             )
             d_inner_h_array = np.dot(d_inner_h_integrand[_mask], self.calibration_draws[interferometer.name].T)

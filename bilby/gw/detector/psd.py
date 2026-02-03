@@ -3,6 +3,7 @@ import os
 import numpy as np
 from scipy.interpolate import interp1d
 
+from ...compat.utils import xp_wrap
 from ...core import utils
 from ...core.utils import logger
 from .strain_data import InterferometerStrainData
@@ -341,7 +342,8 @@ class PowerSpectralDensity(object):
         """ Automagically load a power spectral density curve """
         self.frequency_array, self.psd_array = np.genfromtxt(self.psd_file).T
 
-    def get_noise_realisation(self, sampling_frequency, duration):
+    @xp_wrap
+    def get_noise_realisation(self, sampling_frequency, duration, *, xp=None):
         """
         Generate frequency Gaussian noise scaled to the power spectral density.
 
@@ -363,4 +365,4 @@ class PowerSpectralDensity(object):
             frequency_domain_strain = self.__power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         out_of_bounds = (frequencies < min(self.frequency_array)) | (frequencies > max(self.frequency_array))
         frequency_domain_strain[out_of_bounds] = 0 * (1 + 1j)
-        return frequency_domain_strain, frequencies
+        return xp.asarray(frequency_domain_strain), xp.asarray(frequencies)

@@ -48,7 +48,7 @@ import pandas as pd
 from array_api_compat import is_jax_namespace
 from scipy.interpolate import interp1d
 
-from ...compat.utils import array_module
+from ...compat.utils import array_module, xp_wrap
 from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
 from ..prior import CalibrationPriorDict
@@ -345,7 +345,8 @@ class CubicSpline(Recalibrate):
             + d * spline_coefficients[next_nodes]
         )
 
-    def get_calibration_factor(self, frequency_array, **params):
+    @xp_wrap
+    def get_calibration_factor(self, frequency_array, *, xp=np, **params):
         """Apply calibration model
 
         Parameters
@@ -363,11 +364,11 @@ class CubicSpline(Recalibrate):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        log10f_per_deltalog10f = np.nan_to_num(
-            np.log10(frequency_array) - self.log_spline_points[0],
+        log10f_per_deltalog10f = xp.nan_to_num(
+            xp.log10(frequency_array) - xp.asarray(self.log_spline_points[0]),
             neginf=0.0,
         ) / self.delta_log_spline_points
-        previous_nodes = np.clip(np.floor(log10f_per_deltalog10f).astype(int), a_min=0, a_max=self.n_points - 2)
+        previous_nodes = xp.clip(xp.astype(log10f_per_deltalog10f, int), min=0, max=self.n_points - 2)
         b = log10f_per_deltalog10f - previous_nodes
         a = 1 - b
         c = (a**3 - a) / 6
@@ -378,7 +379,6 @@ class CubicSpline(Recalibrate):
         delta_amplitude = self._evaluate_spline("amplitude", a, b, c, d, previous_nodes)
         delta_phase = self._evaluate_spline("phase", a, b, c, d, previous_nodes)
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
-        xp = aac.get_namespace(calibration_factor)
 
         return xp.nan_to_num(calibration_factor)
 

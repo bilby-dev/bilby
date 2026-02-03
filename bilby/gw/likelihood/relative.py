@@ -398,8 +398,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             parameters=parameters,
         )
         a0, a1, b0, b1 = self.summary_data[interferometer.name]
-        d_inner_h = (a0 * r0.conjugate() + a1 * r1.conjugate()).sum()
-        h_inner_h = (b0 * abs(r0) ** 2 + 2 * b1 * (r0 * r1.conjugate()).real).sum()
+        d_inner_h = (a0 * r0.conj() + a1 * r1.conj()).sum()
+        h_inner_h = (b0 * abs(r0) ** 2 + 2 * b1 * (r0 * r1.conj()).real).sum()
         optimal_snr_squared = h_inner_h
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
 
@@ -412,7 +412,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             )
             d_inner_h_array = 4 / self.waveform_generator.duration * xp.fft.fft(
                 full_waveform[0:-1]
-                * interferometer.frequency_domain_strain.conjugate()[0:-1]
+                * interferometer.frequency_domain_strain.conj()[0:-1]
                 / interferometer.power_spectral_density_array[0:-1])
 
         else:

@@ -139,10 +139,10 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         )
 
     def test_frequency_array_type(self):
-        self.assertIsInstance(self.waveform_generator.frequency_array, self.xp.ndarray)
+        self.assertEqual(aac.array_namespace(self.waveform_generator.frequency_array), self.xp)
 
     def test_time_array_type(self):
-        self.assertIsInstance(self.waveform_generator.time_array, self.xp.ndarray)
+        self.assertEqual(aac.array_namespace(self.waveform_generator.time_array), self.xp)
 
     def test_source_model_parameters(self):
         self.waveform_generator.parameters = self.simulation_parameters.copy()

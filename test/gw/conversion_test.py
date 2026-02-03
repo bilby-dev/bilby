@@ -86,28 +86,28 @@ class TestBasicConversions(unittest.TestCase):
         mass_ratio = conversion.chirp_mass_and_primary_mass_to_mass_ratio(
             self.chirp_mass, self.mass_1
         )
-        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+        self.assertAlmostEqual(float(self.mass_ratio), float(mass_ratio))
         self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_symmetric_mass_ratio_to_mass_ratio(self):
         mass_ratio = conversion.symmetric_mass_ratio_to_mass_ratio(
             self.symmetric_mass_ratio
         )
-        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+        self.assertAlmostEqual(float(self.mass_ratio), float(mass_ratio))
         self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_chirp_mass_and_total_mass_to_symmetric_mass_ratio(self):
         symmetric_mass_ratio = conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(
             self.chirp_mass, self.total_mass
         )
-        self.assertAlmostEqual(self.symmetric_mass_ratio, symmetric_mass_ratio)
+        self.assertAlmostEqual(float(self.symmetric_mass_ratio), float(symmetric_mass_ratio))
         self.assertEqual(aac.get_namespace(symmetric_mass_ratio), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_total_mass(self):
         total_mass = conversion.chirp_mass_and_mass_ratio_to_total_mass(
             self.chirp_mass, self.mass_ratio
         )
-        self.assertAlmostEqual(self.total_mass, total_mass)
+        self.assertAlmostEqual(float(self.total_mass), float(total_mass))
         self.assertEqual(aac.get_namespace(total_mass), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_component_masses(self):
@@ -138,7 +138,7 @@ class TestBasicConversions(unittest.TestCase):
 
     def test_component_masses_to_mass_ratio(self):
         mass_ratio = conversion.component_masses_to_mass_ratio(self.mass_1, self.mass_2)
-        self.assertAlmostEqual(self.mass_ratio, mass_ratio)
+        self.assertAlmostEqual(float(self.mass_ratio), float(mass_ratio))
         self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_mass_1_and_chirp_mass_to_mass_ratio(self):
@@ -656,8 +656,8 @@ class TestGenerateMassParameters(unittest.TestCase):
             self.assertTrue("mass_2" in local_test_vars_with_component_masses.keys())
         for key in local_test_vars_with_component_masses.keys():
             self.assertAlmostEqual(
-                local_test_vars_with_component_masses[key],
-                self.expected_values[key])
+                np.asarray(local_test_vars_with_component_masses[key]),
+                np.asarray(self.expected_values[key]))
 
         # Test the function more generally
         local_all_mass_parameters = \
@@ -687,7 +687,10 @@ class TestGenerateMassParameters(unittest.TestCase):
                     )
             )
         for key in local_all_mass_parameters.keys():
-            self.assertAlmostEqual(expected_values[key], local_all_mass_parameters[key])
+            self.assertAlmostEqual(
+                np.asarray(expected_values[key]),
+                np.asarray(local_all_mass_parameters[key]),
+            )
             self.assertEqual(
                 aac.get_namespace(local_all_mass_parameters[key]),
                 self.xp,
@@ -910,10 +913,10 @@ class TestEquationOfStateConversions(unittest.TestCase):
                     self.spectral_pca_gamma_2[i],
                     self.spectral_pca_gamma_3[i]
                 )
-            self.assertAlmostEqual(spectral_gamma_0, self.spectral_gamma_0[i], places=5)
-            self.assertAlmostEqual(spectral_gamma_1, self.spectral_gamma_1[i], places=5)
-            self.assertAlmostEqual(spectral_gamma_2, self.spectral_gamma_2[i], places=5)
-            self.assertAlmostEqual(spectral_gamma_3, self.spectral_gamma_3[i], places=5)
+            self.assertAlmostEqual(float(spectral_gamma_0), self.spectral_gamma_0[i], places=5)
+            self.assertAlmostEqual(float(spectral_gamma_1), self.spectral_gamma_1[i], places=5)
+            self.assertAlmostEqual(float(spectral_gamma_2), self.spectral_gamma_2[i], places=5)
+            self.assertAlmostEqual(float(spectral_gamma_3), self.spectral_gamma_3[i], places=5)
             for val in [spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3]:
                 self.assertEqual(aac.get_namespace(val), self.xp)
 
@@ -943,8 +946,8 @@ class TestEquationOfStateConversions(unittest.TestCase):
                     self.mass_1_source_spectral[i],
                     self.mass_2_source_spectral[i]
                 )
-            self.assertAlmostEqual(self.lambda_1_spectral[i], lambda_1, places=0)
-            self.assertAlmostEqual(self.lambda_2_spectral[i], lambda_2, places=0)
+            self.assertAlmostEqual(self.lambda_1_spectral[i], float(lambda_1), places=0)
+            self.assertAlmostEqual(self.lambda_2_spectral[i], float(lambda_2), places=0)
             self.assertAlmostEqual(self.eos_check_spectral[i], eos_check)
 
     def test_polytrope_or_causal_params_to_lambda_1_lambda_2_causal(self):

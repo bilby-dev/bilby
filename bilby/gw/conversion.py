@@ -645,7 +645,7 @@ def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3)
     model_space_mean = xp.asarray([0.89421, 0.33878, -0.07894, 0.00393])
     model_space_standard_deviation = xp.asarray([0.35700, 0.25769, 0.05452, 0.00312])
     converted_gamma_parameters = \
-        model_space_mean + model_space_standard_deviation * xp.dot(transformation_matrix, sampled_pca_gammas)
+        model_space_mean + model_space_standard_deviation * (transformation_matrix @ sampled_pca_gammas)
 
     return converted_gamma_parameters
 
@@ -1046,7 +1046,7 @@ def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
         Symmetric mass ratio of the binary
     """
     xp = array_module(mass_1)
-    return xp.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, 1 / 4)
+    return xp.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, xp.asarray(0.25))
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):

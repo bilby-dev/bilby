@@ -66,7 +66,7 @@ jobs:
         pytest --array-backend jax --durations 10
     - name: Run torch-backend unit tests
       run: |
-        pytest --array-backend torch --durations 10 test/core
+        pytest --array-backend torch --durations 10
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v        

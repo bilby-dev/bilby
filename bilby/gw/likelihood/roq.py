@@ -491,7 +491,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         indices = xp.clip(indices, 0, len(self.weights['time_samples']) - 1)
         d_inner_h_tc_array = xp.einsum(
             'i,ji->j',
-            xp.conjugate(h_linear),
+            xp.conj(h_linear),
             xp.asarray(
                 self.weights[interferometer.name + '_linear'][self.basis_number_linear]
             )[indices],
@@ -601,7 +601,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         # Get the nearest 5 samples of d_inner_h. Calculate only the required d_inner_h values if the time
         # spacing is larger than 5 times the ROQ time spacing.
         weights_linear = self.weights[ifo_name + '_linear'][self.basis_number_linear]
-        h_linear_conj = np.conjugate(h_linear)
+        h_linear_conj = np.conj(h_linear)
         if (times[1] - times[0]) / roq_time_space > 5:
             d_inner_h_m2 = np.dot(weights_linear[closest_idxs - 2], h_linear_conj)
             d_inner_h_m1 = np.dot(weights_linear[closest_idxs - 1], h_linear_conj)

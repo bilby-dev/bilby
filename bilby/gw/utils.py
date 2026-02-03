@@ -108,11 +108,11 @@ def inner_product(aa, bb, frequency, PSD):
     psd_interp = PSD.power_spectral_density_interpolated(frequency)
 
     # calculate the inner product
-    integrand = np.conj(aa) * bb / psd_interp
+    integrand = (aa.conj() * bb / psd_interp).real
 
     df = frequency[1] - frequency[0]
-    integral = np.sum(integrand) * df
-    return 4. * np.real(integral)
+    integral = integrand.sum() * df
+    return 4. * integral
 
 
 def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
@@ -134,7 +134,7 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     =======
     Noise-weighted inner product.
     """
-    integrand = aa.conjugate() * bb / power_spectral_density
+    integrand = aa.conj() * bb / power_spectral_density
     return 4 / duration * integrand.sum()
 
 
@@ -223,7 +223,7 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     """
     low_index = int(lower_cut_off / delta_frequency)
     up_index = int(upper_cut_off / delta_frequency)
-    integrand = signal_a.conjugate() * signal_b
+    integrand = signal_a.conj() * signal_b
     integrand = integrand[low_index:up_index] / power_spectral_density[low_index:up_index]
     integral = (4 * delta_frequency * integrand) / norm_a / norm_b
     return sum(integral).real
