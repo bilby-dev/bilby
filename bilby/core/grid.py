@@ -218,7 +218,7 @@ class Grid(object):
             elif aac.is_torch_namespace(xp):
                 # https://discuss.pytorch.org/t/apply-a-function-along-an-axis/130440
                 out = xp.stack([
-                    logtrapzexp(x_i, dx=dx, xp=xp)  for x_i in xp.unbind(log_array, dim=axis)
+                    logtrapzexp(x_i, dx=dx, xp=xp) for x_i in xp.unbind(log_array, dim=axis)
                 ], dim=min(axis, log_array.ndim - 2))
             else:
                 out = xp.apply_along_axis(
