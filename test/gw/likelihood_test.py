@@ -16,7 +16,13 @@ from bilby.gw.likelihood import BilbyROQParamsRangeError
 
 
 class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
-    """A thin wrapper to emulate different backends in the waveform generator."""
+    """
+    A thin wrapper to emulate different backends in the waveform generator.
+
+    This ensures that all frequency arrays that might be used inside the
+    source are cast to numpy for compatibility. The outputs are converted
+    to the appropriate array type.
+    """
     def __init__(self, wfg, xp):
         self.wfg = wfg
         self.xp = xp
@@ -35,12 +41,15 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
             raise ValueError("Input must be an array API object or a dict of such objects.")
 
     def _strain_from_model(self, model_data_points, model, parameters):
-        # we can't pass a frequency array through as a torch array
         model_data_points = np.asarray(model_data_points)
         return super()._strain_from_model(model_data_points, model, parameters)
 
     def frequency_domain_strain(self, parameters):
         self.wfg.frequency_array = np.asarray(self.wfg.frequency_array)
+        if "frequency_nodes" in self.wfg.waveform_arguments:
+            self.wfg.waveform_arguments["frequency_nodes"] = np.asarray(
+                self.wfg.waveform_arguments["frequency_nodes"]
+            )
         wf = self.wfg.__class__.frequency_domain_strain(self, parameters)
         return self.convert_nested_dict(wf)
 
@@ -335,13 +344,31 @@ class TestGWTransient(unittest.TestCase):
         )
 
 
+class ROQBasisMixin:
+
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
 @pytest.mark.requires_roqs
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
-class TestROQLikelihood(unittest.TestCase):
+@pytest.mark.flaky(reruns=3)  # pyfftw is flake on some machines
+class TestROQLikelihood(ROQBasisMixin, unittest.TestCase):
     def setUp(self):
         self.duration = self.xp.asarray(4.0)
         self.sampling_frequency = self.xp.asarray(2048.0)
+        bilby.core.utils.random.seed(500)
 
         self.test_parameters = dict(
             mass_1=36.0,
@@ -411,22 +438,6 @@ class TestROQLikelihood(unittest.TestCase):
             self.ifos,
             self.priors,
         )
-
-    @property
-    def roq_dir(self):
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        if "BILBY_TESTING_ROQ_DIR" in os.environ:
-            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
-        print(trial_roq_paths)
-        for path in trial_roq_paths:
-            print(path, os.path.isdir(path))
-            if os.path.isdir(path):
-                return path
-        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
 
     @property
     def linear_matrix_file(self):
@@ -631,33 +642,18 @@ class TestROQLikelihood(unittest.TestCase):
 
 
 @pytest.mark.requires_roqs
-class TestRescaledROQLikelihood(unittest.TestCase):
+class TestRescaledROQLikelihood(unittest.TestCase, ROQBasisMixin):
     def test_rescaling(self):
+        linear_matrix_file = f"{self.roq_dir}/B_linear.npy"
+        quadratic_matrix_file = f"{self.roq_dir}/B_quadratic.npy"
 
-        # Possible locations for the ROQ: in the docker image, local, or on CIT
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
-        quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
-
-        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear_file = f"{self.roq_dir}/fnodes_linear.npy"
         fnodes_linear = np.load(fnodes_linear_file).T
-        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic_file = f"{self.roq_dir}/fnodes_quadratic.npy"
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
-        self.linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
-        self.quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
-        self.params_file = "{}/params.dat".format(roq_dir)
+        self.linear_matrix_file = f"{self.roq_dir}/B_linear.npy"
+        self.quadratic_matrix_file = f"{self.roq_dir}/B_quadratic.npy"
+        self.params_file = f"{self.roq_dir}/params.dat"
 
         scale_factor = 0.5
         params = np.genfromtxt(self.params_file, names=True)
@@ -707,7 +703,7 @@ class TestRescaledROQLikelihood(unittest.TestCase):
 @pytest.mark.requires_roqs
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
-class TestROQLikelihoodHDF5(unittest.TestCase):
+class TestROQLikelihoodHDF5(unittest.TestCase, ROQBasisMixin):
     """
     Test ROQ likelihood constructed from .hdf5 basis
 
@@ -715,9 +711,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
     respectively, and 2 quadratic bases constructed over 8Msun<Mc<11Msun and 11Msun<Mc<14Msun respectively.
 
     """
-
-    _path_to_basis = "/roq_basis/basis_addcal.hdf5"
-    _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
+    _path_to_basis = "basis_addcal.hdf5"
+    _path_to_basis_mb = "basis_multiband_addcal.hdf5"
 
     def setUp(self):
         self.minimum_frequency = self.xp.asarray(20.0)
@@ -786,8 +781,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
                 interferometers=interferometers,
                 priors=self.priors,
                 waveform_generator=search_waveform_generator,
-                linear_matrix=basis,
-                quadratic_matrix=basis,
+                linear_matrix=f"{self.roq_dir}/{basis}",
+                quadratic_matrix=f"{self.roq_dir}/{basis}",
             )
 
     @parameterized.expand([(_path_to_basis, 7, 13), (_path_to_basis, 9, 15), (_path_to_basis, 16, 17)])
@@ -819,8 +814,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
                 interferometers=interferometers,
                 priors=self.priors,
                 waveform_generator=search_waveform_generator,
-                linear_matrix=basis,
-                quadratic_matrix=basis,
+                linear_matrix=f"{self.roq_dir}/{basis}",
+                quadratic_matrix=f"{self.roq_dir}/{basis}",
             )
 
     @parameterized.expand(
@@ -866,14 +861,14 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             interferometers=interferometers,
             priors=self.priors,
             waveform_generator=search_waveform_generator,
-            linear_matrix=basis_linear,
-            quadratic_matrix=basis_quadratic,
+            linear_matrix=f"{self.roq_dir}/{basis_linear}",
+            quadratic_matrix=f"{self.roq_dir}/{basis_quadratic}",
             roq_scale_factor=roq_scale_factor
         )
 
-        with h5py.File(basis_linear, "r") as f:
+        with h5py.File(f"{self.roq_dir}/{basis_linear}", "r") as f:
             mc_ranges_linear = f["prior_range_linear"]["chirp_mass"][()] / roq_scale_factor
-        with h5py.File(basis_quadratic, "r") as f:
+        with h5py.File(f"{self.roq_dir}/{basis_quadratic}", "r") as f:
             mc_ranges_quadratic = f["prior_range_quadratic"]["chirp_mass"][()] / roq_scale_factor
         number_of_bases_linear = np.sum(
             (mc_ranges_linear[:, 1] >= self.priors["chirp_mass"].minimum) *
@@ -1006,8 +1001,8 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             interferometers=interferometers,
             priors=self.priors,
             waveform_generator=search_waveform_generator,
-            linear_matrix=basis_linear,
-            quadratic_matrix=basis_quadratic,
+            linear_matrix=f"{self.roq_dir}/{basis_linear}",
+            quadratic_matrix=f"{self.roq_dir}/{basis_quadratic}",
             roq_scale_factor=roq_scale_factor
         )
         for mc in np.linspace(self.priors["chirp_mass"].minimum, self.priors["chirp_mass"].maximum, 11):
@@ -1025,7 +1020,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
 
 
 @pytest.mark.requires_roqs
-class TestCreateROQLikelihood(unittest.TestCase):
+class TestCreateROQLikelihood(unittest.TestCase, ROQBasisMixin):
     """
     Test if ROQ likelihood is constructed without any errors from .hdf5 or .npy basis
 
@@ -1033,9 +1028,8 @@ class TestCreateROQLikelihood(unittest.TestCase):
     respectively, and 2 quadratic bases constructed over 8Msun<Mc<11Msun and 11Msun<Mc<14Msun respectively.
 
     """
-
-    _path_to_basis = "/roq_basis/basis_addcal.hdf5"
-    _path_to_basis_mb = "/roq_basis/basis_multiband_addcal.hdf5"
+    _path_to_basis = "basis_addcal.hdf5"
+    _path_to_basis_mb = "basis_multiband_addcal.hdf5"
 
     @parameterized.expand(product([_path_to_basis, _path_to_basis_mb], [_path_to_basis, _path_to_basis_mb]))
     def test_from_hdf5(self, basis_linear, basis_quadratic):
@@ -1073,35 +1067,21 @@ class TestCreateROQLikelihood(unittest.TestCase):
             interferometers=interferometers,
             priors=priors,
             waveform_generator=search_waveform_generator,
-            linear_matrix=basis_linear,
-            quadratic_matrix=basis_quadratic
+            linear_matrix=f"{self.roq_dir}/{basis_linear}",
+            quadratic_matrix=f"{self.roq_dir}/{basis_quadratic}"
         )
 
     @parameterized.expand([(False, ), (True, )])
     def test_from_npy(self, from_array):
-        # Possible locations for the ROQ: in the docker image, local, or on CIT
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        basis_linear = "{}/B_linear.npy".format(roq_dir)
+        basis_linear = f"{self.roq_dir}/B_linear.npy"
         if from_array:
             basis_linear = np.load(basis_linear).T
-        basis_quadratic = "{}/B_quadratic.npy".format(roq_dir)
+        basis_quadratic = f"{self.roq_dir}/B_quadratic.npy"
         if from_array:
             basis_quadratic = np.load(basis_quadratic).T
-        fnodes_linear = np.load("{}/fnodes_linear.npy".format(roq_dir))
-        fnodes_quadratic = np.load("{}/fnodes_quadratic.npy".format(roq_dir))
-        params_file = "{}/params.dat".format(roq_dir)
+        fnodes_linear = np.load(f"{self.roq_dir}/fnodes_linear.npy")
+        fnodes_quadratic = np.load(f"{self.roq_dir}/fnodes_quadratic.npy")
+        params_file = f"{self.roq_dir}/params.dat"
 
         minimum_frequency = 20
         sampling_frequency = 2048
@@ -1146,7 +1126,7 @@ class TestCreateROQLikelihood(unittest.TestCase):
 
 
 @pytest.mark.requires_roqs
-class TestInOutROQWeights(unittest.TestCase):
+class TestInOutROQWeights(unittest.TestCase, ROQBasisMixin):
 
     @parameterized.expand(['npz', 'hdf5'])
     def test_out_single_basis(self, format):
@@ -1235,24 +1215,10 @@ class TestInOutROQWeights(unittest.TestCase):
                     np.testing.assert_array_almost_equal(l1.weights[key][i], l2.weights[key][i])
 
     def create_likelihood_single_basis(self):
-        # Possible locations for the ROQ: in the docker image, local, or on CIT
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        linear_matrix_file = "{}/B_linear.npy".format(roq_dir)
-        quadratic_matrix_file = "{}/B_quadratic.npy".format(roq_dir)
-        fnodes_linear = np.load("{}/fnodes_linear.npy".format(roq_dir))
-        fnodes_quadratic = np.load("{}/fnodes_quadratic.npy".format(roq_dir))
+        linear_matrix_file = f"{self.roq_dir}/B_linear.npy"
+        quadratic_matrix_file = f"{self.roq_dir}/B_quadratic.npy"
+        fnodes_linear = np.load(f"{self.roq_dir}/fnodes_linear.npy")
+        fnodes_quadratic = np.load(f"{self.roq_dir}/fnodes_quadratic.npy")
 
         minimum_frequency = 20
         sampling_frequency = 2048
@@ -1326,9 +1292,9 @@ class TestInOutROQWeights(unittest.TestCase):
         )
 
         if multiband:
-            path_to_basis = "/roq_basis/basis_multiband_addcal.hdf5"
+            path_to_basis = f"{self.roq_dir}/basis_multiband_addcal.hdf5"
         else:
-            path_to_basis = "/roq_basis/basis_addcal.hdf5"
+            path_to_basis = f"{self.roq_dir}/basis_addcal.hdf5"
         return bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=interferometers,
             priors=priors,

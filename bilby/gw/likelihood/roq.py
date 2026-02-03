@@ -1,5 +1,5 @@
-
 import array_api_compat as aac
+import array_api_extra as xpx
 import numpy as np
 
 from .base import GravitationalWaveTransient
@@ -273,15 +273,16 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """Set unique frequency nodes and indices to recover linear and quadratic frequency nodes for each combination
         of linear and quadratic bases
         """
+        xp = aac.array_namespace(self.interferometers.frequency_array)
         self._unique_frequency_nodes_and_inverse = []
         for idx_linear in range(self.number_of_bases_linear):
             tmp = []
-            frequency_nodes_linear = self.weights['frequency_nodes_linear'][idx_linear]
+            frequency_nodes_linear = xp.asarray(self.weights['frequency_nodes_linear'][idx_linear])
             size_linear = len(frequency_nodes_linear)
             for idx_quadratic in range(self.number_of_bases_quadratic):
-                frequency_nodes_quadratic = self.weights['frequency_nodes_quadratic'][idx_quadratic]
-                frequency_nodes_unique, original_indices = np.unique(
-                    np.hstack((frequency_nodes_linear, frequency_nodes_quadratic)),
+                frequency_nodes_quadratic = xp.asarray(self.weights['frequency_nodes_quadratic'][idx_quadratic])
+                frequency_nodes_unique, original_indices = xp.unique(
+                    xp.hstack((frequency_nodes_linear, frequency_nodes_quadratic)),
                     return_inverse=True
                 )
                 linear_indices = original_indices[:size_linear]
@@ -488,7 +489,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
         indices, in_bounds = self._closest_time_indices(
             ifo_time, xp.asarray(self.weights['time_samples']))
-        indices = xp.clip(indices, 0, len(self.weights['time_samples']) - 1)
+        indices = xp.clip(xp.asarray(indices), 0, len(self.weights['time_samples']) - 1)
         d_inner_h_tc_array = xp.einsum(
             'i,ji->j',
             xp.conj(h_linear),
@@ -543,10 +544,10 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             Whether the indices are for valid times
         """
         xp = array_module(time)
-        closest = xp.floor((time - samples[0]) / (samples[1] - samples[0]))
+        closest = xp.astype(xp.floor((time - samples[0]) / (samples[1] - samples[0])), int)
         indices = [closest + ii for ii in [-2, -1, 0, 1, 2]]
-        in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
-        return xp.astype(indices, int), in_bounds
+        in_bounds = (indices[0] >= 0) & (indices[-1] < len(samples))
+        return indices, in_bounds
 
     @staticmethod
     def _interp_five_samples(time_samples, values, time):
@@ -568,16 +569,15 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         value: float
             The value of the function at the input time
         """
-        xp = aac.get_namespace(time_samples)
         r1 = (-values[0] + 8. * values[1] - 14. * values[2] + 8. * values[3] - values[4]) / 4.
         r2 = values[2] - 2. * values[3] + values[4]
-        a = (time_samples[3] - time) / xp.maximum(time_samples[1] - time_samples[0], 1e-12)
+        a = (time_samples[3] - time) / max(time_samples[1] - time_samples[0], 1e-12)
         b = 1. - a
         c = (a**3. - a) / 6.
         d = (b**3. - b) / 6.
         return a * values[2] + b * values[3] + c * r1 + d * r2
 
-    def _calculate_d_inner_h_array(self, times, h_linear, ifo_name):
+    def _calculate_d_inner_h_array(self, times, h_linear, ifo_name, *, xp=None):
         """
         Calculate d_inner_h at regularly-spaced time samples. Each value is
         interpolated from the nearest 5 samples with the algorithm explained in
@@ -595,21 +595,23 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         =======
         d_inner_h_array: array-like
         """
+        if xp is None:
+            xp = aac.array_namespace(h_linear)
         roq_time_space = self.weights['time_samples'][1] - self.weights['time_samples'][0]
         times_per_roq_time_space = (times - self.weights['time_samples'][0]) / roq_time_space
-        closest_idxs = np.floor(times_per_roq_time_space).astype(int)
+        closest_idxs = xp.astype(xp.floor(times_per_roq_time_space), int)
         # Get the nearest 5 samples of d_inner_h. Calculate only the required d_inner_h values if the time
         # spacing is larger than 5 times the ROQ time spacing.
         weights_linear = self.weights[ifo_name + '_linear'][self.basis_number_linear]
-        h_linear_conj = np.conj(h_linear)
+        h_linear_conj = h_linear.conj()
         if (times[1] - times[0]) / roq_time_space > 5:
-            d_inner_h_m2 = np.dot(weights_linear[closest_idxs - 2], h_linear_conj)
-            d_inner_h_m1 = np.dot(weights_linear[closest_idxs - 1], h_linear_conj)
-            d_inner_h_0 = np.dot(weights_linear[closest_idxs], h_linear_conj)
-            d_inner_h_p1 = np.dot(weights_linear[closest_idxs + 1], h_linear_conj)
-            d_inner_h_p2 = np.dot(weights_linear[closest_idxs + 2], h_linear_conj)
+            d_inner_h_m2 = weights_linear[closest_idxs - 2] @ h_linear_conj
+            d_inner_h_m1 = weights_linear[closest_idxs - 1] @ h_linear_conj
+            d_inner_h_0 = weights_linear[closest_idxs] @ h_linear_conj
+            d_inner_h_p1 = weights_linear[closest_idxs + 1] @ h_linear_conj
+            d_inner_h_p2 = weights_linear[closest_idxs + 2] @ h_linear_conj
         else:
-            d_inner_h_at_roq_time_samples = np.dot(weights_linear, h_linear_conj)
+            d_inner_h_at_roq_time_samples = weights_linear @ h_linear_conj
             d_inner_h_m2 = d_inner_h_at_roq_time_samples[closest_idxs - 2]
             d_inner_h_m1 = d_inner_h_at_roq_time_samples[closest_idxs - 1]
             d_inner_h_0 = d_inner_h_at_roq_time_samples[closest_idxs]
@@ -717,6 +719,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             linear and quadratic basis
 
         """
+        xp = aac.array_namespace(self.interferometers.frequency_array)
         time_space = self._get_time_resolution()
         number_of_time_samples = int(self.interferometers.duration / time_space)
         earth_light_crossing_time = 2 * radius_of_earth / speed_of_light + 5 * time_space
@@ -736,7 +739,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 - self.interferometers.start_time
             ) / time_space))
         )
-        self.weights['time_samples'] = np.arange(start_idx, end_idx + 1) * float(time_space)
+        self.weights['time_samples'] = xp.arange(start_idx, end_idx + 1) * float(time_space)
         logger.info("Using {} ROQ time samples".format(len(self.weights['time_samples'])))
 
         # select bases to be used, set prior ranges and frequency nodes if exist
@@ -789,10 +792,10 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                     roq_mask = roq_frequencies >= roq_scaled_minimum_frequency
                     roq_frequencies = roq_frequencies[roq_mask]
                     overlap_frequencies, ifo_idxs_this_ifo, roq_idxs_this_ifo = np.intersect1d(
-                        ifo.frequency_array[ifo.frequency_mask], roq_frequencies,
+                        np.asarray(ifo.frequency_array[ifo.frequency_mask]), roq_frequencies,
                         return_indices=True)
                 else:
-                    overlap_frequencies = ifo.frequency_array[ifo.frequency_mask]
+                    overlap_frequencies = np.asarray(ifo.frequency_array[ifo.frequency_mask])
                     roq_idxs_this_ifo = np.arange(
                         linear_matrix['basis_linear'][str(idxs_in_prior_range['linear'][0])]['basis'].shape[1],
                         dtype=int)
@@ -848,31 +851,43 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         data_over_psd = {}
         for ifo in self.interferometers:
             nonzero_idxs[ifo.name] = ifo_idxs[ifo.name] + int(
-                ifo.frequency_array[ifo.frequency_mask][0] * self.interferometers.duration)
-            data_over_psd[ifo.name] = ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs[ifo.name]] / \
-                ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]]
-        try:
-            import pyfftw
-            ifft_input = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
-            ifft_output = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
-            ifft = pyfftw.FFTW(ifft_input, ifft_output, direction='FFTW_BACKWARD')
-        except ImportError:
+                ifo.minimum_frequency * self.interferometers.duration)
+            data_over_psd[ifo.name] = (
+                ifo.frequency_domain_strain[ifo.frequency_mask][ifo_idxs[ifo.name]]
+                / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]]
+            )
+        xp = array_module(data_over_psd)
+        if aac.is_numpy_namespace(xp):
+            try:
+                import pyfftw
+                ifft_input = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
+                ifft_output = pyfftw.empty_aligned(number_of_time_samples, dtype=complex)
+                ifft = pyfftw.FFTW(ifft_input, ifft_output, direction='FFTW_BACKWARD')
+            except ImportError:
+                pyfftw = None
+                logger.warning("You do not have pyfftw installed, falling back to numpy.fft.")
+                ifft_input = np.zeros(number_of_time_samples, dtype=complex)
+                ifft = np.fft.ifft
+        else:
             pyfftw = None
-            logger.warning("You do not have pyfftw installed, falling back to numpy.fft.")
-            ifft_input = np.zeros(number_of_time_samples, dtype=complex)
-            ifft = np.fft.ifft
+            ifft_input = xp.zeros(number_of_time_samples, dtype=complex)
+            ifft = xp.fft.ifft
         for basis_idx in basis_idxs:
             logger.info(f"Building linear ROQ weights for the {basis_idx}-th basis.")
-            linear_matrix_single = linear_matrix['basis_linear'][str(basis_idx)]['basis']
+            linear_matrix_single = xp.asarray(linear_matrix['basis_linear'][str(basis_idx)]['basis'])
             basis_size = linear_matrix_single.shape[0]
             for ifo in self.interferometers:
-                ifft_input[:] *= 0.
+                if pyfftw:
+                    ifft_input[:] *= 0.
+                else:
+                    ifft_input *= 0
                 linear_weights = \
-                    np.zeros((len(self.weights['time_samples']), basis_size), dtype=complex)
+                    xp.zeros((basis_size, len(self.weights['time_samples'])), dtype=complex)
                 for i in range(basis_size):
-                    basis_element = linear_matrix_single[i][roq_idxs[ifo.name]]
-                    ifft_input[nonzero_idxs[ifo.name]] = data_over_psd[ifo.name] * np.conj(basis_element)
-                    linear_weights[:, i] = ifft(ifft_input)[start_idx:end_idx + 1]
+                    basis_element = xp.asarray(linear_matrix_single[i][roq_idxs[ifo.name]]).conj()
+                    ifft_input = xpx.at(ifft_input, nonzero_idxs[ifo.name]).set(data_over_psd[ifo.name] * basis_element)
+                    linear_weights = xpx.at(linear_weights, i).set(ifft(ifft_input)[start_idx:end_idx + 1])
+                linear_weights = linear_weights.T
                 linear_weights *= 4. * number_of_time_samples / float(self.interferometers.duration)
                 self.weights[ifo.name + '_linear'].append(linear_weights)
         if pyfftw is not None:
@@ -892,6 +907,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """
         for ifo in self.interferometers:
             self.weights[ifo.name + '_linear'] = []
+        xp = aac.array_namespace(self.interferometers.frequency_array)
         Tbs = linear_matrix['durations_s_linear'][()] / self.roq_scale_factor
         start_end_frequency_bins = linear_matrix['start_end_frequency_bins_linear'][()]
         basis_dimension = np.sum(start_end_frequency_bins[:, 1] - start_end_frequency_bins[:, 0] + 1)
@@ -899,29 +915,36 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         # prepare time-shifted data, which is multiplied by basis
         tc_shifted_data = dict()
         for ifo in self.interferometers:
-            over_whitened_frequency_data = np.zeros(int(fhigh_basis * ifo.duration) + 1, dtype=complex)
-            over_whitened_frequency_data[np.arange(len(ifo.frequency_domain_strain))[ifo.frequency_mask]] = \
-                ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask]
-            over_whitened_time_data = np.fft.irfft(over_whitened_frequency_data)
-            tc_shifted_data[ifo.name] = np.zeros((basis_dimension, len(self.weights['time_samples'])), dtype=complex)
+            over_whitened_frequency_data = xp.zeros(int(fhigh_basis * ifo.duration) + 1, dtype=complex)
+            over_whitened_frequency_data = xpx.at(
+                over_whitened_frequency_data, xp.arange(len(ifo.frequency_domain_strain))[ifo.frequency_mask]
+            ).set(ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask])
+            over_whitened_time_data = xp.fft.irfft(over_whitened_frequency_data)
+            tc_shifted_data[ifo.name] = xp.zeros((basis_dimension, len(self.weights['time_samples'])), dtype=complex)
             start_idx_of_band = 0
             for b, Tb in enumerate(Tbs):
                 start_frequency_bin, end_frequency_bin = start_end_frequency_bins[b]
-                fs = np.arange(start_frequency_bin, end_frequency_bin + 1) / Tb
-                Db = np.fft.rfft(
+                fs = xp.arange(start_frequency_bin, end_frequency_bin + 1) / Tb
+                Db = xp.fft.rfft(
                     over_whitened_time_data[-int(2. * fhigh_basis * Tb):]
                 )[start_frequency_bin:end_frequency_bin + 1]
                 start_idx_of_next_band = start_idx_of_band + end_frequency_bin - start_frequency_bin + 1
-                tc_shifted_data[ifo.name][start_idx_of_band:start_idx_of_next_band] = 4. / Tb * Db[:, None] * np.exp(
-                    2. * np.pi * 1j * fs[:, None] * (self.weights['time_samples'][None, :] - float(ifo.duration) + Tb))
+                this_data = xp.zeros(len(self.weights['time_samples']), dtype=complex)
+                sl = slice(start_idx_of_band, start_idx_of_next_band)
+                this_data = (
+                    4. / Tb * Db[:, None] * xp.exp(
+                        2. * np.pi * 1j * fs[:, None] * (xp.asarray(self.weights['time_samples'][None, :]) - ifo.duration + Tb)
+                    )
+                )
+                tc_shifted_data[ifo.name] = xpx.at(tc_shifted_data[ifo.name], sl).set(this_data)
+                
                 start_idx_of_band = start_idx_of_next_band
         # compute inner products
         for basis_idx in basis_idxs:
             logger.info(f"Building linear ROQ weights for the {basis_idx}-th basis.")
-            linear_matrix_single = linear_matrix['basis_linear'][str(basis_idx)]['basis'][()]
+            linear_matrix_single = xp.asarray(linear_matrix['basis_linear'][str(basis_idx)]['basis'][()])
             for ifo in self.interferometers:
-                self.weights[ifo.name + '_linear'].append(
-                    np.dot(np.conj(linear_matrix_single), tc_shifted_data[ifo.name]).T)
+                self.weights[ifo.name + '_linear'].append((linear_matrix_single.conj() @ tc_shifted_data[ifo.name]).T)
 
     def _set_weights_quadratic(self, quadratic_matrix, basis_idxs, roq_idxs, ifo_idxs):
         """
@@ -943,14 +966,15 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """
         for ifo in self.interferometers:
             self.weights[ifo.name + '_quadratic'] = []
+        xp = aac.array_namespace(self.interferometers.frequency_array)
         for basis_idx in basis_idxs:
             logger.info(f"Building quadratic ROQ weights for the {basis_idx}-th basis.")
-            quadratic_matrix_single = quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real
+            quadratic_matrix_single = xp.asarray(quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real)
             for ifo in self.interferometers:
+                inv_psd = xp.asarray(1 / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]])
                 self.weights[ifo.name + '_quadratic'].append(
-                    4. / ifo.strain_data.duration * np.dot(
-                        quadratic_matrix_single[:, roq_idxs[ifo.name]],
-                        1 / ifo.power_spectral_density_array[ifo.frequency_mask][ifo_idxs[ifo.name]]))
+                    4. / ifo.strain_data.duration *  quadratic_matrix_single[:, roq_idxs[ifo.name]] @ inv_psd
+                )
             del quadratic_matrix_single
 
     def _set_weights_quadratic_multiband(self, quadratic_matrix, basis_idxs):
@@ -967,6 +991,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         """
         for ifo in self.interferometers:
             self.weights[ifo.name + '_quadratic'] = []
+        xp = aac.array_namespace(self.interferometers.frequency_array)
         Tbs = quadratic_matrix['durations_s_quadratic'][()] / self.roq_scale_factor
         start_end_frequency_bins = quadratic_matrix['start_end_frequency_bins_quadratic'][()]
         basis_dimension = np.sum(start_end_frequency_bins[:, 1] - start_end_frequency_bins[:, 0] + 1)
@@ -974,27 +999,31 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         # prepare coefficients multiplied by basis
         multibanded_inverse_psd = dict()
         for ifo in self.interferometers:
-            inverse_psd_frequency = np.zeros(int(fhigh_basis * ifo.duration) + 1)
-            inverse_psd_frequency[np.arange(len(ifo.power_spectral_density_array))[ifo.frequency_mask]] = \
-                1. / ifo.power_spectral_density_array[ifo.frequency_mask]
-            inverse_psd_time = np.fft.irfft(inverse_psd_frequency)
-            multibanded_inverse_psd[ifo.name] = np.zeros(basis_dimension)
+            inverse_psd_frequency = xp.zeros(int(fhigh_basis * ifo.duration) + 1)
+            sl = np.arange(len(ifo.power_spectral_density_array))[ifo.frequency_mask]
+            inverse_psd_frequency = xpx.at(inverse_psd_frequency, sl).set(
+                1. / xp.asarray(ifo.power_spectral_density_array[ifo.frequency_mask])
+            )
+            inverse_psd_time = xp.fft.irfft(inverse_psd_frequency)
+            multibanded_inverse_psd[ifo.name] = xp.zeros(basis_dimension)
             start_idx_of_band = 0
             for b, Tb in enumerate(Tbs):
                 start_frequency_bin, end_frequency_bin = start_end_frequency_bins[b]
                 number_of_samples_half = int(fhigh_basis * Tb)
                 start_idx_of_next_band = start_idx_of_band + end_frequency_bin - start_frequency_bin + 1
-                multibanded_inverse_psd[ifo.name][start_idx_of_band:start_idx_of_next_band] = 4. / Tb * np.fft.rfft(
-                    np.append(inverse_psd_time[:number_of_samples_half], inverse_psd_time[-number_of_samples_half:])
+                sl = slice(start_idx_of_band, start_idx_of_next_band)
+                this_data = 4. / Tb * xp.fft.rfft(
+                    xp.concat([inverse_psd_time[:number_of_samples_half], inverse_psd_time[-number_of_samples_half:]])
                 )[start_frequency_bin:end_frequency_bin + 1].real
+                multibanded_inverse_psd[ifo.name] = xpx.at(multibanded_inverse_psd[ifo.name], sl).set(this_data)
                 start_idx_of_band = start_idx_of_next_band
         # compute inner products
         for basis_idx in basis_idxs:
             logger.info(f"Building quadratic ROQ weights for the {basis_idx}-th basis.")
-            quadratic_matrix_single = quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real
+            quadratic_matrix_single = xp.asarray(quadratic_matrix['basis_quadratic'][str(basis_idx)]['basis'][()].real)
             for ifo in self.interferometers:
                 self.weights[ifo.name + '_quadratic'].append(
-                    np.dot(quadratic_matrix_single, multibanded_inverse_psd[ifo.name]))
+                    quadratic_matrix_single @ multibanded_inverse_psd[ifo.name])
 
     def save_weights(self, filename, format='hdf5'):
         """
@@ -1209,8 +1238,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         times = self._times
         if self.jitter_time:
             times = times + parameters["time_jitter"]
-        time_prior_array = self.priors['geocent_time'].prob(times)
-        time_post = np.exp(time_log_like - max(time_log_like)) * time_prior_array
+        time_prior_array = np.asarray(self.priors['geocent_time'].prob(times))
+        time_post = np.exp(np.asarray(time_log_like - max(time_log_like))) * time_prior_array
         time_post /= np.sum(time_post)
         return random.rng.choice(times, p=time_post)
 
