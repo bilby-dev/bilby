@@ -363,7 +363,7 @@ class Interferometer(object):
         signal_ifo = signal_ifo * xp.exp(-1j * 2 * np.pi * dt * frequencies)
 
         signal_ifo *= self.calibration_model.get_calibration_factor(
-            frequencies, prefix='recalib_{}_'.format(self.name), **parameters
+            frequencies, prefix=f'recalib_{self.name}_', xp=xp, **parameters
         )
 
         return signal_ifo
