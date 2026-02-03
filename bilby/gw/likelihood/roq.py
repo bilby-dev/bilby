@@ -546,7 +546,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         closest = xp.floor((time - samples[0]) / (samples[1] - samples[0]))
         indices = [closest + ii for ii in [-2, -1, 0, 1, 2]]
         in_bounds = (indices[0] >= 0) & (indices[-1] < samples.size)
-        return xp.asarray(indices).astype(int), in_bounds
+        return xp.astype(indices, int), in_bounds
 
     @staticmethod
     def _interp_five_samples(time_samples, values, time):

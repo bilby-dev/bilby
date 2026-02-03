@@ -115,16 +115,19 @@ class Interferometer(object):
                     float(self.geometry.yarm_azimuth), float(self.geometry.xarm_tilt),
                     float(self.geometry.yarm_tilt))
 
-    def set_strain_data_from_gwpy_timeseries(self, time_series):
+    def set_strain_data_from_gwpy_timeseries(self, time_series, *, xp=None):
         """ Set the `Interferometer.strain_data` from a gwpy TimeSeries
 
         Parameters
         ==========
         time_series: gwpy.timeseries.timeseries.TimeSeries
             The data to set.
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
-        self.strain_data.set_from_gwpy_timeseries(time_series=time_series)
+        self.strain_data.set_from_gwpy_timeseries(time_series=time_series, xp=xp)
 
     def set_strain_data_from_frequency_domain_strain(
             self, frequency_domain_strain, sampling_frequency=None,
@@ -175,7 +178,7 @@ class Interferometer(object):
 
     def set_strain_data_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
-            channel=None, buffer_time=1):
+            channel=None, buffer_time=1, *, xp=None):
         """ Set the `Interferometer.strain_data` from a frame file
 
         Parameters
@@ -193,15 +196,18 @@ class Interferometer(object):
         buffer_time: float
             Read in data with `start_time-buffer_time` and
             `start_time+duration+buffer_time`
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
         self.strain_data.set_from_frame_file(
             frame_file=frame_file, sampling_frequency=sampling_frequency,
             duration=duration, start_time=start_time,
-            channel=channel, buffer_time=buffer_time)
+            channel=channel, buffer_time=buffer_time, xp=xp)
 
     def set_strain_data_from_channel_name(
-            self, channel, sampling_frequency, duration, start_time=0):
+            self, channel, sampling_frequency, duration, start_time=0, *, xp=None):
         """
         Set the `Interferometer.strain_data` by fetching from given channel
         using strain_data.set_from_channel_name()
@@ -216,22 +222,28 @@ class Interferometer(object):
             The data duration (in s)
         start_time: float
             The GPS start-time of the data
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
         self.strain_data.set_from_channel_name(
             channel=channel, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time)
+            duration=duration, start_time=start_time, xp=xp)
 
-    def set_strain_data_from_csv(self, filename):
+    def set_strain_data_from_csv(self, filename, *, xp=None):
         """ Set the `Interferometer.strain_data` from a csv file
 
         Parameters
         ==========
         filename: str
             The path to the file to read in
+        xp: array module, optional
+            The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
+            If not specified :code:`numpy` will be used.
 
         """
-        self.strain_data.set_from_csv(filename)
+        self.strain_data.set_from_csv(filename, xp=xp)
 
     def set_strain_data_from_zero_noise(
             self, sampling_frequency, duration, start_time=0):

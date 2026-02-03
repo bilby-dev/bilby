@@ -95,7 +95,7 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test noise log likelihood matches precomputed value"""
         nll = self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(
-            -4014.1787704539474, nll, 3
+            -4014.1787704539474, float(nll), 3
         )
         self.assertEqual(aac.get_namespace(nll), self.xp)
 
