@@ -736,7 +736,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
                 - self.interferometers.start_time
             ) / time_space))
         )
-        self.weights['time_samples'] = np.arange(start_idx, end_idx + 1) * time_space
+        self.weights['time_samples'] = np.arange(start_idx, end_idx + 1) * float(time_space)
         logger.info("Using {} ROQ time samples".format(len(self.weights['time_samples'])))
 
         # select bases to be used, set prior ranges and frequency nodes if exist
