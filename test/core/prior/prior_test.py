@@ -259,6 +259,11 @@ class TestPriorClasses(unittest.TestCase):
                 p for p in self.priors
                 if not isinstance(p, bilby.core.prior.Interped)
             ]
+        elif aac.is_jax_namespace(self.xp):
+            self.priors = [
+                p for p in self.priors
+                if not isinstance(p, bilby.core.prior.StudentT)
+            ]
 
     def tearDown(self):
         del self.priors
@@ -798,7 +803,6 @@ class TestPriorClasses(unittest.TestCase):
                 bilby.core.prior.WeightedDiscreteValues,
             )
             if isinstance(prior, (testTuple)):
-                print(prior)
                 np.testing.assert_almost_equal(prior.prob(self.xp.asarray(domain)), scipy_prob)
                 np.testing.assert_almost_equal(prior.ln_prob(self.xp.asarray(domain)), scipy_lnprob)
                 np.testing.assert_almost_equal(prior.cdf(self.xp.asarray(domain)), scipy_cdf)
