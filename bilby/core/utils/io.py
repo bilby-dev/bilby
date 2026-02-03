@@ -60,7 +60,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
-        if hasattr(obj, "__array_namespace__"):
+        if aac.is_array_api_obj(obj):
             return {
                 "__array__": True,
                 "__array_namespace__": aac.get_namespace(obj).__name__,
@@ -445,7 +445,7 @@ def encode_for_hdf5(key, item):
         if item.dtype.kind == 'U':
             logger.debug(f'converting dtype {item.dtype} for hdf5')
             item = np.array(item, dtype='S')
-    elif hasattr(item, "__array_namespace__"):
+    elif aac.is_array_api_obj(item):
         # temporarily dump all arrays as numpy arrays, we should figure ou
         # how to properly deserialize them
         item = np.asarray(item)

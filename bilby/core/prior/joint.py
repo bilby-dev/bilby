@@ -327,7 +327,9 @@ class BaseJointPriorDist(object):
             raise ValueError("Array is the wrong shape")
 
         samp = self._rescale(samp, **kwargs)
-        return xp.squeeze(samp)
+        if samp.shape[0] == 1:
+            samp = xp.squeeze(samp, axis=0)
+        return samp
 
     def _rescale(self, samp, **kwargs):
         """
@@ -627,8 +629,8 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
 
         # rotate and scale to the multivariate normal shape
-        samp = xp.asarray(self.mus[mode]) + self.sigmas[mode] * xp.einsum(
-            "ij,kj->ik", samp * self.sqeigvalues[mode], self.eigvectors[mode]
+        samp = xp.asarray(self.mus[mode]) + xp.asarray(self.sigmas[mode]) * xp.einsum(
+            "ij,kj->ik", samp * self.sqeigvalues[mode], xp.asarray(self.eigvectors[mode])
         )
         return samp
 
@@ -684,11 +686,11 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
                 z = (samp[j] - self.mus[i]) / self.sigmas[i]
                 lnprob = xpx.at(lnprob, j).set(
-                    xp.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - self.logprodsigmas[i])
+                    xp.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - xp.asarray(self.logprodsigmas[i]))
                 )
 
         # set out-of-bounds values to -inf
-        lnprob = xp.where(outbounds, -xp.inf, lnprob)
+        lnprob = xp.where(xp.asarray(outbounds), -np.inf, lnprob)
         return lnprob
 
     def __eq__(self, other):
@@ -801,7 +803,11 @@ class JointPrior(Prior):
         self.dist.rescale_parameters[self.name] = val
 
         if self.dist.filled_rescale():
-            values = xp.asarray(list(self.dist.rescale_parameters.values())).T
+            # print(self.dist.rescale_parameters)
+            values = xp.stack([
+                xp.asarray(val) for val in self.dist.rescale_parameters.values()
+            ]).T
+            # values = xp.asarray(list(self.dist.rescale_parameters.values())).T
             samples = self.dist.rescale(values, **kwargs)
             self.dist.reset_rescale()
             return samples
@@ -878,7 +884,7 @@ class JointPrior(Prior):
                     "number of requested values."
                 )
 
-            lnp = self.dist.ln_prob(xp.asarray(values).T)
+            lnp = self.dist.ln_prob(xp.stack(values).T)
 
             # reset the requested parameters
             self.dist.reset_request()

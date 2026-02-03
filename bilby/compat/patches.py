@@ -41,8 +41,8 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False, *, xp=Non
     if xp is None:
         xp = aac.get_namespace(a)
 
-    if "jax" in xp.__name__:
-        # the scipy version of logsumexp cannot be vmapped
+    # the scipy version of logsumexp cannot be vmapped
+    if aac.is_jax_namespace(xp):
         from jax.scipy.special import logsumexp as lse
     else:
         from scipy.special import logsumexp as lse

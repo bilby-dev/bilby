@@ -68,10 +68,10 @@ class TestSlabSpikePrior(unittest.TestCase):
 class TestSlabSpikeClasses(unittest.TestCase):
 
     def setUp(self):
-        self.minimum = 0.4
-        self.maximum = 2.4
+        self.minimum = self.xp.asarray(0.4)
+        self.maximum = self.xp.asarray(2.4)
         self.spike_loc = self.xp.asarray(1.5)
-        self.spike_height = 0.3
+        self.spike_height = self.xp.asarray(0.3)
 
         self.slabs = [
             Uniform(minimum=self.minimum, maximum=self.maximum),
@@ -80,8 +80,8 @@ class TestSlabSpikeClasses(unittest.TestCase):
             TruncatedGaussian(minimum=self.minimum, maximum=self.maximum, mu=0, sigma=1),
             Beta(minimum=self.minimum, maximum=self.maximum, alpha=1, beta=1),
             Gaussian(mu=0, sigma=1),
-            Cosine(),
-            Sine(),
+            Cosine(minimum=self.xp.asarray(-np.pi / 2), maximum=self.xp.asarray(np.pi / 2)),
+            Sine(minimum=self.xp.asarray(0), maximum=self.xp.asarray(np.pi)),
             HalfGaussian(sigma=1),
             LogNormal(mu=1, sigma=2),
             Exponential(mu=2),
@@ -189,8 +189,11 @@ class TestSlabSpikeClasses(unittest.TestCase):
             vals = self.xp.linspace(0, 1, 1000)
             expected = slab.rescale(vals)
             actual = slab_spike.rescale(vals)
-            self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
             self.assertEqual(aac.get_namespace(actual), self.xp)
+            self.assertEqual(aac.get_namespace(expected), self.xp)
+            actual = np.asarray(actual)
+            expected = np.asarray(expected)
+            self.assertTrue(np.allclose(expected, actual, rtol=1e-5))
 
     def test_rescale_below_spike(self):
         for slab, slab_spike in zip(self.slabs, self.slab_spikes):

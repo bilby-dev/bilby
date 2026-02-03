@@ -160,6 +160,8 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
         n_samples = 1000000
         samples = self.priors.sample_subset(keys=keys, size=n_samples, xp=self.xp)
         prob = self.priors.prob(samples, axis=0)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
+        prob = np.asarray(prob)
         dm1 = self.priors["a"].maximum - self.priors["a"].minimum
         dm2 = self.priors["b"].maximum - self.priors["b"].minimum
         prior_volume = (dm1 * dm2)

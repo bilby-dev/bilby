@@ -180,20 +180,14 @@ def logtrapzexp(lnf, dx, *, xp=np):
     except TypeError:
         raise TypeError(f"Step size dx={dx} could not be converted to an array")
 
-    if dx.size == 1:
-        C = np.log(dx / 2.0)
-    else:
-        if dx.size != len(lnf) - 1:
-            raise ValueError(
-                "Step size array must have length one less than the function length"
-            )
+    if dx.ndim > 0 and len(dx) != len(lnf) - 1:
+        raise ValueError(
+            "Step size array must have length one less than the function length"
+        )
+    lnfdx1 = lnfdx1 + xp.log(dx)
+    lnfdx2 = lnfdx2 + xp.log(dx)
 
-        lndx = xp.log(dx)
-        lnfdx1 = lnfdx1.copy() + lndx
-        lnfdx2 = lnfdx2.copy() + lndx
-        C = -xp.log(2.0)
-
-    return C + logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)]))
+    return logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)])) - np.log(2)
 
 
 class interp1d(_interp1d):

@@ -254,6 +254,11 @@ class TestPriorClasses(unittest.TestCase):
                 dist=hp_3d_dist, name="testdistance", unit="unit"
             ),
         ]
+        if aac.is_torch_namespace(self.xp):
+            self.priors = [
+                p for p in self.priors
+                if not isinstance(p, bilby.core.prior.Interped)
+            ]
 
     def tearDown(self):
         del self.priors
@@ -268,35 +273,44 @@ class TestPriorClasses(unittest.TestCase):
                 # the edge of the prior is extremely suppressed for these priors
                 # and so the rescale function doesn't quite return the lower bound
                 continue
+            if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):
+                # HealPix rescaling requires interpolation
+                continue
             elif bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 minimum_sample = prior.rescale(self.xp.asarray(0))
                 if prior.dist.filled_rescale():
-                    self.assertAlmostEqual(minimum_sample[0], prior.minimum)
-                    self.assertAlmostEqual(minimum_sample[1], prior.minimum)
+                    self.assertAlmostEqual(np.asarray(minimum_sample[0]), prior.minimum)
+                    self.assertAlmostEqual(np.asarray(minimum_sample[1]), prior.minimum)
             else:
                 minimum_sample = prior.rescale(self.xp.asarray(0))
-                self.assertAlmostEqual(minimum_sample, prior.minimum)
+                self.assertAlmostEqual(np.asarray(minimum_sample), prior.minimum)
 
     def test_maximum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
+            if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):
+                # HealPix rescaling requires interpolation
+                continue
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
                 maximum_sample = prior.rescale(self.xp.asarray(0))
                 if prior.dist.filled_rescale():
-                    self.assertAlmostEqual(maximum_sample[0], prior.maximum)
-                    self.assertAlmostEqual(maximum_sample[1], prior.maximum)
+                    self.assertAlmostEqual(np.asarray(maximum_sample[0]), prior.maximum)
+                    self.assertAlmostEqual(np.asarray(maximum_sample[1]), prior.maximum)
             elif isinstance(prior, bilby.gw.prior.AlignedSpin):
                 maximum_sample = prior.rescale(self.xp.asarray(1))
-                self.assertGreater(maximum_sample, 0.997)
+                self.assertGreater(np.asarray(maximum_sample), 0.997)
             else:
                 maximum_sample = prior.rescale(self.xp.asarray(1))
-                self.assertAlmostEqual(maximum_sample, prior.maximum)
+                self.assertAlmostEqual(np.asarray(maximum_sample), prior.maximum)
 
     def test_many_sample_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
+                continue
+            if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):
+                # HealPix rescaling requires interpolation
                 continue
             many_samples = prior.rescale(self.xp.asarray(np.random.uniform(0, 1, 1000)))
             if bilby.core.prior.JointPrior in prior.__class__.__mro__:
@@ -383,12 +397,12 @@ class TestPriorClasses(unittest.TestCase):
                 # the prob and ln_prob functions, it must be ignored in this test.
                 lnprob = prior.ln_prob(sample)
                 prob = prior.prob(sample)
-                # lower precision for jax running tests with float32
-                self.assertAlmostEqual(
-                    self.xp.log(prob), lnprob, 6
-                )
                 self.assertEqual(aac.get_namespace(lnprob), self.xp)
                 self.assertEqual(aac.get_namespace(prob), self.xp)
+                # lower precision for jax running tests with float32
+                lnprob = np.asarray(lnprob)
+                prob = np.asarray(prob)
+                self.assertAlmostEqual(np.log(prob), lnprob, 6)
 
     def test_many_prob_and_many_ln_prob(self):
         for prior in self.priors:
@@ -431,6 +445,9 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_cdf_one_above_domain(self):
         for prior in self.priors:
+            if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):
+                # HealPix rescaling requires interpolation
+                continue
             if prior.maximum != np.inf:
                 outside_domain = self.xp.linspace(
                     prior.maximum + 1, prior.maximum + 1e4, 1000
@@ -441,6 +458,9 @@ class TestPriorClasses(unittest.TestCase):
         for prior in self.priors:
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
+                continue
+            if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):
+                # HealPix rescaling requires interpolation
                 continue
             if (
                 bilby.core.prior.JointPrior in prior.__class__.__mro__
@@ -604,7 +624,12 @@ class TestPriorClasses(unittest.TestCase):
             else:
                 maximum = prior.maximum
             domain = self.xp.linspace(minimum, maximum, 1000)
-            self.assertTrue(all(prior.prob(domain) >= 0))
+            print(prior)
+            prob = prior.prob(domain)
+            print(min(prob))
+            self.assertEqual(aac.get_namespace(prob), self.xp)
+            prob = np.asarray(prob)
+            self.assertTrue(all(prob >= 0))
 
     def test_probability_surrounding_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
@@ -670,7 +695,9 @@ class TestPriorClasses(unittest.TestCase):
                 domain = np.linspace(prior.minimum, prior.maximum, 10000)
             elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
                 domain = prior.values
-                self.assertTrue(np.sum(prior.prob(self.xp.asarray(domain))) == 1)
+                probs = prior.prob(self.xp.asarray(domain))
+                self.assertEqual(aac.get_namespace(probs), self.xp)
+                self.assertTrue(np.sum(np.asarray(probs)) == 1)
                 continue
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
@@ -831,6 +858,7 @@ class TestPriorClasses(unittest.TestCase):
                 repr_prior_string = repr_prior_string.replace(
                     "HealPixMapPriorDist", "bilby.gw.prior.HealPixMapPriorDist"
                 )
+                prior.dist.rescale_parameters = {key: None for key in prior.dist.names}
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = "bilby.gw.prior." + repr(prior)
             elif "Conditional" in prior.__class__.__name__:
@@ -891,24 +919,6 @@ class TestPriorClasses(unittest.TestCase):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
             self.assertTrue(min(prior.sample(10000, xp=self.xp)) > prior.minimum)
-
-    # def test_jax_methods(self):
-    #     import jax
-
-    #     points = jax.numpy.linspace(1e-3, 1 - 1e-3, 10)
-    #     for prior in self.priors:
-    #         if bilby.core.prior.JointPrior in prior.__class__.__mro__:
-    #             continue
-    #         scaled = prior.rescale(points)
-    #         assert isinstance(scaled, jax.Array)
-    #         if isinstance(prior, bilby.core.prior.DeltaFunction):
-    #             continue
-    #         probs = prior.prob(scaled)
-    #         assert min(probs) > 0
-    #         assert max(abs(jax.numpy.log(probs) - prior.ln_prob(scaled))) < 1e-6
-    #         if isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
-    #             continue
-    #         assert max(abs(prior.cdf(scaled) - points)) < 1e-6
 
 
 if __name__ == "__main__":

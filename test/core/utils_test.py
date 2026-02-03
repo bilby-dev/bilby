@@ -72,6 +72,9 @@ class TestFFT(unittest.TestCase):
             time_domain_strain, self.sampling_frequency
         )
         frequency_at_peak = frequencies[xp.argmax(abs(frequency_domain_strain))]
+        self.assertEqual(aac.get_namespace(frequency_at_peak), xp)
+        frequency_at_peak = np.asarray(frequency_at_peak)
+        injected_frequency = np.asarray(injected_frequency)
         self.assertAlmostEqual(injected_frequency, frequency_at_peak, places=1)
 
     def test_nfft_infft(self):
@@ -344,6 +347,8 @@ class TestLatexPlotFormat(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestUnsortedInterp2d(unittest.TestCase):
     def setUp(self):
+        if aac.is_torch_namespace(self.xp):
+            pytest.skip("Skipping Interp2d tests for torch backend")
         self.xx = np.linspace(0, 1, 10)
         self.yy = np.linspace(0, 1, 10)
         self.zz = np.random.random((10, 10))

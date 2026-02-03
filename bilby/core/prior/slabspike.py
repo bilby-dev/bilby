@@ -97,9 +97,10 @@ class SlabSpikePrior(Prior):
             val - self.spike_height * higher_indices, xp=xp
         )
 
-        res = xp.select(
-            [lower_indices | higher_indices, intermediate_indices],
-            [slab_scaled, self.spike_location],
+        res = xp.where(
+            lower_indices | higher_indices,
+            slab_scaled,
+            xp.asarray(self.spike_location),
         )
         return res
 

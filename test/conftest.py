@@ -48,8 +48,20 @@ def _xp(request):
             os.environ["SCIPY_ARRAY_API"] = "1"
             jax.config.update("jax_enable_x64", True)
             xp = jax.numpy
+        case "torch":
+            import torch
+            # torch starts a lot of threads, so disable this on the first import
+            # to avoid segfaults
+            try:
+                torch.set_num_threads(1)
+                torch.set_num_interop_threads(1)
+                torch.set_default_dtype(torch.float64)
+            except RuntimeError:
+                pass
+            xp = torch
         case _:
             try:
+
                 xp = importlib.import_module(backend)
             except ImportError:
                 raise ValueError(f"Unknown backend for testing: {backend}")
