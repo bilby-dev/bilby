@@ -614,7 +614,7 @@ class PriorDict(dict):
                 subsample = {key: sample[key][in_bounds] for key in sample}
                 keep = xp.log(self.evaluate_constraints(subsample, xp=xp))
                 constrained_ln_prob = xpx.at(constrained_ln_prob, in_bounds).set(
-                    ln_prob[in_bounds] + keep + xp.log(ratio)   
+                    ln_prob[in_bounds] + keep + xp.log(ratio)
                 )
                 return constrained_ln_prob
 

@@ -140,7 +140,9 @@ class PowerLaw(Prior):
         float: Prior probability of val
         """
         if self.alpha == -1:
-            return xp.nan_to_num(1 / val / xp.log(xp.asarray(self.maximum / self.minimum))) * self.is_in_prior_range(val)
+            return xp.nan_to_num(
+                1 / val / xp.log(xp.asarray(self.maximum / self.minimum))
+            ) * self.is_in_prior_range(val)
         else:
             return xp.nan_to_num(val ** self.alpha * (1 + self.alpha) /
                                  (self.maximum ** (1 + self.alpha) -

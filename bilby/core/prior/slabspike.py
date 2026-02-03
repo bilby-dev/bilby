@@ -87,10 +87,6 @@ class SlabSpikePrior(Prior):
         array_like: Associated prior value with input value.
         """
         lower_indices = val < self.inverse_cdf_below_spike
-        intermediate_indices = (
-            (self.inverse_cdf_below_spike <= val)
-            * (val < (self.inverse_cdf_below_spike + self.spike_height))
-        )
         higher_indices = val >= (self.inverse_cdf_below_spike + self.spike_height)
 
         slab_scaled = self._contracted_rescale(
