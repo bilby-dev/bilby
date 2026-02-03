@@ -661,17 +661,17 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         except ValueError:
             roq_minimum_component_mass = None
 
-        if ifo.maximum_frequency > roq_maximum_frequency:
+        if float(ifo.maximum_frequency) > roq_maximum_frequency:
             raise BilbyROQParamsRangeError(
                 "Requested maximum frequency {} larger than ROQ basis fhigh {}"
                 .format(ifo.maximum_frequency, roq_maximum_frequency)
             )
-        if ifo.minimum_frequency < roq_minimum_frequency:
+        if float(ifo.minimum_frequency) < roq_minimum_frequency:
             raise BilbyROQParamsRangeError(
                 "Requested minimum frequency {} lower than ROQ basis flow {}"
                 .format(ifo.minimum_frequency, roq_minimum_frequency)
             )
-        if ifo.strain_data.duration != roq_segment_length:
+        if float(ifo.strain_data.duration) != roq_segment_length:
             raise BilbyROQParamsRangeError(
                 "Requested duration differs from ROQ basis seglen")
 

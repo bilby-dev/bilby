@@ -354,11 +354,11 @@ class TestROQLikelihood(unittest.TestCase):
             phi_jl=0.3,
             luminosity_distance=1000.0,
             theta_jn=0.4,
-            psi=0.659,
+            psi=self.xp.asarray(0.659),
             phase=1.3,
-            geocent_time=1.2,
-            ra=1.3,
-            dec=-1.2,
+            geocent_time=self.xp.asarray(1.2),
+            ra=self.xp.asarray(1.3),
+            dec=self.xp.asarray(-1.2),
         )
 
         ifos = bilby.gw.detector.InterferometerList(["H1"])
@@ -732,11 +732,11 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             chi_2=0.0,
             luminosity_distance=100.0,
             theta_jn=0.4,
-            psi=0.659,
+            psi=self.xp.asarray(0.659),
             phase=1.3,
-            geocent_time=1.2,
-            ra=1.3,
-            dec=-1.2
+            geocent_time=self.xp.asarray(1.2),
+            ra=self.xp.asarray(1.3),
+            dec=self.xp.asarray(-1.2)
         )
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
