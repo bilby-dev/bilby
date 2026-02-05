@@ -602,7 +602,7 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float: The optimal signal-to-noise ratio squared of the signal
         """
         return (abs(self.whiten_frequency_series(signal))**2).sum()
 
