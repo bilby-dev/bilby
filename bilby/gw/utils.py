@@ -263,10 +263,10 @@ def frequency_domain_whiten(frequency_series, amplitude_spectral_density, freque
     return np.nan_to_num(whitened) * frequency_mask * (4 / duration)**0.5
 
 
-def whiten_and_crop(self, frequency_series, amplitude_spectral_density, frequency_mask, time_mask, duration):
+def whiten_and_crop(frequency_series, amplitude_spectral_density, frequency_mask, time_mask, duration):
     """
     Whitens a frequency series with the noise properties and applies
-    the time mask to the whitened time-domain strain [1].
+    the time mask to the whitened time-domain strain[1]_.
 
     First, we naively whiten the data in the frequency domain and apply
     our frequency mask :math:`\\tilde{m}(f)`
@@ -313,7 +313,8 @@ def whiten_and_crop(self, frequency_series, amplitude_spectral_density, frequenc
     np.ndarray
         The whitened frequency series
 
-    .. [1] `C. Talbot *et al.* 2025 *Class. Quantum Grav.* **42** 235023 <https://dx.doi.org/10.1088/1361-6382/ae1ac7>`_
+    .. [1] C. Talbot et al. 2025 
+       `Class. Quantum Grav. 42 235023 <https://dx.doi.org/10.1088/1361-6382/ae1ac7>`_
     """
     whitened = frequency_series / amplitude_spectral_density
     initial_white = np.nan_to_num(whitened) * frequency_mask
