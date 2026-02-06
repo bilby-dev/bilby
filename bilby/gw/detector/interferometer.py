@@ -9,7 +9,6 @@ from bilby_cython.geometry import (
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
-from ...core.utils.series import infft, nfft
 from ...core.utils.env import string_to_boolean
 from .. import utils as gwutils
 from .calibration import Recalibrate
@@ -679,17 +678,17 @@ class Interferometer(object):
         if self.crop_duration == 0:
             return gwutils.frequency_domain_whiten(
                 frequency_series=frequency_series,
-                asd_array=self.amplitude_spectral_density_array,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
                 frequency_mask=self.frequency_mask,
-                duration=duration,
+                duration=self.duration,
             )
         else:
             return gwutils.whiten_and_crop(
                 frequency_series=frequency_series,
-                asd_array=asd_array,
-                frequency_mask=frequency_mask,
-                time_mask=time_mask,
-                duration=duration,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                time_mask=self.time_mask,
+                duration=self.duration,
             )
 
     def get_whitened_time_series_from_whitened_frequency_series(

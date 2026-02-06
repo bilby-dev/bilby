@@ -260,7 +260,7 @@ def frequency_domain_whiten(frequency_series, amplitude_spectral_density, freque
         The whitened frequency series
     """
     whitened = frequency_series / amplitude_spectral_density
-    return np.nan_to_num(whitened) * frequency_mask * (self.duration / 4)**0.5
+    return np.nan_to_num(whitened) * frequency_mask * (duration / 4)**0.5
 
 
 def whiten_and_crop(self, frequency_series, amplitude_spectral_density, frequency_mask, time_mask, duration):
