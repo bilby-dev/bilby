@@ -657,7 +657,7 @@ class Interferometer(object):
         """
         return self.inner_product(signal) / self.optimal_snr_squared(signal)**0.5
 
-    def whiten_frequency_series(self, frequency_series : np.array) -> np.array:
+    def whiten_frequency_series(self, frequency_series: np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
 
         .. math::
@@ -677,60 +677,20 @@ class Interferometer(object):
             The frequency series, whitened by the ASD
         """
         if self.crop_duration == 0:
-            return np.nan_to_num(frequency_series / (
-                self.amplitude_spectral_density_array
-                * np.sqrt(self.duration / 4)
-            )) * self.frequency_mask
+            return gwutils.frequency_domain_whiten(
+                frequency_series=frequency_series,
+                asd_array=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                duration=duration,
+            )
         else:
-            return self.whiten_and_crop(frequency_series=frequency_series)
-
-    def whiten_and_crop(self, frequency_series : np.array) -> np.array:
-        """
-        Whitens a frequency series with the noise properties and applies
-        the time mask to the whitened time-domain strain.
-
-        First, we naively whiten the data in the frequency domain and apply
-        our frequency mask :math:`\\tilde{m}(f)`
-
-        .. math::
-            \\tilde{a}_w(f) = \\tilde{a}(f) \\tilde{m}(f) / \\sqrt{S_n(f)}.
-
-        We then inverse discrete Fourier transform to get the whitened
-        time-domain strain :math:`w(t)` and apply the time-domain mask
-        :math:`m(t)`. We then perform a final discrete Fourier transform.
-
-        .. math::
-            \\bar{a}_{w}(f) = \\mathcal{F}(\\mathcal{iF}(\\tilde{a}_w(f))[m(t)])
-
-        Finally, we normalize the whitened strain by a factor :math:`N`
-
-        .. math::
-            N = \\sqrt{\\frac{4}{T_{c}}}
-
-        where :math:`T_{c}` is the cropped duration such that
-
-        .. math::
-            Var(n) = \\frac{1}{N} \\sum_{k=0}^N n_W(f_k)n_W^*(f_k) = 2.
-
-        Where the factor of two is due to the independent real and imaginary
-        components.
-
-
-        Parameters
-        ==========
-        frequency_series : np.array
-            The frequency series, whitened by the ASD
-        """
-        initial_white = np.nan_to_num(
-            frequency_series
-            * self.frequency_mask
-            / self.amplitude_spectral_density_array
-        )
-        time_series = infft(initial_white, self.sampling_frequency)
-        cropped_time_series = time_series[self.time_mask]
-        cropped_white, _ = nfft(cropped_time_series, self.sampling_frequency)
-
-        return cropped_white * (4 / self.cropped_duration)**0.5
+            return gwutils.whiten_and_crop(
+                frequency_series=frequency_series,
+                asd_array=asd_array,
+                frequency_mask=frequency_mask,
+                time_mask=time_mask,
+                duration=duration,
+            )
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,

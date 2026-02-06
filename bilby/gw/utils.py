@@ -228,6 +228,103 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     return sum(integral).real
 
 
+def frequency_domain_whiten(frequency_series, amplitude_spectral_density, frequency_mask, duration):
+    """
+    Whitens a frequency series with the provided asd in the frequency domain
+
+    .. math::
+        \\tilde{a}_w(f) = \\tilde{a}(f) \\sqrt{\\frac{4}{T S_n(f)}}
+
+    Such that
+
+    .. math::
+        Var(n) = \\frac{1}{N} \\sum_{k=0}^N n_W(f_k)n_W^*(f_k) = 2
+
+    Where the factor of two is due to the independent real and imaginary
+    components.
+
+    Parameters
+    ==========
+    frequency_series : np.ndarray
+        The frequency series to whiten
+    amplitude_spectral_density: np.ndarray
+        The amplitude spectral density array to use for whitening
+    frequency_mask: np.ndarray
+        A boolean mask to apply to the whitened strain
+    duration: float
+        The effective duration of the passed frequency series
+
+    Returns
+    =======
+    np.ndarray
+        The whitened frequency series
+    """
+    whitened = frequency_series / amplitude_spectral_density
+    return np.nan_to_num(whitened) * frequency_mask * (self.duration / 4)**0.5
+
+
+def whiten_and_crop(self, frequency_series, amplitude_spectral_density, frequency_mask, time_mask, duration):
+    """
+    Whitens a frequency series with the noise properties and applies
+    the time mask to the whitened time-domain strain [1].
+
+    First, we naively whiten the data in the frequency domain and apply
+    our frequency mask :math:`\\tilde{m}(f)`
+
+    .. math::
+        \\tilde{a}_w(f) = \\tilde{a}(f) \\tilde{m}(f) / \\sqrt{S_n(f)}.
+
+    We then inverse discrete Fourier transform to get the whitened
+    time-domain strain :math:`w(t)` and apply the time-domain mask
+    :math:`m(t)`. We then perform a final discrete Fourier transform.
+
+    .. math::
+        \\bar{a}_{w}(f) = \\mathcal{F}(\\mathcal{iF}(\\tilde{a}_w(f))[m(t)])
+
+    Finally, we normalize the whitened strain by a factor :math:`N`
+
+    .. math::
+        N = \\sqrt{\\frac{4}{T_{c}}}
+
+    where :math:`T_{c}` is the cropped duration such that
+
+    .. math::
+        Var(n) = \\frac{1}{N} \\sum_{k=0}^N n_W(f_k)n_W^*(f_k) = 2.
+
+    Where the factor of two is due to the independent real and imaginary
+    components.
+
+
+    Parameters
+    ==========
+    frequency_series : np.ndarray
+        The frequency series to whiten
+    amplitude_spectral_density: np.ndarray
+        The amplitude spectral density array to use for whitening
+    frequency_mask: np.ndarray
+        A boolean mask to apply to the whitened strain
+    time_mask: np.ndarray
+        A boolean mask used to crop the whitened time series
+    duration: float
+        The effective duration of the passed frequency series
+
+    Returns
+    =======
+    np.ndarray
+        The whitened frequency series
+
+    .. [1] `C. Talbot *et al.* 2025 *Class. Quantum Grav.* **42** 235023 <https://dx.doi.org/10.1088/1361-6382/ae1ac7>`_
+    """
+    whitened = frequency_series / amplitude_spectral_density
+    initial_white = np.nan_to_num(whitened) * frequency_mask
+    time_series = np.fft.irfft(initial_white)
+    cropped_time_series = time_series[time_mask]
+    cropped_white, _ = np.fft.rfft(cropped_time_series)
+    cropped_duration = duration * len(cropped_time_series) / len(time_series)
+
+    return cropped_white * (4 / cropped_duration)**0.5
+
+
 def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
