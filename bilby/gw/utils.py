@@ -313,14 +313,14 @@ def whiten_and_crop(frequency_series, amplitude_spectral_density, frequency_mask
     np.ndarray
         The whitened frequency series
 
-    .. [1] C. Talbot et al. 2025 
+    .. [1] C. Talbot et al. 2025
        `Class. Quantum Grav. 42 235023 <https://dx.doi.org/10.1088/1361-6382/ae1ac7>`_
     """
     whitened = frequency_series / amplitude_spectral_density
     initial_white = np.nan_to_num(whitened) * frequency_mask
     time_series = np.fft.irfft(initial_white)
     cropped_time_series = time_series[time_mask]
-    cropped_white, _ = np.fft.rfft(cropped_time_series)
+    cropped_white = np.fft.rfft(cropped_time_series)
     cropped_duration = duration * len(cropped_time_series) / len(time_series)
 
     return cropped_white * (4 / cropped_duration)**0.5
