@@ -60,7 +60,7 @@ class PriorDict(dict):
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
-        return prob
+        return prob.squeeze()
 
     def default_conversion_function(self, sample):
         """
