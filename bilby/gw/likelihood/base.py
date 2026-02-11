@@ -444,7 +444,9 @@ class GravitationalWaveTransient(Likelihood):
         if self.calibration_marginalization:
             log_l = self.calibration_marginalized_likelihood(
                 d_inner_h_calibration_array=total_snrs.d_inner_h_array,
-                h_inner_h=total_snrs.optimal_snr_squared_array)
+                h_inner_h=total_snrs.optimal_snr_squared_array,
+                parameters=parameters,
+            )
 
         elif self.time_marginalization:
             log_l = self.time_marginalized_likelihood(

@@ -338,7 +338,8 @@ class Ptemcee(MCMCSampler):
         def neg_log_like(params):
             """Internal function to minimize"""
             try:
-                parameters = {key: val for key, val in zip(minimize_list, params)}
+                parameters = copy.copy(draw)
+                parameters.update({key: val for key, val in zip(minimize_list, params)})
                 return -_safe_likelihood_call(likelihood_copy, parameters)
             except RuntimeError:
                 return +np.inf
@@ -354,7 +355,6 @@ class Ptemcee(MCMCSampler):
         success = []
         while True:
             draw = self.priors.sample()
-            likelihood_copy.parameters.update(draw)
             x0 = [draw[key] for key in minimize_list]
             res = minimize(
                 neg_log_like, x0, bounds=bounds, method="L-BFGS-B", tol=1e-15
