@@ -88,7 +88,7 @@ A list of available samplers can be produced using
 This will list native bilby samplers and any samplers available via a plugin.
 If a plugin provides a sampler that is also implemented in bilby, the bilby
 implementation will be labeled with the prefix `bilby.` to distinguish it from
-the plugin version. See `sampler plugins`_ for more details.
+the plugin version. See :ref:`sampler-plugins` for more details.
 
 
 -------------------
@@ -185,7 +185,7 @@ Adding new samplers to bilby
 
 We actively encourage the addition of new samplers to :code:`bilby`.
 We now recommended adding support for new samplers via the sampler plugins
-interface. For more details, and a template, see `sampler plugins`_.
+interface. For more details, and a template, see :ref:`sampler-plugins`.
 
 If you have a :code:`bilby` sampler plugin that you would like to be listed here,
 please let us know!
@@ -212,4 +212,4 @@ will automatically be used instead of the native bilby interface.
    Some samplers may require additional installation steps.
 
 For more details about how sampler plugins, including a list of available
-sampler plugins, see `sampler plugins`_.
+sampler plugins, see :ref:`sampler-plugins`.
