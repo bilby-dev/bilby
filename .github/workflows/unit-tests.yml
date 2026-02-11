@@ -19,6 +19,7 @@ concurrency:
 
 env:
   CONDA_PATH: /opt/conda/
+  BILBY_ALLOW_PARAMETERS_AS_STATE: FALSE
 
 jobs:
   build:
