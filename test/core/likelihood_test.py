@@ -629,12 +629,6 @@ class TestJointLikelihood(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.joint_likelihood.likelihoods = "test"
 
-    # Appending is not supported
-    # def test_appending(self):
-    #     joint_likelihood = bilby.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
-    #     joint_likelihood.likelihoods.append(self.third_likelihood)
-    #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
-
 
 class TestGPLikelihood(unittest.TestCase):
 
@@ -685,9 +679,6 @@ class TestGPLikelihood(unittest.TestCase):
     def test_gp_mock(self):
         self.celerite_likelihood.gp.compute.assert_called_once_with(
             self.celerite_likelihood.t, yerr=self.celerite_likelihood.yerr)
-
-    # def test_parameters(self):
-    #     self.assertDictEqual(self.parameter_dict, self.celerite_likelihood.parameters)
 
     def test_set_parameters_no_exceptions(self):
         self.celerite_likelihood.gp.set_parameter = mock.MagicMock()

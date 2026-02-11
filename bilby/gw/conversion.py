@@ -1717,11 +1717,6 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
-
-    .. versionchanged:: 2.5.1
-       To ensure that internal state of :code:`likelihood` is not changed by
-       this function, the initial value of :code:`likelihood.parameters` are
-       saved and reset at the end of the function.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2',
