@@ -2,6 +2,7 @@ import datetime
 import importlib
 import os
 import time
+import warnings
 
 import numpy as np
 
@@ -33,6 +34,13 @@ class Pymultinest(_TemporaryFileSamplerMixin, NestedSampler):
         If true, resume run from checkpoint (if available)
 
     """
+
+    msg = (
+        "The PyMultiNest sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `pymultinest-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/pymultinest-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "pymultinest"
     abbreviation = "pm"

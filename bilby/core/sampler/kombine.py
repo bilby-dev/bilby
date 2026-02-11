@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import numpy as np
 
@@ -37,6 +38,13 @@ class Kombine(Emcee):
         The number of autocorrelation times to discard as burn-in
 
     """
+
+    msg = (
+        "The Kombine sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `kombine-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/kombine-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "kombine"
     default_kwargs = dict(

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 from ...gw.likelihood import BasicGravitationalWaveTransient, GravitationalWaveTransient
@@ -52,6 +54,13 @@ class Pymc(MCMCSampler):
         for the given step method.
 
     """
+
+    msg = (
+        "The PyMC sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `pymc-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/pymc-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "pymc"
     default_kwargs = dict(

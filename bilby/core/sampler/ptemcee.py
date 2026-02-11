@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import warnings
 from collections import namedtuple
 
 import numpy as np
@@ -124,6 +125,13 @@ class Ptemcee(MCMCSampler):
         The maximum temperature
 
     """
+
+    msg = (
+        "The ptemcee sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `ptemcee-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/ptemcee-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "ptemcee"
     # Arguments used by ptemcee
