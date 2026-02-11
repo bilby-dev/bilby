@@ -9,7 +9,6 @@ from .base_sampler import NestedSampler, _TemporaryFileSamplerMixin, signal_wrap
 
 
 class _DNest4Model(object):
-
     def __init__(
         self, log_likelihood_func, from_prior_func, widths, centers, highs, lows
     ):
