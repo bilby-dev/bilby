@@ -376,14 +376,15 @@ class TestMarginalizations(unittest.TestCase):
             values = np.linspace(prior.minimum, prior.maximum, 1000)
         prior_values = prior.prob(values)
         ln_likes = np.empty(values.shape)
+        parameters = self.parameters.copy()
         for ii, value in enumerate(values):
-            non_marginalized.parameters[key] = value
-            ln_likes[ii] = non_marginalized.log_likelihood_ratio()
+            parameters[key] = value
+            ln_likes[ii] = non_marginalized.log_likelihood_ratio(parameters)
         like = np.exp(ln_likes - max(ln_likes))
 
         marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
         self.assertAlmostEqual(
-            marg_like, marginalized.log_likelihood_ratio(), delta=0.5
+            marg_like, marginalized.log_likelihood_ratio(self.parameters), delta=0.5
         )
 
     @parameterized.expand(
@@ -539,38 +540,5 @@ class CalibrationMarginalization(unittest.TestCase):
                 parameters[name] = value[ii]
             parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
             non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio(parameters))
-        non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
-        self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)
-
-    @parameterized.expand(["no_time", "time"])
-    def test_calibration_marginalization_state(self, time):
-        marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=deepcopy(self.ifos),
-            waveform_generator=self.wfg,
-            priors=deepcopy(self.priors),
-            calibration_marginalization=True,
-            time_marginalization=time == "time",
-            number_of_response_curves=100,
-            jitter_time=False,
-        )
-        non_marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=deepcopy(self.ifos),
-            waveform_generator=self.wfg,
-            priors=deepcopy(self.priors),
-            calibration_marginalization=False,
-            time_marginalization=time == "time",
-            jitter_time=False,
-        )
-        parameters = self.priors.sample()
-        marginalized.parameters.update(parameters)
-        non_marginalized.parameters.update(parameters)
-        marg_ln_l = marginalized.log_likelihood_ratio()
-        non_marg_ln_ls = list()
-        draws = marginalized.calibration_parameter_draws
-        for ii in range(100):
-            for name, value in draws["H1"].items():
-                non_marginalized.parameters[name] = value[ii]
-            non_marginalized.parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
-            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio())
         non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
         self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)

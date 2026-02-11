@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import patch, mock_open
 
 import bilby
 import bilby.core.sampler.nessai
@@ -10,7 +10,7 @@ class TestNessai(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.likelihood = MagicMock()
+        self.likelihood = bilby.core.likelihood.Likelihood()
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )

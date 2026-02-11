@@ -1,5 +1,4 @@
 import unittest
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -514,8 +513,7 @@ class TestGenerateAllParameters(unittest.TestCase):
         self.parameters["time_jitter"] = 0.0
         del self.parameters["ra"], self.parameters["dec"]
         self.parameters = pd.DataFrame(self.parameters, index=range(1))
-        likelihood.parameters["mass_1"] = -1.0
-        initial_likelihood_parameters = deepcopy(likelihood.parameters)
+        initial_likelihood_parameters = dict(mass_1=-1.0)
         converted = bilby.gw.conversion.generate_all_bbh_parameters(
             sample=self.parameters, likelihood=likelihood, priors=priors
         )
@@ -531,9 +529,7 @@ class TestGenerateAllParameters(unittest.TestCase):
         ]
         for key in extra_expected:
             self.assertIn(key, converted)
-        # make sure conversion didn't clobber likelihood state
-        self.assertEqual(initial_likelihood_parameters, likelihood.parameters)
-        self.assertNotEqual(converted["mass_1"].values[0], likelihood.parameters["mass_1"])
+        self.assertNotEqual(converted["mass_1"].values[0], initial_likelihood_parameters["mass_1"])
 
     def test_identity_generation_no_likelihood(self):
         test_fixed_prior = bilby.core.prior.PriorDict({

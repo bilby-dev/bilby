@@ -10,7 +10,7 @@ import bilby
 # set 2D multivariate Gaussian likelihood
 class MultiGaussian(bilby.Likelihood):
     def __init__(self, mean, cov):
-        super(MultiGaussian, self).__init__(parameters=dict())
+        super(MultiGaussian, self).__init__()
         self.cov = np.array(cov)
         self.mean = np.array(mean)
         self.sigma = np.sqrt(np.diag(self.cov))
@@ -20,8 +20,8 @@ class MultiGaussian(bilby.Likelihood):
     def dim(self):
         return len(self.cov[0])
 
-    def log_likelihood(self):
-        x = np.array([self.parameters["x{0}".format(i)] for i in range(self.dim)])
+    def log_likelihood(self, parameters):
+        x = np.array([parameters["x{0}".format(i)] for i in range(self.dim)])
         return self.pdf.logpdf(x)
 
 

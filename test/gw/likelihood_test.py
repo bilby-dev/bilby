@@ -46,7 +46,6 @@ class TestBasicGWTransient(unittest.TestCase):
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
         )
-        self.likelihood.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.parameters
@@ -63,14 +62,14 @@ class TestBasicGWTransient(unittest.TestCase):
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(), -4032.4397343470005, 3)
+        self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(self.likelihood.log_likelihood(self.parameters), -4032.4397343470005, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood() - self.likelihood.noise_log_likelihood(),
-            self.likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            self.likelihood.log_likelihood_ratio(self.parameters),
             3,
         )
 
@@ -78,7 +77,7 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
 
     def test_repr(self):
         expected = "BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})".format(
@@ -130,7 +129,6 @@ class TestGWTransient(unittest.TestCase):
             waveform_generator=self.waveform_generator,
             priors=self.prior.copy(),
         )
-        self.likelihood.parameters = self.parameters.copy()
 
     def tearDown(self):
         del self.parameters
@@ -148,15 +146,15 @@ class TestGWTransient(unittest.TestCase):
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(),
+        self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(self.likelihood.log_likelihood(self.parameters),
                                -4032.4397343470005, 3)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood() - self.likelihood.noise_log_likelihood(),
-            self.likelihood.log_likelihood_ratio(),
+            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            self.likelihood.log_likelihood_ratio(self.parameters),
             3,
         )
 
@@ -164,7 +162,7 @@ class TestGWTransient(unittest.TestCase):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(), np.nan_to_num(-np.inf))
+        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
 
     def test_repr(self):
         expected = (
@@ -250,12 +248,6 @@ class TestGWTransient(unittest.TestCase):
             new_likelihood.log_likelihood_ratio(parameters),
             self.likelihood.log_likelihood_ratio(parameters)
         )
-        new_likelihood.parameters.update(parameters)
-        self.likelihood.parameters.update(parameters)
-        self.assertEqual(
-            new_likelihood.log_likelihood_ratio(),
-            self.likelihood.log_likelihood_ratio()
-        )
 
     def test_time_reference_agrees_with_default(self):
         new_likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
@@ -275,12 +267,6 @@ class TestGWTransient(unittest.TestCase):
         self.assertEqual(
             new_likelihood.log_likelihood_ratio(parameters),
             self.likelihood.log_likelihood_ratio(parameters)
-        )
-        new_likelihood.parameters.update(parameters)
-        self.likelihood.parameters.update(parameters)
-        self.assertEqual(
-            new_likelihood.log_likelihood_ratio(),
-            self.likelihood.log_likelihood_ratio()
         )
 
 
@@ -423,20 +409,11 @@ class TestROQLikelihood(unittest.TestCase):
             ) / self.non_roq.log_likelihood_ratio(self.test_parameters),
             1e-3,
         )
-        self.non_roq.parameters.update(self.test_parameters)
-        self.roq.parameters.update(self.test_parameters)
-        self.assertLess(
-            abs(self.non_roq.log_likelihood_ratio() - self.roq.log_likelihood_ratio())
-            / self.non_roq.log_likelihood_ratio(),
-            1e-3,
-        )
 
     def test_time_prior_out_of_bounds_returns_zero(self):
         parameters = deepcopy(self.test_parameters)
         parameters["geocent_time"] = -5
         self.assertEqual(self.roq.log_likelihood_ratio(parameters), -np.inf)
-        self.roq.parameters.update(parameters)
-        self.assertEqual(self.roq.log_likelihood_ratio(), -np.inf)
 
     def test_create_roq_weights_with_params(self):
         roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
@@ -451,9 +428,6 @@ class TestROQLikelihood(unittest.TestCase):
             roq.log_likelihood_ratio(self.test_parameters),
             self.roq.log_likelihood_ratio(self.test_parameters)
         )
-        roq.parameters.update(self.test_parameters)
-        self.roq.parameters.update(self.test_parameters)
-        self.assertEqual(roq.log_likelihood_ratio(), self.roq.log_likelihood_ratio())
 
     def test_create_roq_weights_frequency_mismatch_works_with_params(self):
 
@@ -941,11 +915,6 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             llr = likelihood.log_likelihood_ratio(parameters)
             llr_roq = likelihood_roq.log_likelihood_ratio(parameters)
             self.assertLess(np.abs(llr - llr_roq), max_llr_error)
-            likelihood.parameters.update(parameters)
-            likelihood_roq.parameters.update(parameters)
-            llr = likelihood.log_likelihood_ratio()
-            llr_roq = likelihood_roq.log_likelihood_ratio()
-            self.assertLess(np.abs(llr - llr_roq), max_llr_error)
 
 
 @pytest.mark.requires_roqs
@@ -1385,12 +1354,6 @@ class TestMBLikelihood(unittest.TestCase):
             abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
             tolerance
         )
-        likelihood.parameters.update(parameters)
-        likelihood_mb.parameters.update(parameters)
-        self.assertLess(
-            abs(likelihood.log_likelihood_ratio() - likelihood_mb.log_likelihood_ratio()),
-            tolerance
-        )
 
     def test_large_accuracy_factor(self):
         """
@@ -1435,13 +1398,6 @@ class TestMBLikelihood(unittest.TestCase):
                 likelihood.log_likelihood_ratio(self.test_parameters)
                 - likelihood_mb.log_likelihood_ratio(self.test_parameters)
             ) / 2
-        )
-        likelihood.parameters.update(self.test_parameters)
-        likelihood_mb.parameters.update(self.test_parameters)
-        likelihood_mb_more_accurate.parameters.update(self.test_parameters)
-        self.assertLess(
-            abs(likelihood.log_likelihood_ratio() - likelihood_mb_more_accurate.log_likelihood_ratio()),
-            abs(likelihood.log_likelihood_ratio() - likelihood_mb.log_likelihood_ratio()) / 2
         )
 
     def test_reference_chirp_mass_from_prior(self):
@@ -1531,8 +1487,7 @@ class TestMBLikelihood(unittest.TestCase):
             reference_chirp_mass=self.test_parameters['chirp_mass'],
             linear_interpolation=linear_interpolation,
         )
-        likelihood_mb.parameters.update(self.test_parameters)
-        llr = likelihood_mb.log_likelihood_ratio()
+        llr = likelihood_mb.log_likelihood_ratio(self.test_parameters)
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             # check if weights can be saved as a file
@@ -1553,7 +1508,6 @@ class TestMBLikelihood(unittest.TestCase):
                 interferometers=self.ifos, waveform_generator=wfg_mb, weights=filepath
             )
 
-        # likelihood_mb_from_weights.parameters.update(self.test_parameters)
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
 
         self.assertAlmostEqual(llr, llr_from_weights)
@@ -1587,8 +1541,7 @@ class TestMBLikelihood(unittest.TestCase):
             reference_chirp_mass=self.test_parameters['chirp_mass'],
             linear_interpolation=linear_interpolation,
         )
-        likelihood_mb.parameters.update(self.test_parameters)
-        llr = likelihood_mb.log_likelihood_ratio()
+        llr = likelihood_mb.log_likelihood_ratio(self.test_parameters)
 
         # reset waveform generator to check if likelihood recovered from the weights properly adds banded
         # frequency points to waveform arguments
@@ -1603,7 +1556,6 @@ class TestMBLikelihood(unittest.TestCase):
         likelihood_mb_from_weights = bilby.gw.likelihood.MBGravitationalWaveTransient(
             interferometers=self.ifos, waveform_generator=wfg_mb, weights=weights
         )
-        # likelihood_mb_from_weights.parameters.update(self.test_parameters)
         llr_from_weights = likelihood_mb_from_weights.log_likelihood_ratio(self.test_parameters)
 
         self.assertAlmostEqual(llr, llr_from_weights)
@@ -1652,12 +1604,6 @@ class TestMBLikelihood(unittest.TestCase):
             parameters.update(self.calibration_parameters)
         self.assertLess(
             abs(likelihood.log_likelihood_ratio(parameters) - likelihood_mb.log_likelihood_ratio(parameters)),
-            tolerance
-        )
-        likelihood.parameters.update(parameters)
-        likelihood_mb.parameters.update(parameters)
-        self.assertLess(
-            abs(likelihood.log_likelihood_ratio() - likelihood_mb.log_likelihood_ratio()),
             tolerance
         )
 
