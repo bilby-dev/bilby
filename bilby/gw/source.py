@@ -518,10 +518,15 @@ def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
         internally.
     """
     import lalsimulation as lalsim
-    from lal import CreateDict
+    from lal import CreateDict, Dict
     waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', CreateDict())
-    waveform_kwargs["TidalLambda1"] = float(lambda_1)
-    waveform_kwargs["TidalLambda2"] = float(lambda_2)
+
+    if not isinstance(waveform_dictionary, Dict):
+        logger.warning(f"LAL waveform dictionary is {waveform_dictionary}, type {type(waveform_dictionary)}")
+        waveform_dictionary = CreateDict()
+
+    waveform_kwargs["TidalLambda1"] = lambda_1
+    waveform_kwargs["TidalLambda2"] = lambda_2
     waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_file", None)
 
     for key in [
