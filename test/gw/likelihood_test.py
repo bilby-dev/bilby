@@ -341,7 +341,7 @@ class TestROQLikelihood(unittest.TestCase):
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
         self.priors.pop("mass_2")
-        # Testing is done with the 4s IMRPhenomPV2 ROQ basis
+        # Testing is done with the 4s IMRPhenomPv2 ROQ basis
         self.priors["chirp_mass"] = bilby.core.prior.Uniform(12.299703, 45)
         self.priors["mass_ratio"] = bilby.core.prior.Uniform(0.125, 1)
         self.priors["geocent_time"] = bilby.core.prior.Uniform(1.19, 1.21)
@@ -606,7 +606,7 @@ class TestRescaledROQLikelihood(unittest.TestCase):
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
         self.priors.pop("mass_2")
-        # Testing is done with the 4s IMRPhenomPV2 ROQ basis
+        # Testing is done with the 4s IMRPhenomPv2 ROQ basis
         self.priors["chirp_mass"] = bilby.core.prior.Uniform(
             12.299703 / scale_factor, 45 / scale_factor
         )
@@ -654,7 +654,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
         self.sampling_frequency = 2048
         self.duration = 16
         self.reference_frequency = 20.0
-        self.waveform_approximant = "IMRPhenomD"
+        self.waveform_approximant = "IMRPhenomXAS"
         # The SNRs of injections are 130-160 for roq_scale_factor=1 and 70-80 for roq_scale_factor=2
         self.injection_parameters = dict(
             mass_ratio=0.8,
@@ -968,7 +968,7 @@ class TestCreateROQLikelihood(unittest.TestCase):
         duration = 16
         geocent_time = 1.2
         reference_frequency = 20.0
-        waveform_approximant = "IMRPhenomD"
+        waveform_approximant = "IMRPhenomXAS"
         mc_range = [8, 14]
 
         priors = bilby.gw.prior.BBHPriorDict()
@@ -1224,7 +1224,7 @@ class TestInOutROQWeights(unittest.TestCase):
         duration = 16
         geocent_time = 1.2
         reference_frequency = 20.0
-        waveform_approximant = "IMRPhenomD"
+        waveform_approximant = "IMRPhenomXAS"
         mc_range = [8, 14]
 
         priors = bilby.gw.prior.BBHPriorDict()
@@ -1340,10 +1340,10 @@ class TestMBLikelihood(unittest.TestCase):
         )
 
     @parameterized.expand([
-        ("IMRPhenomD", True, 2, False, 1.5e-2),
-        ("IMRPhenomD", True, 2, True, 1.5e-2),
-        ("IMRPhenomD", False, 2, False, 5e-3),
-        ("IMRPhenomD", False, 2, True, 6e-3),
+        ("IMRPhenomXAS", True, 2, False, 1.5e-2),
+        ("IMRPhenomXAS", True, 2, True, 1.5e-2),
+        ("IMRPhenomXAS", False, 2, False, 5e-3),
+        ("IMRPhenomXAS", False, 2, True, 6e-3),
         ("IMRPhenomHM", False, 4, False, 8e-4),
         ("IMRPhenomHM", False, 4, True, 1e-3)
     ])
@@ -1396,7 +1396,7 @@ class TestMBLikelihood(unittest.TestCase):
         """
         Check if larger accuracy factor increases the accuracy.
         """
-        waveform_approximant = "IMRPhenomD"
+        waveform_approximant = "IMRPhenomXAS"
         wfg = bilby.gw.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
@@ -1452,7 +1452,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, waveform_approximant="IMRPhenomD"
+                reference_frequency=self.fmin, waveform_approximant="IMRPhenomXAS"
             )
         )
         likelihood1 = bilby.gw.likelihood.MBGravitationalWaveTransient(
@@ -1474,7 +1474,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, waveform_approximant="IMRPhenomD"
+                reference_frequency=self.fmin, waveform_approximant="IMRPhenomXAS"
             )
         )
         with self.assertRaises(TypeError):
@@ -1490,7 +1490,7 @@ class TestMBLikelihood(unittest.TestCase):
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.binary_black_hole_frequency_sequence,
             waveform_arguments=dict(
-                reference_frequency=self.fmin, waveform_approximant="IMRPhenomD"
+                reference_frequency=self.fmin, waveform_approximant="IMRPhenomXAS"
             )
         )
         for key in ["chirp_mass", "mass_1", "mass_2"]:
@@ -1507,7 +1507,7 @@ class TestMBLikelihood(unittest.TestCase):
         Check if multiband weights can be saved as a file, and a likelihood object constructed from the weights file
         produces the same likelihood value.
         """
-        waveform_approximant = "IMRPhenomD"
+        waveform_approximant = "IMRPhenomXAS"
         wfg = bilby.gw.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
@@ -1563,7 +1563,7 @@ class TestMBLikelihood(unittest.TestCase):
         """
         Check if a likelihood object constructed from dictionary-like weights produce the same likelihood value
         """
-        waveform_approximant = "IMRPhenomD"
+        waveform_approximant = "IMRPhenomXAS"
         wfg = bilby.gw.WaveformGenerator(
             duration=self.duration, sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
@@ -1609,8 +1609,8 @@ class TestMBLikelihood(unittest.TestCase):
         self.assertAlmostEqual(llr, llr_from_weights)
 
     @parameterized.expand([
-        ("IMRPhenomD", True, 2, False, 1e-2),
-        ("IMRPhenomD", True, 2, True, 1e-2),
+        ("IMRPhenomXAS", True, 2, False, 1e-2),
+        ("IMRPhenomXAS", True, 2, True, 1e-2),
         ("IMRPhenomHM", False, 4, False, 5e-3),
     ])
     def test_matches_original_likelihood_low_maximum_frequency(
