@@ -81,7 +81,7 @@ class BaseEnsembleSampler(InternalSampler):
             needed for sampling.
         """
         arg_list = []
-        kwargs = self.sampler_kwargs
+        kwargs = self.sampler_kwargs.copy()
         self.nlive = nested_sampler.nlive
         for curp, curaxes, curseed in zip(points, axes, seeds):
             vals = dict(
@@ -337,7 +337,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         cache = ACTTrackingEnsembleWalk._cache
         if args.kwargs.get("rebuild", False):
             logger.debug(f"Force rebuilding cache with {len(cache)} remaining")
+            ACTTrackingEnsembleWalk._cache = list()
             ACTTrackingEnsembleWalk.build_cache(args)
+            cache = ACTTrackingEnsembleWalk._cache
         elif len(cache) == 0:
             ACTTrackingEnsembleWalk.build_cache(args)
         while len(cache) > 0 and cache[0][2] < args.loglstar:
@@ -347,6 +349,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         else:
             current_u, current_v, logl, ncall, blob, evaluation_history = cache.pop(0)
         blob["remaining"] = len(cache)
+        logger.debug(f"Returning point from cache with {len(cache)} remaining")
         return SamplerReturn(
             u=current_u,
             v=current_v,
