@@ -263,8 +263,8 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         from interpax import interp2d
 
         return interp2d(
-            x,
-            y,
+            jnp.asarray(x),
+            jnp.asarray(y),
             jnp.asarray(self.x),
             jnp.asarray(self.y),
             jnp.asarray(self.z),
