@@ -618,13 +618,14 @@ def _base_lal_cbc_fd_waveform(
                         (frequency_array <= maximum_frequency))
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
-    mass_1 = mass_1 * utils.solar_mass
-    mass_2 = mass_2 * utils.solar_mass
 
     iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
         theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
         phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
         reference_frequency=reference_frequency, phase=phase)
+
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0

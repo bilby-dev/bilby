@@ -24,30 +24,6 @@ from ripple.waveforms import IMRPhenomPv2
 jax.config.update("jax_enable_x64", True)
 
 
-def bilby_to_ripple_spins(
-    theta_jn,
-    phi_jl,
-    tilt_1,
-    tilt_2,
-    phi_12,
-    a_1,
-    a_2,
-):
-    """
-    A simplified spherical to cartesian spin conversion function.
-    This is not equivalent to the method used in `bilby.gw.conversion`
-    which comes from `lalsimulation` and is not `JAX` compatible.
-    """
-    iota = theta_jn
-    spin_1x = a_1 * jnp.sin(tilt_1) * jnp.cos(phi_jl)
-    spin_1y = a_1 * jnp.sin(tilt_1) * jnp.sin(phi_jl)
-    spin_1z = a_1 * jnp.cos(tilt_1)
-    spin_2x = a_2 * jnp.sin(tilt_2) * jnp.cos(phi_jl + phi_12)
-    spin_2y = a_2 * jnp.sin(tilt_2) * jnp.sin(phi_jl + phi_12)
-    spin_2z = a_2 * jnp.cos(tilt_2)
-    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
-
-
 def ripple_bbh(
     frequency,
     mass_1,
@@ -102,8 +78,8 @@ def ripple_bbh(
     dict
         Dictionary containing the plus and cross polarizations of the waveform.
     """
-    iota, *cartesian_spins = bilby_to_ripple_spins(
-        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2
+    iota, *cartesian_spins = bilby.gw.geometry.transform_precessing_spins(
+        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2, f_ref, phase
     )
     frequencies = jnp.maximum(frequency, kwargs["minimum_frequency"])
     theta = jnp.array(

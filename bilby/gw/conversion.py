@@ -33,6 +33,7 @@ from ..core.prior import DeltaFunction
 from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import IntegrateTOV
 from .cosmology import get_cosmology, z_at_value
+from .geometry import transform_precessing_spins
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -152,31 +153,12 @@ def bilby_to_lalsimulation_spins(
         spin_2z = a_2 * np.cos(tilt_2)
         iota = theta_jn
     else:
-        from numbers import Number
-        args = (
-            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1,
-            mass_2, reference_frequency, phase
+        func = transform_precessing_spins
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = func(
+            theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2,
+            mass_1, mass_2, reference_frequency, phase
         )
-        float_inputs = all([isinstance(arg, Number) for arg in args])
-        if float_inputs:
-            func = lalsim_SimInspiralTransformPrecessingNewInitialConditions
-        else:
-            func = transform_precessing_spins
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = func(*args)
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
-
-
-@np.vectorize
-def transform_precessing_spins(*args):
-    """
-    Vectorized wrapper for
-    lalsimulation.SimInspiralTransformPrecessingNewInitialConditions
-
-    For detailed documentation see
-    :code:`bilby.gw.conversion.bilby_to_lalsimulation_spins`.
-    This will be removed from the public API in a future release.
-    """
-    return lalsim_SimInspiralTransformPrecessingNewInitialConditions(*args)
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters):
