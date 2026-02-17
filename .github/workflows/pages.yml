@@ -32,6 +32,7 @@ jobs:
           fetch-tags: true
       - name: install
         run: |
+          conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
           python -m pip install .
           python -m pip install sphinx-sitemap
       - name: Run jupyter notebooks
