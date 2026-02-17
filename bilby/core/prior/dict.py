@@ -5,7 +5,7 @@ from importlib import import_module
 from io import open as ioopen
 from warnings import warn
 
-import array_api_extra as xpx
+import array_api_compat as aac
 import numpy as np
 
 from .analytical import DeltaFunction
@@ -467,7 +467,7 @@ class PriorDict(dict):
                 sample = self.sample_subset(keys=keys, size=size, xp=xp)
                 is_valid = self.evaluate_constraints(sample)
                 n_tested_samples += 1
-                n_valid_samples += int(is_valid)
+                n_valid_samples += int(is_valid.item())
                 check_efficiency(n_tested_samples, n_valid_samples)
                 if is_valid:
                     return sample
@@ -554,7 +554,7 @@ class PriorDict(dict):
     @xp_wrap
     def check_prob(self, sample, prob, *, xp=None):
         ratio = self.normalize_constraint_factor(tuple(sample.keys()))
-        if xp.all(prob == 0.0):
+        if not aac.is_jax_namespace(xp) and xp.all(prob == 0.0):
             return prob * ratio
         else:
             if isinstance(prob, float):
@@ -563,11 +563,8 @@ class PriorDict(dict):
                 else:
                     return 0.0
             else:
-                constrained_prob = xp.zeros_like(prob)
-                in_bounds = xp.isfinite(prob)
-                subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = self.evaluate_constraints(subsample, xp=xp)
-                constrained_prob = xpx.at(constrained_prob, in_bounds).set(prob[in_bounds] * keep * ratio)
+                keep = self.evaluate_constraints(sample, xp=xp)
+                constrained_prob = xp.where(keep, prob * ratio, 0.0)
                 return constrained_prob
 
     @xp_wrap
@@ -591,8 +588,7 @@ class PriorDict(dict):
 
         """
         ln_prob = xp.sum(xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]), axis=axis)
-        return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized, xp=xp)
+        return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
     @xp_wrap
     def check_ln_prob(self, sample, ln_prob, normalized=True, *, xp=None):
@@ -600,7 +596,7 @@ class PriorDict(dict):
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             ratio = 1
-        if xp.all(xp.isfinite(ln_prob)):
+        if not aac.is_jax_namespace(xp) and xp.all(xp.isfinite(ln_prob)):
             return ln_prob
         else:
             if isinstance(ln_prob, float):
@@ -609,13 +605,8 @@ class PriorDict(dict):
                 else:
                     return -np.inf
             else:
-                constrained_ln_prob = -np.inf * xp.ones_like(ln_prob)
-                in_bounds = xp.isfinite(ln_prob)
-                subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = xp.log(self.evaluate_constraints(subsample, xp=xp))
-                constrained_ln_prob = xpx.at(constrained_ln_prob, in_bounds).set(
-                    ln_prob[in_bounds] + keep + xp.log(ratio)
-                )
+                keep = self.evaluate_constraints(sample, xp=xp)
+                constrained_ln_prob = xp.where(keep, ln_prob + xp.log(ratio), -xp.inf)
                 return constrained_ln_prob
 
     @xp_wrap

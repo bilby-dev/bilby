@@ -2,6 +2,7 @@
 import os
 import copy
 
+import array_api_compat as aac
 import attr
 import numpy as np
 from scipy.special import logsumexp
@@ -297,32 +298,33 @@ class GravitationalWaveTransient(Likelihood):
         optimal_snr_squared_array = None
 
         normalization = 4 / self.waveform_generator.duration
+        xp = signal.__array_namespace__()
 
         if return_array is False:
             d_inner_h_array = None
             optimal_snr_squared_array = None
         elif self.time_marginalization and self.calibration_marginalization:
 
-            d_inner_h_integrand = np.tile(
+            d_inner_h_integrand = xp.tile(
                 interferometer.frequency_domain_strain.conj() * signal /
                 interferometer.power_spectral_density_array, (self.number_of_response_curves, 1)).T
 
             d_inner_h_integrand[_mask] *= self.calibration_draws[interferometer.name].T
 
-            d_inner_h_array = 4 / self.waveform_generator.duration * np.fft.fft(
+            d_inner_h_array = 4 / self.waveform_generator.duration * xp.fft.fft(
                 d_inner_h_integrand[0:-1], axis=0
             ).T
 
             optimal_snr_squared_integrand = (
-                normalization * np.abs(signal)**2 / interferometer.power_spectral_density_array
+                normalization * xp.abs(signal)**2 / interferometer.power_spectral_density_array
             )
-            optimal_snr_squared_array = np.dot(
+            optimal_snr_squared_array = xp.dot(
                 optimal_snr_squared_integrand[_mask],
                 self.calibration_abs_draws[interferometer.name].T
             )
 
         elif self.time_marginalization and not self.calibration_marginalization:
-            d_inner_h_array = normalization * np.fft.fft(
+            d_inner_h_array = normalization * xp.fft.fft(
                 signal[0:-1]
                 * interferometer.frequency_domain_strain.conj()[0:-1]
                 / interferometer.power_spectral_density_array[0:-1]
@@ -334,12 +336,12 @@ class GravitationalWaveTransient(Likelihood):
                 interferometer.frequency_domain_strain.conj() * signal
                 / interferometer.power_spectral_density_array
             )
-            d_inner_h_array = np.dot(d_inner_h_integrand[_mask], self.calibration_draws[interferometer.name].T)
+            d_inner_h_array = xp.dot(d_inner_h_integrand[_mask], self.calibration_draws[interferometer.name].T)
 
             optimal_snr_squared_integrand = (
-                normalization * np.abs(signal)**2 / interferometer.power_spectral_density_array
+                normalization * xp.abs(signal)**2 / interferometer.power_spectral_density_array
             )
-            optimal_snr_squared_array = np.dot(
+            optimal_snr_squared_array = xp.dot(
                 optimal_snr_squared_integrand[_mask],
                 self.calibration_abs_draws[interferometer.name].T
             )
@@ -802,14 +804,15 @@ class GravitationalWaveTransient(Likelihood):
         if self.jitter_time:
             times = self._times + parameters['time_jitter']
 
-        _time_prior = self.priors['geocent_time']
-        time_mask = (times >= _time_prior.minimum) & (times <= _time_prior.maximum)
-        times = times[time_mask]
+        if not aac.is_jax_array(d_inner_h_tc_array):
+            _time_prior = self.priors['geocent_time']
+            time_mask = (times >= _time_prior.minimum) & (times <= _time_prior.maximum)
+            times = times[time_mask]
+            if self.calibration_marginalization:
+                d_inner_h_tc_array = d_inner_h_tc_array[:, time_mask]
+            else:
+                d_inner_h_tc_array = d_inner_h_tc_array[time_mask]
         time_prior_array = self.priors['geocent_time'].prob(times) * self._delta_tc
-        if self.calibration_marginalization:
-            d_inner_h_tc_array = d_inner_h_tc_array[:, time_mask]
-        else:
-            d_inner_h_tc_array = d_inner_h_tc_array[time_mask]
 
         if self.distance_marginalization:
             log_l_tc_array = self.distance_marginalized_likelihood(
@@ -819,9 +822,9 @@ class GravitationalWaveTransient(Likelihood):
                 d_inner_h=d_inner_h_tc_array,
                 h_inner_h=h_inner_h)
         elif self.calibration_marginalization:
-            log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h[:, np.newaxis] / 2
+            log_l_tc_array = d_inner_h_tc_array.real - h_inner_h[:, np.newaxis] / 2
         else:
-            log_l_tc_array = np.real(d_inner_h_tc_array) - h_inner_h / 2
+            log_l_tc_array = d_inner_h_tc_array.real - h_inner_h / 2
         return logsumexp(log_l_tc_array, b=time_prior_array, axis=-1)
 
     def get_calibration_log_likelihoods(self, signal_polarizations=None, parameters=None):
