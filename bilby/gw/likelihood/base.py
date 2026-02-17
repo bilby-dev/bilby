@@ -298,7 +298,7 @@ class GravitationalWaveTransient(Likelihood):
         optimal_snr_squared_array = None
 
         normalization = 4 / self.waveform_generator.duration
-        xp = signal.__array_namespace__()
+        xp = aac.array_namespace(signal)
 
         if return_array is False:
             d_inner_h_array = None
