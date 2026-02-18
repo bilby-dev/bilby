@@ -4,6 +4,11 @@ import numpy as np
 import scipy.interpolate as si
 from skimage import io
 
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
+
 
 class Likelihood(bilby.core.likelihood.Likelihood):
     def __init__(self, interp):
