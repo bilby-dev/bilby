@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import sys
 import threading
 import time
 from signal import SIGINT
@@ -18,7 +17,6 @@ import numpy as np
 
 _sampler_kwargs = dict(
     bilby_mcmc=dict(nsamples=200, printdt=1),
-    cpnest=dict(nlive=100),
     dynesty=dict(nlive=10, sample="acceptance-walk", nact=5, proposals=["diff"]),
     dynamic_dynesty=dict(
         nlive_init=10,
@@ -29,33 +27,12 @@ _sampler_kwargs = dict(
         sample="act-walk",
     ),
     emcee=dict(iterations=1000, nwalkers=10),
-    kombine=dict(iterations=200, nwalkers=10, autoburnin=False),
-    nessai=dict(
-        nlive=100,
-        poolsize=100,
-        max_iteration=500,
-    ),
-    nestle=dict(nlive=100),
-    ptemcee=dict(
-        nsamples=100,
-        nwalkers=50,
-        burn_in_act=1,
-        ntemps=1,
-        frac_threshold=0.5,
-    ),
-    PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
-    pymc=dict(draws=50, tune=50, n_init=250),
-    pymultinest=dict(nlive=100),
-    ultranest=dict(nlive=100, temporary_directory=False),
-    zeus=dict(nwalkers=10, iterations=100)
 )
 
 sampler_imports = dict(
     bilby_mcmc="bilby",
     dynamic_dynesty="dynesty"
 )
-
-no_pool_test = ["pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
 
 loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
 
@@ -119,8 +96,6 @@ class TestRunningSamplers(unittest.TestCase):
 
     def _run_sampler(self, sampler, pool_size, **extra_kwargs):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
-        if pool_size > 1 and sampler.lower() in no_pool_test:
-            pytest.skip(f"{sampler} cannot be parallelized")
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
         kwargs = _sampler_kwargs[sampler]
         res = bilby.run_sampler(
@@ -147,10 +122,6 @@ class TestRunningSamplers(unittest.TestCase):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
         if loaded_samplers[sampler.lower()].hard_exit:
             pytest.skip(f"{sampler} hard exits, can't test signal handling.")
-        if pool_size > 1 and sampler.lower() in no_pool_test:
-            pytest.skip(f"{sampler} cannot be parallelized")
-        if sys.version_info.minor == 8 and sampler.lower == "cpnest":
-            pytest.skip("Pool interrupting broken for cpnest with py3.8")
         pid = os.getpid()
         print(sampler)
 
