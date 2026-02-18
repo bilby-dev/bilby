@@ -43,6 +43,7 @@ jobs:
       run: |
         # activate env so that conda list shows the correct environment
         source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
+        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
         python -m pip install .
         python -m pip install git+https://github.com/joshspeagle/dynesty@master
         conda list --show-channel-urls

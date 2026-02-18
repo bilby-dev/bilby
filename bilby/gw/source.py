@@ -517,9 +517,10 @@ def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
         The lal waveform dictionary. This is either taken from the waveform_kwargs or created
         internally.
     """
+    import lal
     import lalsimulation as lalsim
-    from lal import CreateDict
-    waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', CreateDict())
+    waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', lal.CreateDict())
+
     waveform_kwargs["TidalLambda1"] = lambda_1
     waveform_kwargs["TidalLambda2"] = lambda_2
     waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_file", None)
