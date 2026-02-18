@@ -44,7 +44,7 @@ class BaseCBCResultTest(unittest.TestCase):
         self.result = bilby.gw.result.CBCResult(
             label="label",
             outdir=self.outdir,
-            sampler="nestle",
+            sampler="emcee",
             search_parameter_keys=list(priors.keys()),
             fixed_parameter_keys=list(),
             priors=priors,
