@@ -4,9 +4,8 @@ from shutil import copyfile
 
 import numpy as np
 
-from .base_sampler import SamplerError, signal_wrapper
+from .base_sampler import LikePriorEvaluator, SamplerError, signal_wrapper
 from .emcee import Emcee
-from .ptemcee import LikePriorEvaluator
 
 _evaluator = LikePriorEvaluator()
 

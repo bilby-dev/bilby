@@ -3,9 +3,8 @@ import os
 import numpy as np
 
 from ..utils import logger
-from .base_sampler import signal_wrapper
+from .base_sampler import LikePriorEvaluator, signal_wrapper
 from .emcee import Emcee
-from .ptemcee import LikePriorEvaluator
 
 _evaluator = LikePriorEvaluator()
 
