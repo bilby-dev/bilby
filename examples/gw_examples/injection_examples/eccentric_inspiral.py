@@ -12,6 +12,12 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
+if "pymultinest" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "pymultinest is required to run this example. See pymultinest-bilby for installation instructions:"
+        "https://github.com/bilby-dev/pymultinest-bilby"
+    )
+
 # Sets bilby's random number generator seed to ensure reproducibility
 seed(123)
 
