@@ -3,7 +3,7 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "sampler_name", bilby.core.sampler.IMPLEMENTED_SAMPLERS.keys()
+    "sampler_name", bilby.core.sampler.IMPLEMENTED_SAMPLERS.native_keys()
 )
 def test_sampler_import(sampler_name):
     """
