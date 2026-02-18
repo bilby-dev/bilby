@@ -33,8 +33,8 @@ jobs:
       - name: install
         run: |
           conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
+          python -m pip install docs/requirements.txt
           python -m pip install .
-          python -m pip install sphinx-sitemap
       - name: Run jupyter notebooks
         run: |
           python -m ipykernel install

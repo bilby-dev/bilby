@@ -64,7 +64,7 @@ extensions = [
     'nbsphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
-    'sphinx_tabs.tabs',
+    'sphinx_design',
     "sphinx.ext.linkcode",
     'myst_parser',
     "sphinx_sitemap",
