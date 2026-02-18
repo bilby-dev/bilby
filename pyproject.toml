@@ -134,7 +134,6 @@ dependencies = {file = ["requirements.txt"]}
 all = {file = [
   "gw_requirements.txt",
   "mcmc_requirements.txt",
-  "sampler_requirements.txt",
   "optional_requirements.txt"
 ]}
 gw = {file = ["gw_requirements.txt"]}
