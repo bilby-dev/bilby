@@ -50,34 +50,50 @@ recommended for direct use by the user, rather it should be accessed via the
 :code:`run_sampler`.
 
 ---------------
-Nested Samplers
+Native Samplers
 ---------------
 
-Native
-======
-
-- Dynesty: :code:`bilby.core.sampler.dynesty.Dynesty`
-- Nestle :code:`bilby.core.sampler.nestle.Nestle`
-- CPNest :code:`bilby.core.sampler.cpnest.Cpnest`
-- PyMultiNest :code:`bilby.core.sampler.pymultinest.Pymultinest`
-- UltraNest :code:`bilby.core.sampler.ultranest.Ultranest`
-
-External
-========
-
-- DNest4 :code:`dnest4-bilby`
-- Nessai :code:`nessai-bilby`
-- PyPolyChord :code:`pypolychord-bilby`
-
--------------
-MCMC samplers
--------------
+:code:`bilby` includes several samplers by default:
 
 - bilby-mcmc :code:`bilby.bilby_mcmc.sampler.Bilby_MCMC`
+- dynesty: :code:`bilby.core.sampler.dynesty.Dynesty`
 - emcee :code:`bilby.core.sampler.emcee.Emcee`
-- ptemcee :code:`bilby.core.sampler.ptemcee.Ptemcee`
-- pymc :code:`bilby.core.sampler.pymc.Pymc`
-- zeus :code:`bilby.core.sampler.zeus.Zeus`
+
+-----------------
+External Samplers
+-----------------
+
+In addition to the samplers listed above, :code:`bilby` supports a wide range
+of external samplers provided by various plugins.
+
+If your favourite sampler is missing, please open a PR to add it to the list.
+
+MCMC Samplers
+=============
+
+- kombine: https://github.com/bilby-dev/kombine-bilby
+- numypyro: https://github.com/ColmTalbot/bilby-numpyro
+- PTMCMCSampler: https://github.com/bilby-dev/ptmcmsampler-bilby
+- ptemcee: https://github.com/bilby-dev/ptemcee-bilby
+- pymc: https://github.com/bilby-dev/pymc-bilby
+- zeus: https://github.com/bilby-dev/zeus-bilby
+
+Nested Samplers
+===============
+
+- cpnest: https://github.com/bilby-dev/cpnest-bilby
+- dnest4: https://github.com/bilby-dev/dnest4-bilby
+- nestle: https://github.com/bilby-dev/nestle-bilby
+- nessai: https://github.com/bilby-dev/nessai-bilby
+- pymultinest: https://github.com/bilby-dev/pymultinest-bilby
+- pypolychord: https://github.com/bilby-dev/pypolychord-bilby
+- ultranest: https://github.com/bilby-dev/ultranest-bilby
+
+Sequential Monte Carlo Samplers
+===============================
+
+- aspire: https://github.com/mj-will/aspire-bilby
+- pocomc: https://github.com/mj-will/pocomc-bilby
 
 --------------------------
 Listing available samplers
@@ -95,89 +111,34 @@ the plugin version. See `sampler plugins`_ for more details.
 Installing samplers
 -------------------
 
-pip-installable samplers
-========================
+Native samplers are installed by default when installing :code:`bilby`.
+External samplers require you to install the corresponding plugin.
 
-Most samplers can be installed using `pip <https://pypi.org/project/pip/>`_
-(see exceptions below). E.g., to install the :code:`emcee`
+Most plugins can be installed from `pip <https://pypi.org/project/pip/>`_ or
+:code:`conda`. For example:
 
-.. code:: console
 
-   $ pip install emcee
+.. tab-set::
 
-If you installed :code:`bilby` from source, then all the samplers can be
-installed using
+   .. tabe-item:: Pip
 
-.. code:: console
+      .. code-block
+         
+         $ pip install nestle-bilby
 
-   $ pip install -r sampler_requirements.txt
+   .. tab-item:: Conda
 
-where the file `sampler_requirements.txt
-<https://github.com/bilby-dev/bilby/blob/main/sampler_requirements.txt>`_ can
-be found in the at the top-level of `the repository
-<https://github.com/bilby-dev/bilby>`_ (Note: if you installed from pip, you
-can simply download that file and use the command above).
+      .. code-block
 
-.. note::
+         $ conda install conda-forge::nestle-bilby
 
-   Some samplers are being migrated to use sampler plugins and may require an
-   additional step, see `migrating to sampler plugins`_.
 
-Installing PyPolyChord
-======================
+Once the plugin is installed, the sampler can be by specfiying, for example, :code:`sampler="nestle"`.
 
-If you want to use the `PyPolyChord` sampler, you first need the
-PolyChord library to be installed to work properly. An image of PolyChord can be found on github.
-Clone the following repository onto your system. Navigate to the folder you want to install PolyChord in and run:
-
-.. code-block:: console
-
-   $ git clone https://github.com/PolyChord/PolyChordLite.git
-
-Then navigate into the PolyChord directory and install PolyChord/PyPolyChord with
-
-.. code-block:: console
-
-   $ make pypolychord MPI=
-   $ python setup.py install --user
-
-Add a number after `MPI=` to compile with `MPI`. Leave it like it is if you don't wish to compile with MPI.
-
-Installing pymultinest
-======================
-
-If you want to use the `pymultinest` sampler, you first need the
-MultiNest library to be installed to work properly. The full instructions can
-be found here: https://johannesbuchner.github.io/PyMultiNest/install.html. Here
-is a shortened version:
-
-First, install the dependencies (for Ubuntu/Linux):
-
-.. code-block:: console
-
-   $ sudo apt-get install python-{scipy,numpy,matplotlib,progressbar} ipython libblas{3,-dev} liblapack{3,-dev} libatlas{3-base,-dev} cmake build-essential git gfortran
-
-For Mac, the advice in the instructions are "If you google for “MultiNest Mac OSX” or “PyMultiNest Mac OSX” you will find installation instructions".
-
-The following will place a directory `MultiNest` in your :code:`$HOME` directory, if you want
-to place it somewhere, adjust the instructions as such.
-
-.. code-block:: console
-
-   $ git clone https://github.com/JohannesBuchner/MultiNest $HOME
-   $ cd $HOME/MultiNest/build
-   $ cmake ..
-   $ make
-
-Finally, add the libraries to you path. Add this to the `.bashrc` file (
-replacing the path where appropriate)
-
-.. code-block:: console
-
-   $ export LD_LIBRARY_PATH=$HOME/MultiNest/lib:
-
-(you'll need to re-source your `.bashrc` after this, i.e. run `bash`).
-
+.. warning::
+   Some external samplers are only available via :code:`conda` or directly from source.
+   See the installation instructions in the corresponding sampler plugin for more
+   details.
 
 ----------------------------
 Adding new samplers to bilby
