@@ -2119,7 +2119,7 @@ class ResultList(list):
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, corner_labels=None, linestyles=None,
                   fig=None, **kwargs):
-    """ Generate a corner plot overlaying two sets of results
+    """Generate a corner plot overlaying two sets of results
 
     Parameters
     ==========
@@ -2142,7 +2142,10 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         for the keyword `labels` for which you should use the dedicated
         `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
-        ambiguous on such a plot.
+        ambiguous on such a plot. The keyword arguments `contour_kwargs["linestyles"]`,
+        `contour_kwargs['colors']`, `hist_kwargs["linestyle"]`, `color` and
+        `hist_kwargs["color"]` are overwritten with the values provided in the
+        `colours` and `linestyles` inputs or by the default styles.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
@@ -2166,8 +2169,6 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     kwargs['truths'] = None
     if corner_labels is not None:
         kwargs['labels'] = corner_labels
-
-    fig = results[0].plot_corner(fig=fig, save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
@@ -2180,11 +2181,15 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
             linestyle = linestyles[i]
         else:
             linestyle = 'solid'
-        hist_kwargs = kwargs.get('hist_kwargs', dict())
-        hist_kwargs['color'] = c
+        hist_kwargs = kwargs.get("hist_kwargs", dict())
+        contour_kwargs = kwargs.get("contour_kwargs", dict())
+        hist_kwargs["color"] = c
         hist_kwargs["linestyle"] = linestyle
+        contour_kwargs["colors"] = c
+        contour_kwargs["linestyles"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
-        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyles": linestyle}, **kwargs)
+        kwargs["contour_kwargs"] = contour_kwargs
+        fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(mpllines.Line2D([0], [0], color=c, linestyle=linestyle))
         default_labels.append(result.label)

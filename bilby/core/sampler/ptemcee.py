@@ -915,6 +915,8 @@ def check_iteration(
     nsteps_to_check = ci.autocorr_tau * np.max([2 * GRAD_WINDOW_LENGTH, tau_int])
     lower_tau_index = np.max([0, len(tau_list) - nsteps_to_check])
     check_taus = np.array(tau_list[lower_tau_index:])
+    # gradient check requires finite estimates
+    check_taus = check_taus[~np.any(np.isinf(check_taus), axis=1)]
     if not np.any(np.isnan(check_taus)) and check_taus.shape[0] > GRAD_WINDOW_LENGTH:
         gradient_tau = get_max_gradient(
             check_taus, axis=0, window_length=GRAD_WINDOW_LENGTH

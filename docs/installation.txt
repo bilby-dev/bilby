@@ -2,9 +2,9 @@
 Installation
 ============
 
-.. tabs::
+.. tab-set::
 
-   .. tab:: Conda
+   .. tab-item:: Conda
 
       .. code-block:: console
 
@@ -12,7 +12,7 @@ Installation
 
       Supported python versions: 3.10-3.12.
 
-   .. tab:: Pip
+   .. tab-item:: Pip
 
       .. code-block:: console
 
@@ -29,15 +29,15 @@ installed via pip or the appropriate means.
 To install the requirements for running :code:`bilby.gw` for gravitational
 wave inference, please additionally run the following commands.
 
-.. tabs::
+.. tab-set::
 
-   .. tab:: Conda
+   .. tab-item:: Conda
 
       .. code-block:: console
 
           $ conda install -c conda-forge gwpy python-lalsimulation
 
-   .. tab:: Pip
+   .. tab-item:: Pip
 
       .. code-block:: console
 

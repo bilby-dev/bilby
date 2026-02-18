@@ -1007,7 +1007,7 @@ class Dynesty(NestedSampler):
                 fig.savefig(filename)
             except (
                 RuntimeError,
-                np.linalg.linalg.LinAlgError,
+                np.linalg.LinAlgError,
                 ValueError,
                 OverflowError,
             ) as e:
@@ -1033,7 +1033,7 @@ class Dynesty(NestedSampler):
                 fig.savefig(filename)
             except (
                 RuntimeError,
-                np.linalg.linalg.LinAlgError,
+                np.linalg.LinAlgError,
                 ValueError,
                 OverflowError,
             ) as e:
@@ -1055,7 +1055,7 @@ class Dynesty(NestedSampler):
                 plt.savefig(filename)
             except (
                 RuntimeError,
-                np.linalg.linalg.LinAlgError,
+                np.linalg.LinAlgError,
                 ValueError,
                 OverflowError,
             ) as e:

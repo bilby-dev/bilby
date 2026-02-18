@@ -38,6 +38,16 @@ class InterferometerList(list):
                 self.append(ifo)
         self._check_interferometers()
 
+    @property
+    def reference_time(self):
+        return self._reference_time
+
+    @reference_time.setter
+    def reference_time(self, time):
+        self._reference_time = time
+        for ifo in self:
+            ifo.reference_time = time
+
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
 
@@ -358,6 +368,8 @@ class TriangularInterferometer(InterferometerList):
         if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
             maximum_frequency = [maximum_frequency] * 3
 
+        brng = 90 - xarm_azimuth
+
         for ii in range(3):
             self.append(
                 Interferometer(
@@ -376,29 +388,23 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
+            phi1 = np.radians(latitude)
+            phi2 = np.arcsin(
+                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth) +
+                np.cos(phi1) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(np.radians(brng))
+            )
+            latitude = np.degrees(phi2)
+
+            lam1 = np.radians(longitude)
+            lam2 = lam1 + np.arctan2(
+                np.sin(np.radians(brng)) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(phi1),
+                np.cos(length * 1e3 / utils.radius_of_earth) - np.sin(phi1) * np.sin(phi2)
+            )
+            longitude = np.degrees(lam2)
+
+            brng += 240
             xarm_azimuth += 240
             yarm_azimuth += 240
-
-            latitude += (
-                np.arctan(
-                    length
-                    * np.sin(xarm_azimuth * np.pi / 180)
-                    * 1e3
-                    / utils.radius_of_earth
-                )
-                * 180
-                / np.pi
-            )
-            longitude += (
-                np.arctan(
-                    length
-                    * np.cos(xarm_azimuth * np.pi / 180)
-                    * 1e3
-                    / utils.radius_of_earth
-                )
-                * 180
-                / np.pi
-            )
 
 
 def get_empty_interferometer(name):

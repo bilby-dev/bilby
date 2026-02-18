@@ -261,6 +261,20 @@ class WaveformGenerator(object):
                                  'model must be provided.')
         return set(utils.infer_parameters_from_function(model))
 
+    @property
+    def meta_data(self):
+        """
+        Dictionary of metadata associated with the waveform generator.
+
+        Subclasses can override this property to include additional
+        constructor parameters needed to recreate the waveform generator.
+
+        Returns
+        =======
+        dict: Dictionary of waveform generator metadata (empty for base class)
+        """
+        return dict()
+
 
 class LALCBCWaveformGenerator(WaveformGenerator):
     """ A waveform generator with specific checks for LAL CBC waveforms """
@@ -356,11 +370,19 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
         return (
             f"{self.__class__.__name__}(duration={self.duration}, "
-            f"sampling_frequency={self.duration}, start_time={self.start_time}, "
+            f"sampling_frequency={self.sampling_frequency}, start_time={self.start_time}, "
             f"parameter_conversion={param_conv_name}, "
             f"waveform_arguments={self.waveform_arguments}, "
             f"spinning={self.spinning}, eccentric={self.eccentric}, tidal={self.tidal}"
             ")"
+        )
+
+    @property
+    def meta_data(self):
+        return dict(
+            spinning=self.spinning,
+            eccentric=self.eccentric,
+            tidal=self.tidal,
         )
 
     @property

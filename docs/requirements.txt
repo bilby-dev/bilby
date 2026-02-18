@@ -1,6 +1,7 @@
 html5lib==1.0b8  # Hack to ensure documentation generated
-sphinx
-sphinx_tabs
+sphinx<9  # needed for sphinx_rtd_theme<3.1
+sphinx-design
+sphinx-sitemap
 numpydoc
 nbsphinx
 autodoc

@@ -7,11 +7,10 @@ one can modify for the study of injected CBC events.
 This will take many hours to run.
 """
 import bilby
-import numpy as np
-from bilby.core.utils.random import seed
+from bilby.core.utils import random
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
@@ -77,32 +76,28 @@ ifos.inject_signal(
     waveform_generator=waveform_generator, parameters=injection_parameters
 )
 
-# For this analysis, we implement the standard BBH priors defined, except for
-# the definition of the time prior, which is defined as uniform about the
-# injected value.
-# We change the mass boundaries to be more targeted for the source we
-# injected.
-# We define priors in the time at the Hanford interferometer and two
-# parameters (zenith, azimuth) defining the sky position wrt the two
-# interferometers.
-priors = bilby.gw.prior.BBHPriorDict()
-
 time_delay = ifos[0].time_delay_from_geocenter(
     injection_parameters["ra"],
     injection_parameters["dec"],
     injection_parameters["geocent_time"],
 )
+
+injection_parameters["H1_time"] = injection_parameters["geocent_time"] + time_delay
+
+# For this analysis, we implement the standard BBH priors defined, except for
+# the definition of the time prior, which is defined as uniform about the
+# injected value.
+# We change the mass boundaries to be more targeted for the source we
+# injected.
+# We define a prior in the time at the Hanford interferometer
+priors = bilby.gw.prior.BBHPriorDict()
+
 priors["H1_time"] = bilby.core.prior.Uniform(
-    minimum=injection_parameters["geocent_time"] + time_delay - 0.1,
-    maximum=injection_parameters["geocent_time"] + time_delay + 0.1,
+    minimum=injection_parameters["H1_time"] - 0.1,
+    maximum=injection_parameters["H1_time"] + 0.1,
     name="H1_time",
     latex_label="$t_H$",
     unit="$s$",
-)
-del priors["ra"], priors["dec"]
-priors["zenith"] = bilby.core.prior.Sine(latex_label="$\\kappa$")
-priors["azimuth"] = bilby.core.prior.Uniform(
-    minimum=0, maximum=2 * np.pi, latex_label="$\\epsilon$", boundary="periodic"
 )
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
@@ -121,24 +116,24 @@ likelihood = bilby.gw.GravitationalWaveTransient(
 )
 
 # Run sampler. In this case we're going to use the `dynesty` sampler
-# Note that the `walks`, `nact`, and `maxmcmc` parameter are specified
+# Note that the `nlive`, `naccept`, and `sample` parameters are specified
 # to ensure sufficient convergence of the analysis.
-# We set `npool=4` to parallelize the analysis over four cores.
+# We set `npool=16` to parallelize the analysis over 16 cores.
 # The conversion function will determine the distance posterior in post processing
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
     sampler="dynesty",
     nlive=1000,
-    walks=20,
-    nact=50,
-    maxmcmc=2000,
-    npool=4,
+    naccept=60,
+    sample="acceptance-walk",
+    npool=16,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
     conversion_function=bilby.gw.conversion.generate_all_bbh_parameters,
     result_class=bilby.gw.result.CBCResult,
+    rstate=random.rng,
 )
 
 # Plot the inferred waveform superposed on the actual data.
