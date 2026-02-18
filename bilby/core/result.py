@@ -242,11 +242,11 @@ def get_weights_for_reweighting(
     def eval_pool(this_logl):
         from .utils.parallel import bilby_pool
 
-        chunksize = max(100, n // (2 * npool))
         with bilby_pool(likelihood=this_logl, npool=npool) as my_pool:
             if my_pool is None:
                 map_fn = map
             else:
+                chunksize = max(100, n // (2 * npool))
                 map_fn = partial(my_pool.imap, chunksize=chunksize)
             likelihood_fn = partial(_safe_likelihood_call, this_logl)
 
