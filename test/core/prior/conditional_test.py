@@ -3,9 +3,11 @@ import shutil
 import unittest
 from unittest import mock
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 import pickle
+import pytest
 
 import bilby
 
@@ -172,6 +174,8 @@ class TestConditionalPrior(unittest.TestCase):
         self.assertIsNone(prior.boundary)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestConditionalPriorDict(unittest.TestCase):
     def setUp(self):
         def condition_func_1(reference_parameters, var_0):
@@ -208,7 +212,12 @@ class TestConditionalPriorDict(unittest.TestCase):
         self.conditional_priors_manually_set_items = (
             bilby.core.prior.ConditionalPriorDict()
         )
-        self.test_sample = dict(var_0=0.7, var_1=0.6, var_2=0.5, var_3=0.4)
+        self.test_sample = dict(
+            var_0=self.xp.asarray(0.7),
+            var_1=self.xp.asarray(0.6),
+            var_2=self.xp.asarray(0.5),
+            var_3=self.xp.asarray(0.4),
+        )
         self.test_value = 1 / np.prod([self.test_sample[f"var_{ii}"] for ii in range(3)])
         for key, value in dict(
             var_0=self.prior_0,
@@ -260,12 +269,14 @@ class TestConditionalPriorDict(unittest.TestCase):
         )
 
     def test_prob(self):
-        self.assertEqual(self.test_value, self.conditional_priors.prob(sample=self.test_sample))
+        prob = self.conditional_priors.prob(sample=self.test_sample)
+        self.assertEqual(self.test_value, prob)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
 
     def test_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
-            self.conditional_priors.prob(sample=self.test_sample)
+            self.conditional_priors.prob(sample=self.test_sample, xp=self.xp)
 
     def test_ln_prob(self):
         self.assertEqual(np.log(self.test_value), self.conditional_priors.ln_prob(sample=self.test_sample))
@@ -324,7 +335,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         expected = [self.test_sample["var_0"]]
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        self.assertListEqual(expected, res)
+        np.testing.assert_array_equal(expected, res)
 
     def test_rescale_with_joint_prior(self):
         """
@@ -349,19 +360,20 @@ class TestConditionalPriorDict(unittest.TestCase):
             )
         )
 
-        ref_variables = list(self.test_sample.values()) + [0.4, 0.1]
-        keys = list(self.test_sample.keys()) + names
+        ref_variables = list(self.test_sample.values())
+        ref_variables = ref_variables[:2] + [0.1] + ref_variables[2:] + [0.4]
+        keys = list(self.test_sample.keys())
+        keys = keys[:2] + ["mvgvar_0"] + keys[2:] + ["mvgvar_1"]
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
-        self.assertIsInstance(res, list)
         self.assertEqual(np.shape(res), (6,))
-        self.assertListEqual([isinstance(r, float) for r in res], 6 * [True])
+        self.assertEqual(aac.get_namespace(res), self.xp)
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        self.assertListEqual(expected, res[0:4])
+        np.testing.assert_array_equal(expected, list(res)[:2] + list(res)[3:5])
 
     def test_cdf(self):
         """
@@ -370,11 +382,11 @@ class TestConditionalPriorDict(unittest.TestCase):
         Note that the format of inputs/outputs is different between the two methods.
         """
         sample = self.conditional_priors.sample()
-        self.assertEqual(
+        np.testing.assert_array_equal(
             self.conditional_priors.rescale(
                 sample.keys(),
                 self.conditional_priors.cdf(sample=sample).values()
-            ), list(sample.values())
+            ), np.array(list(sample.values()))
         )
 
     def test_rescale_illegal_conditions(self):
@@ -446,6 +458,8 @@ class TestConditionalPriorDict(unittest.TestCase):
             prior.sample_subset(["tp"], 1000)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestDirichletPrior(unittest.TestCase):
 
     def setUp(self):
@@ -454,6 +468,10 @@ class TestDirichletPrior(unittest.TestCase):
     def tearDown(self):
         if os.path.isdir("priors"):
             shutil.rmtree("priors")
+
+    def test_samples_correct_type(self):
+        samples = self.priors.sample(10, xp=self.xp)
+        self.assertEqual(aac.get_namespace(samples["dirichlet_1"]), self.xp)
 
     def test_samples_sum_to_less_than_one(self):
         """

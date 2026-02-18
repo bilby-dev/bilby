@@ -1,10 +1,12 @@
 import math
 
+import array_api_compat as aac
 import numpy as np
-from scipy.interpolate import interp1d, RectBivariateSpline
-from scipy.special import logsumexp
+from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 
 from .log import logger
+from ...compat.patches import logsumexp
+from ...compat.utils import array_module, xp_wrap
 
 
 def derivatives(
@@ -152,7 +154,8 @@ def derivatives(
     return grads
 
 
-def logtrapzexp(lnf, dx):
+@xp_wrap
+def logtrapzexp(lnf, dx, *, xp=np):
     """
     Perform trapezium rule integration for the logarithm of a function on a grid.
 
@@ -171,22 +174,45 @@ def logtrapzexp(lnf, dx):
 
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
-    if isinstance(dx, (int, float)):
-        C = np.log(dx / 2.0)
-    elif isinstance(dx, (list, np.ndarray)):
-        if len(dx) != len(lnf) - 1:
-            raise ValueError(
-                "Step size array must have length one less than the function length"
-            )
 
-        lndx = np.log(dx)
-        lnfdx1 = lnfdx1.copy() + lndx
-        lnfdx2 = lnfdx2.copy() + lndx
-        C = -np.log(2.0)
-    else:
-        raise TypeError("Step size must be a single value or array-like")
+    try:
+        dx = xp.asarray(dx)
+    except TypeError:
+        raise TypeError(f"Step size dx={dx} could not be converted to an array")
 
-    return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
+    if dx.ndim > 0 and len(dx) != len(lnf) - 1:
+        raise ValueError(
+            "Step size array must have length one less than the function length"
+        )
+    lnfdx1 = lnfdx1 + xp.log(dx)
+    lnfdx2 = lnfdx2 + xp.log(dx)
+
+    return logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)])) - np.log(2)
+
+
+class interp1d(_interp1d):
+
+    def __call__(self, x):
+        from array_api_compat import is_numpy_namespace
+
+        xp = array_module(x)
+        if is_numpy_namespace(xp):
+            return super().__call__(x)
+        else:
+            return self._call_alt(x, xp=xp)
+
+    def _call_alt(self, x, *, xp=np):
+        if isinstance(self.fill_value, tuple):
+            left, right = self.fill_value
+        else:
+            left = right = self.fill_value
+        return xp.interp(
+            x,
+            xp.asarray(self.x),
+            xp.asarray(self.y),
+            left=left,
+            right=right,
+        )
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
@@ -202,9 +228,23 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         if self.y_max is None:
             self.y_max = max(y)
         self.fill_value = fill_value
+        self.x = x
+        self.y = y
+        self.z = z
         super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
     def __call__(self, x, y, dx=0, dy=0, grid=False):
+        xp = array_module([x, y])
+        if aac.is_numpy_namespace(xp):
+            return self._call_scipy(x, y, dx=dx, dy=dy, grid=grid)
+        elif aac.is_jax_namespace(xp):
+            return self._call_jax(x, y)
+        else:
+            raise NotImplementedError(
+                f"BoundedRectBivariateSpline not implemented for {xp.__name__} backend"
+            )
+
+    def _call_scipy(self, x, y, dx=0, dy=0, grid=False):
         result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
@@ -217,6 +257,20 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
                 return result.item()
         else:
             return result
+
+    def _call_jax(self, x, y):
+        import jax.numpy as jnp
+        from interpax import interp2d
+
+        return interp2d(
+            jnp.asarray(x),
+            jnp.asarray(y),
+            jnp.asarray(self.x),
+            jnp.asarray(self.y),
+            jnp.asarray(self.z),
+            extrap=self.fill_value if self.fill_value is not None else False,
+            method="cubic2",
+        )
 
 
 class WrappedInterp1d(interp1d):

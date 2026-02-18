@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..compat.utils import array_module
 from ..core import utils
 from ..core.utils import logger
 from .conversion import bilby_to_lalsimulation_spins
@@ -618,13 +619,14 @@ def _base_lal_cbc_fd_waveform(
                         (frequency_array <= maximum_frequency))
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
-    mass_1 = mass_1 * utils.solar_mass
-    mass_2 = mass_2 * utils.solar_mass
 
     iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
         theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
         phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
         reference_frequency=reference_frequency, phase=phase)
+
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
@@ -1188,20 +1190,22 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     dict:
         Dictionary containing the plus and cross components of the strain.
     """
-    tau = Q / (np.sqrt(2.0) * np.pi * frequency)
-    temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
+    xp = array_module(frequency_array)
+    tau = Q / (2.0**0.5 * np.pi * frequency)
+    temp = Q / (4.0 * np.pi**0.5 * frequency)
     fm = frequency_array - frequency
     fp = frequency_array + frequency
 
-    h_plus = ((hrss / np.sqrt(temp * (1 + np.exp(-Q**2)))) *
-              ((np.sqrt(np.pi) * tau) / 2.0) *
-              (np.exp(-fm**2 * np.pi**2 * tau**2) +
-              np.exp(-fp**2 * np.pi**2 * tau**2)))
+    negative_term = xp.exp(-fm**2 * np.pi**2 * tau**2)
+    positive_term = xp.exp(-fp**2 * np.pi**2 * tau**2)
 
-    h_cross = (-1j * (hrss / np.sqrt(temp * (1 - np.exp(-Q**2)))) *
-               ((np.sqrt(np.pi) * tau) / 2.0) *
-               (np.exp(-fm**2 * np.pi**2 * tau**2) -
-               np.exp(-fp**2 * np.pi**2 * tau**2)))
+    h_plus = hrss * np.pi**0.5 * tau / 2 * (
+        negative_term + positive_term
+    ) / (temp * (1 + xp.exp(-Q**2)))**0.5
+
+    h_cross = -1j * hrss * np.pi**0.5 * tau / 2 * (
+        negative_term - positive_term
+    ) / (temp * (1 - xp.exp(-Q**2)))**0.5
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -1284,12 +1288,13 @@ def supernova_pca_model(
     dict:
         The plus and cross polarizations of the signal
     """
+    xp = array_module(frequency_array)
 
     principal_components = kwargs["realPCs"] + 1j * kwargs["imagPCs"]
     coefficients = [pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5]
 
-    strain = np.sum(
-        [coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)],
+    strain = xp.sum(
+        xp.asarray([coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)]),
         axis=0
     )
 
