@@ -25,7 +25,7 @@ def create_pool(
     use_ratio: bool, None
         Whether to evaluate the log_likelihood_ratio
     search_parameter_keys: list[str], None
-        The names fo parameters being sampled over
+        The names for parameters being sampled over
     npool: int, None
         The number of processes to use for multiprocessing.
         If a user pool is not provided and this is either :code:`1` or :code:`None`,
@@ -141,7 +141,7 @@ def bilby_pool(
     use_ratio: bool, None
         Whether to evaluate the log_likelihood_ratio
     search_parameter_keys: list[str], None
-        The names fo parameters being sampled over
+        The names for parameters being sampled over
     npool: int, None
         The number of processes to use for multiprocessing.
         If a user pool is not provided and this is either :code:`1` or :code:`None`,
