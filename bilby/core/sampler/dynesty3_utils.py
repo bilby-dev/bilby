@@ -1,4 +1,3 @@
-import os
 import warnings
 from collections import namedtuple
 
@@ -337,12 +336,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     def sample(args):
         cache = ACTTrackingEnsembleWalk._cache
         if args.kwargs.get("rebuild", False):
-            logger.debug(
-                f"Force rebuilding cache with {len(cache)} remaining on {os.getpid()}"
-            )
+            logger.debug(f"Force rebuilding cache with {len(cache)}.")
             cache.clear()
         if len(cache) == 0:
-            logger.debug(f"Rebuilding cache on {os.getpid()}")
             ACTTrackingEnsembleWalk.build_cache(args)
 
         while len(cache) > 0 and cache[0][2] < args.loglstar:
