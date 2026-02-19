@@ -18,6 +18,7 @@ from ..utils import (
     safe_file_dump,
 )
 from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
+from . import dynesty_utils
 
 
 def _set_sampling_kwargs(args):
@@ -280,8 +281,6 @@ class Dynesty(NestedSampler):
             maxmcmc=self.maxmcmc,
         )
 
-        from . import dynesty_utils
-
         if kwargs["sample"] == "act-walk":
             internal_kwargs["nact"] = self.nact
             internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
@@ -326,7 +325,7 @@ class Dynesty(NestedSampler):
             bound = kwargs["bound"]
         kwargs["sample"] = internal_sampler
         kwargs["bound"] = bound
-    return kwargs
+        return kwargs
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
