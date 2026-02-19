@@ -360,13 +360,16 @@ class TestMarginalizations(unittest.TestCase):
         like = cls_(**kwargs)
         if kind == "roq" and not os.path.exists(self.__class__.path_to_roq_weights):
             like.save_weights(self.__class__.path_to_roq_weights)
+
+        parameters = self.parameters.copy()
         if time_marginalization:
-            self.parameters["geocent_time"] = self.interferometers.start_time
+            parameters["geocent_time"] = self.interferometers.start_time
         if distance_marginalization:
-            self.parameters["luminosity_distance"] = like._ref_dist
+            parameters["luminosity_distance"] = like._ref_dist
         if phase_marginalization:
-            self.parameters["phase"] = 0.0
-        return like
+            parameters["phase"] = 0.0
+
+        return like, parameters
 
     def _template(self, marginalized, non_marginalized, key, prior=None, values=None):
         if prior is None:
@@ -375,16 +378,18 @@ class TestMarginalizations(unittest.TestCase):
             values = np.linspace(prior.minimum, prior.maximum, 1000)
         prior_values = prior.prob(values)
         ln_likes = np.empty(values.shape)
-        parameters = self.parameters.copy()
+
+        non_marginalized, parameters = non_marginalized
         for ii, value in enumerate(values):
             parameters[key] = value
             ln_likes[ii] = non_marginalized.log_likelihood_ratio(parameters)
         like = np.exp(ln_likes - max(ln_likes))
 
+        marginalized, parameters = marginalized
+        ln_like = marginalized.log_likelihood_ratio(parameters)
+
         marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
-        self.assertAlmostEqual(
-            marg_like, marginalized.log_likelihood_ratio(self.parameters), delta=0.5
-        )
+        self.assertAlmostEqual(marg_like, ln_like, delta=0.5)
 
     @parameterized.expand(
         _parameters,
@@ -449,21 +454,17 @@ class TestMarginalizations(unittest.TestCase):
             luminosity_distance=distance,
             phase=phase,
         )
-        like = self.get_likelihood(
+        like, params = self.get_likelihood(
             kind=kind,
             distance_marginalization=distance,
             time_marginalization=time,
             phase_marginalization=phase,
         )
-        params = self.parameters.copy()
         reference_values = dict(
             luminosity_distance=self.priors["luminosity_distance"].rescale(0.5),
             geocent_time=self.interferometers.start_time,
             phase=0.0,
         )
-        for key in marginalizations:
-            if marginalizations[key]:
-                params[key] = reference_values[key]
         output = like.generate_posterior_sample_from_marginalized_likelihood(params)
         for key in marginalizations:
             self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
