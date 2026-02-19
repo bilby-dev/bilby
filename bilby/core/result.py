@@ -7,7 +7,6 @@ from copy import copy
 from importlib import import_module
 from itertools import product
 import multiprocessing
-from functools import partial
 import numpy as np
 import pandas as pd
 import scipy.stats
