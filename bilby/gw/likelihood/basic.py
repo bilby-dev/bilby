@@ -25,7 +25,7 @@ class BasicGravitationalWaveTransient(Likelihood):
             given some set of parameters
 
         """
-        super(BasicGravitationalWaveTransient, self).__init__(dict())
+        super(BasicGravitationalWaveTransient, self).__init__()
         self.interferometers = interferometers
         self.waveform_generator = waveform_generator
 
@@ -64,7 +64,7 @@ class BasicGravitationalWaveTransient(Likelihood):
             return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
             log_l += self.log_likelihood_interferometer(
-                waveform_polarizations, interferometer)
+                waveform_polarizations, interferometer, parameters=parameters)
         return log_l.real
 
     def log_likelihood_interferometer(self, waveform_polarizations,

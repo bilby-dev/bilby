@@ -360,14 +360,16 @@ class TestMarginalizations(unittest.TestCase):
         like = cls_(**kwargs)
         if kind == "roq" and not os.path.exists(self.__class__.path_to_roq_weights):
             like.save_weights(self.__class__.path_to_roq_weights)
-        like.parameters = self.parameters.copy()
+
+        parameters = self.parameters.copy()
         if time_marginalization:
-            like.parameters["geocent_time"] = self.interferometers.start_time
+            parameters["geocent_time"] = self.interferometers.start_time
         if distance_marginalization:
-            like.parameters["luminosity_distance"] = like._ref_dist
+            parameters["luminosity_distance"] = like._ref_dist
         if phase_marginalization:
-            like.parameters["phase"] = 0.0
-        return like
+            parameters["phase"] = 0.0
+
+        return like, parameters
 
     def _template(self, marginalized, non_marginalized, key, prior=None, values=None):
         if prior is None:
@@ -376,15 +378,18 @@ class TestMarginalizations(unittest.TestCase):
             values = np.linspace(prior.minimum, prior.maximum, 1000)
         prior_values = prior.prob(values)
         ln_likes = np.empty(values.shape)
+
+        non_marginalized, parameters = non_marginalized
         for ii, value in enumerate(values):
-            non_marginalized.parameters[key] = value
-            ln_likes[ii] = non_marginalized.log_likelihood_ratio()
+            parameters[key] = value
+            ln_likes[ii] = non_marginalized.log_likelihood_ratio(parameters)
         like = np.exp(ln_likes - max(ln_likes))
 
+        marginalized, parameters = marginalized
+        ln_like = marginalized.log_likelihood_ratio(parameters)
+
         marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
-        self.assertAlmostEqual(
-            marg_like, marginalized.log_likelihood_ratio(), delta=0.5
-        )
+        self.assertAlmostEqual(marg_like, ln_like, delta=0.5)
 
     @parameterized.expand(
         _parameters,
@@ -449,21 +454,17 @@ class TestMarginalizations(unittest.TestCase):
             luminosity_distance=distance,
             phase=phase,
         )
-        like = self.get_likelihood(
+        like, params = self.get_likelihood(
             kind=kind,
             distance_marginalization=distance,
             time_marginalization=time,
             phase_marginalization=phase,
         )
-        params = self.parameters.copy()
         reference_values = dict(
             luminosity_distance=self.priors["luminosity_distance"].rescale(0.5),
             geocent_time=self.interferometers.start_time,
             phase=0.0,
         )
-        for key in marginalizations:
-            if marginalizations[key]:
-                params[key] = reference_values[key]
         output = like.generate_posterior_sample_from_marginalized_likelihood(params)
         for key in marginalizations:
             self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
@@ -539,38 +540,5 @@ class CalibrationMarginalization(unittest.TestCase):
                 parameters[name] = value[ii]
             parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
             non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio(parameters))
-        non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
-        self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)
-
-    @parameterized.expand(["no_time", "time"])
-    def test_calibration_marginalization_state(self, time):
-        marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=deepcopy(self.ifos),
-            waveform_generator=self.wfg,
-            priors=deepcopy(self.priors),
-            calibration_marginalization=True,
-            time_marginalization=time == "time",
-            number_of_response_curves=100,
-            jitter_time=False,
-        )
-        non_marginalized = bilby.gw.likelihood.GravitationalWaveTransient(
-            interferometers=deepcopy(self.ifos),
-            waveform_generator=self.wfg,
-            priors=deepcopy(self.priors),
-            calibration_marginalization=False,
-            time_marginalization=time == "time",
-            jitter_time=False,
-        )
-        parameters = self.priors.sample()
-        marginalized.parameters.update(parameters)
-        non_marginalized.parameters.update(parameters)
-        marg_ln_l = marginalized.log_likelihood_ratio()
-        non_marg_ln_ls = list()
-        draws = marginalized.calibration_parameter_draws
-        for ii in range(100):
-            for name, value in draws["H1"].items():
-                non_marginalized.parameters[name] = value[ii]
-            non_marginalized.parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
-            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio())
         non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
         self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)

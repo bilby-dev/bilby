@@ -1186,14 +1186,15 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         for interferometer in self.interferometers:
             snrs += self.calculate_snrs(
                 waveform_polarizations=signal_polarizations,
-                interferometer=interferometer
+                interferometer=interferometer,
+                parameters=parameters,
             )
         d_inner_h = snrs.d_inner_h_array
         h_inner_h = snrs.optimal_snr_squared
 
         if self.distance_marginalization:
             time_log_like = self.distance_marginalized_likelihood(
-                d_inner_h, h_inner_h)
+                d_inner_h, h_inner_h, parameters=parameters)
         elif self.phase_marginalization:
             time_log_like = ln_i0(abs(d_inner_h)) - h_inner_h.real / 2
         else:

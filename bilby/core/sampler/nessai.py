@@ -33,7 +33,7 @@ class Nessai(NestedSampler):
 
     msg = (
         "The nessai sampler interface in bilby is deprecated and will"
-        " be removed in future release. Please use the `nessai-bilby`"
+        " be removed in Bilby version 3. Please use the `nessai-bilby`"
         "sampler plugin instead: https://github.com/bilby-dev/nessai-bilby."
     )
     warnings.warn(msg, FutureWarning)

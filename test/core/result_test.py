@@ -574,10 +574,10 @@ class TestResult(unittest.TestCase):
 
         class SimpleLikelihood(bilby.Likelihood):
             def __init__(self):
-                super().__init__(parameters={"x": None})
+                super().__init__()
 
-            def log_likelihood(self):
-                return -self.parameters["x"]**2
+            def log_likelihood(self, parameters):
+                return -parameters["x"]**2
 
         likelihood = SimpleLikelihood()
         priors = dict(x=bilby.core.prior.Uniform(-5, 5, "x"))
@@ -858,13 +858,13 @@ class SimpleGaussianLikelihood(bilby.core.likelihood.Likelihood):
         A very simple Gaussian likelihood for testing
         """
         from scipy.stats import norm
-        super().__init__(parameters=dict())
+        super().__init__()
         self.mean = mean
         self.sigma = sigma
         self.dist = norm(loc=mean, scale=sigma)
 
-    def log_likelihood(self):
-        return self.dist.logpdf(self.parameters["mu"])
+    def log_likelihood(self, parameters):
+        return self.dist.logpdf(parameters["mu"])
 
 
 class TestReweight(unittest.TestCase):
@@ -884,9 +884,8 @@ class TestReweight(unittest.TestCase):
         likelihood_1 = SimpleGaussianLikelihood()
         likelihood_2 = SimpleGaussianLikelihood(sigma=sigma)
         original_ln_likelihoods = list()
-        for ii in range(len(self.result.posterior)):
-            likelihood_1.parameters = self.result.posterior.iloc[ii]
-            original_ln_likelihoods.append(likelihood_1.log_likelihood())
+        for params in self.result.posterior.to_dict(orient="records"):
+            original_ln_likelihoods.append(likelihood_1.log_likelihood(params))
         self.result.posterior["log_prior"] = self.priors.ln_prob(self.result.posterior)
         self.result.posterior["log_likelihood"] = original_ln_likelihoods
         self.original_ln_likelihoods = original_ln_likelihoods
