@@ -1,3 +1,4 @@
+import os
 import warnings
 from collections import namedtuple
 
@@ -336,18 +337,22 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     def sample(args):
         cache = ACTTrackingEnsembleWalk._cache
         if args.kwargs.get("rebuild", False):
-            logger.debug(f"Force rebuilding cache with {len(cache)} remaining")
-            ACTTrackingEnsembleWalk._cache = list()
+            logger.debug(
+                f"Force rebuilding cache with {len(cache)} remaining on {os.getpid()}"
+            )
+            cache.clear()
+        if len(cache) == 0:
+            logger.debug(f"Rebuilding cache on {os.getpid()}")
             ACTTrackingEnsembleWalk.build_cache(args)
-            cache = ACTTrackingEnsembleWalk._cache
-        elif len(cache) == 0:
-            ACTTrackingEnsembleWalk.build_cache(args)
+
         while len(cache) > 0 and cache[0][2] < args.loglstar:
             state = cache.pop(0)
+
         if len(cache) == 0:
             current_u, current_v, logl, ncall, blob, evaluation_history = state
         else:
             current_u, current_v, logl, ncall, blob, evaluation_history = cache.pop(0)
+
         blob["remaining"] = len(cache)
         logger.debug(f"Returning point from cache with {len(cache)} remaining")
         return SamplerReturn(
@@ -359,8 +364,6 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             proposal_stats=blob,
             evaluation_history=evaluation_history,
         )
-
-        # return current_u, current_v, logl, ncall, blob
 
     @staticmethod
     def build_cache(args):
