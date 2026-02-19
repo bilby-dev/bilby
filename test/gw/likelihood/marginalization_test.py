@@ -360,13 +360,12 @@ class TestMarginalizations(unittest.TestCase):
         like = cls_(**kwargs)
         if kind == "roq" and not os.path.exists(self.__class__.path_to_roq_weights):
             like.save_weights(self.__class__.path_to_roq_weights)
-        like.parameters = self.parameters.copy()
         if time_marginalization:
-            like.parameters["geocent_time"] = self.interferometers.start_time
+            self.parameters["geocent_time"] = self.interferometers.start_time
         if distance_marginalization:
-            like.parameters["luminosity_distance"] = like._ref_dist
+            self.parameters["luminosity_distance"] = like._ref_dist
         if phase_marginalization:
-            like.parameters["phase"] = 0.0
+            self.parameters["phase"] = 0.0
         return like
 
     def _template(self, marginalized, non_marginalized, key, prior=None, values=None):
