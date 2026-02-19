@@ -1,13 +1,10 @@
 import copy
-import inspect
-import os
-import warnings
 
 import numpy as np
 from scipy.special import gammaln, xlogy
 from scipy.stats import multivariate_normal
 
-from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args, logger
+from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args
 
 
 class Likelihood:
