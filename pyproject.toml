@@ -33,22 +33,10 @@ requires-python = ">=3.10"
 
 [project.entry-points."bilby.samplers"]
 "bilby.bilby_mcmc" = "bilby.bilby_mcmc.sampler:Bilby_MCMC"
-"bilby.cpnest" = "bilby.core.sampler.cpnest:Cpnest"
-"bilby.dnest4" = "bilby.core.sampler.dnest4:DNest4"
 "bilby.dynamic_dynesty" = "bilby.core.sampler.dynamic_dynesty:DynamicDynesty"
 "bilby.dynesty" = "bilby.core.sampler.dynesty:Dynesty"
 "bilby.emcee" = "bilby.core.sampler.emcee:Emcee"
 "bilby.fake_sampler" = "bilby.core.sampler.fake_sampler:FakeSampler"
-"bilby.kombine" = "bilby.core.sampler.kombine:Kombine"
-"bilby.nessai" = "bilby.core.sampler.nessai:Nessai"
-"bilby.nestle" = "bilby.core.sampler.nestle:Nestle"
-"bilby.ptemcee" = "bilby.core.sampler.ptemcee:Ptemcee"
-"bilby.ptmcmcsampler" = "bilby.core.sampler.ptmcmc:PTMCMCSampler"
-"bilby.pymc" = "bilby.core.sampler.pymc:Pymc"
-"bilby.pymultinest" = "bilby.core.sampler.pymultinest:Pymultinest"
-"bilby.pypolychord" = "bilby.core.sampler.polychord:PyPolyChord"
-"bilby.ultranest" = "bilby.core.sampler.ultranest:Ultranest"
-"bilby.zeus" = "bilby.core.sampler.zeus:Zeus"
 
 [project.scripts]
 bilby_plot = "cli_bilby.plot_multiple_posteriors:main"
@@ -134,7 +122,6 @@ dependencies = {file = ["requirements.txt"]}
 all = {file = [
   "gw_requirements.txt",
   "mcmc_requirements.txt",
-  "sampler_requirements.txt",
   "optional_requirements.txt"
 ]}
 gw = {file = ["gw_requirements.txt"]}

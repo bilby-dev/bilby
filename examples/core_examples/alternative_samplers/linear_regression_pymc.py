@@ -11,6 +11,12 @@ import numpy as np
 from bilby.core.likelihood import GaussianLikelihood
 from bilby.core.utils import random
 
+if "pymc" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "pymc is required to run this example. Install with `pip install pymc-bilby`"
+    )
+
+
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
 
