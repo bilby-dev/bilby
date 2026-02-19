@@ -5,7 +5,6 @@ from .base import GravitationalWaveTransient
 from ...core.utils import (
     logger, create_frequency_series, speed_of_light, radius_of_earth
 )
-from ...core.likelihood import _fallback_to_parameters
 from ..prior import CBCPriorDict
 from ..utils import ln_i0
 
@@ -39,8 +38,8 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     roq_scale_factor: float
         The ROQ scale factor used.
     parameter_conversion: func, optional
-        Function to update self.parameters before bases are selected based on
-        the values of self.parameters. This enables a user to switch bases
+        Function to update parameters before bases are selected based on
+        the values of parameters. This enables a user to switch bases
         based on the values of parameters which are not directly used for
         sampling.
     priors: dict, bilby.prior.PriorDict
@@ -371,7 +370,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             dict((param_name, prior_ranges[param_name][idxs_in_prior_range])
                  for param_name in param_names)
 
-    def _update_basis(self, parameters=None):
+    def _update_basis(self, parameters):
         """
         Update basis and frequency nodes depending on the curret values of parameters
 
@@ -380,7 +379,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         - frequency_nodes_linear/quadratic in self._waveform_generator.waveform_arguments
 
         """
-        parameters = _fallback_to_parameters(self, parameters).copy()
+        parameters = parameters.copy()
         if self.parameter_conversion is not None:
             parameters = self.parameter_conversion(parameters)
         if self._cache["parameters"] == parameters:
@@ -432,11 +431,11 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     def waveform_generator(self, waveform_generator):
         self._waveform_generator = waveform_generator
 
-    def log_likelihood_ratio(self, parameters=None):
+    def log_likelihood_ratio(self, parameters):
         self._update_basis(parameters)
         return super().log_likelihood_ratio(parameters=parameters)
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
+    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
         """
         Compute the snrs for ROQ
 
@@ -446,7 +445,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         interferometer: bilby.gw.detector.Interferometer
 
         """
-        parameters = _fallback_to_parameters(self, parameters)
         self._update_basis(parameters)
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
@@ -1172,10 +1170,9 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             for mode in signal[kind]:
                 signal[kind][mode] *= self._ref_dist / new_distance
 
-    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, parameters=None):
+    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, *, parameters):
         from ...core.utils import random
 
-        parameters = _fallback_to_parameters(self, parameters)
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         if signal_polarizations is None:
             signal_polarizations = \
