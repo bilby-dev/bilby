@@ -75,7 +75,7 @@ class GaussianLikelihoodPyMC(bilby.core.likelihood.GaussianLikelihood):
         """
         super(GaussianLikelihoodPyMC, self).__init__(x=x, y=y, func=func, sigma=sigma)
 
-    def log_likelihood(self, sampler=None, parameters=None):
+    def log_likelihood(self, sampler=None, *, parameters):
         """
         Parameters
         ----------
