@@ -44,7 +44,7 @@ dependencies:
   - nbsphinx
   - sphinx_rtd_theme
   - sphinx-design
-  - dynesty
+  - dynesty>=3.0.0
   - emcee
   - nestle
   - ptemcee

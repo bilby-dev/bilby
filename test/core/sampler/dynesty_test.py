@@ -7,20 +7,10 @@ import bilby
 import bilby.core.sampler.dynesty
 import numpy as np
 import parameterized
-import pytest
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
 
-
-try:
-    import dynesty.internal_samplers  # noqa
-    from bilby.core.sampler import dynesty3_utils as dynesty_utils  # noqa
-
-    NEW_DYNESTY_API = True
-except ImportError:
-    from bilby.core.sampler import dynesty_utils  # noqa
-
-    NEW_DYNESTY_API = False
+from bilby.core.sampler import dynesty_utils
 
 
 @define
@@ -70,27 +60,25 @@ class TestDynesty(unittest.TestCase):
             skip_import_verification=True,
             **kwargs,
         )
-        if NEW_DYNESTY_API:
-            bilby.core.sampler.base_sampler._initialize_global_variables(
-                self.likelihood,
-                self.priors,
-                self.priors.keys(),
-                False,
-                self.priors.sample(),
-            )
-            self.dysampler = self.sampler.sampler_init(
-                loglikelihood=bilby.core.sampler.dynesty._log_likelihood_wrapper,
-                prior_transform=bilby.core.sampler.dynesty._prior_transform_wrapper,
-                ndim=self.sampler.ndim,
-                **self.sampler.sampler_init_kwargs,
-            )
+        bilby.core.sampler.base_sampler._initialize_global_variables(
+            self.likelihood,
+            self.priors,
+            self.priors.keys(),
+            False,
+            self.priors.sample(),
+        )
+        self.dysampler = self.sampler.sampler_init(
+            loglikelihood=bilby.core.sampler.dynesty._log_likelihood_wrapper,
+            prior_transform=bilby.core.sampler.dynesty._prior_transform_wrapper,
+            ndim=self.sampler.ndim,
+            **self.sampler.sampler_init_kwargs,
+        )
 
     def tearDown(self):
         del self.likelihood
         del self.priors
         del self.sampler
-        if NEW_DYNESTY_API:
-            del self.dysampler
+        del self.dysampler
 
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
@@ -121,58 +109,39 @@ class TestDynesty(unittest.TestCase):
         self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
         self.init_sampler()
-        if NEW_DYNESTY_API:
-            self.assertEqual(
-                [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
-            )
-            self.assertEqual(
-                [1, 3],
-                self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
-            )
-        else:
-            self.assertEqual([0, 4], self.sampler.kwargs["periodic"])
-            self.assertEqual([1, 3], self.sampler.kwargs["reflective"])
+        self.assertEqual(
+            [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
+        )
+        self.assertEqual(
+            [1, 3],
+            self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
+        )
 
     def test_sampler_kwargs_act(self):
         self.init_sampler(sample="act-walk", nact=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next,
-                dynesty_utils.ACTTrackingEnsembleWalk,
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.thin, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200 * 50)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "act-walk")
-            self.assertEqual(self.sampler.nact, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next,
+            dynesty_utils.ACTTrackingEnsembleWalk,
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.thin, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200 * 50)
 
     def test_sampler_kwargs_rwalk(self):
         self.init_sampler(sample="rwalk", nact=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next,
-                dynesty_utils.AcceptanceTrackingRWalk,
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.nact, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "rwalk")
-            self.assertEqual(self.sampler.nact, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next,
+            dynesty_utils.AcceptanceTrackingRWalk,
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.nact, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
 
     def test_sampler_kwargs_acceptance_walk(self):
         self.init_sampler(sample="acceptance-walk", naccept=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "acceptance-walk")
-            self.assertEqual(self.sampler.naccept, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
 
     def test_run_test_runs(self):
         self.sampler._run_test()
@@ -282,12 +251,7 @@ class ProposalsTest(unittest.TestCase):
         )
 
     def test_get_proposal_kwargs_diff(self):
-        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
-        if NEW_DYNESTY_API:
-            args.kwargs["proposals"] = ["diff"]
-            args.kwargs["ncdim"] = 2
-        else:
-            dynesty_utils._SamplingContainer.proposals = ["diff"]
+        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4, proposals=["diff"], ncdim=2)
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
@@ -299,12 +263,9 @@ class ProposalsTest(unittest.TestCase):
         self.assertDictEqual(specific, dict(diff=dict(mix=0.5, scale=1.19)))
 
     def test_get_proposal_kwargs_volumetric(self):
-        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
-        if NEW_DYNESTY_API:
-            args.kwargs["proposals"] = ["volumetric"]
-            args.live_points = np.zeros((2, 2))
-        else:
-            dynesty_utils._SamplingContainer.proposals = ["volumetric"]
+        args = Dummy(
+            u=-np.ones(4), axes=np.zeros((2, 2)), scale=4, proposals=["volumetric"], live_points=np.zeros(2, 2)
+        )
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
@@ -315,22 +276,6 @@ class ProposalsTest(unittest.TestCase):
             specific, dict(volumetric=dict(axes=args.axes, scale=args.scale))
         )
 
-    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
-    def test_proposal_functions_run_old(self):
-        args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
-        args.kwargs["live"][0] += 1
-        for proposals in [
-            ["diff"],
-            ["volumetric"],
-            ["diff", "volumetric"],
-            {"diff": 5, "volumetric": 1},
-        ]:
-            dynesty_utils._SamplingContainer.proposals = proposals
-            dynesty_utils.FixedRWalk()(args)
-            dynesty_utils.AcceptanceTrackingRWalk()(args)
-            dynesty_utils.ACTTrackingRWalk()(args)
-
-    @pytest.mark.skipif(not NEW_DYNESTY_API, reason="Invalid for old dynesty API")
     def test_proposal_functions_run_new(self):
         args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
         args.live_points[0] += 1
@@ -346,69 +291,6 @@ class ProposalsTest(unittest.TestCase):
             dynesty_utils.EnsembleWalkSampler().sample(args)
             dynesty_utils.AcceptanceTrackingRWalk().sample(args)
             dynesty_utils.ACTTrackingEnsembleWalk().sample(args)
-
-
-@pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
-@parameterized.parameterized_class(("kind",), [("live",), ("live-multi",)])
-class TestCustomSampler(unittest.TestCase):
-    def setUp(self):
-        if self.kind == "live":
-            cls = dynesty_utils.LivePointSampler
-        elif self.kind == "live-multi":
-            cls = dynesty_utils.MultiEllipsoidLivePointSampler
-        else:
-            raise ValueError(f"Unknown sampler class {self.kind}")
-
-        self.sampler = cls(
-            loglikelihood=lambda x: 1,
-            prior_transform=lambda x: x,
-            ndim=4,
-            live_points=(np.zeros((1000, 4)), np.zeros((1000, 4)), np.zeros(1000)),
-            update_interval=None,
-            first_update=dict(),
-            queue_size=1,
-            pool=None,
-            use_pool=dict(),
-            ncdim=2,
-            method="rwalk",
-            rstate=np.random.default_rng(1234),
-            kwargs=dict(walks=100),
-        )
-        self.blob = dict(accept=5, reject=35, scale=1)
-
-    def tearDown(self):
-        dynesty_utils._SamplingContainer.proposals = None
-
-    def test_update_with_update(self):
-        """
-        If there is only one element left in the cache for ACT tracking we
-        need to add the flag to rebuild the cache. After rebuilding, this is
-        then reset to False.
-        """
-        self.sampler.rebuild = False
-        self.blob["remaining"] = 1
-        self.sampler.update_user(blob=self.blob, update=True)
-        self.assertEqual(self.sampler.kwargs["rebuild"], True)
-        self.blob["remaining"] = 2
-        self.sampler.update_user(blob=self.blob, update=True)
-        self.assertEqual(self.sampler.kwargs["rebuild"], False)
-
-    def test_diff_update(self):
-        """
-        Sampler updates do different things depending on whether ellipsoid
-        bounding is used. For the `live-multi` case we reproduce the dynesty
-        behaviour. For the `live` case, we overwrite the scale attribute to
-        store acceptance information.
-        """
-        dynesty_utils._SamplingContainer.proposals = ["diff"]
-        dynesty_utils._SamplingContainer.maxmcmc = 10000
-        dynesty_utils._SamplingContainer.naccept = 10
-        self.sampler.update_user(blob=self.blob, update=False)
-        if self.kind == "live":
-            self.assertEqual(self.sampler.scale, self.blob["accept"])
-        else:
-            self.assertEqual(self.sampler.scale, self.blob["scale"])
-        self.assertEqual(self.sampler.walks, 101)
 
 
 class TestEstimateNMCMC(unittest.TestCase):
