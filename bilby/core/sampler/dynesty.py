@@ -17,8 +17,8 @@ from ..utils import (
     logger,
     safe_file_dump,
 )
-from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
 from . import dynesty_utils
+from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
 
 
 def _set_sampling_kwargs(args):
@@ -283,9 +283,7 @@ class Dynesty(NestedSampler):
 
         if kwargs["sample"] == "act-walk":
             internal_kwargs["nact"] = self.nact
-            internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
-                **internal_kwargs
-            )
+            internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(**internal_kwargs)
             bound = "none"
             logger.info(
                 f"Using the bilby-implemented ensemble rwalk sampling tracking the "
@@ -304,9 +302,7 @@ class Dynesty(NestedSampler):
             )
         elif kwargs["sample"] == "rwalk":
             internal_kwargs["nact"] = self.nact
-            internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(
-                **internal_kwargs
-            )
+            internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(**internal_kwargs)
             bound = "none"
             logger.info(
                 f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
