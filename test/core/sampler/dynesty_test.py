@@ -7,9 +7,10 @@ import bilby
 import bilby.core.sampler.dynesty
 import numpy as np
 import parameterized
-import pytest
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+
+from . import dynesty_utils
 
 
 @define
