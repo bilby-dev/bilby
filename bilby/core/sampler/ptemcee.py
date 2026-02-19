@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import trapezoid
 
-from ..likelihood import _safe_likelihood_call
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
 from .base_sampler import LikePriorEvaluator, MCMCSampler, SamplerError, signal_wrapper
 
@@ -348,7 +347,7 @@ class Ptemcee(MCMCSampler):
             try:
                 parameters = copy.copy(draw)
                 parameters.update({key: val for key, val in zip(minimize_list, params)})
-                return -_safe_likelihood_call(likelihood_copy, parameters)
+                return -likelihood_copy.log_likelihood(parameters)
             except RuntimeError:
                 return +np.inf
 
