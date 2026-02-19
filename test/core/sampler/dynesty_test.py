@@ -10,7 +10,7 @@ import parameterized
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
 
-from . import dynesty_utils
+from bilby.core.sampler import dynesty_utils
 
 
 @define
