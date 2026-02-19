@@ -9,7 +9,6 @@ from copy import deepcopy
 import numpy as np
 from pandas import DataFrame
 
-from ..likelihood import _safe_likelihood_call
 from ..result import rejection_sample
 from ..utils import (
     check_directory_exists_and_if_not_mkdir,
@@ -41,28 +40,16 @@ def _log_likelihood_wrapper(theta):
     """Wrapper to the log likelihood. Needed for multiprocessing."""
     from .base_sampler import _sampling_convenience_dump
 
-    if _sampling_convenience_dump.priors.evaluate_constraints(
-        {
-            key: theta[ii]
-            for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
-        }
-    ):
-        params = deepcopy(_sampling_convenience_dump.parameters)
-        params.update(
-            {
-                key: t
-                for key, t in zip(
-                    _sampling_convenience_dump.search_parameter_keys, theta
-                )
-            }
-        )
-        return _safe_likelihood_call(
-            _sampling_convenience_dump.likelihood,
-            params,
-            _sampling_convenience_dump.use_ratio,
-        )
-    else:
+    keys = _sampling_convenience_dump.search_parameter_keys
+    sampling_params = {key: t for key, t in zip(keys, theta)}
+    params = deepcopy(_sampling_convenience_dump.parameters)
+    params.update(sampling_params)
+    if not _sampling_convenience_dump.priors.evaluate_constraints(sampling_params):
         return np.nan_to_num(-np.inf)
+    elif _sampling_convenience_dump.use_ratio:
+        return _sampling_convenience_dump.likelihood.log_likelihood_ratio(params)
+    else:
+        return _sampling_convenience_dump.likelihood.log_likelihood(params)
 
 
 class Dynesty(NestedSampler):

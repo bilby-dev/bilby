@@ -8,7 +8,6 @@ from ..likelihood import (
     GaussianLikelihood,
     PoissonLikelihood,
     StudentTLikelihood,
-    _safe_likelihood_call,
 )
 from ..prior import Cosine, DeltaFunction, MultivariateGaussian, PowerLaw, Sine
 from ..utils import derivatives, infer_args_from_method
@@ -837,9 +836,7 @@ class Pymc(MCMCSampler):
                 for i, key in enumerate(self.parameters):
                     self.parameters[key] = theta[i]
 
-                logl = _safe_likelihood_call(
-                    self.likelihood.log_likelihood, self.parameters
-                )
+                logl = self.likelihood.log_likelihood(self.parameters)
                 outputs[0][0] = np.array(logl)
 
             def grad(self, inputs, g):
@@ -870,9 +867,7 @@ class Pymc(MCMCSampler):
                 def lnlike(values):
                     for i, key in enumerate(self.parameters):
                         self.parameters[key] = values[i]
-                    return _safe_likelihood_call(
-                        self.likelihood.log_likelihood, self.parameters
-                    )
+                    return self.likelihood.log_likelihood(self.parameters)
 
                 # calculate gradients
                 grads = derivatives(

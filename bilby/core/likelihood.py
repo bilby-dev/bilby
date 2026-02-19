@@ -1,94 +1,15 @@
 import copy
-import inspect
-import os
-import warnings
 
 import numpy as np
 from scipy.special import gammaln, xlogy
 from scipy.stats import multivariate_normal
 
-from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args, logger
-
-PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "WARN")
-for msg in [
-    "No parameters provided in likelihood call",
-    "Using parameters as state",
-    "Parameter attribute queried",
-    "Settings non-trivial"
-]:
-    warnings.filterwarnings("once", message=msg)
-
-
-def set_parameters_as_state(level):
-    global PARAMETERS_AS_STATE
-
-    level = str(level).upper()
-    if level not in ["TRUE", "FALSE", "WARN"]:
-        raise ValueError("Allowed levels for parameters as state are 'TRUE', 'FALSE', and 'WARN'")
-    PARAMETERS_AS_STATE = level
-
-
-def _fallback_to_parameters(obj, parameters):
-
-    if parameters is None:
-        msg = (
-            f"No parameters provided in likelihood call, falling back to values stored in {obj}. "
-            "This is deprecated behaviour  and will be removed in Bilby version 3. "
-            "See https://bilby-dev.github.io/bilby/parameters for more details."
-        )
-        if PARAMETERS_AS_STATE == "FALSE":
-            raise LikelihoodParameterError(msg)
-        elif PARAMETERS_AS_STATE == "WARN":
-            warnings.warn(msg, FutureWarning)
-        else:
-            logger.debug(msg)
-        parameters = copy.deepcopy(obj.parameters)
-
-    return parameters
-
-
-def _safe_likelihood_call(likelihood, parameters=None, use_ratio=False):
-    if use_ratio:
-        method = likelihood.log_likelihood_ratio
-    else:
-        method = likelihood.log_likelihood
-
-    if "parameters" in inspect.signature(method).parameters:
-        logl = method(parameters=parameters)
-    else:
-        if PARAMETERS_AS_STATE == "FALSE":
-            raise LikelihoodParameterError(
-                f"Unable to call {likelihood} with {parameters} as an argument"
-            )
-        elif PARAMETERS_AS_STATE == "WARN":
-            warnings.warn(
-                f"Using parameters as state for {likelihood}. "
-                "This is deprecated behaviour  and will be removed in Bilby version 3. "
-                "See https://bilby-dev.github.io/bilby/parameters for more details.",
-                DeprecationWarning,
-            )
-        likelihood.parameters.update(parameters)
-        logl = method()
-    return logl
+from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args
 
 
 class Likelihood:
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if (
-            "parameters" not in inspect.signature(cls.log_likelihood).parameters
-            or "parameters" not in inspect.signature(cls.log_likelihood_ratio).parameters
-        ):
-            warnings.warn(
-                f"{cls} log_likelihood or log_likelihood_ratio method does not "
-                "accept 'parameters' as an argument. "
-                "This is deprecated behaviour  and will be removed in Bilby version 3. "
-                "See https://bilby-dev.github.io/bilby/parameters for more details.",
-                FutureWarning,
-            )
-
-    def __init__(self, parameters=None):
+    def __init__(self):
         """Empty likelihood class to be subclassed by other likelihoods
 
         Parameters
@@ -96,43 +17,13 @@ class Likelihood:
         parameters: dict
             A dictionary of the parameter names and associated values
         """
-        self.parameters = parameters
         self._meta_data = None
         self._marginalized_parameters = []
-
-    @property
-    def parameters(self):
-        msg = (
-            f"Parameter attribute queried for {self.__class__}. "
-            "This is deprecated behaviour  and will be removed in Bilby version 3. "
-            "See https://bilby-dev.github.io/bilby/parameters for more details."
-        )
-        if PARAMETERS_AS_STATE == "FALSE":
-            raise LikelihoodParameterError(msg)
-        elif PARAMETERS_AS_STATE == "WARN":
-            warnings.warn(msg, FutureWarning)
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, parameters):
-        if parameters is not None:
-            msg = (
-                f"Setting non-trivial parameters for {self.__class__}. "
-                "This is deprecated behaviour  and will be removed in Bilby version 3. "
-                "See https://bilby-dev.github.io/bilby/parameters for more details."
-            )
-            if PARAMETERS_AS_STATE == "FALSE":
-                raise LikelihoodParameterError(msg)
-            elif PARAMETERS_AS_STATE == "WARN":
-                warnings.warn(msg, FutureWarning)
-        else:
-            parameters = dict()
-        self._parameters = parameters
 
     def __repr__(self):
         return self.__class__.__name__
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         """
 
         Returns
@@ -150,20 +41,14 @@ class Likelihood:
         """
         return np.nan
 
-    def log_likelihood_ratio(self, parameters=None):
+    def log_likelihood_ratio(self, parameters):
         """Difference between log likelihood and noise log likelihood
 
         Returns
         =======
         float
         """
-        try:
-            return self.log_likelihood(parameters=parameters) - self.noise_log_likelihood()
-        except TypeError:
-            if PARAMETERS_AS_STATE != "FALSE":
-                return self.log_likelihood() - self.noise_log_likelihood()
-            else:
-                raise
+        return self.log_likelihood(parameters=parameters) - self.noise_log_likelihood()
 
     @property
     def meta_data(self):
@@ -193,10 +78,9 @@ class ZeroLikelihood(Likelihood):
 
     def __init__(self, likelihood):
         super(ZeroLikelihood, self).__init__()
-        self.parameters = likelihood.parameters
         self._parent = likelihood
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         return 0
 
     def noise_log_likelihood(self):
@@ -239,9 +123,8 @@ class Analytical1DLikelihood(Likelihood):
         """ Make func read-only """
         return self._func
 
-    def model_parameters(self, parameters=None):
+    def model_parameters(self, parameters):
         """ This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood) """
-        parameters = _fallback_to_parameters(self, parameters)
         return {key: parameters[key] for key in self.function_keys}
 
     @property
@@ -276,7 +159,7 @@ class Analytical1DLikelihood(Likelihood):
             y = np.array([y])
         self._y = y
 
-    def residual(self, parameters=None):
+    def residual(self, parameters):
         """ Residual of the function against the data. """
         return self.y - self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
 
@@ -307,8 +190,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         super(GaussianLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
         self.sigma = sigma
 
-    def log_likelihood(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def log_likelihood(self, parameters):
         sigma = parameters.get("sigma", self.sigma)
         log_l = np.sum(- (self.residual(parameters) / sigma)**2 / 2 -
                        np.log(2 * np.pi * sigma**2) / 2)
@@ -326,10 +208,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         that if sigma is not in parameters the attribute is used which was
         given at init (i.e. the known sigma as either a float or array).
         """
-        if PARAMETERS_AS_STATE == "FALSE":
-            return self._sigma
-        else:
-            return self.parameters.get('sigma', self._sigma)
+        return self._sigma
 
     @sigma.setter
     def sigma(self, sigma):
@@ -368,7 +247,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
         super(PoissonLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         rate = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
         if not isinstance(rate, np.ndarray):
             raise ValueError(
@@ -419,7 +298,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         """
         super(ExponentialLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         mu = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
         if np.any(mu < 0.):
             return -np.inf
@@ -477,8 +356,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
         self.nu = nu
         self.sigma = sigma
 
-    def log_likelihood(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def log_likelihood(self, parameters):
         nu = parameters.get("nu", self.nu)
         if nu <= 0.:
             raise ValueError("Number of degrees of freedom for Student's "
@@ -506,10 +384,7 @@ class StudentTLikelihood(Analytical1DLikelihood):
         values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
-        if PARAMETERS_AS_STATE == "FALSE":
-            return self._nu
-        else:
-            return self.parameters.get('nu', self._nu)
+        return self._nu
 
     @nu.setter
     def nu(self, nu):
@@ -540,11 +415,10 @@ class Multinomial(Likelihood):
         self.base = base
         self._nll = None
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         """
         Since n - 1 parameters are sampled, the last parameter is 1 - the rest
         """
-        parameters = _fallback_to_parameters(self, parameters)
         probs = [parameters[self.base + str(ii)]
                  for ii in range(self.n - 1)]
         probs.append(1 - sum(probs))
@@ -590,8 +464,7 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
     def dim(self):
         return len(self.cov[0])
 
-    def log_likelihood(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def log_likelihood(self, parameters):
         x = np.array([parameters["x{0}".format(i)] for i in range(self.dim)])
         return self.pdf.logpdf(x)
 
@@ -623,8 +496,7 @@ class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
     def dim(self):
         return len(self.cov[0])
 
-    def log_likelihood(self, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def log_likelihood(self, parameters):
         x = np.array([parameters["x{0}".format(i)] for i in range(self.dim)])
         return -np.log(2) + np.logaddexp(self.pdf_1.logpdf(x), self.pdf_2.logpdf(x))
 
@@ -646,21 +518,7 @@ class JointLikelihood(Likelihood):
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
-        if PARAMETERS_AS_STATE == "FALSE":
-            params = None
-        else:
-            params = dict()
-        super(JointLikelihood, self).__init__(parameters=params)
-        self.__sync_parameters()
-
-    def __sync_parameters(self):
-        """ Synchronizes parameters between the likelihoods
-        so that all likelihoods share a single parameter dict."""
-        if PARAMETERS_AS_STATE != "FALSE":
-            for likelihood in self.likelihoods:
-                self.parameters.update(likelihood.parameters)
-            for likelihood in self.likelihoods:
-                likelihood.parameters = self.parameters
+        super(JointLikelihood, self).__init__()
 
     @property
     def likelihoods(self):
@@ -681,7 +539,7 @@ class JointLikelihood(Likelihood):
         else:
             raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         """ This is just the sum of the log likelihoods of all parts of the joint likelihood"""
         return sum([likelihood.log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
 
@@ -747,11 +605,7 @@ class _GPLikelihood(Likelihood):
         self.GPClass = gp_class
         self.gp = self.GPClass(kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True)
         self.gp.compute(self.t, yerr=self.yerr)
-        if PARAMETERS_AS_STATE == "FALSE":
-            parameters = None
-        else:
-            parameters = self.gp.get_parameter_dict()
-        super().__init__(parameters=parameters)
+        super().__init__()
 
     def set_parameters(self, parameters):
         """
@@ -768,8 +622,6 @@ class _GPLikelihood(Likelihood):
                 self.gp.set_parameter(name=name, value=value)
             except ValueError:
                 pass
-            if PARAMETERS_AS_STATE != "FALSE":
-                self.parameters[name] = value
 
 
 class CeleriteLikelihood(_GPLikelihood):
@@ -797,7 +649,7 @@ class CeleriteLikelihood(_GPLikelihood):
         import celerite
         super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=celerite.GP)
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         """
         Calculate the log-likelihood for the Gaussian process given the current parameters.
 
@@ -805,7 +657,6 @@ class CeleriteLikelihood(_GPLikelihood):
         =======
         float: The log-likelihood value.
         """
-        parameters = _fallback_to_parameters(self, parameters)
         self.gp.set_parameter_vector(vector=np.array(list(parameters.values())))
         try:
             return self.gp.log_likelihood(self.y)
@@ -838,7 +689,7 @@ class GeorgeLikelihood(_GPLikelihood):
         import george
         super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=george.GP)
 
-    def log_likelihood(self, parameters=None):
+    def log_likelihood(self, parameters):
         """
         Calculate the log-likelihood for the Gaussian process given the current parameters.
 
@@ -846,7 +697,6 @@ class GeorgeLikelihood(_GPLikelihood):
         =======
         float: The log-likelihood value.
         """
-        parameters = _fallback_to_parameters(self, parameters)
         for name, value in parameters.items():
             try:
                 self.gp.set_parameter(name=name, value=value)

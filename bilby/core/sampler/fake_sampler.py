@@ -1,6 +1,5 @@
 import numpy as np
 
-from ..likelihood import _safe_likelihood_call
 from ..result import read_in_result
 from .base_sampler import Sampler
 
@@ -77,7 +76,7 @@ class FakeSampler(Sampler):
             sample = posterior.iloc[i]
 
             params = sample.to_dict()
-            logl = _safe_likelihood_call(self.likelihood, params, use_ratio=True)
+            logl = self.likelihood.log_likelihood_ratio(params)
             sample.log_likelihood = logl
             likelihood_ratios.append(logl)
 
