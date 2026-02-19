@@ -42,10 +42,13 @@ specify which method is being used as :code:`"data"` for :math:`\eta` or
 import copy
 import os
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
+from array_api_compat import is_jax_namespace
 from scipy.interpolate import interp1d
 
+from ...compat.utils import array_module, xp_wrap
 from ...core.utils.log import logger
 from ...core.prior.dict import PriorDict
 from ..prior import CalibrationPriorDict
@@ -330,9 +333,11 @@ class CubicSpline(Recalibrate):
 
     def _evaluate_spline(self, kind, a, b, c, d, previous_nodes):
         """Evaluate Eq. (1) in https://dcc.ligo.org/LIGO-T2300140"""
-        parameters = np.array([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
+        xp = array_module(self.params[f"{kind}_0"])
+        parameters = xp.asarray([self.params[f"{kind}_{ii}"] for ii in range(self.n_points)])
         next_nodes = previous_nodes + 1
-        spline_coefficients = self.nodes_to_spline_coefficients.dot(parameters)
+        nodes = xp.asarray(self.nodes_to_spline_coefficients)
+        spline_coefficients = nodes.dot(parameters)
         return (
             a * parameters[previous_nodes]
             + b * parameters[next_nodes]
@@ -340,7 +345,8 @@ class CubicSpline(Recalibrate):
             + d * spline_coefficients[next_nodes]
         )
 
-    def get_calibration_factor(self, frequency_array, **params):
+    @xp_wrap
+    def get_calibration_factor(self, frequency_array, *, xp=np, **params):
         """Apply calibration model
 
         Parameters
@@ -358,10 +364,11 @@ class CubicSpline(Recalibrate):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        log10f_per_deltalog10f = (
-            np.log10(frequency_array) - self.log_spline_points[0]
+        log10f_per_deltalog10f = xp.nan_to_num(
+            xp.log10(frequency_array) - xp.asarray(self.log_spline_points[0]),
+            neginf=0.0,
         ) / self.delta_log_spline_points
-        previous_nodes = np.clip(np.floor(log10f_per_deltalog10f).astype(int), a_min=0, a_max=self.n_points - 2)
+        previous_nodes = xp.clip(xp.astype(log10f_per_deltalog10f, int), min=0, max=self.n_points - 2)
         b = log10f_per_deltalog10f - previous_nodes
         a = 1 - b
         c = (a**3 - a) / 6
@@ -373,7 +380,7 @@ class CubicSpline(Recalibrate):
         delta_phase = self._evaluate_spline("phase", a, b, c, d, previous_nodes)
         calibration_factor = (1 + delta_amplitude) * (2 + 1j * delta_phase) / (2 - 1j * delta_phase)
 
-        return calibration_factor
+        return xp.nan_to_num(calibration_factor)
 
 
 class Precomputed(Recalibrate):
@@ -405,8 +412,21 @@ class Precomputed(Recalibrate):
         idx = int(params.get(self.prefix, None))
         if idx is None:
             raise KeyError(f"Calibration index for {self.label} not found.")
-        if not np.array_equal(frequency_array, self.frequency_array):
-            raise ValueError("Frequency grid passed to calibrator doesn't match.")
+
+        xp = aac.get_namespace(frequency_array)
+        if not xp.array_equal(frequency_array, self.frequency_array):
+            intersection, mask, _ = xp.intersect1d(
+                frequency_array, self.frequency_array, return_indices=True
+            )
+            if len(intersection) != len(self.frequency_array):
+                raise ValueError("Frequency grid passed to calibrator doesn't match.")
+            output = xp.ones_like(frequency_array, dtype=complex)
+            curve = xp.asarray(self.curves[idx])
+            if is_jax_namespace(xp):
+                output = output.at[mask].set(curve)
+            else:
+                output[mask] = curve
+            return output
         return self.curves[idx]
 
     @classmethod

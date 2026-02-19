@@ -1,4 +1,6 @@
-bilby.cython>=0.3.0
+# see https://github.com/data-apis/array-api-compat/pull/341
+array_api_compat>=1.13
+array_api_extra
 dynesty>=2.0.1
 emcee
 corner
@@ -11,4 +13,4 @@ dill
 tqdm
 h5py
 attrs
-importlib-metadata>=3.6; python_version < '3.10'
+plum-dispatch

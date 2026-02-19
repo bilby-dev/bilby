@@ -8,6 +8,7 @@ from importlib import import_module
 from pathlib import Path
 from datetime import timedelta
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 
@@ -59,8 +60,12 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
-        if isinstance(obj, np.ndarray):
-            return {"__array__": True, "content": obj.tolist()}
+        if aac.is_array_api_obj(obj):
+            return {
+                "__array__": True,
+                "__array_namespace__": aac.get_namespace(obj).__name__,
+                "content": obj.tolist(),
+            }
         if isinstance(obj, complex):
             return {"__complex__": True, "real": obj.real, "imag": obj.imag}
         if isinstance(obj, pd.DataFrame):
@@ -320,7 +325,9 @@ def decode_bilby_json(dct):
     if dct.get("__astropy_unit__", False):
         return decode_astropy_unit(dct)
     if dct.get("__array__", False):
-        return np.asarray(dct["content"])
+        namespace = dct.get("__array_namespace__", "numpy")
+        xp = import_module(namespace)
+        return xp.asarray(dct["content"])
     if dct.get("__complex__", False):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
@@ -438,6 +445,10 @@ def encode_for_hdf5(key, item):
         if item.dtype.kind == 'U':
             logger.debug(f'converting dtype {item.dtype} for hdf5')
             item = np.array(item, dtype='S')
+    elif aac.is_array_api_obj(item):
+        # temporarily dump all arrays as numpy arrays, we should figure ou
+        # how to properly deserialize them
+        item = np.asarray(item)
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
     elif isinstance(item, np.random.Generator):
