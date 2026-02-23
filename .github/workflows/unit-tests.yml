@@ -40,6 +40,9 @@ jobs:
           - name: Python 3.12
             version: 3.12
             short-version: 312
+          - name: Python 3.13
+            version: 3.13
+            short-version: 313
 
     steps:
     - uses: actions/checkout@v4
