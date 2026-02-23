@@ -251,7 +251,9 @@ class ProposalsTest(unittest.TestCase):
         )
 
     def test_get_proposal_kwargs_diff(self):
-        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4, proposals=["diff"], ncdim=2)
+        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
+        args.kwargs["proposals"] = ["diff"]
+        args.kwargs["ncdim"] = 2
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
@@ -263,9 +265,9 @@ class ProposalsTest(unittest.TestCase):
         self.assertDictEqual(specific, dict(diff=dict(mix=0.5, scale=1.19)))
 
     def test_get_proposal_kwargs_volumetric(self):
-        args = Dummy(
-            u=-np.ones(4), axes=np.zeros((2, 2)), scale=4, proposals=["volumetric"], live_points=np.zeros(2, 2)
-        )
+        args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
+        args.kwargs["proposals"] = ["volumetric"]
+        args.live_points = np.zeros((2, 2))
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
