@@ -5,6 +5,7 @@ import numbers
 import numpy as np
 
 from .base import GravitationalWaveTransient
+from ...compat.utils import array_module
 from ...core.utils import (
     logger, speed_of_light, solar_mass, radius_of_earth,
     gravitational_constant, round_up_to_power_of_two,
@@ -533,8 +534,10 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         for ifo in self.interferometers:
             logger.info("Pre-computing linear coefficients for {}".format(ifo.name))
             fddata = np.zeros(N // 2 + 1, dtype=complex)
-            fddata[:len(ifo.frequency_domain_strain)][ifo.frequency_mask[:len(fddata)]] += \
+            fddata[:len(ifo.frequency_domain_strain)][ifo.frequency_mask[:len(fddata)]] += np.asarray(
                 ifo.frequency_domain_strain[ifo.frequency_mask] / ifo.power_spectral_density_array[ifo.frequency_mask]
+            )
+
             for b in range(self.number_of_bands):
                 Ks, Ke = self.Ks_Ke[b]
                 windows = self._get_window_sequence(1. / self.durations[b], Ks, Ke - Ks + 1, b)
@@ -551,7 +554,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         linear-interpolation algorithm"""
         logger.info("Linear-interpolation algorithm is used for (h, h).")
         self.quadratic_coeffs = dict((ifo.name, np.array([])) for ifo in self.interferometers)
-        original_duration = self.interferometers.duration
+        original_duration = float(self.interferometers.duration)
 
         for b in range(self.number_of_bands):
             logger.info(f"Pre-computing quadratic coefficients for the {b}-th band")
@@ -575,7 +578,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                     start_idx_in_band + len(window_sequence) - 1,
                     len(ifo.power_spectral_density_array) - 1
                 )
-                _frequency_mask = ifo.frequency_mask[start_idx_in_band:end_idx_in_band + 1]
+                _frequency_mask = np.asarray(ifo.frequency_mask[start_idx_in_band:end_idx_in_band + 1])
                 window_over_psd = np.zeros(end_idx_in_band + 1 - start_idx_in_band)
                 window_over_psd[_frequency_mask] = \
                     1. / ifo.power_spectral_density_array[start_idx_in_band:end_idx_in_band + 1][_frequency_mask]
@@ -710,13 +713,13 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 setattr(self, key, value)
 
     def _setup_time_marginalization_multiband(self):
-        """This overwrites attributes set by _setup_time_marginalization of the base likelihood class"""
+        self._beam_pattern_reference_time = (
+            self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
+        ) / 2
         N = self.Nbs[-1] // 2
         self._delta_tc = self.durations[0] / N
-        self._times = \
-            self.interferometers.start_time + np.arange(N) * self._delta_tc
-        self.time_prior_array = \
-            self.priors['geocent_time'].prob(self._times) * self._delta_tc
+        self._times = self.interferometers.start_time + np.arange(N) * self._delta_tc
+        self.time_prior_array = self.priors['geocent_time'].prob(self._times) * self._delta_tc
         # allocate array which is FFTed at each likelihood evaluation
         self._full_d_h = np.zeros(N, dtype=complex)
         # idxs to convert full frequency points to banded frequency points, used for filling _full_d_h.
@@ -748,7 +751,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         """
         parameters = _fallback_to_parameters(self, parameters)
-
         modes = {
             mode: value[self.unique_to_original_frequencies]
             for mode, value in waveform_polarizations.items()
@@ -757,12 +759,14 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             modes, parameters, frequencies=self.banded_frequency_points
         )
 
-        d_inner_h = np.conj(np.dot(strain, self.linear_coeffs[interferometer.name]))
+        d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conj()
+
+        xp = array_module(strain)
 
         if self.linear_interpolation:
-            optimal_snr_squared = np.vdot(
-                np.real(strain * np.conjugate(strain)),
-                self.quadratic_coeffs[interferometer.name]
+            optimal_snr_squared = xp.vdot(
+                xp.abs(strain)**2,
+                xp.asarray(self.quadratic_coeffs[interferometer.name])
             )
         else:
             optimal_snr_squared = 0.
@@ -771,18 +775,22 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 start_idx, end_idx = self.start_end_idxs[b]
                 Mb = self.Mbs[b]
                 if b == 0:
-                    optimal_snr_squared += (4. / self.interferometers.duration) * np.vdot(
-                        np.real(strain[start_idx:end_idx + 1] * np.conjugate(strain[start_idx:end_idx + 1])),
-                        interferometer.frequency_mask[Ks:Ke + 1] * self.windows[start_idx:end_idx + 1]
+                    optimal_snr_squared += (4. / self.interferometers.duration) * xp.vdot(
+                        xp.abs(strain[start_idx:end_idx + 1])**2,
+                        interferometer.frequency_mask[Ks:Ke + 1] * xp.asarray(self.windows[start_idx:end_idx + 1])
                         / interferometer.power_spectral_density_array[Ks:Ke + 1])
                 else:
                     self.wths[interferometer.name][b][Ks:Ke + 1] = (
-                        self.square_root_windows[start_idx:end_idx + 1] * strain[start_idx:end_idx + 1]
+                        xp.asarray(self.square_root_windows[start_idx:end_idx + 1])
+                        * strain[start_idx:end_idx + 1]
                     )
-                    self.hbcs[interferometer.name][b][-Mb:] = np.fft.irfft(self.wths[interferometer.name][b])
-                    thbc = np.fft.rfft(self.hbcs[interferometer.name][b])
-                    optimal_snr_squared += (4. / self.Tbhats[b]) * np.vdot(
-                        np.real(thbc * np.conjugate(thbc)), self.Ibcs[interferometer.name][b])
+                    self.hbcs[interferometer.name][b][-Mb:] = xp.fft.irfft(
+                        xp.asarray(self.wths[interferometer.name][b])
+                    )
+                    thbc = xp.fft.rfft(xp.asarray(self.hbcs[interferometer.name][b]))
+                    print(self.Ibcs[interferometer.name][b])
+                    optimal_snr_squared += (4. / self.Tbhats[b]) * xp.vdot(
+                        xp.abs(thbc)**2, xp.asarray(self.Ibcs[interferometer.name][b].real))
 
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
@@ -792,7 +800,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 start_idx, end_idx = self.start_end_idxs[b]
                 self._full_d_h[self._full_to_multiband[start_idx:end_idx + 1]] += \
                     strain[start_idx:end_idx + 1] * self.linear_coeffs[interferometer.name][start_idx:end_idx + 1]
-            d_inner_h_array = np.fft.fft(self._full_d_h)
+            d_inner_h_array = xp.fft.fft(self._full_d_h)
         else:
             d_inner_h_array = None
 

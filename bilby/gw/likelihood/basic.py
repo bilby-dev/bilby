@@ -43,10 +43,11 @@ class BasicGravitationalWaveTransient(Likelihood):
         """
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= 2. / self.waveform_generator.duration * np.sum(
-                abs(interferometer.frequency_domain_strain) ** 2 /
-                interferometer.power_spectral_density_array)
-        return log_l.real
+            log_l -= 2. / self.waveform_generator.duration * (
+                abs(interferometer.frequency_domain_strain) ** 2
+                / interferometer.power_spectral_density_array
+            ).sum()
+        return log_l
 
     def log_likelihood(self, parameters=None):
         """ Calculates the real part of log-likelihood value
@@ -87,8 +88,9 @@ class BasicGravitationalWaveTransient(Likelihood):
         signal_ifo = interferometer.get_detector_response(
             waveform_polarizations, parameters)
 
-        log_l = - 2. / self.waveform_generator.duration * np.vdot(
-            interferometer.frequency_domain_strain - signal_ifo,
-            (interferometer.frequency_domain_strain - signal_ifo) /
-            interferometer.power_spectral_density_array)
+        residual = interferometer.frequency_domain_strain - signal_ifo
+
+        log_l = - 2. / self.waveform_generator.duration * (
+            abs(residual)**2 / interferometer.power_spectral_density_array
+        ).sum()
         return log_l.real

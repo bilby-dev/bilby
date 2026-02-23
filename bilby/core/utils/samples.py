@@ -1,3 +1,4 @@
+import array_api_extra as xpx
 import numpy as np
 from scipy.special import logsumexp
 
@@ -135,7 +136,7 @@ def reflect(u):
     u: array-like
        The input array, modified in place.
     """
-    idxs_even = np.mod(u, 2) < 1
-    u[idxs_even] = np.mod(u[idxs_even], 1)
-    u[~idxs_even] = 1 - np.mod(u[~idxs_even], 1)
+    idxs_even = (u % 2) < 1
+    u = xpx.at(u)[idxs_even].set(u[idxs_even] % 1)
+    u = xpx.at(u)[~idxs_even].set(1 - (u[~idxs_even] % 1))
     return u

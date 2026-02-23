@@ -1,8 +1,8 @@
-from numbers import Number
 import numpy as np
 
 from .base import Prior
 from ..utils import logger
+from ...compat.utils import xp_wrap
 
 
 class SlabSpikePrior(Prior):
@@ -72,7 +72,8 @@ class SlabSpikePrior(Prior):
     def _find_inverse_cdf_fraction_before_spike(self):
         return float(self.slab.cdf(self.spike_location)) * self.slab_fraction
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 
@@ -85,28 +86,22 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Associated prior value with input value.
         """
-        original_is_number = isinstance(val, Number)
-        val = np.atleast_1d(val)
-
         lower_indices = val < self.inverse_cdf_below_spike
-        intermediate_indices = np.logical_and(
-            self.inverse_cdf_below_spike <= val,
-            val <= (self.inverse_cdf_below_spike + self.spike_height))
-        higher_indices = val > (self.inverse_cdf_below_spike + self.spike_height)
+        higher_indices = val >= (self.inverse_cdf_below_spike + self.spike_height)
 
-        res = np.zeros(len(val))
-        res[lower_indices] = self._contracted_rescale(val[lower_indices])
-        res[intermediate_indices] = self.spike_location
-        res[higher_indices] = self._contracted_rescale(val[higher_indices] - self.spike_height)
-        if original_is_number:
-            try:
-                res = res[0]
-            except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+        slab_scaled = self._contracted_rescale(
+            val - self.spike_height * higher_indices, xp=xp
+        )
+
+        res = xp.where(
+            lower_indices | higher_indices,
+            slab_scaled,
+            xp.asarray(self.spike_location),
+        )
         return res
 
-    def _contracted_rescale(self, val):
+    @xp_wrap
+    def _contracted_rescale(self, val, *, xp=None):
         """
         Contracted version of the rescale function that implements the `rescale` function
         on the pure slab part of the prior.
@@ -120,9 +115,10 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Associated prior value with input value.
         """
-        return self.slab.rescale(val / self.slab_fraction)
+        return self.slab.rescale(val / self.slab_fraction, xp=xp)
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val.
         Returns np.inf for the spike location
 
@@ -134,19 +130,13 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Prior probability of val
         """
-        original_is_number = isinstance(val, Number)
         res = self.slab.prob(val) * self.slab_fraction
-        res = np.atleast_1d(res)
-        res[val == self.spike_location] = np.inf
-        if original_is_number:
-            try:
-                res = res[0]
-            except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+        with np.errstate(invalid="ignore"):
+            res += xp.nan_to_num(xp.inf * (val == self.spike_location), posinf=xp.inf)
         return res
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=None):
         """Return the Log prior probability of val.
         Returns np.inf for the spike location
 
@@ -158,19 +148,13 @@ class SlabSpikePrior(Prior):
         =======
         array_like: Prior probability of val
         """
-        original_is_number = isinstance(val, Number)
         res = self.slab.ln_prob(val) + np.log(self.slab_fraction)
-        res = np.atleast_1d(res)
-        res[val == self.spike_location] = np.inf
-        if original_is_number:
-            try:
-                res = res[0]
-            except (KeyError, TypeError):
-                logger.warning("Based on inputs, a number should be output\
-                               but this could not be accessed from what was computed")
+        with np.errstate(divide="ignore"):
+            res += xp.nan_to_num(xp.inf * (val == self.spike_location), posinf=xp.inf)
         return res
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
         """ Return the CDF of the prior.
         This calls to the slab CDF and adds a discrete step
         at the spike location.
@@ -184,6 +168,6 @@ class SlabSpikePrior(Prior):
         array_like: CDF value of val
 
         """
-        res = self.slab.cdf(val) * self.slab_fraction
-        res += self.spike_height * (val > self.spike_location)
+        res = self.slab.cdf(val, xp=xp) * self.slab_fraction
+        res += (val > self.spike_location) * self.spike_height
         return res
