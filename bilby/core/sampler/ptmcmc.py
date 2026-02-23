@@ -1,5 +1,6 @@
 import glob
 import shutil
+import warnings
 
 import numpy as np
 
@@ -40,6 +41,13 @@ class PTMCMCSampler(MCMCSampler):
         Update current run-status to the screen
 
     """
+
+    msg = (
+        "The PTMCMC sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `ptmcmc-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/ptmcmc-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "ptmcmcsampler"
     abbreviation = "ptmcmc_temp"

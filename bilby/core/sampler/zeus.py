@@ -1,12 +1,12 @@
 import os
 import shutil
+import warnings
 from shutil import copyfile
 
 import numpy as np
 
-from .base_sampler import SamplerError, signal_wrapper
+from .base_sampler import LikePriorEvaluator, SamplerError, signal_wrapper
 from .emcee import Emcee
-from .ptemcee import LikePriorEvaluator
 
 _evaluator = LikePriorEvaluator()
 
@@ -37,6 +37,13 @@ class Zeus(Emcee):
         The number of autocorrelation times to discard as burn-in
 
     """
+
+    msg = (
+        "The Zeus sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `zeus-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/zeus-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "zeus"
     default_kwargs = dict(

@@ -1106,3 +1106,81 @@ class IllegalSamplingSetError(Error):
 
 class SamplingMarginalisedParameterError(IllegalSamplingSetError):
     """Class for errors that occur when sampling over marginalized parameters"""
+
+
+class LikePriorEvaluator:
+    """
+    This class is copied and modified from ptemcee.LikePriorEvaluator, see
+    https://github.com/willvousden/ptemcee for the original version
+
+    We overwrite the logl and logp methods in order to improve the performance
+    when using a MultiPool object: essentially reducing the amount of data
+    transfer overhead.
+    """
+
+    def __init__(self):
+        self.periodic_set = False
+
+    def _setup_periodic(self):
+        priors = _sampling_convenience_dump.priors
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
+        self._periodic = [
+            priors[key].boundary == "periodic" for key in search_parameter_keys
+        ]
+        priors.sample()
+        self._minima = np.array([priors[key].minimum for key in search_parameter_keys])
+        self._range = (
+            np.array([priors[key].maximum for key in search_parameter_keys])
+            - self._minima
+        )
+        self.periodic_set = True
+
+    def _wrap_periodic(self, array):
+        if not self.periodic_set:
+            self._setup_periodic()
+        array[self._periodic] = (
+            np.mod(
+                array[self._periodic] - self._minima[self._periodic],
+                self._range[self._periodic],
+            )
+            + self._minima[self._periodic]
+        )
+        return array
+
+    def logl(self, v_array):
+        priors = _sampling_convenience_dump.priors
+        likelihood = _sampling_convenience_dump.likelihood
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
+        parameters = _sampling_convenience_dump.parameters.copy()
+        parameters.update({key: v for key, v in zip(search_parameter_keys, v_array)})
+        if priors.evaluate_constraints(parameters) > 0:
+            return _safe_likelihood_call(
+                likelihood, parameters, _sampling_convenience_dump.use_ratio
+            )
+        else:
+            return np.nan_to_num(-np.inf)
+
+    def logp(self, v_array):
+        priors = _sampling_convenience_dump.priors
+        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
+        params = {key: t for key, t in zip(search_parameter_keys, v_array)}
+        return priors.ln_prob(params)
+
+    def call_emcee(self, theta):
+        ll, lp = self.__call__(theta)
+        return ll + lp, [ll, lp]
+
+    def __call__(self, x):
+        lp = self.logp(x)
+        if np.isnan(lp):
+            raise ValueError("Prior function returned NaN.")
+
+        if lp == float("-inf"):
+            # Can't return -inf, since this messes with beta=0 behaviour.
+            ll = 0
+        else:
+            ll = self.logl(x)
+            if np.isnan(ll).any():
+                raise ValueError("Log likelihood function returned NaN.")
+
+        return ll, lp

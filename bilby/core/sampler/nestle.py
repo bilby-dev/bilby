@@ -1,3 +1,5 @@
+import warnings
+
 from pandas import DataFrame
 
 from .base_sampler import NestedSampler, signal_wrapper
@@ -23,6 +25,13 @@ class Nestle(NestedSampler):
         sampling
 
     """
+
+    msg = (
+        "The Nestle sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `nestle-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/nestle-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "nestle"
     default_kwargs = dict(

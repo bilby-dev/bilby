@@ -13,10 +13,19 @@ from bilby.core import prior
 loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
 
 
+class MockLikelihood(bilby.core.likelihood.Likelihood):
+    """A mock likelihood for testing the base Sampler class."""
+
+    def log_likelihood(self, parameters):
+        return 2
+
+    def log_likelihood_ratio(self, parameters):
+        return 1
+
+
 class TestSampler(unittest.TestCase):
     def setUp(self, soft_init=False):
-        likelihood = bilby.core.likelihood.Likelihood()
-        likelihood.parameters = dict(a=1, b=2, c=3)
+        likelihood = MockLikelihood()
         delta_prior = prior.DeltaFunction(peak=0)
         delta_prior.rescale = MagicMock(return_value=prior.DeltaFunction(peak=1))
         delta_prior.prob = MagicMock(return_value=1)
@@ -27,8 +36,6 @@ class TestSampler(unittest.TestCase):
         uniform_prior.sample = MagicMock(return_value=0.5)
 
         priors = dict(a=delta_prior, b="string", c=uniform_prior)
-        likelihood.log_likelihood_ratio = MagicMock(return_value=1)
-        likelihood.log_likelihood = MagicMock(return_value=2)
         test_directory = "test_directory"
         if os.path.isdir(test_directory):
             os.rmdir(test_directory)
@@ -102,11 +109,6 @@ class TestSampler(unittest.TestCase):
     def test_log_likelihood_without_use_ratio(self):
         self.sampler.use_ratio = False
         self.assertEqual(self.sampler.log_likelihood([0]), 2)
-
-    def test_log_likelihood_correctly_sets_parameters(self):
-        expected_dict = dict(a=0, b=2, c=0)
-        _ = self.sampler.log_likelihood([0])
-        self.assertDictEqual(self.sampler.likelihood.parameters, expected_dict)
 
     def test_get_random_draw(self):
         self.assertEqual(self.sampler.get_random_draw_from_prior(), np.array([0.5]))
@@ -185,7 +187,7 @@ samplers = [
 
 class GenericSamplerTest(unittest.TestCase):
     def setUp(self):
-        self.likelihood = bilby.core.likelihood.Likelihood(dict())
+        self.likelihood = bilby.core.likelihood.Likelihood()
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )

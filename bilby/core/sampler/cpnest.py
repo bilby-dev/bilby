@@ -1,6 +1,7 @@
 import array
 import copy
 import sys
+import warnings
 
 import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
@@ -39,6 +40,13 @@ class Cpnest(NestedSampler):
         {self.outdir}/cpnest_{self.label}/
 
     """
+
+    msg = (
+        "The CPNest sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `cpnest-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/cpnest-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "cpnest"
     default_kwargs = dict(

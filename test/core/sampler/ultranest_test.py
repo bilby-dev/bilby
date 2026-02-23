@@ -1,6 +1,5 @@
 import shutil
 import unittest
-from unittest.mock import MagicMock
 
 import bilby
 import bilby.core.sampler.ultranest
@@ -10,7 +9,7 @@ class TestUltranest(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
-        self.likelihood = MagicMock()
+        self.likelihood = bilby.core.likelihood.Likelihood()
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1),
                  b=bilby.core.prior.Uniform(0, 1)))

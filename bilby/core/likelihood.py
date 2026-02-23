@@ -1,7 +1,7 @@
 import copy
 import inspect
 import os
-from warnings import warn
+import warnings
 
 import array_api_compat as aac
 import numpy as np
@@ -12,7 +12,14 @@ from .utils import infer_parameters_from_function, infer_args_from_function_exce
 from ..compat.patches import multivariate_logpdf
 from ..compat.utils import BackendNotImplementedError, array_module
 
-PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "TRUE")
+PARAMETERS_AS_STATE = os.environ.get("BILBY_ALLOW_PARAMETERS_AS_STATE", "WARN")
+for msg in [
+    "No parameters provided in likelihood call",
+    "Using parameters as state",
+    "Parameter attribute queried",
+    "Settings non-trivial"
+]:
+    warnings.filterwarnings("once", message=msg)
 
 
 def set_parameters_as_state(level):
@@ -27,11 +34,15 @@ def set_parameters_as_state(level):
 def _fallback_to_parameters(obj, parameters):
 
     if parameters is None:
-        msg = "No parameters provided in likelihood call, falling back to values stored in {obj}"
+        msg = (
+            f"No parameters provided in likelihood call, falling back to values stored in {obj}. "
+            "This is deprecated behaviour  and will be removed in Bilby version 3. "
+            "See https://bilby-dev.github.io/bilby/parameters for more details."
+        )
         if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
         elif PARAMETERS_AS_STATE == "WARN":
-            warn(msg, FutureWarning)
+            warnings.warn(msg, FutureWarning)
         else:
             logger.debug(msg)
         parameters = copy.deepcopy(obj.parameters)
@@ -53,7 +64,12 @@ def _safe_likelihood_call(likelihood, parameters=None, use_ratio=False):
                 f"Unable to call {likelihood} with {parameters} as an argument"
             )
         elif PARAMETERS_AS_STATE == "WARN":
-            warn(f"Using parameters as state for {likelihood}", FutureWarning)
+            warnings.warn(
+                f"Using parameters as state for {likelihood}. "
+                "This is deprecated behaviour  and will be removed in Bilby version 3. "
+                "See https://bilby-dev.github.io/bilby/parameters for more details.",
+                DeprecationWarning,
+            )
         likelihood.parameters.update(parameters)
         logl = method()
     return logl
@@ -67,12 +83,12 @@ class Likelihood:
             "parameters" not in inspect.signature(cls.log_likelihood).parameters
             or "parameters" not in inspect.signature(cls.log_likelihood_ratio).parameters
         ):
-            warn(
+            warnings.warn(
                 f"{cls} log_likelihood or log_likelihood_ratio method does not "
-                "accept 'parameters' as an argument. This is deprecated behaviour "
-                "and will be removed in a future release. See "
-                "https://bilby-dev.github.io/bilby/parameters for more details.",
-                DeprecationWarning,
+                "accept 'parameters' as an argument. "
+                "This is deprecated behaviour  and will be removed in Bilby version 3. "
+                "See https://bilby-dev.github.io/bilby/parameters for more details.",
+                FutureWarning,
             )
 
     def __init__(self, parameters=None):
@@ -89,21 +105,29 @@ class Likelihood:
 
     @property
     def parameters(self):
-        msg = f"Parameter attribute queried for {self.__class__}"
+        msg = (
+            f"Parameter attribute queried for {self.__class__}. "
+            "This is deprecated behaviour  and will be removed in Bilby version 3. "
+            "See https://bilby-dev.github.io/bilby/parameters for more details."
+        )
         if PARAMETERS_AS_STATE == "FALSE":
             raise LikelihoodParameterError(msg)
         elif PARAMETERS_AS_STATE == "WARN":
-            warn(msg, DeprecationWarning)
+            warnings.warn(msg, FutureWarning)
         return self._parameters
 
     @parameters.setter
     def parameters(self, parameters):
         if parameters is not None:
-            msg = f"Setting non-trivial parameters for {self.__class__}"
+            msg = (
+                f"Setting non-trivial parameters for {self.__class__}. "
+                "This is deprecated behaviour  and will be removed in Bilby version 3. "
+                "See https://bilby-dev.github.io/bilby/parameters for more details."
+            )
             if PARAMETERS_AS_STATE == "FALSE":
                 raise LikelihoodParameterError(msg)
             elif PARAMETERS_AS_STATE == "WARN":
-                warn(msg, FutureWarning)
+                warnings.warn(msg, FutureWarning)
         else:
             parameters = dict()
         self._parameters = parameters
@@ -139,7 +163,10 @@ class Likelihood:
         try:
             return self.log_likelihood(parameters=parameters) - self.noise_log_likelihood()
         except TypeError:
-            return self.log_likelihood() - self.noise_log_likelihood()
+            if PARAMETERS_AS_STATE != "FALSE":
+                return self.log_likelihood() - self.noise_log_likelihood()
+            else:
+                raise
 
     @property
     def meta_data(self):
@@ -647,7 +674,11 @@ class JointLikelihood(Likelihood):
             likelihoods to be combined parsed as arguments
         """
         self.likelihoods = likelihoods
-        super(JointLikelihood, self).__init__(parameters={})
+        if PARAMETERS_AS_STATE == "FALSE":
+            params = None
+        else:
+            params = dict()
+        super(JointLikelihood, self).__init__(parameters=params)
         self.__sync_parameters()
 
     def __sync_parameters(self):

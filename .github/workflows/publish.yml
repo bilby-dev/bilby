@@ -1,10 +1,11 @@
 name: Publish Python distribution to PyPI
 
 on:
-  - push
+  push:
     branches:
       - main
-  - release
+  release:
+    types: [published]
 
 jobs:
   build:

@@ -45,9 +45,9 @@ class DummyLikelihood(bilby.core.likelihood.Likelihood):
     """
 
     def __init__(self):
-        super().__init__(dict())
+        super().__init__()
 
-    def log_likelihood(self):
+    def log_likelihood(self, parameters):
         return np.random.uniform(0, 0.01)
 
 

@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import time
+import warnings
 
 import numpy as np
 from pandas import DataFrame
@@ -37,6 +38,13 @@ class Ultranest(_TemporaryFileSamplerMixin, NestedSampler):
         An UltraNest step sampler object. This defaults to None, so the default
         stepping behaviour is used.
     """
+
+    msg = (
+        "The Ultranest sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `ultranest-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/ultranest-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "ultranest"
     abbreviation = "ultra"

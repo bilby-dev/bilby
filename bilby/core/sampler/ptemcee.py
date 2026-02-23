@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import warnings
 from collections import namedtuple
 
 import numpy as np
@@ -11,12 +12,7 @@ from scipy.integrate import trapezoid
 
 from ..likelihood import _safe_likelihood_call
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
-from .base_sampler import (
-    MCMCSampler,
-    SamplerError,
-    _sampling_convenience_dump,
-    signal_wrapper,
-)
+from .base_sampler import LikePriorEvaluator, MCMCSampler, SamplerError, signal_wrapper
 
 ConvergenceInputs = namedtuple(
     "ConvergenceInputs",
@@ -129,6 +125,13 @@ class Ptemcee(MCMCSampler):
         The maximum temperature
 
     """
+
+    msg = (
+        "The ptemcee sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `ptemcee-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/ptemcee-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "ptemcee"
     # Arguments used by ptemcee
@@ -343,7 +346,8 @@ class Ptemcee(MCMCSampler):
         def neg_log_like(params):
             """Internal function to minimize"""
             try:
-                parameters = {key: val for key, val in zip(minimize_list, params)}
+                parameters = copy.copy(draw)
+                parameters.update({key: val for key, val in zip(minimize_list, params)})
                 return -_safe_likelihood_call(likelihood_copy, parameters)
             except RuntimeError:
                 return +np.inf
@@ -359,7 +363,6 @@ class Ptemcee(MCMCSampler):
         success = []
         while True:
             draw = self.priors.sample()
-            likelihood_copy.parameters.update(draw)
             x0 = [draw[key] for key in minimize_list]
             res = minimize(
                 neg_log_like, x0, bounds=bounds, method="L-BFGS-B", tol=1e-15
@@ -1431,82 +1434,3 @@ def compute_evidence(
 def do_nothing_function():
     """This is a do-nothing function, we overwrite the likelihood and prior elsewhere"""
     pass
-
-
-class LikePriorEvaluator(object):
-    """
-    This class is copied and modified from ptemcee.LikePriorEvaluator, see
-    https://github.com/willvousden/ptemcee for the original version
-
-    We overwrite the logl and logp methods in order to improve the performance
-    when using a MultiPool object: essentially reducing the amount of data
-    transfer overhead.
-
-    """
-
-    def __init__(self):
-        self.periodic_set = False
-
-    def _setup_periodic(self):
-        priors = _sampling_convenience_dump.priors
-        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
-        self._periodic = [
-            priors[key].boundary == "periodic" for key in search_parameter_keys
-        ]
-        priors.sample()
-        self._minima = np.array([priors[key].minimum for key in search_parameter_keys])
-        self._range = (
-            np.array([priors[key].maximum for key in search_parameter_keys])
-            - self._minima
-        )
-        self.periodic_set = True
-
-    def _wrap_periodic(self, array):
-        if not self.periodic_set:
-            self._setup_periodic()
-        array[self._periodic] = (
-            np.mod(
-                array[self._periodic] - self._minima[self._periodic],
-                self._range[self._periodic],
-            )
-            + self._minima[self._periodic]
-        )
-        return array
-
-    def logl(self, v_array):
-        priors = _sampling_convenience_dump.priors
-        likelihood = _sampling_convenience_dump.likelihood
-        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
-        parameters = _sampling_convenience_dump.parameters.copy()
-        parameters.update({key: v for key, v in zip(search_parameter_keys, v_array)})
-        if priors.evaluate_constraints(parameters) > 0:
-            return _safe_likelihood_call(
-                likelihood, parameters, _sampling_convenience_dump.use_ratio
-            )
-        else:
-            return np.nan_to_num(-np.inf)
-
-    def logp(self, v_array):
-        priors = _sampling_convenience_dump.priors
-        search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
-        params = {key: t for key, t in zip(search_parameter_keys, v_array)}
-        return priors.ln_prob(params)
-
-    def call_emcee(self, theta):
-        ll, lp = self.__call__(theta)
-        return ll + lp, [ll, lp]
-
-    def __call__(self, x):
-        lp = self.logp(x)
-        if np.isnan(lp):
-            raise ValueError("Prior function returned NaN.")
-
-        if lp == float("-inf"):
-            # Can't return -inf, since this messes with beta=0 behaviour.
-            ll = 0
-        else:
-            ll = self.logl(x)
-            if np.isnan(ll).any():
-                raise ValueError("Log likelihood function returned NaN.")
-
-        return ll, lp

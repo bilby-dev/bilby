@@ -1,11 +1,11 @@
 import os
+import warnings
 
 import numpy as np
 
 from ..utils import logger
-from .base_sampler import signal_wrapper
+from .base_sampler import LikePriorEvaluator, signal_wrapper
 from .emcee import Emcee
-from .ptemcee import LikePriorEvaluator
 
 _evaluator = LikePriorEvaluator()
 
@@ -38,6 +38,13 @@ class Kombine(Emcee):
         The number of autocorrelation times to discard as burn-in
 
     """
+
+    msg = (
+        "The Kombine sampler interface in bilby is deprecated and will"
+        " be removed in Bilby version 3. Please use the `kombine-bilby`"
+        "sampler plugin instead: https://github.com/bilby-dev/kombine-bilby."
+    )
+    warnings.warn(msg, FutureWarning)
 
     sampler_name = "kombine"
     default_kwargs = dict(

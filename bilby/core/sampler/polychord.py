@@ -30,7 +30,7 @@ class PyPolyChord(NestedSampler):
 
     msg = (
         "The PyPolyChord sampler interface in bilby is deprecated and will"
-        " be removed in future release. Please use the `pypolychord-bilby`"
+        " be removed in Bilby version 3. Please use the `pypolychord-bilby`"
         "sampler plugin instead: https://github.com/bilby-dev/pypolychord-bilby."
     )
     warnings.warn(msg, FutureWarning)

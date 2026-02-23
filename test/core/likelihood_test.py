@@ -28,18 +28,18 @@ class TestLikelihoodBase(unittest.TestCase):
         del self.likelihood
 
     def test_repr(self):
-        self.likelihood = Likelihood(parameters=["a", "b"])
+        self.likelihood = Likelihood()
         expected = "Likelihood"
         self.assertEqual(expected, repr(self.likelihood))
 
     def test_base_log_likelihood(self):
-        self.assertTrue(np.isnan(self.likelihood.log_likelihood()))
+        self.assertTrue(np.isnan(self.likelihood.log_likelihood(dict())))
 
     def test_base_noise_log_likelihood(self):
         self.assertTrue(np.isnan(self.likelihood.noise_log_likelihood()))
 
     def test_base_log_likelihood_ratio(self):
-        self.assertTrue(np.isnan(self.likelihood.log_likelihood_ratio()))
+        self.assertTrue(np.isnan(self.likelihood.log_likelihood_ratio(dict())))
 
     def test_meta_data_unset(self):
         self.assertEqual(self.likelihood.meta_data, None)
@@ -70,8 +70,6 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
         self.analytical_1d_likelihood = Analytical1DLikelihood(
             x=self.x, y=self.y, func=self.func
         )
-        self.analytical_1d_likelihood.parameters["parameter1"] = self.parameter1_value
-        self.analytical_1d_likelihood.parameters["parameter2"] = self.parameter2_value
 
     def tearDown(self):
         del self.x
@@ -132,14 +130,6 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
             # noinspection PyPropertyAccess
             self.analytical_1d_likelihood.func = new_func
 
-    def test_parameters(self):
-        expected_parameters = dict(
-            parameter1=self.parameter1_value, parameter2=self.parameter2_value
-        )
-        self.assertDictEqual(
-            expected_parameters, self.analytical_1d_likelihood.parameters
-        )
-
     def test_n(self):
         self.assertEqual(len(self.x), self.analytical_1d_likelihood.n)
 
@@ -151,12 +141,15 @@ class TestAnalytical1DLikelihood(unittest.TestCase):
     def test_model_parameters(self):
         sigma = 5
         self.analytical_1d_likelihood.sigma = sigma
-        self.analytical_1d_likelihood.parameters["sigma"] = sigma
         expected_model_parameters = dict(
             parameter1=self.parameter1_value, parameter2=self.parameter2_value
         )
+        full_parameters = dict(
+            parameter1=self.parameter1_value, parameter2=self.parameter2_value, sigma=sigma
+        )
         self.assertDictEqual(
-            expected_model_parameters, self.analytical_1d_likelihood.model_parameters()
+            expected_model_parameters,
+            self.analytical_1d_likelihood.model_parameters(full_parameters),
         )
 
     def test_repr(self):
@@ -382,20 +375,20 @@ class TestPoissonLikelihood(unittest.TestCase):
             x=self.x, y=self.y, func=lambda x: "test"
         )
         with self.assertRaises(ValueError):
-            poisson_likelihood.log_likelihood()
+            poisson_likelihood.log_likelihood(dict())
 
     def test_log_likelihood_negative_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
             x=self.x, y=self.y, func=lambda x: self.xp.asarray([3, 6, -2])
         )
         with self.assertRaises(ValueError):
-            poisson_likelihood.log_likelihood()
+            poisson_likelihood.log_likelihood(dict())
 
     def test_log_likelihood_zero_func_return_element(self):
         poisson_likelihood = PoissonLikelihood(
             x=self.x, y=self.y, func=lambda x: self.xp.asarray([3, 6, 0])
         )
-        self.assertEqual(-np.inf, poisson_likelihood.log_likelihood())
+        self.assertEqual(-np.inf, poisson_likelihood.log_likelihood(dict()))
 
     def test_log_likelihood_dummy(self):
         """ Merely tests if it goes into the right if else bracket """
@@ -497,7 +490,7 @@ class TestExponentialLikelihood(unittest.TestCase):
         )
         with mock.patch(f"{self.xp.__name__}.sum") as m:
             m.return_value = 3
-            self.assertEqual(-3, exponential_likelihood.log_likelihood())
+            self.assertEqual(-3, exponential_likelihood.log_likelihood(dict()))
 
     def test_repr(self):
         expected = "ExponentialLikelihood(x={}, y={}, func={})".format(
@@ -622,21 +615,17 @@ class TestJointLikelihood(unittest.TestCase):
             self.first_likelihood, self.second_likelihood, self.third_likelihood
         )
 
-        # self.first_parameters = dict(param1=1, param2=2)
-        # self.second_parmaeters = dict(param2=2, param3=3)
-        # self.third_parmaeters = dict(param4=4, param5=5)
-        self.first_likelihood.parameters["param1"] = 1
-        self.first_likelihood.parameters["param2"] = 2
-        self.second_likelihood.parameters["param2"] = 2
-        self.second_likelihood.parameters["param3"] = 3
-        self.third_likelihood.parameters["param4"] = 4
-        self.third_likelihood.parameters["param5"] = 5
+        self.parameters = dict(
+            param1=1,
+            param2=2,
+            param3=3,
+            param4=4,
+            param5=5,
+        )
 
-        self.joint_likelihood.parameters["param1"] = 1
-        self.joint_likelihood.parameters["param2"] = 2
-        self.joint_likelihood.parameters["param3"] = 3
-        self.joint_likelihood.parameters["param4"] = 4
-        self.joint_likelihood.parameters["param5"] = 5
+        self.first_parameters = dict(param1=1, param2=2)
+        self.second_parmaeters = dict(param2=2, param3=3)
+        self.third_parmaeters = dict(param4=4, param5=5)
 
     def tearDown(self):
         del self.x
@@ -646,39 +635,13 @@ class TestJointLikelihood(unittest.TestCase):
         del self.third_likelihood
         del self.joint_likelihood
 
-    def test_parameters_consistent_from_init(self):
-        expected = dict(param1=1, param2=2, param3=3, param4=4, param5=5,)
-        self.assertDictEqual(expected, self.joint_likelihood.parameters)
-
     def test_log_likelihood_correctly_sums(self):
         expected = (
-            self.first_likelihood.log_likelihood()
-            + self.second_likelihood.log_likelihood()
-            + self.third_likelihood.log_likelihood()
+            self.first_likelihood.log_likelihood(self.first_parameters)
+            + self.second_likelihood.log_likelihood(self.second_parmaeters)
+            + self.third_likelihood.log_likelihood(self.third_parmaeters)
         )
-        self.assertEqual(expected, self.joint_likelihood.log_likelihood())
-
-    def test_log_likelihood_checks_parameter_updates(self):
-        self.first_likelihood.parameters["param2"] = 7
-        self.second_likelihood.parameters["param2"] = 7
-        self.joint_likelihood.parameters["param2"] = 7
-        expected = (
-            self.first_likelihood.log_likelihood()
-            + self.second_likelihood.log_likelihood()
-            + self.third_likelihood.log_likelihood()
-        )
-        self.assertEqual(expected, self.joint_likelihood.log_likelihood())
-
-    def test_list_element_parameters_are_updated(self):
-        self.joint_likelihood.parameters["param2"] = 7
-        self.assertEqual(
-            self.joint_likelihood.parameters["param2"],
-            self.joint_likelihood.likelihoods[0].parameters["param2"],
-        )
-        self.assertEqual(
-            self.joint_likelihood.parameters["param2"],
-            self.joint_likelihood.likelihoods[1].parameters["param2"],
-        )
+        self.assertEqual(expected, self.joint_likelihood.log_likelihood(self.parameters))
 
     def test_log_noise_likelihood(self):
         self.first_likelihood.noise_log_likelihood = mock.MagicMock(return_value=1)
@@ -703,19 +666,13 @@ class TestJointLikelihood(unittest.TestCase):
     def test_setting_single_likelihood(self):
         self.joint_likelihood.likelihoods = self.first_likelihood
         self.assertEqual(
-            self.first_likelihood.log_likelihood(),
-            self.joint_likelihood.log_likelihood(),
+            self.first_likelihood.log_likelihood(self.first_parameters),
+            self.joint_likelihood.log_likelihood(self.parameters),
         )
 
     def test_setting_likelihood_other(self):
         with self.assertRaises(ValueError):
             self.joint_likelihood.likelihoods = "test"
-
-    # Appending is not supported
-    # def test_appending(self):
-    #     joint_likelihood = bilby.core.likelihood.JointLikelihood(self.first_likelihood, self.second_likelihood)
-    #     joint_likelihood.likelihoods.append(self.third_likelihood)
-    #     self.assertDictEqual(self.joint_likelihood.parameters, joint_likelihood.parameters)
 
 
 class TestGPLikelihood(unittest.TestCase):
@@ -768,16 +725,12 @@ class TestGPLikelihood(unittest.TestCase):
         self.celerite_likelihood.gp.compute.assert_called_once_with(
             self.celerite_likelihood.t, yerr=self.celerite_likelihood.yerr)
 
-    def test_parameters(self):
-        self.assertDictEqual(self.parameter_dict, self.celerite_likelihood.parameters)
-
     def test_set_parameters_no_exceptions(self):
         self.celerite_likelihood.gp.set_parameter = mock.MagicMock()
         self.celerite_likelihood.mean_model.set_parameter = mock.MagicMock()
         expected_a = 5
         self.celerite_likelihood.set_parameters(dict(a=expected_a))
         self.celerite_likelihood.gp.set_parameter.assert_called_once_with(name="a", value=5)
-        self.assertEqual(expected_a, self.celerite_likelihood.parameters["a"])
 
 
 class TestFunctionMeanModel(unittest.TestCase):
@@ -815,7 +768,6 @@ class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
         self.mean_model = self.MeanModel(a=1)
         self.celerite_likelihood = bilby.core.likelihood.CeleriteLikelihood(
             kernel=self.kernel, mean_model=self.mean_model, t=self.t, y=self.y, yerr=self.yerr)
-        self.celerite_likelihood.parameters = self.parameters
 
     def tearDown(self) -> None:
         del self.t
@@ -828,14 +780,15 @@ class TestCeleriteLikelihoodEvaluation(unittest.TestCase):
         del self.celerite_likelihood
 
     def test_log_l_evalutation(self):
-        log_l = self.celerite_likelihood.log_likelihood()
+        log_l = self.celerite_likelihood.log_likelihood(self.parameters)
         expected = -2.0390312696885102
         self.assertAlmostEqual(expected, log_l, places=5)
 
     def test_set_parameters(self):
         combined_params = {"kernel:log_S0": 2, "kernel:log_Q": 2, "kernel:log_omega0": 2, "mean:a": 2}
         self.celerite_likelihood.set_parameters(combined_params)
-        self.assertDictEqual(combined_params, self.celerite_likelihood.parameters)
+        registered = {key: self.celerite_likelihood.gp.get_parameter(key) for key in combined_params}
+        self.assertDictEqual(combined_params, registered)
 
 
 class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
@@ -861,14 +814,15 @@ class TestGeorgeLikelihoodEvaluation(unittest.TestCase):
         pass
 
     def test_likelihood_value(self):
-        log_l = self.george_likelihood.log_likelihood()
+        log_l = self.george_likelihood.log_likelihood(self.parameters)
         expected = -3.2212751203208403
         self.assertAlmostEqual(expected, log_l, places=5)
 
     def test_set_parameters(self):
         combined_params = {"kernel:k1:log_constant": 2, "kernel:k2:metric:log_M_0_0": 2, "mean:a": 2}
         self.george_likelihood.set_parameters(combined_params)
-        self.assertDictEqual(combined_params, self.george_likelihood.parameters)
+        registered = {key: self.george_likelihood.gp.get_parameter(key) for key in combined_params}
+        self.assertDictEqual(combined_params, registered)
 
 
 if __name__ == "__main__":

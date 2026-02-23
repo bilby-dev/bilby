@@ -14,7 +14,7 @@ def test_sampler_import(sampler_name):
     if sampler_name in ["dnest4", "fake_sampler", "pypolychord"]:
         pytest.skip(f"Skipping import test for {sampler_name}")
     bilby.core.utils.logger.setLevel("ERROR")
-    likelihood = bilby.core.likelihood.Likelihood(dict())
+    likelihood = bilby.core.likelihood.Likelihood()
     priors = bilby.core.prior.PriorDict(dict(a=bilby.core.prior.Uniform(0, 1)))
     sampler_class = bilby.core.sampler.IMPLEMENTED_SAMPLERS[sampler_name].load()
     sampler = sampler_class(likelihood=likelihood, priors=priors)

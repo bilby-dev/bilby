@@ -7,8 +7,7 @@ from packaging import version
 from pandas import DataFrame
 
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
-from .base_sampler import MCMCSampler, SamplerError, signal_wrapper
-from .ptemcee import LikePriorEvaluator
+from .base_sampler import LikePriorEvaluator, MCMCSampler, SamplerError, signal_wrapper
 
 _evaluator = LikePriorEvaluator()
 

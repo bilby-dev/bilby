@@ -48,8 +48,7 @@ This change provides a number of improvements:
   more efficient in many cases, and allow easier use of shared memory. Moving away from 
   parameters as state will make it easier for us to work with thread-safe parallelism.
 
-The previous method is still supported, but will be deprecated and removed in
-the future.
+Support for the old method will be removed in Bilby version 3.
 
 
 For users
@@ -80,7 +79,7 @@ Gravitational-wave specific changes:
 For developers
 --------------
 
-- when possible, new features should support both methods of specifying the parameters until we drop support.
+- when possible, new features should not support the old method.
 - while both methods are supported, :pyfunc:`bilby.core.likelihood._safe_likelihood_call` should be used
   for any likelihood calls.
 - when writing tests that involve likelihood calls, both approaches should be tested.
