@@ -2,7 +2,6 @@
 # The python version should be added before creating the env
 channels:
   - conda-forge
-  - defaults
   - pytorch
 dependencies:
   - pip
@@ -23,7 +22,7 @@ dependencies:
   - pytest-cov
   - pytest-requires
   - pytest-rerunfailures
-  - conda-forge::arviz
+  - arviz
   - parameterized
   - scikit-image
   - celerite
