@@ -5,6 +5,34 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.8.0]
+
+This is our last planned minor version increase before Bilby version 3.
+The main changes are explicit deprecation warnings for functionality that will be removed in version 3 in addition to a number of bug fixes.
+
+### Fixes
+* BUG: Fix handling of contour-kwargs for multiple corner plots by @JasperMartins in https://github.com/bilby-dev/bilby/pull/1022
+* BUG: Exclude infinite values from gradient check tau list by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1035
+* BUG: fix triangular interferometer coordinates by @filippo-santoliquido in https://github.com/bilby-dev/bilby/pull/1016
+* BUG: Fix path for LinAlgError in exception handling by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1038
+* BUG: inhomogeneous rescaling with Categorical Priors by @Hen42rik in https://github.com/bilby-dev/bilby/pull/1037
+* BUG: Fix GWSignalWaveformGenerator reconstruction in waveform posterior plots by @lorenzopompili00 in https://github.com/bilby-dev/bilby/pull/1029
+* BUG: Fix sampler_kwargs mutation in dynesty3_utils by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1045
+
+### Changes
+* MAINT: Change probability initialization to use np.ones_like by @vivienr in https://github.com/bilby-dev/bilby/pull/1028
+* REFACTOR: make multiband likelihood call Interferometer.get_detector_response by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/847
+* MAINT: move LikePriorEvaluator to base sampler by @mj-will in https://github.com/bilby-dev/bilby/pull/1041
+* MAINT: Advance deprecations before bilby v3 by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1040
+
+### New Contributors
+* @Dsantra92 made their first contribution in https://github.com/bilby-dev/bilby/pull/1013
+* @vivienr made their first contribution in https://github.com/bilby-dev/bilby/pull/1028
+* @Qazalbash made their first contribution in https://github.com/bilby-dev/bilby/pull/1000
+* @filippo-santoliquido made their first contribution in https://github.com/bilby-dev/bilby/pull/1016
+
+**Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
+
 ## [2.7.1]
 
 ### Fixes
