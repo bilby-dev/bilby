@@ -10,7 +10,6 @@ import pandas as pd
 from scipy.integrate import trapezoid
 from scipy.optimize import differential_evolution
 
-from ..core.likelihood import _safe_likelihood_call
 from ..core.result import rejection_sample
 from ..core.sampler.base_sampler import (
     MCMCSampler,
@@ -1240,11 +1239,10 @@ class BilbyMCMCSampler(object):
         params = deepcopy(_sampling_convenience_dump.parameters)
         params.update(sample.sample_dict)
 
-        return _safe_likelihood_call(
-            _sampling_convenience_dump.likelihood,
-            parameters=params,
-            use_ratio=self.use_ratio,
-        )
+        if self.use_ratio:
+            return _sampling_convenience_dump.likelihood.log_likelihood_ratio(params)
+        else:
+            return _sampling_convenience_dump.likelihood.log_likelihood(params)
 
     def log_prior(self, sample):
         return _sampling_convenience_dump.priors.ln_prob(
@@ -1403,7 +1401,7 @@ def get_initial_maximimum_posterior_sample(beta):
         parameters = deepcopy(_sampling_convenience_dump.parameters)
         parameters.update(sample)
 
-        return -beta * _safe_likelihood_call(likelihood, parameters) - ln_prior
+        return -beta * likelihood.log_likelihood(parameters) - ln_prior
 
     res = differential_evolution(neg_log_post, bounds, popsize=100, init="sobol")
     if res.success:

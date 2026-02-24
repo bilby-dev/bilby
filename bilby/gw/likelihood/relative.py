@@ -7,7 +7,6 @@ from .base import GravitationalWaveTransient
 from ...core.utils import logger
 from ...core.prior.base import Constraint
 from ...core.prior import DeltaFunction
-from ...core.likelihood import _fallback_to_parameters
 from ..utils import noise_weighted_inner_product
 
 
@@ -356,8 +355,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         self.summary_data = summary_data
 
-    def compute_waveform_ratio_per_interferometer(self, waveform_polarizations, interferometer, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def compute_waveform_ratio_per_interferometer(self, waveform_polarizations, interferometer, parameters):
         name = interferometer.name
         strain = interferometer.get_detector_response(
             waveform_polarizations=waveform_polarizations,
@@ -372,7 +370,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         return [r0, r1]
 
-    def _compute_full_waveform(self, signal_polarizations, interferometer, parameters=None):
+    def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
         fiducial_waveform = self.per_detector_fiducial_waveforms[interferometer.name]
         r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=signal_polarizations,
@@ -390,7 +388,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         full_waveform_ratio[idxs] = duplicated_r0 + duplicated_r1 * (f[idxs] - duplicated_fm)
         return fiducial_waveform * full_waveform_ratio
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
+    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
         r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=waveform_polarizations,
             interferometer=interferometer,
