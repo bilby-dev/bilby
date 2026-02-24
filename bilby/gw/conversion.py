@@ -232,19 +232,24 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
         key = 'chi_{}'.format(idx)
         if key in original_keys:
             if "chi_{}_in_plane".format(idx) in original_keys:
-                converted_parameters["a_{}".format(idx)] = (
-                    converted_parameters[f"chi_{idx}"] ** 2
-                    + converted_parameters[f"chi_{idx}_in_plane"] ** 2
-                ) ** 0.5
-                converted_parameters[f"cos_tilt_{idx}"] = (
-                    converted_parameters[f"chi_{idx}"]
-                    / converted_parameters[f"a_{idx}"]
-                )
+                a = (converted_parameters[f"chi_{idx}"] ** 2
+                     + converted_parameters[f"chi_{idx}_in_plane"] ** 2) ** 0.5
+                converted_parameters[f"a_{idx}"] = a
+                with np.errstate(invalid="raise"):
+                    try:
+                        converted_parameters[f"cos_tilt_{idx}"] = (
+                            converted_parameters[f"chi_{idx}"] / a
+                        )
+                    except (FloatingPointError, ZeroDivisionError):
+                        logger.debug(
+                            "Error in conversion to spherical spin tilt. "
+                            "This is often due to the spin parameters being zero. "
+                            f"Setting cos_tilt_{idx} = 1."
+                        )
+                        converted_parameters[f"cos_tilt_{idx}"] = 1.0
             elif "a_{}".format(idx) not in original_keys:
-                converted_parameters['a_{}'.format(idx)] = abs(
-                    converted_parameters[key])
-                converted_parameters['cos_tilt_{}'.format(idx)] = \
-                    np.sign(converted_parameters[key])
+                converted_parameters['a_{}'.format(idx)] = abs(converted_parameters[key])
+                converted_parameters['cos_tilt_{}'.format(idx)] = np.sign(converted_parameters[key])
             else:
                 with np.errstate(invalid="raise"):
                     try:
