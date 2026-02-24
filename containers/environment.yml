@@ -2,19 +2,17 @@
 # The python version should be added before creating the env
 channels:
   - conda-forge
-  - defaults
   - pytorch
 dependencies:
   - pip
   - setuptools
   - setuptools_scm
   - matplotlib
-  - numpy<2.2  # dynesty<2.2 requires numpy<2.2
+  - numpy<2.4
   - scipy
   - pandas
   - astropy
   - flake8
-  - anaconda
   - coverage
   - configargparse
   - future
@@ -23,7 +21,7 @@ dependencies:
   - pytest-cov
   - pytest-requires
   - pytest-rerunfailures
-  - conda-forge::arviz
+  - arviz
   - parameterized
   - scikit-image
   - celerite
@@ -37,7 +35,7 @@ dependencies:
   - bilby.cython
   - pyseobnr
   - ligo-gracedb
-  - gwpy
+  - gwpy>=4.0.0
   - ligo.skymap
   - sphinx<9 # needed for sphinx_rtd_theme<3.1
   - numpydoc
