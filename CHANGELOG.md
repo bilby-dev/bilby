@@ -1275,7 +1275,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.7.1...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.0...main
+[2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/bilby-dev/bilby/compare/v2.5.2...v2.6.0
