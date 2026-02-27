@@ -2,6 +2,7 @@
 """
 An example of how to use bilby to perform parameter estimation for hyper params
 """
+import bilby
 import matplotlib.pyplot as plt
 import numpy as np
 from bilby.core.likelihood import GaussianLikelihood
@@ -10,6 +11,11 @@ from bilby.core.result import make_pp_plot
 from bilby.core.sampler import run_sampler
 from bilby.core.utils import check_directory_exists_and_if_not_mkdir, random
 from bilby.hyper.likelihood import HyperparameterLikelihood
+
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
