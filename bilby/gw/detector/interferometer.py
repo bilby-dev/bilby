@@ -393,7 +393,7 @@ class Interferometer(object):
                 logger.warning(msg)
 
     def adjust_optimal_snr_and_onset_time_of_glitch(self, glitch, target_glitch_snr, glitch_onset_time):
-        """ Scale the time-domain strain data of the glitch to achieve a target optimal SNR. 
+        """ Scale the time-domain strain data of the glitch to achieve a target optimal SNR.
         Roll the glitch in such a way that the maxima coincides with the glitch_onset_time.
 
         Parameters
@@ -419,22 +419,20 @@ class Interferometer(object):
         target_idx = int(relative_glitch_onset_time * self.sampling_frequency)
         padded_glitch = np.roll(padded_glitch, target_idx - peak_idx)
         glitch_fft, _ = utils.nfft(padded_glitch, sampling_frequency=self.sampling_frequency)
-        temporary_snr_squared = np.real(self.optimal_snr_squared(signal = glitch_fft))
+        temporary_snr_squared = np.real(self.optimal_snr_squared(signal=glitch_fft))
         scaled_glitch = glitch_fft * target_glitch_snr / np.sqrt(temporary_snr_squared)
         return scaled_glitch
-    
 
     def check_matched_filter_glitch_snr(self, glitch):
-        """ Compute filter SNR of a glitch in detector.
+        """ Compute matched filter SNR of a glitch in detector.
 
         Parameters
         ==========
         glitch: numpy array
-            Time-domain strain data of the glitch.
+            frequency-domain strain data of the glitch.
         """
-        matched_filter_glitch_snr = self.matched_filter_snr(signal = glitch)
+        matched_filter_glitch_snr = self.matched_filter_snr(signal=glitch)
         logger.info("Matched filter SNR of the glitch: {}".format(matched_filter_glitch_snr))
-
 
     def inject_glitch(self, glitch, glitch_onset_time, glitch_sampling_frequency, glitch_snr):
         """ Inject a glitch into the interferometer data.
@@ -444,11 +442,12 @@ class Interferometer(object):
         glitch: numpy array
             Time-domain strain data of the glitch to inject.
         glitch_onset_time: float
-            GPS time at which to inject the glitch. The maxima of the glitch array will coincide with the glitch onset time. 
+            GPS time at which to inject the glitch. The maxima of the glitch array will
+            coincide with the glitch onset time.
         glitch_sampling_frequency: float
             Sampling frequency of the glitch.
         glitch_snr: float
-            The glitch will be rescaled in such a way that it's optimal SNR matches with the glitch_snr. 
+            The glitch will be rescaled in such a way that it's optimal SNR matches with the glitch_snr.
         """
 
         glitch_time_array = np.arange(0, len(glitch), 1) / glitch_sampling_frequency
@@ -459,13 +458,11 @@ class Interferometer(object):
             glitch = np.interp(_temporary_time_array, glitch_time_array, glitch)
             glitch_time_array = _temporary_time_array
 
-        scaled_glitch = self.adjust_optimal_snr_and_onset_time_of_glitch(glitch, glitch_snr, glitch_onset_time)   
+        scaled_glitch = self.adjust_optimal_snr_and_onset_time_of_glitch(glitch, glitch_snr, glitch_onset_time)
         self.strain_data.frequency_domain_strain += scaled_glitch
         logger.info("Injected a glitch in: {}".format(self.name))
         logger.info("Optimal SNR of the glitch: {}".format(glitch_snr))
         self.check_matched_filter_glitch_snr(scaled_glitch)
-
-
 
     def inject_signal(self, parameters, injection_polarizations=None,
                       waveform_generator=None, raise_error=True):
