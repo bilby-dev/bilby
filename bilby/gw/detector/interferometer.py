@@ -454,8 +454,6 @@ class Interferometer(object):
         logger.info("Optimal SNR of the glitch: {}".format(glitch_snr))
         logger.info("Matched filter SNR of the glitch: {}".format(self.matched_filter_snr(signal=scaled_glitch)))
 
-        self.check_matched_filter_glitch_snr(scaled_glitch)
-
     def inject_signal(self, parameters, injection_polarizations=None,
                       waveform_generator=None, raise_error=True):
         """ General signal injection method.
