@@ -435,13 +435,19 @@ class Interferometer(object):
         glitch_injection_time: float
             The maxima of the time domain strain of the glitch will conicide with the glitch_injection_time.
         glitch_sampling_frequency: float
-            Sampling frequency of the glitch.
+            Sampling frequency of the input glitch array.
         glitch_snr: float
             The glitch will be rescaled in such a way that it's optimal SNR matches with the glitch_snr.
         """
 
         glitch_time_array = np.arange(0, len(glitch), 1) / glitch_sampling_frequency
         glitch_duration = glitch_time_array[-1]
+
+        if glitch_duration > self.duration:
+            raise ValueError(
+                "Glitch duration ({} seconds) is longer than the duration of the time domain strain of the detector "
+                "({} seconds).".format(glitch_duration, self.duration)
+            )
 
         if glitch_sampling_frequency != self.sampling_frequency:
             _temporary_time_array = np.arange(0, glitch_duration, 1 / self.sampling_frequency)
