@@ -3,8 +3,8 @@ import gengli
 import matplotlib.pyplot as plt
 import numpy as np
 
-# To be installed from https://git.ligo.org/melissa.lopez/gengli
-# or use glitch generator of your choice.
+# gengli to be installed from https://git.ligo.org/melissa.lopez/gengli
+# or use glitch generator of your choice or use an analytic glitch time series
 
 duration = 4.0
 sampling_frequency = 1024.0

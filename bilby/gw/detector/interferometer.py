@@ -43,7 +43,8 @@ class Interferometer(object):
     minimum_frequency = PropertyAccessor('strain_data', 'minimum_frequency')
     maximum_frequency = PropertyAccessor('strain_data', 'maximum_frequency')
     frequency_mask = PropertyAccessor('strain_data', 'frequency_mask')
-    frequency_domain_strain = PropertyAccessor('strain_data', 'frequency_domain_strain')
+    frequency_domain_strain = PropertyAccessor(
+        'strain_data', 'frequency_domain_strain')
     time_domain_strain = PropertyAccessor('strain_data', 'time_domain_strain')
 
     def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
@@ -108,10 +109,14 @@ class Interferometer(object):
                                          'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
                                          'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
             .format(self.name, self.power_spectral_density, float(self.strain_data.minimum_frequency),
-                    float(self.strain_data.maximum_frequency), float(self.geometry.length),
-                    float(self.geometry.latitude), float(self.geometry.longitude),
-                    float(self.geometry.elevation), float(self.geometry.xarm_azimuth),
-                    float(self.geometry.yarm_azimuth), float(self.geometry.xarm_tilt),
+                    float(self.strain_data.maximum_frequency), float(
+                        self.geometry.length),
+                    float(self.geometry.latitude), float(
+                        self.geometry.longitude),
+                    float(self.geometry.elevation), float(
+                        self.geometry.xarm_azimuth),
+                    float(self.geometry.yarm_azimuth), float(
+                        self.geometry.xarm_tilt),
                     float(self.geometry.yarm_tilt))
 
     def set_strain_data_from_gwpy_timeseries(self, time_series):
@@ -280,7 +285,8 @@ class Interferometer(object):
 
         """
         if mode in ["plus", "cross", "x", "y", "breathing", "longitudinal"]:
-            polarization_tensor = get_polarization_tensor(ra, dec, time, psi, mode)
+            polarization_tensor = get_polarization_tensor(
+                ra, dec, time, psi, mode)
             return three_by_three_matrix_contraction(self.geometry.detector_tensor, polarization_tensor)
         elif mode == self.name:
             return 1
@@ -342,7 +348,8 @@ class Interferometer(object):
         dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
-        signal_ifo[mask] = signal_ifo[mask] * np.exp(-1j * 2 * np.pi * dt * frequencies)
+        signal_ifo[mask] = signal_ifo[mask] * \
+            np.exp(-1j * 2 * np.pi * dt * frequencies)
 
         signal_ifo[mask] *= self.calibration_model.get_calibration_factor(
             frequencies, prefix='recalib_{}_'.format(self.name), **parameters
@@ -371,7 +378,8 @@ class Interferometer(object):
 
         if ("mass_1" not in parameters) and ("mass_2" not in parameters):
             if raise_error:
-                raise AttributeError("Unable to check signal duration as mass not given")
+                raise AttributeError(
+                    "Unable to check signal duration as mass not given")
             else:
                 return
 
@@ -392,13 +400,13 @@ class Interferometer(object):
             else:
                 logger.warning(msg)
 
-    def adjust_optimal_snr_and_injection_time_of_glitch(self, glitch, glitch_snr, glitch_injection_time):
+    def adjust_optimal_snr(self, frequency_domain_strain, target_snr):
         """ Scale the time-domain strain data of the glitch so that it's optimal SNR is equal to the the glitch_snr
         Roll the glitch in such a way that the maxima coincides with the glitch_injection_time.
 
         Parameters
         ==========
-        glitch: numpy array
+        glitch_strain: numpy array
             Time-domain strain data of the glitch to scale.
         glitch_snr: float
             Desired optimal SNR of the glitch.
@@ -411,21 +419,12 @@ class Interferometer(object):
             frequency-domain strain of the glitch rescaled so that its optimal SNR matches
             `target_glitch_snr` and rolled in such a way thatthe maxima coincides with the glitch_injection_time.
         """
-        n_full = len(self.strain_data.time_array)
-        padded_glitch = np.zeros(n_full)
-        padded_glitch[:len(glitch)] = glitch
-        # Roll glitch
-        peak_idx = np.argmax(np.abs(glitch))
-        relative_glitch_injection_time = glitch_injection_time - self.start_time
-        target_idx = int(relative_glitch_injection_time * self.sampling_frequency)
-        padded_glitch = np.roll(padded_glitch, target_idx - peak_idx)
-        # Perform fft
-        glitch_fft, _ = utils.nfft(padded_glitch, sampling_frequency=self.sampling_frequency)
-        temporary_snr_squared = np.real(self.optimal_snr_squared(signal=glitch_fft))
-        scaled_glitch = glitch_fft * glitch_snr / np.sqrt(temporary_snr_squared)
-        return scaled_glitch
+        temporary_snr_squared = np.real(
+            self.optimal_snr_squared(signal=frequency_domain_strain))
+        return frequency_domain_strain * target_snr / np.sqrt(temporary_snr_squared)
 
-    def inject_glitch(self, glitch, glitch_injection_time, glitch_sampling_frequency, glitch_snr):
+    def inject_glitch(self, glitch_snr, glitch_parameters=None, glitch_time_domain_strain=None,
+                      glitch_sample_times=None, glitch_injection_time=None, glitch_waveform_generator=None):
         """ Inject a glitch into the interferometer data.
 
         Parameters
@@ -440,25 +439,64 @@ class Interferometer(object):
             The glitch will be rescaled in such a way that it's optimal SNR matches with the glitch_snr.
         """
 
-        glitch_time_array = np.arange(0, len(glitch), 1) / glitch_sampling_frequency
-        glitch_duration = glitch_time_array[-1]
+        if glitch_parameters is None:
+            glitch_parameters = {}
+        for key, val in [('ra', 0.0), ('dec', 0.0), ('psi', 0.0)]:
+            glitch_parameters.setdefault(key, val)
 
-        if glitch_duration > self.duration:
+        if glitch_time_domain_strain is None and glitch_waveform_generator is None:
             raise ValueError(
-                "Glitch duration ({} seconds) is longer than the duration of the time domain strain of the detector "
-                "({} seconds).".format(glitch_duration, self.duration)
-            )
+                "inject_glitch needs one of glitch_waveform_generator or "
+                "glitch_time_domain_strain.")
+        elif glitch_time_domain_strain is not None:
+            glitch_sampling_frequency = 1.0 / (glitch_sample_times[1] - glitch_sample_times[0])
+            # Resample the glitch to match with the interferometer's sampling frequency
+            if glitch_sampling_frequency != self.sampling_frequency:
+                temp_sample_times = np.arange(
+                    len(self.time_array)) / self.sampling_frequency
+                glitch_time_domain_strain = np.interp(
+                    temp_sample_times, glitch_sample_times, glitch_time_domain_strain)
+                glitch_sample_times = temp_sample_times
 
-        if glitch_sampling_frequency != self.sampling_frequency:
-            _temporary_time_array = np.arange(0, glitch_duration, 1 / self.sampling_frequency)
-            glitch = np.interp(_temporary_time_array, glitch_time_array, glitch)
-            glitch_time_array = _temporary_time_array
+            # Padding the glitch to have the correct size for the fft.
+            padded_glitch = np.zeros(len(self.time_array))
+            padded_glitch[:len(glitch_time_domain_strain)
+                          ] += glitch_time_domain_strain
 
-        scaled_glitch = self.adjust_optimal_snr_and_injection_time_of_glitch(glitch, glitch_snr, glitch_injection_time)
-        self.strain_data.frequency_domain_strain += scaled_glitch
+            # Since the maxima of the glitch is not at 0.
+            glitch_parameters['geocent_time'] = glitch_injection_time - \
+                (glitch_sample_times[np.argmax(padded_glitch)])
+
+            # Convert to frequency domain glitch
+            glitch_frequency_domain_strain, _ = utils.nfft(
+                padded_glitch, self.sampling_frequency)
+
+            # Adjust SNR
+            glitch_frequency_domain_strain = self.adjust_optimal_snr(
+                glitch_frequency_domain_strain, glitch_snr)
+            injection_polarizations = {
+                self.name: glitch_frequency_domain_strain}
+
+            # Usual inject method
+            self.inject_signal_from_waveform_polarizations(parameters=glitch_parameters,
+                                                           injection_polarizations=injection_polarizations)
+
+        elif glitch_waveform_generator is not None:
+            glitch_frequency_domain_strain = glitch_waveform_generator.frequency_domain_strain(
+                glitch_parameters)
+            glitch_frequency_domain_strain = self.adjust_optimal_snr(
+                glitch_frequency_domain_strain, glitch_snr)
+            injection_polarizations = {
+                self.name: glitch_frequency_domain_strain}
+            self.inject_signal_from_waveform_polarizations(parameters=glitch_parameters,
+                                                           injection_polarizations=injection_polarizations)
+
         logger.info("Injected a glitch in: {}".format(self.name))
         logger.info("Optimal SNR of the glitch: {}".format(glitch_snr))
-        logger.info("Matched filter SNR of the glitch: {}".format(self.matched_filter_snr(signal=scaled_glitch)))
+        logger.info("Matched filter SNR of the glitch: {}".format(
+            self.matched_filter_snr(signal=glitch_frequency_domain_strain)))
+
+        return glitch_time_domain_strain
 
     def inject_signal(self, parameters, injection_polarizations=None,
                       waveform_generator=None, raise_error=True):
@@ -558,7 +596,8 @@ class Interferometer(object):
                 'Injecting signal outside segment, start_time={}, merger time={}.'
                 .format(self.strain_data.start_time, parameters['geocent_time']))
 
-        signal_ifo = self.get_detector_response(injection_polarizations, parameters)
+        signal_ifo = self.get_detector_response(
+            injection_polarizations, parameters)
         self.strain_data.frequency_domain_strain += signal_ifo
 
         self.meta_data['optimal_SNR'] = (
@@ -568,8 +607,10 @@ class Interferometer(object):
         self.meta_data['parameters'] = parameters
 
         logger.info("Injected signal in {}:".format(self.name))
-        logger.info("  optimal SNR = {:.2f}".format(self.meta_data['optimal_SNR']))
-        logger.info("  matched filter SNR = {:.2f}".format(self.meta_data['matched_filter_SNR']))
+        logger.info("  optimal SNR = {:.2f}".format(
+            self.meta_data['optimal_SNR']))
+        logger.info("  matched filter SNR = {:.2f}".format(
+            self.meta_data['matched_filter_SNR']))
         for key in parameters:
             logger.info('  {} = {}'.format(key, parameters[key]))
 
@@ -580,7 +621,8 @@ class Interferometer(object):
         using the :code:`BILBY_INCORRECT_PSD_NORMALIZATION` environment variable.
         """
         if string_to_boolean(
-            os.environ.get("BILBY_INCORRECT_PSD_NORMALIZATION", "FALSE").upper()
+            os.environ.get("BILBY_INCORRECT_PSD_NORMALIZATION",
+                           "FALSE").upper()
         ):
             return self.strain_data.window_factor
         else:
@@ -725,11 +767,12 @@ class Interferometer(object):
         """
         return gwutils.matched_filter_snr(
             signal=signal[self.strain_data.frequency_mask],
-            frequency_domain_strain=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
+            frequency_domain_strain=self.strain_data.frequency_domain_strain[
+                self.strain_data.frequency_mask],
             power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
             duration=self.strain_data.duration)
 
-    def whiten_frequency_series(self, frequency_series : np.array) -> np.array:
+    def whiten_frequency_series(self, frequency_series: np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
 
         .. math::
@@ -752,7 +795,7 @@ class Interferometer(object):
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,
-        whitened_frequency_series : np.array
+        whitened_frequency_series: np.array
     ) -> np.array:
         """Gets the whitened time series from a whitened frequency series.
 
@@ -837,10 +880,12 @@ class Interferometer(object):
 
         if label is None:
             filename_asd = '{}/{}_asd.dat'.format(outdir, self.name)
-            filename_data = '{}/{}_frequency_domain_data.dat'.format(outdir, self.name)
+            filename_data = '{}/{}_frequency_domain_data.dat'.format(
+                outdir, self.name)
         else:
             filename_asd = '{}/{}_{}_asd.dat'.format(outdir, self.name, label)
-            filename_data = '{}/{}_{}_frequency_domain_data.dat'.format(outdir, self.name, label)
+            filename_data = '{}/{}_{}_frequency_domain_data.dat'.format(
+                outdir, self.name, label)
         np.savetxt(filename_data,
                    np.array(
                        [self.strain_data.frequency_array,
@@ -859,7 +904,8 @@ class Interferometer(object):
             return
 
         fig, ax = plt.subplots()
-        df = self.strain_data.frequency_array[1] - self.strain_data.frequency_array[0]
+        df = self.strain_data.frequency_array[1] - \
+            self.strain_data.frequency_array[0]
         asd = gwutils.asd_from_freq_series(
             freq_data=self.strain_data.frequency_domain_strain, df=df)
 
@@ -992,7 +1038,8 @@ class Interferometer(object):
     ))
     def to_pickle(self, outdir="outdir", label=None):
         utils.check_directory_exists_and_if_not_mkdir('outdir')
-        filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
+        filename = self._filename_from_outdir_label_extension(
+            outdir, label, extension="pkl")
         safe_file_dump(self, filename, "dill")
 
     @classmethod
