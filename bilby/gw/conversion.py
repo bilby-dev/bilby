@@ -1640,9 +1640,10 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
             output_sample[key] = \
                 likelihood.waveform_generator.waveform_arguments[key]
         except (KeyError, AttributeError):
-            default = waveform_defaults[key]
-            output_sample[key] = default
-            logger.debug('Assuming {} = {}'.format(key, default))
+            if key not in output_sample:
+                default = waveform_defaults[key]
+                output_sample[key] = default
+                logger.debug('Assuming {} = {}'.format(key, default))
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
