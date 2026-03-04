@@ -480,6 +480,37 @@ class TestGenerateAllParameters(unittest.TestCase):
             self.expected_bbh_keys,
         )
 
+    def test_generate_bbh_parameters_preserves_user_reference_frequency(self):
+        """User-provided reference_frequency and minimum_frequency must not be overwritten by defaults.
+
+        Regression test for https://github.com/bilby-dev/bilby/issues/1056
+
+        Uses aligned spins (a_1=a_2=0) to avoid the lalsimulation dependency in
+        the spin conversion, so this test can run without a lalsuite installation.
+        """
+        params = dict(
+            mass_1=36.0,
+            mass_2=29.0,
+            a_1=0.0,
+            a_2=0.0,
+            tilt_1=0.0,
+            tilt_2=0.0,
+            phi_12=0.0,
+            phi_jl=0.0,
+            luminosity_distance=2000.0,
+            theta_jn=0.4,
+            psi=2.659,
+            phase=1.3,
+            geocent_time=1126259642.413,
+            ra=1.375,
+            dec=-1.2108,
+            reference_frequency=5.0,
+            minimum_frequency=5.0,
+        )
+        result = bilby.gw.conversion.generate_all_bbh_parameters(params)
+        self.assertEqual(result['reference_frequency'], 5.0)
+        self.assertEqual(result['minimum_frequency'], 5.0)
+
     def test_generate_all_bns_parameters(self):
         self._generate(
             bilby.gw.conversion.generate_all_bns_parameters,
