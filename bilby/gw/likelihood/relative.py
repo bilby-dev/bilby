@@ -30,6 +30,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         the same parameter basis as the one that sampling is carried out in.
         For example, if sampling in `mass_1` and `mass_2`, the fiducial
         parameters should also be provided in `mass_1` and `mass_2.`
+        If no fiducial parameters are passed, a random point will be drawn from
+        the prior.
     update_fiducial_parameters: bool
         Whether to try to update the fiducial parameters by finding the maximum
         likelihood point using scipy differential evolution. Default is
