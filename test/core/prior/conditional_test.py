@@ -218,6 +218,32 @@ class TestConditionalPriorDict(unittest.TestCase):
         ).items():
             self.conditional_priors_manually_set_items[key] = value
 
+        names = ["mvgvar_a", "mvgvar_b"]
+        mu = [[0.79, -0.83]]
+        cov = [[[0.03, 0.0], [0.0, 0.04]]]
+        mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
+
+        def condition_func_4(reference_parameters, mvgvar_a):
+            return dict(minimum=reference_parameters["minimum"], maximum=mvgvar_a)
+
+        prior_4 = bilby.core.prior.ConditionalUniform(
+            condition_func=condition_func_4, minimum=self.minimum, maximum=self.maximum
+        )
+
+        self.conditional_priors_with_joint_prior = (
+            bilby.core.prior.ConditionalPriorDict(
+                dict(
+                    var_4=prior_4,
+                    var_3=self.prior_3,
+                    var_2=self.prior_2,
+                    var_0=self.prior_0,
+                    var_1=self.prior_1,
+                    mvgvar_a=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_a"),
+                    mvgvar_b=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_b"),
+                )
+            )
+        )
+
     def tearDown(self):
         del self.minimum
         del self.maximum
@@ -227,6 +253,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         del self.prior_3
         del self.conditional_priors
         del self.conditional_priors_manually_set_items
+        del self.conditional_priors_with_joint_prior
         del self.test_sample
 
     def test_conditions_resolved_upon_instantiation(self):
@@ -292,6 +319,8 @@ class TestConditionalPriorDict(unittest.TestCase):
     def test_sample_illegal_subset(self):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.sample_subset(keys=["var_1"])
+        with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+            self.conditional_priors_with_joint_prior.sample_subset(keys=["mvgvar_a"])
 
     def test_sample_multiple(self):
         def condition_func(reference_params, a):
