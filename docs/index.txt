@@ -37,12 +37,13 @@ Welcome to bilby's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples:
+   :caption: Tutorials:
 
    making_priors
    compare_samplers
    fitting_with_x_and_y_errors
    visualising_the_results
+   power_spectral_density_estimation
 
 .. currentmodule:: bilby
 
