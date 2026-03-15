@@ -379,6 +379,51 @@ class TestConvertToLALParams(unittest.TestCase):
         self.bbh_convert()
         self.assertEqual(self.parameters["tilt_1"], t1)
 
+    def test_bbh_chi_in_plane_zero_spin_both_components(self):
+        """
+        When chi_1 = chi_1_in_plane = 0 the magnitude a_1 = 0,
+        and the bare division chi_1 / a_1 = 0/0 would produce a NaN.
+        This tests whether the wrapped np.errstate(invalid="raise")
+        correctly catches the resulting error, and sets cos_tilt_1 = 1.0 instead.
+        Same for component labeled 2.
+        """
+        self.parameters["chi_1"] = 0.0
+        self.parameters["chi_1_in_plane"] = 0.0
+        self.parameters["chi_2"] = 0.0
+        self.parameters["chi_2_in_plane"] = 0.0
+        self.bbh_convert()
+        for idx in ["1", "2"]:
+            self.assertFalse(
+                np.isnan(self.parameters[f"cos_tilt_{idx}"]),
+                f"cos_tilt_{idx} must not be NaN for zero spins",
+            )
+            self.assertEqual(self.parameters[f"a_{idx}"], 0.0)
+            self.assertEqual(self.parameters[f"cos_tilt_{idx}"], 1.0)
+
+    def test_bbh_double_conversion_zero_spin_no_nan(self):
+        """
+        Verify that, when calling convert_to_lal_binary_black_hole_parameters
+        twice on a parameters dict that has chi_1 = chi_2 = 0, the np.errstate
+        is correctly triggered and avoids NaNs.
+        """
+        self.parameters["chi_1"] = 0.0
+        self.parameters["chi_2"] = 0.0
+        # First conversion
+        self.bbh_convert()
+        first_pass = self.parameters.copy()
+        self.assertFalse(np.isnan(first_pass.get("cos_tilt_1", 0.0)))
+
+        # Second conversion on the already-converted parameters (the crash scenario)
+        (second_pass, _) = conversion.convert_to_lal_binary_black_hole_parameters(first_pass)
+        self.assertFalse(
+            np.isnan(second_pass["cos_tilt_1"]),
+            "cos_tilt_1 must not be NaN after a second conversion of zero-spin parameters",
+        )
+        self.assertFalse(
+            np.isnan(second_pass["cos_tilt_2"]),
+            "cos_tilt_2 must not be NaN after a second conversion of zero-spin parameters",
+        )
+
     def _conversion_to_component_tidal(self, keys):
         for key in keys:
             self.parameters[key] = self.tidal_parameters[key]
