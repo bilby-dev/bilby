@@ -287,7 +287,49 @@ class Interferometer(object):
         else:
             return 0
 
-    def get_detector_response(self, waveform_polarizations, parameters, frequencies=None):
+    def compute_t_star(self, parameters, frequencies=None):
+        """
+        Calculate t_star(f), the time of arrival as a function of frequency,
+        using the stationary phase approximation from arXiv:0907.0700 eq. (3.8b).
+        See also gwfast: https://arxiv.org/pdf/2207.02771.pdf
+
+        Parameters
+        ==========
+        parameters: dict
+        frequencies: array-like, optional
+            The frequency values to evaluate the response at. If
+            not provided, the response is computed using
+            :code:`self.frequency_array`.
+
+        Returns
+        =======
+        t_star: array-like
+            Time of arrival as a function of frequency (seconds).
+        """
+        
+        if frequencies is None:
+            frequencies = self.frequency_array
+        GMsun_over_c3 = 4.925491025543575903411922162094833998e-6
+        mass_ratio = symmetric_mass_ratio_to_mass_ratio(parameters['symmetric_mass_ratio'])
+        #mass_ratio = parameters['mass_2']/parameters['mass_1']
+        Mtot_sec = parameters['chirp_mass'] * (1 + mass_ratio) ** 1.2 / mass_ratio ** 0.6
+        eta = (parameters['chirp_mass'] / Mtot_sec) ** (5 / 3)
+        eta2 = eta*eta
+        Mtot_sec = Mtot_sec * GMsun_over_c3
+        v = (np.pi*Mtot_sec*frequencies)**(1./3.)
+        OverallFac = 5./256 * Mtot_sec/(eta*(v**8.))
+
+        t07 = (1. +
+                v*v*((743./252. + 11./3.*eta) +
+                        v*(-32./5.*np.pi +
+                        v*((3058673./508032. + 5429./504.*eta + 617./72.*eta2) +
+                            v*(-(7729./252. - 13./3.*eta)*np.pi +
+                                v*((- 10052469856691./23471078400. + 128./3.*np.pi*np.pi + 6848./105.*np.euler_gamma + (3147553127./3048192. - 451./12.*np.pi*np.pi)*eta - 15211./1728.*eta2 + 25565./1296.*eta2*eta + 3424./105.*np.log(16.*v*v)) +
+                                    v*(- 15419335./127008. - 75703./756.*eta + 14809./378.*eta2)*np.pi))))))
+
+        return parameters['geocent_time'] - OverallFac*t07
+
+    def get_detector_response(self, waveform_polarizations, parameters, frequencies=None, earth_rotation=False):
         """ Get the detector response for a particular waveform
 
         Parameters
