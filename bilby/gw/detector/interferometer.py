@@ -520,6 +520,111 @@ class Interferometer(object):
             else:
                 logger.warning(msg)
 
+    def adjust_optimal_snr(self, frequency_domain_strain, target_snr):
+        """ Rescale a frequency-domain strain array to a target optimal SNR.
+
+        Parameters
+        ==========
+        frequency_domain_strain: numpy.array
+            Frequency-domain strain to rescale.
+        target_snr: float
+            Desired optimal SNR.
+
+        Returns
+        =======
+        numpy.ndarray
+            Frequency-domain strain rescaled so that its optimal SNR equals ``target_snr``.
+        """
+        temporary_snr_squared = np.real(
+            self.optimal_snr_squared(signal=frequency_domain_strain))
+        return frequency_domain_strain * target_snr / np.sqrt(temporary_snr_squared)
+
+    def inject_glitch(self, glitch_parameters=None, glitch_time_domain_strain=None,
+                      glitch_sample_times=None, glitch_waveform_generator=None):
+        """ Inject a glitch into the interferometer data.
+
+        Parameters
+        ==========
+        glitch_parameters: dict, optional
+            Dictionary of glitch parameters.
+            Must contain ``onset_time`` (the GPS time at which the glitch peak should occur).
+            Must contain ``snr``. The glitch will be rescaled in such a
+            way that it's optimal SNR matches to this value.
+        glitch_time_domain_strain: numpy.array, optional
+            Time-domain strain data of the glitch to inject.
+        glitch_sample_times: numpy.array
+            Array of sample times corresponding to ``glitch_time_domain_strain``.
+        glitch_waveform_generator: bilby.gw.WaveformGenerator,
+            A waveform generator used to produce the glitch frequency-domain
+            strain.
+        """
+
+        if glitch_parameters is None:
+            glitch_parameters = {}
+        for key, val in [('ra', 0.0), ('dec', 0.0), ('psi', 0.0)]:
+            glitch_parameters.setdefault(key, val)
+
+        if glitch_time_domain_strain is None and glitch_waveform_generator is None:
+            raise ValueError(
+                "inject_glitch needs one of glitch_waveform_generator or "
+                "glitch_time_domain_strain.")
+        elif glitch_time_domain_strain is not None:
+            # Populate ra, dec, psi. Necessary to make an injection.
+            glitch_sampling_frequency = 1.0 / (glitch_sample_times[1] - glitch_sample_times[0])
+            # Resample the glitch to match with the interferometer's sampling frequency
+            if glitch_sampling_frequency != self.sampling_frequency:
+                temp_sample_times = np.arange(
+                    len(self.time_array)) / self.sampling_frequency
+                glitch_time_domain_strain = np.interp(
+                    temp_sample_times, glitch_sample_times, glitch_time_domain_strain)
+                glitch_sample_times = temp_sample_times
+
+            # Padding the glitch to have the correct size for the fft.
+            padded_glitch = np.zeros(len(self.time_array))
+            padded_glitch[:len(glitch_time_domain_strain)
+                          ] += glitch_time_domain_strain
+
+            # Convert to frequency domain glitch
+            glitch_frequency_domain_strain, _ = utils.nfft(
+                padded_glitch, self.sampling_frequency)
+
+            # Adjust SNR
+            glitch_frequency_domain_strain = self.adjust_optimal_snr(
+                glitch_frequency_domain_strain, glitch_parameters['snr'])
+            injection_polarizations = {
+                self.name: glitch_frequency_domain_strain}
+
+            # Roll the glitch since the glitch maxima of the glitch may not align in the same way as the signal maxima.
+            glitch_parameters['geocent_time'] = glitch_parameters["onset_time"] \
+                - glitch_sample_times[np.argmax(glitch_time_domain_strain)]
+
+            # Usual inject method
+            self.inject_signal_from_waveform_polarizations(parameters=glitch_parameters,
+                                                           injection_polarizations=injection_polarizations)
+
+        elif glitch_waveform_generator is not None:
+            glitch_frequency_domain_strain = glitch_waveform_generator.frequency_domain_strain(
+                glitch_parameters)
+            glitch_frequency_domain_strain = self.adjust_optimal_snr(
+                np.asarray(glitch_frequency_domain_strain[0]), glitch_parameters['snr'])
+            injection_polarizations = {self.name: glitch_frequency_domain_strain}
+
+            # Populate ra, dec, psi. Necessary to make an injection.
+            for key, val in [('ra', 0.0), ('dec', 0.0), ('psi', 0.0)]:
+                glitch_parameters.setdefault(key, val)
+            # Roll the glitch since the glitch maxima of the glitch may not align in the same way as the signal maxima.
+            glitch_time_domain_strain = glitch_waveform_generator.time_domain_strain(glitch_parameters)
+            glitch_parameters['geocent_time'] = glitch_parameters["onset_time"] - \
+                glitch_waveform_generator.time_array[np.argmax(glitch_time_domain_strain)]
+
+            self.inject_signal_from_waveform_polarizations(parameters=glitch_parameters,
+                                                           injection_polarizations=injection_polarizations)
+
+        logger.info("Injected a glitch in: {}".format(self.name))
+        logger.info("Optimal SNR of the glitch: {}".format(glitch_parameters['snr']))
+
+        return glitch_time_domain_strain
+
     def inject_signal(self, parameters, injection_polarizations=None,
                       waveform_generator=None, raise_error=True, earth_rotation=False):
         """ General signal injection method.
