@@ -421,8 +421,16 @@ class Interferometer(object):
 
         signal_ifo = sum(signal.values()) * mask
 
-        time_shift = self.time_delay_from_geocenter(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+        if np.ndim(antenna_time) > 0:
+            time_shift = np.array([
+                self.time_delay_from_geocenter(
+                    parameters['ra'], parameters['dec'], t)
+                for t in antenna_time])
+            print("What is the length of time_shift", len(time_shift))
+            print("What is length of polas", len(signal_ifo[mask]))
+        else:
+            time_shift = self.time_delay_from_geocenter(
+                parameters['ra'], parameters['dec'], parameters['geocent_time'])
 
         # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
