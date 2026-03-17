@@ -11,7 +11,7 @@ random.seed(123)
 # Set the duration and sampling frequency of the data segment that we're
 # going to inject the signal into
 duration = 256
-sampling_frequency = 1024.0
+sampling_frequency = 64.0
 
 # Specify the output directory and the name of the simulation.
 outdir = "outdir"
@@ -20,6 +20,7 @@ bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
 
 # We are going to inject a binary neutron star waveform.
+# BNS signals are typically longer compared to BBH signals so including earth rotation for such signal maybe important.
 injection_parameters = dict(
     mass_1=1.5,
     mass_2=1.3,
