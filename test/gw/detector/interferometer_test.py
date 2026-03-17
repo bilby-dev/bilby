@@ -67,6 +67,10 @@ class TestInterferometer(unittest.TestCase):
 
         bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
 
+    @staticmethod
+    def _mock_detector_response(x, params, frequencies=None, earth_rotation=False):
+        return x["plus"] + x["cross"]
+
     def tearDown(self):
         del self.name
         del self.power_spectral_density
@@ -153,7 +157,7 @@ class TestInterferometer(unittest.TestCase):
 
     def test_inject_signal_from_waveform_polarizations_correct_injection(self):
         original_strain = self.ifo.strain_data.frequency_domain_strain
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         self.ifo.inject_signal_from_waveform_polarizations(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
@@ -169,7 +173,7 @@ class TestInterferometer(unittest.TestCase):
 
     def test_inject_signal_from_waveform_polarizations_update_time_domain_strain(self):
         original_td_strain = self.ifo.strain_data.time_domain_strain
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         self.ifo.inject_signal_from_waveform_polarizations(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
@@ -179,7 +183,7 @@ class TestInterferometer(unittest.TestCase):
         )
 
     def test_inject_signal_from_waveform_polarizations_meta_data(self):
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         self.ifo.inject_signal_from_waveform_polarizations(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
@@ -202,7 +206,7 @@ class TestInterferometer(unittest.TestCase):
     def test_inject_signal_from_waveform_polarizations_incorrect_length(self):
         self.injection_polarizations["plus"] = np.random.random(1000)
         self.injection_polarizations["cross"] = np.random.random(1000)
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         with self.assertRaises(ValueError):
             self.ifo.inject_signal_from_waveform_polarizations(
                 parameters=self.parameters,
@@ -212,7 +216,7 @@ class TestInterferometer(unittest.TestCase):
     @mock.patch.object(bilby.core.utils.logger, "warning")
     def test_inject_signal_outside_segment_logs_warning(self, m):
         self.parameters["geocent_time"] = 24345.0
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         self.ifo.inject_signal_from_waveform_polarizations(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
@@ -220,7 +224,7 @@ class TestInterferometer(unittest.TestCase):
         self.assertTrue(m.called)
 
     def test_inject_signal_from_waveform_generator_correct_return_value(self):
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         returned_polarizations = self.ifo.inject_signal_from_waveform_generator(
             parameters=self.parameters, waveform_generator=self.waveform_generator
         )
@@ -239,17 +243,18 @@ class TestInterferometer(unittest.TestCase):
         bilby.gw.detector.Interferometer, "inject_signal_from_waveform_generator"
     )
     def test_inject_signal_with_waveform_generator_correct_call(self, m):
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         _ = self.ifo.inject_signal(
             parameters=self.parameters, waveform_generator=self.waveform_generator
         )
         m.assert_called_with(
-            parameters=self.parameters, waveform_generator=self.waveform_generator
+            parameters=self.parameters, waveform_generator=self.waveform_generator,
+            earth_rotation=False
         )
 
     def test_inject_signal_from_waveform_generator_correct_injection(self):
         original_strain = self.ifo.strain_data.frequency_domain_strain
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         injection_polarizations = self.ifo.inject_signal_from_waveform_generator(
             parameters=self.parameters, waveform_generator=self.waveform_generator
         )
@@ -264,7 +269,7 @@ class TestInterferometer(unittest.TestCase):
 
     def test_inject_signal_with_injection_polarizations(self):
         original_strain = self.ifo.strain_data.frequency_domain_strain
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         self.ifo.inject_signal(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
@@ -282,7 +287,7 @@ class TestInterferometer(unittest.TestCase):
         bilby.gw.detector.Interferometer, "inject_signal_from_waveform_polarizations"
     )
     def test_inject_signal_with_injection_polarizations_and_waveform_generator(self, m):
-        self.ifo.get_detector_response = lambda x, params: x["plus"] + x["cross"]
+        self.ifo.get_detector_response = self._mock_detector_response
         _ = self.ifo.inject_signal(
             parameters=self.parameters,
             waveform_generator=self.waveform_generator,
@@ -291,8 +296,9 @@ class TestInterferometer(unittest.TestCase):
         m.assert_called_with(
             parameters=self.parameters,
             injection_polarizations=self.injection_polarizations,
+            earth_rotation=False,
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssertionError):
             m.assert_called_with(
                 parameters=self.parameters,
                 injection_polarizations=self.wg_polarizations,

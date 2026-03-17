@@ -683,7 +683,7 @@ class Interferometer(object):
                 earth_rotation=earth_rotation)
         return injection_polarizations
 
-    def inject_signal_from_waveform_generator(self, parameters, waveform_generator, earth_rotation):
+    def inject_signal_from_waveform_generator(self, parameters, waveform_generator, earth_rotation=False):
         """ Inject a signal using a waveform generator and a set of parameters.
         Alternative to `inject_signal` and `inject_signal_from_waveform_polarizations`
 
@@ -714,7 +714,7 @@ class Interferometer(object):
             earth_rotation=earth_rotation)
         return injection_polarizations
 
-    def inject_signal_from_waveform_polarizations(self, parameters, injection_polarizations, earth_rotation):
+    def inject_signal_from_waveform_polarizations(self, parameters, injection_polarizations, earth_rotation=False):
         """ Inject a signal into the detector from a dict of waveform polarizations.
         Alternative to `inject_signal` and `inject_signal_from_waveform_generator`.
 

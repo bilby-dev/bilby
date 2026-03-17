@@ -239,7 +239,8 @@ class TestInterferometerList(unittest.TestCase):
             injection_polarizations=dict(plus=1), raise_error=False
         )
         m.assert_called_with(
-            parameters=None, injection_polarizations=dict(plus=1), raise_error=False
+            parameters=None, injection_polarizations=dict(plus=1), raise_error=False,
+            earth_rotation=False
         )
         self.assertEqual(len(self.ifo_list), m.call_count)
 
