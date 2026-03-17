@@ -147,7 +147,7 @@ class GravitationalWaveTransient(Likelihood):
             distance_marginalization=False, phase_marginalization=False, calibration_marginalization=False, priors=None,
             distance_marginalization_lookup_table=None, calibration_lookup_table=None,
             number_of_response_curves=1000, starting_index=0, jitter_time=True, reference_frame="sky",
-            time_reference="geocenter"
+            time_reference="geocenter", earth_rotation=False
     ):
 
         self.waveform_generator = waveform_generator
@@ -162,6 +162,13 @@ class GravitationalWaveTransient(Likelihood):
         self._noise_log_likelihood_value = None
         self.jitter_time = jitter_time
         self.reference_frame = reference_frame
+        self.earth_rotation = earth_rotation
+
+        if self.earth_rotation and self.time_marginalization:
+            raise ValueError(
+                "earth_rotation and time_marginalization cannot be used "
+                "together.")
+
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
@@ -734,7 +741,8 @@ class GravitationalWaveTransient(Likelihood):
             Interferometer to compute the response with respect to.
         """
         parameters = _fallback_to_parameters(self, parameters)
-        return interferometer.get_detector_response(signal_polarizations, parameters)
+        return interferometer.get_detector_response(signal_polarizations,
+                                                    parameters, earth_rotation=self.earth_rotation)
 
     def generate_phase_sample_from_marginalized_likelihood(
             self, signal_polarizations=None, parameters=None):
