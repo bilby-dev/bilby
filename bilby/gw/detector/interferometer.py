@@ -356,6 +356,40 @@ class Interferometer(object):
 
         return parameters['geocent_time'] - scaling_factor * t07
 
+    def interpolate_antenna_response(self, ra, dec, antenna_time, psi, mode,
+                                     n_sparse=100):
+        """ Compute the antenna response over a time array using sparse
+        evaluation and interpolation.
+
+        Parameters
+        ==========
+        ra: float
+            Right ascension of the source (radians).
+        dec: float
+            Declination of the source (radians).
+        antenna_time: array-like
+            Array of GPS times, one per frequency bin.
+        psi: float
+            Polarisation angle of the source (radians).
+        mode: str
+            Polarisation mode, e.g. ``'plus'`` or ``'cross'``.
+        n_sparse: int, optional
+            Number of sparse evaluation points. Default is 100.
+
+        Returns
+        =======
+        det_response: array-like
+            Interpolated antenna response at each element of ``antenna_time``.
+        """
+        n_sparse = min(n_sparse, len(antenna_time))
+        sparse_idx = np.round(
+            np.linspace(0, len(antenna_time) - 1, n_sparse)
+        ).astype(int)
+        sparse_response = np.array([
+            self.antenna_response(ra, dec, antenna_time[i], psi, mode)
+            for i in sparse_idx])
+        return np.interp(np.arange(len(antenna_time)), sparse_idx, sparse_response)
+
     def get_detector_response(self, waveform_polarizations, parameters, frequencies=None, earth_rotation=False):
         """ Get the detector response for a particular waveform
 
@@ -391,6 +425,7 @@ class Interferometer(object):
         if self.reference_time is None:
             antenna_time = parameters["geocent_time"]
             if earth_rotation:
+                # FIXME: earth rotation only works with self.reference_time==geocent_time
                 antenna_time = self.compute_premerger_time(
                     parameters, frequencies=frequencies)
         else:
@@ -399,11 +434,9 @@ class Interferometer(object):
         signal = {}
         for mode in waveform_polarizations.keys():
             if np.ndim(antenna_time) > 0:
-                det_response = np.array([
-                    self.antenna_response(
-                        parameters['ra'], parameters['dec'],
-                        t, parameters['psi'], mode)
-                    for t in antenna_time])
+                det_response = self.interpolate_antenna_response(
+                    parameters['ra'], parameters['dec'],
+                    antenna_time, parameters['psi'], mode)
 
                 # Pad det_response to match the length of self.frequency_array,
                 # which equals the length of each waveform polarization.
@@ -426,8 +459,6 @@ class Interferometer(object):
                 self.time_delay_from_geocenter(
                     parameters['ra'], parameters['dec'], t)
                 for t in antenna_time])
-            print("What is the length of time_shift", len(time_shift))
-            print("What is length of polas", len(signal_ifo[mask]))
         else:
             time_shift = self.time_delay_from_geocenter(
                 parameters['ra'], parameters['dec'], parameters['geocent_time'])
