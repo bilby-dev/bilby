@@ -1048,15 +1048,14 @@ class Result(object):
 
         quants_to_compute = np.array([quantiles[0], 0.5, quantiles[1]])
         quants = np.percentile(self.posterior[key], quants_to_compute * 100)
-        summary.median = quants[1]
-        summary.plus = quants[2] - summary.median
-        summary.minus = summary.median - quants[0]
+        median = quants[1]
+        plus = quants[2] - median
+        minus = median - quants[0]
 
         fmt = "{{0:{0}}}".format(fmt).format
         string_template = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
-        summary.string = string_template.format(
-            fmt(summary.median), fmt(summary.minus), fmt(summary.plus))
-        return summary
+        string = string_template.format(fmt(median), fmt(minus), fmt(plus))
+        return summary(median, minus, upper, string)
 
     @latex_plot_format
     def plot_single_density(self, key, prior=None, cumulative=False,
