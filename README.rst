@@ -4,7 +4,7 @@
 Bilby
 =====
 
-Added features: 
+A bilby fork to develope features relevant for A# and/or 3G detectors:
 
 - Inject glitches to the data:
    - An example script is at ``examples/gw_examples/injection_examples/glitch.py``
