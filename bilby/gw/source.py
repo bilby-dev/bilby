@@ -9,8 +9,8 @@ from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralChooseFDWaveformSequence,
                     safe_cast_mode_to_int)
 
-UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs. This is deprecated behavior and will
-result in an error in future releases. Make sure all of the waveform kwargs are correctly
+UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs.
+Make sure all of the waveform kwargs are correctly
 spelled.
 
 Unused waveform_kwargs: {waveform_kwargs}
@@ -684,7 +684,7 @@ def _base_lal_cbc_fd_waveform(
         h_cross[frequency_bounds] *= time_shift
 
     if len(waveform_kwargs) > 0:
-        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus, cross=h_cross)
 
@@ -1144,7 +1144,7 @@ def _base_waveform_frequency_sequence(
                 raise
 
     if len(waveform_kwargs) > 0:
-        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus.data.data, cross=h_cross.data.data)
 
