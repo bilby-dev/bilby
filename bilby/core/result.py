@@ -1055,7 +1055,7 @@ class Result(object):
         fmt = "{{0:{0}}}".format(fmt).format
         string_template = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
         string = string_template.format(fmt(median), fmt(minus), fmt(plus))
-        return summary(median, minus, upper, string)
+        return summary(median, minus, plus, string)
 
     @latex_plot_format
     def plot_single_density(self, key, prior=None, cumulative=False,

@@ -6,6 +6,7 @@ import os
 import json
 import parameterized
 import pytest
+from collections import namedtuple
 from unittest.mock import patch
 
 import bilby
@@ -621,6 +622,18 @@ class TestResult(unittest.TestCase):
 
         # so should a result loaded from cache
         assert isinstance(cached_result, NotAResult)
+
+    def test_get_one_dimensional_median_and_error_bar(self):
+        """
+        Test that this method returns an object with the correct structure.
+        """
+        summary = self.result.get_one_dimensional_median_and_error_bar("x")
+
+        assert isinstance(summary, namedtuple)
+        assert isinstance(summary.median, float)
+        assert isinstance(summary.lower, float)
+        assert isinstance(summary.upper, float)
+        assert isinstance(summary.string, str)
 
 
 class TestResultListError(unittest.TestCase):
