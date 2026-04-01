@@ -2,12 +2,103 @@ name: Build images
 
 on:
   schedule:
-    - cron: "15 0 * * *" 
+    - cron: "15 0 * * *"
   workflow_dispatch:
 
 jobs:
   build-container:
     if: ${{ github.repository == 'bilby-dev/bilby' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["11", "12", "13"]
+    env:
+      LABEL: ghcr.io/${{ github.repository }}-python3${{ matrix.python-version }}
+      IMAGE_ARCHIVE: bilby-python3${{ matrix.python-version }}.tar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove unnecessary files
+        run: |
+          df . -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df . -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image archive
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: |
+            python_minor_version=${{ matrix.python-version }}
+            ENV_FILE=containers/environment.yml
+          push: false
+          file: containers/Dockerfile
+          tags: ${{ env.LABEL }}:latest
+          outputs: type=docker,dest=/tmp/${{ env.IMAGE_ARCHIVE }}
+          cache-from: type=gha,scope=bilby-python3${{ matrix.python-version }}
+          cache-to: type=gha,scope=bilby-python3${{ matrix.python-version }},mode=max
+
+      - name: Upload Docker image archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: bilby-python3${{ matrix.python-version }}-image
+          path: /tmp/${{ env.IMAGE_ARCHIVE }}
+          if-no-files-found: error
+
+  test-container:
+    if: ${{ github.repository == 'bilby-dev/bilby' }}
+    needs: build-container
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["11", "12", "13"]
+    env:
+      LABEL: ghcr.io/${{ github.repository }}-python3${{ matrix.python-version }}
+      IMAGE_ARCHIVE: bilby-python3${{ matrix.python-version }}.tar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Docker image archive
+        uses: actions/download-artifact@v4
+        with:
+          name: bilby-python3${{ matrix.python-version }}-image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load --input /tmp/${{ env.IMAGE_ARCHIVE }}
+
+      - name: Smoke test and import checks
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspaces/bilby" \
+            -w /workspaces/bilby \
+            ${{ env.LABEL }}:latest \
+            bash -lc '
+              set -e
+              python -m pip install -e .
+              bilby_result --help
+              bash test/ci_test_imports.sh
+              for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
+                  ${script} --help;
+              done
+            '
+
+  push-container:
+    if: ${{ github.repository == 'bilby-dev/bilby' }}
+    needs: test-container
     permissions:
       attestations: write
       contents: read
@@ -20,15 +111,16 @@ jobs:
         python-version: ["11", "12", "13"]
     env:
       LABEL: ghcr.io/${{ github.repository }}-python3${{ matrix.python-version }}
+      IMAGE_ARCHIVE: bilby-python3${{ matrix.python-version }}.tar
     steps:
-      - uses: actions/checkout@v4
+      - name: Download Docker image archive
+        uses: actions/download-artifact@v4
+        with:
+          name: bilby-python3${{ matrix.python-version }}-image
+          path: /tmp
 
-      - name: Remove unnecessary files
-        run: |
-          df . -h
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df . -h
+      - name: Load Docker image
+        run: docker load --input /tmp/${{ env.IMAGE_ARCHIVE }}
 
       - name: Login to the Container registry
         uses: docker/login-action@v3
@@ -37,26 +129,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker image
+      - name: Push Docker image
         id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          build-args: |
-            python_minor_version=${{ matrix.python-version }}
-            ENV_FILE=containers/environment.yml
-          push: true
-          file: containers/Dockerfile
-          tags: ${{ env.LABEL }}:latest
-          cache-from: type=registry,ref=${{ env.LABEL }}:buildcache
-          cache-to: type=registry,ref=${{ env.LABEL }}:buildcache,mode=max
-  
+        run: |
+          docker push ${{ env.LABEL }}:latest
+          digest=$(docker image inspect --format='{{index .RepoDigests 0}}' ${{ env.LABEL }}:latest | sed 's/.*@//')
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
