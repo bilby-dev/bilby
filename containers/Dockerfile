@@ -28,6 +28,7 @@ RUN  wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_lin
 #############################
 
 FROM os-deps AS build-env
+WORKDIR /bldenv
 ARG ENV_FILE=environment.yml
 COPY ${ENV_FILE} env.yml
 ARG python_major_version=3
@@ -40,6 +41,7 @@ RUN mamba env create -f env.yml -n ${conda_env}
 RUN echo "source activate ${conda_env}" > ~/.bashrc
 ENV PATH=/opt/conda/envs/${conda_env}/bin:$PATH
 RUN /bin/bash -c "source activate ${conda_env}"
+RUN cd / && rm -rf /bldenv
 RUN mamba clean --all
 
 #############################
