@@ -68,27 +68,30 @@ There are a number of keyword arguments that influence these sampling methods:
    above. The allowed values are
 
   * :code:`diff`: `ter Braak + (2006) <https://doi.org/10.1007/s11222-006-8769-1>`_
-    differential evolution. This is the default for :code:`bound="live"` and
-    :code:`bound="live-multi"`.
+    differential evolution. This is the default.
 
-  * :code:`volumetric`: sample from an ellipsoid centered on the current point.
-    This is the proposal distribution implemented in :code:`dynesty` and the
-    default for all other :code:`bound` options. This was the default proposal
+  * :code:`volumetric`: sample from region centered on the current point.
+    This is the proposal distribution implemented in :code:`dynesty`. This was the default proposal
     distribution for :code:`Bilby<2`, however, in many applications it leads to
     longer autocorrelation times and struggles to explore multi-modal distributions.
+    Setting, eg., :code:`bound=multi` adapts the proposal region shape similar to :code:`dynesty` implemented 
+    multi-ellipsoid volumetric sampling.
+    Note that bilby does not further tune the scale of individual proposals as done in dynesty.
+    Performance for :code:`bound='none'` is expected to be very poor.
 
-Finally, we implement two custom :code:`dynesty.sampler.Sampler` classes to
-facilitate the differential evolution proposal and average acceptance tracking.
+.. note::
+   For :code:`bilby<3.0` and :code:`dynesty<3.0.0`, we implement two custom
+   :code:`dynesty.sampler.Sampler` classes to facilitate the differential evolution proposal and average acceptance tracking.
 
-#. :code:`bound="live"` uses the :code:`LivePointSampler` which adapts the
-   :code:`walks` to average :code:`naccept` accepted steps when in
-   :code:`acceptance-walk` mode and passes the current live points to the
-   sample method.
+   #. :code:`bound="live"` uses the :code:`LivePointSampler` which adapts the
+      :code:`walks` to average :code:`naccept` accepted steps when in
+      :code:`acceptance-walk` mode and passes the current live points to the
+      sample method.
 
-#. :code:`bound="live-multi"` combines the functionality of :code:`"live"` with
-   the :code:`dynesty` implemented :code:`multi` method for multi-ellipsoid
-   :code:`volumetric` sampling. This method is intended when using both the
-   :code:`diff` and :code:`volumetric` proposals.
+   #. :code:`bound="live-multi"` combines the functionality of :code:`"live"` with
+      the :code:`dynesty` implemented :code:`multi` method for multi-ellipsoid
+      :code:`volumetric` sampling. This method is intended when using both the
+      :code:`diff` and :code:`volumetric` proposals.
 
 Understanding the output
 ------------------------
