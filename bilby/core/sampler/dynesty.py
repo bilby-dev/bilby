@@ -266,6 +266,7 @@ class Dynesty(NestedSampler):
             periodic=self.kwargs.get("periodic", None),
             reflective=self.kwargs.get("reflective", None),
             maxmcmc=self.maxmcmc,
+            proposals=self.proposals,
         )
 
         if kwargs["sample"] == "act-walk":
