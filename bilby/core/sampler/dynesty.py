@@ -143,9 +143,13 @@ class Dynesty(NestedSampler):
     bound: {'live', 'live-multi', 'none', 'single', 'multi', 'balls', 'cubes'}, ('live')
         Method used to select new points
     sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice',
-             'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
+             'rslice', 'hslice', 'rwalk_dynesty', BaseEnsembleSampler}, ('act-walk')
         Method used to sample uniformly within the likelihood constraints,
-        conditioned on the provided bounds
+        conditioned on the provided bounds. The default is the bilby-implemented `act-walk` method.
+        Passing custom subclasses of the bilby-implemented `BaseEnsembleSampler` is also supported.
+        Custom kwargs can be passed to the samplers via the `custom_sampler_kwargs` argument.
+    custom_sampler_kwargs: dict (None)
+        Dictionary of custom keyword arguments passed to initialize the sampling method.
     walks: int (100)
         Number of walks taken if using the dynesty implemented sample methods
         Note that the default `walks` in dynesty itself is 25, although using
@@ -227,6 +231,7 @@ class Dynesty(NestedSampler):
         naccept=60,
         rejection_sample_posterior=True,
         proposals=None,
+        custom_sampler_kwargs=None,
         **kwargs,
     ):
         self.nact = nact
@@ -234,6 +239,7 @@ class Dynesty(NestedSampler):
         self.maxmcmc = maxmcmc
         self.proposals = proposals
         self.print_method = print_method
+        self.custom_sampler_kwargs = custom_sampler_kwargs
         self._translate_kwargs(kwargs)
         super(Dynesty, self).__init__(
             likelihood=likelihood,
@@ -282,21 +288,49 @@ class Dynesty(NestedSampler):
         # method. If we aren't we need to make sure the default "live" isn't set as
         # the bounding method
         if self.new_dynesty_api:
-            internal_kwargs = dict(
-                ndim=self.ndim,
-                nonbounded=self.kwargs.get("nonbounded", None),
-                periodic=self.kwargs.get("periodic", None),
-                reflective=self.kwargs.get("reflective", None),
-                maxmcmc=self.maxmcmc,
-            )
 
             from . import dynesty3_utils as dynesty_utils
 
-            if kwargs["sample"] == "act-walk":
-                internal_kwargs["nact"] = self.nact
-                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(
-                    **internal_kwargs
+            def init_internal_sampler(internal_sampler):
+                use_kwargs = internal_sampler.internal_sampler_init_kwargs()
+                # collect the kwargs from attributes or from the kwargs dict
+                kwargs = {
+                    key: val
+                    for key in use_kwargs
+                    if (val := getattr(self, key, None)) is not None
+                }
+                kwargs |= {
+                    key: val
+                    for key in use_kwargs
+                    if (val := self.kwargs.get(key, None)) is not None
+                }
+                if self.custom_sampler_kwargs is not None:
+                    kwargs |= {
+                        key: self.custom_sampler_kwargs[key]
+                        for key in use_kwargs
+                        if key in self.custom_sampler_kwargs
+                    }
+                internal_sampler = internal_sampler(**kwargs)
+                return internal_sampler
+
+            if not isinstance(kwargs["sample"], str):
+                if not isinstance(kwargs["sample"], type) or not issubclass(
+                    kwargs["sample"], dynesty_utils.BaseEnsembleSampler
+                ):
+                    raise DynestySetupError(
+                        "If sample is not a string, it must be a subclass of "
+                        "bilby.core.sampler.dynesty_utils.BaseEnsembleSampler"
+                    )
+                internal_sampler = kwargs["sample"]
+                internal_sampler = init_internal_sampler(internal_sampler)
+                bound = "none"
+                logger.info(
+                    f"Using the custom {internal_sampler.__class__.__name__} sampling method with "
+                    f"parameters {internal_sampler.input_kwargs}."
                 )
+            elif kwargs["sample"] == "act-walk":
+                internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk
+                internal_sampler = init_internal_sampler(internal_sampler)
                 bound = "none"
                 logger.info(
                     f"Using the bilby-implemented ensemble rwalk sampling tracking the "
@@ -304,9 +338,8 @@ class Dynesty(NestedSampler):
                     f"maximum length {internal_sampler.thin * internal_sampler.maxmcmc}."
                 )
             elif kwargs["sample"] == "acceptance-walk":
-                internal_kwargs["naccept"] = self.naccept
-                internal_kwargs["walks"] = self.kwargs["walks"]
-                internal_sampler = dynesty_utils.EnsembleWalkSampler(**internal_kwargs)
+                internal_sampler = dynesty_utils.EnsembleWalkSampler
+                internal_sampler = init_internal_sampler(internal_sampler)
                 bound = "none"
                 logger.info(
                     f"Using the bilby-implemented ensemble rwalk sampling method with an "
@@ -314,17 +347,15 @@ class Dynesty(NestedSampler):
                     f"length {internal_sampler.maxmcmc}."
                 )
             elif kwargs["sample"] == "rwalk":
-                internal_kwargs["nact"] = self.nact
-                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(
-                    **internal_kwargs
-                )
+                internal_sampler = dynesty_utils.AcceptanceTrackingRWalk
+                internal_sampler = init_internal_sampler(internal_sampler)
                 bound = "none"
                 logger.info(
                     f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
                     f"estimated chain length. An average of {2 * internal_sampler.nact} "
                     f"steps will be accepted up to chain length {internal_sampler.maxmcmc}."
                 )
-            elif kwargs["bound"] == "live":
+            elif "live" in kwargs["bound"]:
                 logger.info(
                     "Live-point based bound method requested with dynesty sample "
                     f"'{kwargs['sample']}', overwriting to 'multi'"

@@ -36,11 +36,19 @@ EnsembleAxisSamplerArgument = namedtuple(
 
 
 class BaseEnsembleSampler(InternalSampler):
+
+    _init_kwargs = {"ndim", "ncdim", "nonbounded",
+                    "periodic", "reflective", "proposals"}
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.ncdim = kwargs.get("ncdim")
         self.sampler_kwargs["ncdim"] = self.ncdim
         self.sampler_kwargs["proposals"] = kwargs.get("proposals", ["diff"])
+
+    @classmethod
+    def internal_sampler_init_kwargs(cls):
+        return {kwarg for c in cls.mro() for kwarg in getattr(c, '_init_kwargs', set())}
 
     def prepare_sampler(
         self,
@@ -103,6 +111,9 @@ class BaseEnsembleSampler(InternalSampler):
 
 
 class EnsembleWalkSampler(BaseEnsembleSampler):
+
+    _init_kwargs = {"walks", "naccept", "maxmcmc"}
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.walks = max(2, kwargs.get("walks", 25))
@@ -255,6 +266,8 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     # the _cache is a class level variable to avoid being forgotten at every
     # iteration when using multiprocessing
     _cache = list()
+
+    _init_kwargs = {"nact", "maxmcmc"}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -559,6 +572,8 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
     # to retain state between calls to pool.Map, this needs to be a class
     # level attribute
     old_act = None
+
+    _init_kwargs = {"nact"}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
