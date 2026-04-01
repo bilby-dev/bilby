@@ -159,6 +159,13 @@ class TestDynesty(unittest.TestCase):
         """
         self.init_sampler(sample=sample, bound=bound)
 
+    def test_proposals_set_on_init(self):
+        self.init_sampler(proposals=["diff", "volumetric"])
+        self.assertEqual(
+            self.dysampler.internal_sampler_next.sampler_kwargs["proposals"],
+            ["diff", "volumetric"]
+        )
+
 
 def test_get_expected_outputs():
     label = "par0"
