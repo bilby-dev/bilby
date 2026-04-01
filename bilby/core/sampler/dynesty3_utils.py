@@ -37,8 +37,14 @@ EnsembleAxisSamplerArgument = namedtuple(
 
 class BaseEnsembleSampler(InternalSampler):
 
-    _init_kwargs = {"ndim", "ncdim", "nonbounded",
-                    "periodic", "reflective", "proposals"}
+    _init_kwargs = {
+        "ndim",
+        "ncdim",
+        "nonbounded",
+        "periodic",
+        "reflective",
+        "proposals",
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -48,7 +54,7 @@ class BaseEnsembleSampler(InternalSampler):
 
     @classmethod
     def internal_sampler_init_kwargs(cls):
-        return {kwarg for c in cls.mro() for kwarg in getattr(c, '_init_kwargs', set())}
+        return {kwarg for c in cls.mro() for kwarg in getattr(c, "_init_kwargs", set())}
 
     def prepare_sampler(
         self,
