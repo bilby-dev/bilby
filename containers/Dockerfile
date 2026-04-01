@@ -50,5 +50,7 @@ RUN mamba clean --all
 
 FROM build-env AS final
 COPY --from=data /roq_basis /roq_basis
+# otherwise CI jobs don't like installing bilby
+ENV SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER=1
 RUN mamba info
 RUN python --version
