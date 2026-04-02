@@ -21,7 +21,7 @@ dependencies:
   - pytest-cov
   - pytest-requires
   - pytest-rerunfailures
-  - arviz
+  - arviz<1  # arviz removed InferenceData in version 1
   - parameterized
   - scikit-image
   - celerite
