@@ -6,13 +6,20 @@ data with background Gaussian noise. This example uses a custom
 likelihood function to show how it should be defined, although this
 would give equivalent results as using the pre-defined 'Gaussian Likelihood'
 
+
 """
 
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
 import pymc as pm
-from bilby.core.sampler.pymc import Pymc
+
+try:
+    from pymc_bilby import Pymc
+except ImportError:
+    raise ImportError(
+        "pymc_bilby is required to run this example. Install with `pip install pymc-bilby`"
+    )
 from bilby.core.utils import random
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
