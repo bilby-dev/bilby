@@ -155,7 +155,7 @@ def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, 
 
     Returns
     =======
-    float: The matched filter signal to noise ratio squared
+    complex: The complex matched filter signal to noise ratio
 
     """
     rho_mf = noise_weighted_inner_product(
@@ -184,7 +184,7 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
 
     Returns
     =======
-    float: The matched filter signal to noise ratio squared
+    float: The square of the optimal matched filter signal to noise ratio
 
     """
     return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
