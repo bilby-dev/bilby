@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import bilby
@@ -69,6 +70,20 @@ class TestEmcee(unittest.TestCase):
             new_kwargs[equiv] = 100
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
+
+
+def test_get_expected_outputs():
+    label = "par0"
+    outdir = os.path.join("some", "bilby_pipe", "dir")
+    filenames, directories = bilby.core.sampler.emcee.Emcee.get_expected_outputs(
+        outdir=outdir, label=label
+    )
+    assert len(filenames) == 2
+    assert len(directories) == 1
+    run_dir = os.path.join(outdir, f"emcee_{label}")
+    assert run_dir in directories
+    assert os.path.join(run_dir, "chain.dat") in filenames
+    assert os.path.join(run_dir, "sampler.pickle") in filenames
 
 
 if __name__ == "__main__":
