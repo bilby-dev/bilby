@@ -5,6 +5,15 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Additions
+* Wired docstring examples into the unit-test suite via
+  ``test/core/doctest_test.py``. Doctests are now discovered automatically
+  through the unittest ``load_tests`` protocol for any module listed in
+  ``MODULES_WITH_DOCTESTS``. Converted the existing example in
+  ``bilby.core.utils.introspection`` into a real doctest, and documented
+  the workflow for adding new doctests in ``CONTRIBUTING.md``.
+  (closes https://github.com/bilby-dev/bilby/issues/473)
+
 ## [2.7.1]
 
 ### Fixes
