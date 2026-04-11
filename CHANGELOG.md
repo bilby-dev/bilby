@@ -5,6 +5,12 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Documentation
+* Documented parameters in `bilby/gw/conversion.py`, including full parameter descriptions for `generate_component_spins` and added math formulae for mass conversion functions (closes #611)
+
+### Fixes
+* Fixed a copy-paste error in `component_masses_to_mass_ratio` docstring that incorrectly described it as converting to chirp mass
+
 ## [2.7.1]
 
 ### Fixes
