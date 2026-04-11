@@ -5,6 +5,12 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Changes
+* The `bilby` logger no longer installs a `StreamHandler` at import time. It now has only a `NullHandler` attached, following the Python logging recommendation for libraries. To restore the previous behaviour, call `bilby.core.utils.setup_logger()` or `bilby.core.utils.enable_default_logging()` explicitly in your script (closes #834)
+
+### Additions
+* Added `enable_default_logging()` as a one-line convenience for downstream scripts that want the pre-2.8 logging behaviour
+
 ## [2.7.1]
 
 ### Fixes
