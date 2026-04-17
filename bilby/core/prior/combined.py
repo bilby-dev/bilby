@@ -4,16 +4,20 @@ from scipy.integrate import cumulative_trapezoid
 
 
 class Combined(Prior):
-    def __init__(self, priors, weights=None, name=None, latex_label=None, unit=None, boundary=None):
+    def __init__(self, priors, weights=None, name=None, latex_label=None,
+                 unit=None, boundary=None):
         """
-        Creates a combined prior from a list of priors and optionally corresponding weights.
-        The individual priors are superposed as a weighted sum.
+        Creates a combined prior from a list of priors and optionally
+        corresponding weights. The individual priors are superposed as a
+        weighted sum.
+
         Parameters
         ==========
         priors: list
             The priors to be combined.
         weights: array_like
-            The weights for each prior. If None, all priors are given equal weight.
+            The weights for each prior. If None, all priors are given
+            equal weight.
         name: str
             See superclass
         latex_label: str
@@ -24,24 +28,27 @@ class Combined(Prior):
             See superclass
         """
 
-        min = np.min([prior.minimum for prior in priors])
-        max = np.max([prior.maximum for prior in priors])
-        assert all(prior.minimum == min for prior in priors), "All priors must have the same minimum"
-        assert all(prior.maximum == max for prior in priors), "All priors must have the same maximum"
-        if np.any(np.isinf([min, max])):
+        min_val = np.min([prior.minimum for prior in priors])
+        max_val = np.max([prior.maximum for prior in priors])
+        assert all(prior.minimum == min_val for prior in priors), \
+            "All priors must have the same minimum"
+        assert all(prior.maximum == max_val for prior in priors), \
+            "All priors must have the same maximum"
+        if np.any(np.isinf([min_val, max_val])):
             raise ValueError(
-                "Unable to use CombinedPrior with infinite bounds. " \
+                "Unable to use CombinedPrior with infinite bounds. "
                 "Please set identical and finite bounds for all priors.")
-        
-        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary,
-                          minimum=min, maximum=max)
+
+        super().__init__(name=name, latex_label=latex_label, unit=unit,
+                         boundary=boundary, minimum=min_val, maximum=max_val)
 
         self.priors = priors
         if weights is None:
             self.weights = np.ones_like(priors) / len(priors)
         else:
-            self.weights = np.array(weights)/ np.sum(weights)
-            assert len(weights) == len(priors), "Weights must have the same length as priors"
+            self.weights = np.array(weights) / np.sum(weights)
+            assert len(weights) == len(priors), \
+                "Weights must have the same length as priors"
 
         self.support = np.linspace(self.minimum, self.maximum, 1000)
         pdf = self.prob(self.support)
@@ -49,7 +56,8 @@ class Combined(Prior):
 
     def rescale(self, val):
         """
-        'Rescale' a sample from the unit line element to the prior. This maps to the inverse CDF.
+        'Rescale' a sample from the unit line element to the prior.
+        This maps to the inverse CDF.
 
         Parameters
         ==========
