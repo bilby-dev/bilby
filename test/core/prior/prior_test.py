@@ -112,7 +112,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Combined(
                 priors=[
                     bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=0, minimum=0, maximum=1),
-                    bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=-1, minimum=0, maximum=1),
+                    bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=1, minimum=0, maximum=1),
                     bilby.core.prior.TruncatedGaussian(name="test", unit="unit", mu=1, sigma=0.4, minimum=0, maximum=1),
                 ],
                 weights=[0.2, 0.5, 0.3], name="test", unit="unit",
