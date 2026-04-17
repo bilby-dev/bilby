@@ -1,14 +1,17 @@
 from .base import Prior
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
+
+
 class Combined(Prior):
     def __init__(self, priors, weights=None, name=None, latex_label=None, unit=None, boundary=None):
         """
-        Creates a combined prior from a list of priors and optionally corresponding weights. The individual priors are superposed as a weighted sum.
+        Creates a combined prior from a list of priors and optionally corresponding weights.
+        The individual priors are superposed as a weighted sum.
         Parameters
         ==========
         priors: list
-            The priors to be combined. 
+            The priors to be combined.
         weights: array_like
             The weights for each prior. If None, all priors are given equal weight.
         name: str
@@ -20,16 +23,18 @@ class Combined(Prior):
         boundary: str
             See superclass
         """
-        
-        prior_mins = [prior.minimum for prior in priors]
-        prior_maxs = [prior.maximum for prior in priors]
-        assert all(prior_min == prior_mins[0] for prior_min in prior_mins), "All priors must have the same minimum"
-        assert all(prior_max == prior_maxs[0] for prior_max in prior_maxs), "All priors must have the same maximum"
-        if np.any(np.isinf([self.minimum, self.maximum])):
+
+        min = np.min([prior.minimum for prior in priors])
+        max = np.max([prior.maximum for prior in priors])
+        assert all(prior.minimum == min for prior in priors), "All priors must have the same minimum"
+        assert all(prior.maximum == max for prior in priors), "All priors must have the same maximum"
+        if np.any(np.isinf([min, max])):
             raise ValueError(
-                "Unable to use CombinedPrior with infinite bounds. Please set identical and finite bounds for all priors.")
+                "Unable to use CombinedPrior with infinite bounds. " \
+                "Please set identical and finite bounds for all priors.")
         
-        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary, minimum=prior_mins[0], maximum=prior_maxs[0])
+        super().__init__(name=name, latex_label=latex_label, unit=unit, boundary=boundary,
+                          minimum=min, maximum=max)
 
         self.priors = priors
         if weights is None:
@@ -37,7 +42,7 @@ class Combined(Prior):
         else:
             self.weights = np.array(weights)/ np.sum(weights)
             assert len(weights) == len(priors), "Weights must have the same length as priors"
-        
+
         self.support = np.linspace(self.minimum, self.maximum, 1000)
         pdf = self.prob(self.support)
         self.interp_cdf = cumulative_trapezoid(pdf, self.support, initial=0)
@@ -68,7 +73,7 @@ class Combined(Prior):
         for weight, prior in zip(self.weights, self.priors):
             prob += weight * prior.prob(val)
         return prob
-    
+
     def cdf(self, val):
         """Return the cumulative distribution function of val.
 
@@ -81,4 +86,3 @@ class Combined(Prior):
         Union[float, array_like]: CDF of val
         """
         return np.interp(val, self.support, self.interp_cdf)
-    
