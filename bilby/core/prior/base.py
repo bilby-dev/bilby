@@ -363,19 +363,7 @@ class Prior(object):
     @classmethod
     def _split_repr(cls, string):
         subclass_args = infer_args_from_method(cls.__init__)
-        args = string.split(',')
-        remove = list()
-        for ii, key in enumerate(args):
-            for paren_pair in ['()', '{}', '[]']:
-                if paren_pair[0] in key:
-                    jj = ii
-                    while paren_pair[1] not in args[jj]:
-                        jj += 1
-                        args[ii] = ','.join([args[ii], args[jj]]).strip()
-                        remove.append(jj)
-        remove.reverse()
-        for ii in remove:
-            del args[ii]
+        args = cls._split_args(string)
         kwargs = dict()
         for ii, arg in enumerate(args):
             if '=' not in arg:
@@ -391,11 +379,43 @@ class Prior(object):
         return kwargs
 
     @classmethod
+    def _split_args(cls, string):
+        args = []
+        current = []
+        stack = []
+
+        pairs = {'(': ')', '{': '}', '[': ']'}
+        opening = list(pairs.keys())
+        closing = list(pairs.values())
+
+        for char in string:
+            if char == ',' and not stack:
+                args.append(''.join(current).strip())
+                current = []
+                continue
+
+            current.append(char)
+
+            if char in opening:
+                stack.append(pairs[char])
+            elif char in closing:
+                if stack and char == stack[-1]:
+                    stack.pop()
+                else:
+                    raise ValueError(f"Unmatched closing bracket: {char}")
+
+        if current:
+            args.append(''.join(current).strip())
+        if stack:
+            raise ValueError("Unmatched opening bracket(s)")
+        return args
+
+    @classmethod
     def _parse_argument_string(cls, val):
         """
         Parse a string into the appropriate type for prior reading.
 
-        Four tests are applied in the following order:
+        Multiple tests are applied in the following order:
 
         - If the string is 'None':
             `None` is returned.
@@ -403,6 +423,13 @@ class Prior(object):
             A stripped version of the string is returned, e.g., foo.
         - Else If the string contains ', e.g., 'foo':
             A stripped version of the string is returned, e.g., foo.
+        - Else If the string starts with [ and ends with ]:
+            The string is interpreted as a list
+        - Else If the string starts with ( and ends with ):
+            The string is interpreted as a tuple
+        - Else If the string starts with { and ends with }:
+            The string is interpreted as a dictionary, with keys and values 
+            separated by ':'.
         - Else If the string contains an open parenthesis, (:
             The string is interpreted as a call to instantiate another prior
             class, Bilby will attempt to recursively construct that prior,
@@ -432,12 +459,35 @@ class Prior(object):
             If val cannot be parsed as described above.
         """
         if val == 'None':
-            val = None
+            return None
         elif re.sub(r'\'.*\'', '', val) in ['r', 'u']:
-            val = val[2:-1]
+            return val[2:-1]
         elif val.startswith("'") and val.endswith("'"):
-            val = val.strip("'")
-        elif '(' in val and not val.startswith(("[", "{")):
+            return val.strip("'")
+        elif val.startswith('[') and val.endswith(']'):
+            inner = val[1:-1].strip()
+            if not inner:
+                return []
+            parts = cls._split_args(inner)
+            return [cls._parse_argument_string(p) for p in parts]
+        elif val.startswith('(') and val.endswith(')'):
+            inner = val[1:-1].strip()
+            if not inner:
+                return ()
+            parts = cls._split_args(inner)
+            return tuple(cls._parse_argument_string(p) for p in parts)
+        elif val.startswith('{') and val.endswith('}'):
+            inner = val[1:-1].strip()
+            if not inner:
+                return {}
+            parts = cls._split_args(inner)
+            result = {}
+            for p in parts:
+                k, v = p.split(':', 1)
+                k = cls._parse_argument_string(k)
+                result[k] = cls._parse_argument_string(v)
+            return result
+        elif '(' in val:
             other_cls = val.split('(')[0]
             vals = '('.join(val.split('(')[1:])[:-1]
             if "." in other_cls:
@@ -446,22 +496,21 @@ class Prior(object):
             else:
                 module = __name__.replace('.' + os.path.basename(__file__).replace('.py', ''), '')
             other_cls = getattr(import_module(module), other_cls)
-            val = other_cls.from_repr(vals)
-        else:
-            try:
-                val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi))
-            except NameError:
-                if "." in val:
-                    module = '.'.join(val.split('.')[:-1])
-                    func = val.split('.')[-1]
-                    new_val = getattr(import_module(module), func, val)
-                    if val == new_val:
-                        raise TypeError(
-                            "Cannot evaluate prior, "
-                            f"failed to parse argument {val}"
-                        )
-                    else:
-                        val = new_val
+            return other_cls.from_repr(vals)
+        try:
+            val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi, array = np.array))
+        except NameError:
+            if "." in val:
+                module = '.'.join(val.split('.')[:-1])
+                func = val.split('.')[-1]
+                new_val = getattr(import_module(module), func, val)
+                if val == new_val:
+                    raise TypeError(
+                        "Cannot evaluate prior, "
+                        f"failed to parse argument {val}"
+                    )
+                else:
+                    val = new_val
         return val
 
 

@@ -783,27 +783,28 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_repr(self):
         for prior in self.priors:
-            if isinstance(prior, bilby.core.prior.Interped):
-                continue  # we cannot test this because of the numpy arrays
-            elif isinstance(prior, bilby.core.prior.MultivariateGaussian):
+            repr_prior_string = repr(prior)
+            if not repr_prior_string.startswith("bilby"):
                 repr_prior_string = "bilby.core.prior." + repr(prior)
-                repr_prior_string = repr_prior_string.replace(
-                    "MultivariateGaussianDist",
-                    "bilby.core.prior.MultivariateGaussianDist",
-                )
+            if isinstance(prior, bilby.core.prior.Interped):
+                repr_prior_string = repr_prior_string.replace('\n', '')
             elif isinstance(prior, bilby.gw.prior.HealPixPrior):
-                repr_prior_string = repr(prior)
                 repr_prior_string = repr_prior_string.replace(
                     "HealPixMapPriorDist", "bilby.gw.prior.HealPixMapPriorDist"
                 )
-            elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
-                repr_prior_string = "bilby.gw.prior." + repr(prior)
-            elif "Conditional" in prior.__class__.__name__:
+            if "Conditional" in prior.__class__.__name__:
                 continue  # This feature does not exist because we cannot recreate the condition function
-            else:
-                repr_prior_string = "bilby.core.prior." + repr(prior)
-
-            repr_prior = eval(repr_prior_string, None, dict(inf=np.inf))
+            
+            while True:
+                # this loop inserts module names that bilby cuts out of the repr string 
+                try:
+                    repr_prior = eval(repr_prior_string, None, dict(inf=np.inf, array = np.array))
+                    break
+                except NameError as e:
+                    unknown_prior = e.name
+                    repr_prior_string = repr_prior_string.replace(unknown_prior, "bilby.core.prior." + unknown_prior)
+                except Exception as e:
+                    raise e
             self.assertEqual(prior, repr_prior)
 
     def test_set_maximum_setting(self):
