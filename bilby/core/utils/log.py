@@ -5,22 +5,40 @@ import subprocess
 import sys
 from importlib import metadata
 
+#: The ``bilby`` library logger. Following the recommended practice for
+#: libraries (https://docs.python.org/3/howto/logging.html#configuring-logging-for-a-library),
+#: this logger only has a :class:`logging.NullHandler` attached by default,
+#: so bilby does not emit any log records unless the application importing
+#: bilby has configured logging itself. To restore the previous bilby
+#: behaviour (a formatted stream handler writing to stderr), call
+#: :func:`setup_logger` or :func:`enable_default_logging` explicitly.
 logger = logging.getLogger('bilby')
+logger.addHandler(logging.NullHandler())
 
 
 def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
-    """ Setup logging output: call at the start of the script to use
+    """Configure bilby's logger with a stream handler (and optional file handler).
+
+    This installs a :class:`logging.StreamHandler` on the bilby logger with
+    a timestamped formatter, and optionally a :class:`logging.FileHandler`
+    writing to ``outdir/label.log``. Calling ``setup_logger`` is now
+    **optional** — since bilby 2.8, the library attaches only a
+    :class:`logging.NullHandler` by default, per the Python logging
+    recommendations for libraries. Call this function from your script
+    (or use :func:`enable_default_logging`) if you want bilby log records
+    to appear on the console.
 
     Parameters
     ==========
     outdir, label: str
-        If supplied, write the logging output to outdir/label.log
-    log_level: str, optional
-        ['debug', 'info', 'warning']
-        Either a string from the list above, or an integer as specified
-        in https://docs.python.org/2/library/logging.html#logging-levels
+        If supplied, write the logging output to ``outdir/label.log``.
+    log_level: str or int, optional
+        One of ``['debug', 'info', 'warning', 'error', 'critical']`` (case
+        insensitive), or an integer as specified in
+        https://docs.python.org/3/library/logging.html#logging-levels
     print_version: bool
-        If true, print version information
+        If ``True``, print the bilby version information after configuring
+        the logger.
     """
 
     if isinstance(log_level, str):
@@ -35,14 +53,17 @@ def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
     logger.propagate = False
     logger.setLevel(level)
 
-    if not any([isinstance(h, logging.StreamHandler) for h in logger.handlers]):
+    if not any(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in logger.handlers
+    ):
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(name)s %(levelname)-8s: %(message)s', datefmt='%H:%M'))
         stream_handler.setLevel(level)
         logger.addHandler(stream_handler)
 
-    if not any([isinstance(h, logging.FileHandler) for h in logger.handlers]):
+    if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
         if label:
             Path(outdir).mkdir(parents=True, exist_ok=True)
             log_file = '{}/{}.log'.format(outdir, label)
@@ -54,11 +75,36 @@ def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
             logger.addHandler(file_handler)
 
     for handler in logger.handlers:
-        handler.setLevel(level)
+        if not isinstance(handler, logging.NullHandler):
+            handler.setLevel(level)
 
     if print_version:
         version = get_version_information()
         logger.info('Running bilby version: {}'.format(version))
+
+
+def enable_default_logging(log_level='INFO'):
+    """Convenience alias for :func:`setup_logger` with default arguments.
+
+    This is a one-line way for downstream scripts, pipelines, or tutorials
+    to restore the pre-2.8 behaviour where bilby automatically emitted log
+    records to stderr.
+
+    Parameters
+    ==========
+    log_level: str or int, optional
+        Log level, defaults to ``'INFO'``. See :func:`setup_logger` for
+        accepted values.
+
+    Examples
+    ========
+    .. code-block:: python
+
+        import bilby
+        bilby.core.utils.enable_default_logging()
+        # bilby will now print its INFO-level log messages to stderr
+    """
+    setup_logger(log_level=log_level)
 
 
 def get_version_information():
