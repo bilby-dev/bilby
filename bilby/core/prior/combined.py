@@ -38,10 +38,10 @@ class Combined(Prior):
         boundary : str
             See superclass.
         minimum : float
-            Set minimum for all priors. If None, the most restrictive 
+            Set minimum for all priors. If None, the most restrictive
             minimum of the priors is used.
         maximum : float
-            Set maximum for all priors. If None, the most restrictive 
+            Set maximum for all priors. If None, the most restrictive
             maximum of the priors is used.
         """
         self.priors = priors

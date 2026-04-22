@@ -794,11 +794,10 @@ class TestPriorClasses(unittest.TestCase):
                 )
             if "Conditional" in prior.__class__.__name__:
                 continue  # This feature does not exist because we cannot recreate the condition function
-            
             while True:
-                # this loop inserts module names that bilby cuts out of the repr string 
+                # this loop inserts module names that bilby cuts out of the repr string
                 try:
-                    repr_prior = eval(repr_prior_string, None, dict(inf=np.inf, array = np.array))
+                    repr_prior = eval(repr_prior_string, None, dict(inf=np.inf, array=np.array))
                     break
                 except NameError as e:
                     unknown_prior = e.name

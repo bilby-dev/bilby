@@ -428,7 +428,7 @@ class Prior(object):
         - Else If the string starts with ( and ends with ):
             The string is interpreted as a tuple
         - Else If the string starts with { and ends with }:
-            The string is interpreted as a dictionary, with keys and values 
+            The string is interpreted as a dictionary, with keys and values
             separated by ':'.
         - Else If the string contains an open parenthesis, (:
             The string is interpreted as a call to instantiate another prior
@@ -498,7 +498,7 @@ class Prior(object):
             other_cls = getattr(import_module(module), other_cls)
             return other_cls.from_repr(vals)
         try:
-            val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi, array = np.array))
+            val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi, array=np.array))
         except NameError:
             if "." in val:
                 module = '.'.join(val.split('.')[:-1])
