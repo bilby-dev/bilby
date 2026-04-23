@@ -189,7 +189,7 @@ class TestGWUtils(unittest.TestCase):
             1000,
             20,
             None,
-            lalsim.IMRPhenomPv2,
+            lalsim.IMRPhenomXPHM,
         )
         self.assertEqual(len(a), 2)
         self.assertEqual(type(a[0]), lal.COMPLEX16FrequencySeries)
