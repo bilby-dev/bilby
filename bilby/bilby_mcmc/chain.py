@@ -361,11 +361,58 @@ class Chain(object):
         samples = self._chain_array[self.minimum_index : self.position : self.thin]
         return pd.DataFrame(samples, columns=self.keys)
 
-    def plot(self, outdir=".", label="label", priors=None, all_samples=None):
+    def plot(
+        self,
+        outdir=".",
+        label="label",
+        priors=None,
+        all_samples=None,
+        exclude_keys=None,
+    ):
+        """Generate the checkpoint trace plot for this chain.
+
+        Parameters
+        ----------
+        outdir : str
+            Output directory for the generated figure.
+        label : str
+            Run label, used in the output filename.
+        priors : bilby.core.prior.PriorDict, optional
+            Priors used to look up LaTeX labels for each parameter.
+        all_samples : dict or pandas.DataFrame, optional
+            Reference samples to overlay on the histograms (e.g. the
+            combined posterior across all parallel chains).
+        exclude_keys : list of str, optional
+            List of glob-style patterns matching parameter keys to omit
+            from the trace plot. Useful to skip nuisance parameters with
+            many degrees of freedom (e.g. ``recalib_*`` calibration
+            nodes, which can balloon the figure to tens of axes and
+            cause memory issues for long runs). Uses :mod:`fnmatch`
+            semantics, so wildcards like ``*`` and ``?`` are supported.
+            Defaults to ``None`` (plot every key).
+
+            Example::
+
+                chain.plot(exclude_keys=["recalib_*"])
+
+            This matches the spirit of arviz's ``var_names`` /
+            ``filter_vars`` selection for trace plots.
+        """
+        import fnmatch
         import matplotlib.pyplot as plt
 
+        # Filter out excluded keys before computing plot layout
+        if exclude_keys:
+            def _is_excluded(key):
+                return any(fnmatch.fnmatchcase(key, pattern) for pattern in exclude_keys)
+
+            plot_keys = [k for k in self.keys if not _is_excluded(k)]
+        else:
+            plot_keys = list(self.keys)
+
+        n_plot = len(plot_keys)
         fig, axes = plt.subplots(
-            nrows=self.ndim + 3, ncols=2, figsize=(8, 9 + 3 * (self.ndim))
+            nrows=n_plot + 3, ncols=2, figsize=(8, 9 + 3 * n_plot)
         )
         scatter_kwargs = dict(
             lw=0,
@@ -387,7 +434,7 @@ class Chain(object):
 
         # Plot the traceplots
         for (start, stop, thin, color, alpha, ms) in plot_setups:
-            for ax, key in zip(axes[:, 0], self.keys):
+            for ax, key in zip(axes[:, 0], plot_keys):
                 xx = position_indexes[start:stop:thin] / K
                 yy = self.get_1d_array(key)[start:stop:thin]
 
@@ -411,7 +458,7 @@ class Chain(object):
                     ax.set_title(msg)
 
         # Plot the histograms
-        for ax, key in zip(axes[:, 1], self.keys):
+        for ax, key in zip(axes[:, 1], plot_keys):
             if all_samples is not None:
                 yy_all = all_samples[key]
                 if np.any(np.isinf(yy_all)):

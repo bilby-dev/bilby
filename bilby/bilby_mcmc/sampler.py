@@ -182,8 +182,21 @@ class Bilby_MCMC(MCMCSampler):
         exit_code=130,
         verbose=True,
         normalize_prior=True,
+        plot_exclude_keys=None,
         **kwargs,
     ):
+        """
+        Additional parameters
+        ---------------------
+        plot_exclude_keys : list of str, optional
+            Glob-style patterns identifying parameter keys to omit from
+            the checkpoint trace plot. Useful for skipping nuisance
+            parameters with many dimensions (e.g. ``recalib_*``
+            calibration nodes), which can balloon the trace plot figure
+            to dozens of axes and cause memory errors on long runs.
+            Example: ``plot_exclude_keys=["recalib_*"]``. Defaults to
+            ``None`` (plot all keys).
+        """
 
         super(Bilby_MCMC, self).__init__(
             likelihood=likelihood,
@@ -198,6 +211,7 @@ class Bilby_MCMC(MCMCSampler):
 
         self.check_point_plot = check_point_plot
         self.diagnostic = diagnostic
+        self.plot_exclude_keys = plot_exclude_keys
         self.kwargs["target_nsamples"] = self.kwargs["nsamples"]
         self.L1steps = self.kwargs["L1steps"]
         self.L2steps = self.kwargs["L2steps"]
@@ -450,7 +464,12 @@ class Bilby_MCMC(MCMCSampler):
             self.print_ensemble_acceptance()
         if self.check_point_plot:
             self.plot_progress(
-                self.ptsampler, self.label, self.outdir, self.priors, self.diagnostic
+                self.ptsampler,
+                self.label,
+                self.outdir,
+                self.priors,
+                self.diagnostic,
+                exclude_keys=self.plot_exclude_keys,
             )
             self.ptsampler.compute_evidence(
                 outdir=self.outdir, label=self.label, make_plots=True
@@ -545,7 +564,28 @@ class Bilby_MCMC(MCMCSampler):
         logger.info(msg)
 
     @staticmethod
-    def plot_progress(ptsampler, label, outdir, priors, diagnostic=False):
+    def plot_progress(
+        ptsampler, label, outdir, priors, diagnostic=False, exclude_keys=None
+    ):
+        """Create diagnostic checkpoint plots for every sub-sampler.
+
+        Parameters
+        ----------
+        ptsampler :
+            The parallel-tempered sampler whose chains will be plotted.
+        label : str
+            Base label for the output filenames.
+        outdir : str
+            Output directory for the plots.
+        priors : bilby.core.prior.PriorDict
+            Priors for parameter label lookup.
+        diagnostic : bool, optional
+            If ``True``, also emit plots for non-temperature-1 walkers.
+        exclude_keys : list of str, optional
+            Glob-style patterns for parameter keys to skip in the trace
+            plots (e.g. ``["recalib_*"]``). See
+            :meth:`bilby.bilby_mcmc.chain.Chain.plot` for details.
+        """
         logger.info("Creating diagnostic plots")
         for ii, row in ptsampler.sampler_dictionary.items():
             for jj, sampler in enumerate(row):
@@ -556,6 +596,7 @@ class Bilby_MCMC(MCMCSampler):
                         label=plot_label,
                         priors=priors,
                         all_samples=ptsampler.samples,
+                        exclude_keys=exclude_keys,
                     )
 
     @classmethod
