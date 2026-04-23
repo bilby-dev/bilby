@@ -483,6 +483,7 @@ class TestReproducibility(unittest.TestCase):
             resume=False,
             dlogz=1.0,
             nlive=20,
+            sample="acceptance-walk",
             **kwargs,
         )
 
