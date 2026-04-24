@@ -625,15 +625,17 @@ class TestResult(unittest.TestCase):
 
     def test_get_one_dimensional_median_and_error_bar(self):
         """
-        Test that this method returns an object with the correct structure.
+        Test that this method returns a namedtuple with the correct structure.
         """
         summary = self.result.get_one_dimensional_median_and_error_bar("x")
 
-        assert isinstance(summary, namedtuple)
+        assert isinstance(summary, tuple) and hasattr(summary, '_fields')
         assert isinstance(summary.median, float)
         assert isinstance(summary.lower, float)
         assert isinstance(summary.upper, float)
         assert isinstance(summary.string, str)
+        assert isinstance(summary.minus, float)
+        assert isinstance(summary.plus, float)
 
 
 class TestResultListError(unittest.TestCase):
