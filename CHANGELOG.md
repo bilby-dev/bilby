@@ -5,6 +5,9 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Fixes
+* Implemented `get_expected_outputs` for the `Emcee` sampler, which now correctly reports the `chain.dat` and `sampler.pickle` files it writes to the run directory (closes #804)
+
 ## [2.7.1]
 
 ### Fixes
