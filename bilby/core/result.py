@@ -30,7 +30,6 @@ from .utils import (
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
-
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
 
 
@@ -1038,10 +1037,14 @@ class Result(object):
         Returns
         =======
         summary: namedtuple
-            An object with attributes, median, lower, upper and string
+            An object with attributes, median, lower, upper and string.
+            For backward compatibility, it also stores :code:`minus` and
+            :code:`plus` attributes.
 
         """
-        summary = namedtuple('summary', ['median', 'lower', 'upper', 'string'])
+        summary = namedtuple(
+            'summary', ['median', 'lower', 'upper', 'string', 'minus', 'plus']
+        )
 
         if len(quantiles) != 2:
             raise ValueError("quantiles must be of length 2")
@@ -1055,7 +1058,7 @@ class Result(object):
         fmt = "{{0:{0}}}".format(fmt).format
         string_template = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
         string = string_template.format(fmt(median), fmt(minus), fmt(plus))
-        return summary(median, minus, plus, string)
+        return summary(median, minus, plus, string, minus, plus)
 
     @latex_plot_format
     def plot_single_density(self, key, prior=None, cumulative=False,
@@ -1121,8 +1124,8 @@ class Result(object):
 
         summary = self.get_one_dimensional_median_and_error_bar(
             key, quantiles=quantiles)
-        ax.axvline(summary.median - summary.minus, ls='--', color='C0')
-        ax.axvline(summary.median + summary.plus, ls='--', color='C0')
+        ax.axvline(summary.median - summary.lower, ls='--', color='C0')
+        ax.axvline(summary.median + summary.upper, ls='--', color='C0')
         if title:
             ax.set_title(summary.string, fontsize=title_fontsize)
 
