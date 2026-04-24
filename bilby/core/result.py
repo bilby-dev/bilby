@@ -2,7 +2,6 @@ import datetime
 import inspect
 import json
 import os
-from collections import namedtuple
 from copy import copy
 from importlib import import_module
 from itertools import product
