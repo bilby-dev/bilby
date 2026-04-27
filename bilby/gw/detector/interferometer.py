@@ -923,7 +923,7 @@ class Interferometer(object):
         format="pickle", extra=".. versionadded:: 1.1.0"
     ))
     def to_pickle(self, outdir="outdir", label=None):
-        utils.check_directory_exists_and_if_not_mkdir('outdir')
+        utils.check_directory_exists_and_if_not_mkdir(outdir)
         filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
         safe_file_dump(self, filename, "dill")
 
