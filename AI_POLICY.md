@@ -17,7 +17,7 @@ Bilby maintainers welcome contributions, including those developed with the assi
 4. **Scientific and technical correctness**
    Bilby is scientific software and contributors are expected to validate any AI-assisted contributions carefully, particularly where changes affect algorithms, numerical behaviour, performance, APIs, or scientific results.
 
-5. **Maintainer discretion  **
+5. **Maintainer discretion**
    Maintainers may close or decline pull requests that are low quality, excessively burdensome to review, appear to lack meaningful human oversight, or otherwise are not in the best interests of the project.
 
 > [!NOTE]
