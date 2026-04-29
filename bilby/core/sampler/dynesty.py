@@ -19,9 +19,6 @@ from ..utils import (
 )
 from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
 
-INFLUX_BUCKET = os.environ.get("BILBY_INFLUX_BUCKET", "test-bucket")
-INFLUX_ORG = os.environ.get("BILBY_INFLUX_ORG", "test-org")
-
 def _set_sampling_kwargs(args):
     nact, maxmcmc, proposals, naccept = args
     _SamplingContainer.nact = nact
@@ -230,6 +227,7 @@ class Dynesty(NestedSampler):
         rejection_sample_posterior=True,
         proposals=None,
         influx_api=None,
+        influx_bucket="dynesty",
         **kwargs,
     ):
         self.nact = nact
@@ -238,6 +236,7 @@ class Dynesty(NestedSampler):
         self.proposals = proposals
         self.print_method = print_method
         self.influx_api = influx_api
+        self.influx_bucket = influx_bucket
         self._translate_kwargs(kwargs)
         super(Dynesty, self).__init__(
             likelihood=likelihood,
@@ -514,8 +513,7 @@ class Dynesty(NestedSampler):
             point = point.field("logwt", float(results.logwt))
 
             self.influx_api.write(
-                bucket=INFLUX_BUCKET,
-                org=INFLUX_ORG,
+                bucket=self.influx_bucket,
                 record=point,
             )
 
