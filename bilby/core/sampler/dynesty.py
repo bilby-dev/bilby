@@ -227,6 +227,8 @@ class Dynesty(NestedSampler):
         naccept=60,
         rejection_sample_posterior=True,
         proposals=None,
+        influx_api=None,
+        influx_bucket="dynesty",
         **kwargs,
     ):
         self.nact = nact
@@ -234,6 +236,8 @@ class Dynesty(NestedSampler):
         self.maxmcmc = maxmcmc
         self.proposals = proposals
         self.print_method = print_method
+        self.influx_api = influx_api
+        self.influx_bucket = influx_bucket
         self._translate_kwargs(kwargs)
         super(Dynesty, self).__init__(
             likelihood=likelihood,
@@ -437,6 +441,7 @@ class Dynesty(NestedSampler):
         nc = results.nc
         bounditer = results.bounditer
         eff = results.eff
+        old_point = {key: val for val, key in zip(results.vstar, self.search_parameter_keys)}
 
         # Adjusting outputs for printing.
         if delta_logz > 1e6:
@@ -477,6 +482,41 @@ class Dynesty(NestedSampler):
             self.pbar.update(niter - self.pbar.n)
         else:
             print(f"{niter}it [{total_time_str} {string}]", file=sys.stdout, flush=True)
+
+        if self.influx_api is not None:
+            from influxdb_client import Point
+            point = (
+                Point("sampler_progress")
+                .tag("run_id", self.label)
+                .field("niter", int(niter))
+                .field("bounditer", int(bounditer))
+                .field("nc", int(nc))
+                .field("ncall", float(ncall))
+                .field("eff", float(eff))
+                .field("logz", float(logz))
+                .field("logzerr", float(logzerr))
+                .field("loglstar", float(loglstar))
+                .field("logl_max", float(logl_max))
+                .time(datetime.datetime.now(datetime.timezone.utc))
+            )
+
+            if dlogz is not None:
+                point = (
+                    point
+                    .field("delta_logz", float(delta_logz))
+                    .field("dlogz", float(dlogz))
+                )
+            else:
+                point = point.field("stop_val", float(stop_val))
+
+            for key, value in old_point.items():
+                point = point.field(key, value)
+            point = point.field("logwt", float(results.logwt))
+
+            self.influx_api.write(
+                bucket=self.influx_bucket,
+                record=point,
+            )
 
     def _apply_dynesty_boundaries(self, key):
         # The periodic kwargs passed into dynesty allows the parameters to
