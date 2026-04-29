@@ -19,6 +19,7 @@ from ..utils import (
 )
 from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
 
+
 def _set_sampling_kwargs(args):
     nact, maxmcmc, proposals, naccept = args
     _SamplingContainer.nact = nact
