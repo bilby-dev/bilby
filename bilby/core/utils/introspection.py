@@ -85,13 +85,10 @@ def infer_args_from_function_except_n_args(func, n=1):
     Examples
     ========
 
-    .. code-block:: python
-
-        >>> def hello(a, b, c, d):
-        >>>     pass
-        >>>
-        >>> infer_args_from_function_except_n_args(hello, 2)
-        ['c', 'd']
+    >>> def hello(a, b, c, d):
+    ...     pass
+    >>> infer_args_from_function_except_n_args(hello, 2)
+    ['c', 'd']
 
     """
     parameters = inspect.getfullargspec(func).args

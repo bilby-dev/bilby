@@ -123,6 +123,33 @@ class TestFFT(unittest.TestCase):
 
 For more information on how to write effective tests, see [this guide](https://docs.python-guide.org/writing/tests/), and many others.
 
+### Doctests
+
+Examples embedded in docstrings can also be executed as part of the test suite
+via Python's built-in [`doctest`](https://docs.python.org/3/library/doctest.html)
+module. To add a doctest, use the standard `>>> ` prompt format (without an
+enclosing `.. code-block:: python` directive, which would hide the example from
+`doctest`):
+
+```python
+def add(a, b):
+    """Return the sum of two numbers.
+
+    Examples
+    ========
+
+    >>> add(2, 3)
+    5
+    """
+    return a + b
+```
+
+Then add the parent module to the `MODULES_WITH_DOCTESTS` list in
+`test/core/doctest_test.py` so that the example is picked up by the unittest
+loader. Only register modules that are safe to import in a minimal environment
+(no LAL, no `gwpy`, no heavyweight samplers), since `doctest_test.py` is run as
+part of the standard test job.
+
 ## Code relevance
 
 The bilby code base is intended to be highly modular and flexible. We encourage
