@@ -441,7 +441,9 @@ class Dynesty(NestedSampler):
         nc = results.nc
         bounditer = results.bounditer
         eff = results.eff
-        old_point = {key: val for val, key in zip(results.vstar, self.search_parameter_keys)}
+        old_point = {
+            key: val for val, key in zip(results.vstar, self.search_parameter_keys)
+        }
 
         # Adjusting outputs for printing.
         if delta_logz > 1e6:
@@ -485,6 +487,7 @@ class Dynesty(NestedSampler):
 
         if self.influx_api is not None:
             from influxdb_client import Point
+
             point = (
                 Point("sampler_progress")
                 .tag("run_id", self.label)
@@ -501,10 +504,8 @@ class Dynesty(NestedSampler):
             )
 
             if dlogz is not None:
-                point = (
-                    point
-                    .field("delta_logz", float(delta_logz))
-                    .field("dlogz", float(dlogz))
+                point = point.field("delta_logz", float(delta_logz)).field(
+                    "dlogz", float(dlogz)
                 )
             else:
                 point = point.field("stop_val", float(stop_val))
@@ -883,6 +884,7 @@ class Dynesty(NestedSampler):
         # Check if the file exists and is not empty (empty resume files are created for HTCondor file transfer)
         if os.path.isfile(self.resume_file) and os.stat(self.resume_file).st_size > 0:
             logger.info(f"Reading resume file {self.resume_file}")
+
             with open(self.resume_file, "rb") as file:
                 try:
                     sampler = dill.load(file)
@@ -947,6 +949,8 @@ class Dynesty(NestedSampler):
     def write_current_state_and_exit(self, signum=None, frame=None):
         if self.pbar is not None:
             self.pbar = self.pbar.close()
+        if self.influx_api is not None:
+            self.influx_api.close()
         super(Dynesty, self).write_current_state_and_exit(signum=signum, frame=frame)
 
     def write_current_state(self):
