@@ -7,13 +7,11 @@ from copy import copy
 from importlib import import_module
 from itertools import product
 import multiprocessing
-from functools import partial
 import numpy as np
 import pandas as pd
 import scipy.stats
 
 from . import utils
-from .likelihood import _safe_likelihood_call
 from .utils import (
     logger, infer_parameters_from_function,
     check_directory_exists_and_if_not_mkdir,
@@ -244,8 +242,11 @@ def get_weights_for_reweighting(
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100, n // (2 * npool))
             return list(tqdm(
-                pool.imap(partial(_safe_likelihood_call, this_logl),
-                        dict_samples[starting_index:], chunksize=chunksize),
+                pool.imap(
+                    this_logl.log_likelihood,
+                    dict_samples[starting_index:],
+                    chunksize=chunksize,
+                ),
                 desc='Computing likelihoods',
                 total=n)
             )
