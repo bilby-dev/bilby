@@ -1,12 +1,12 @@
 # Usage of Generative AI
 
-Bilby maintainers welcome contributions, including those developed with the assistance of generative AI tools. However, the use of such tools does not change our expectations for contributor responsibility, engagement, or code quality. The following apply to all contributions.
+The Bilby maintainers welcome contributions, including those developed with the assistance of generative AI tools. However, the use of such tools does not change our expectations for contributor responsibility, engagement, or code quality. The following apply to all contributions.
 
 1. **Human ownership and accountability**
     i. Contributors are responsible for all submitted content, regardless of whether generative AI tools were used.
     ii. Contributors must be able to explain and justify all changes during review.
     iii. Contributors are responsible for ensuring all submitted code complies with Bilby’s licensing requirements, regardless of whether generative AI tools were used.
-    iv. Contributors must remain the clear human owner of the contribution. Pull requests submitted primarily by automated systems or where no accountable human author is evident may be closed.
+    iv. Contributors must remain the clear human owner of the contribution. Pull requests submitted primarily by automated systems or where no accountable human author is evident may be closed at the maintainers' discretion.
 
 2. **Engagement**
    The pull request process is collaborative and iterative. Contributors are expected to actively engage with reviewer feedback themselves. Contributors are expected to understand the changes they are proposing, not act as a message courier for a third party.
