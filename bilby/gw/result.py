@@ -140,8 +140,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """The global cosmology used in the analysis.
 
         Will return None if the result does not include global meta data.
-        Inclusion of the the global meta is controlled by the
-        :code:`BILBY_INCLUDE_GLOBAL_META_DATA` environment variable.
 
         .. versionadded:: 2.5.0
         """
