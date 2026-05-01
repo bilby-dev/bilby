@@ -439,3 +439,39 @@ class Emcee(MCMCSampler):
         self.result.log_prior_evaluations = log_priors
         self.result.log_evidence = np.nan
         self.result.log_evidence_err = np.nan
+
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        These are used by :code:`bilby_pipe` when transferring files via HTCondor.
+        The emcee sampler writes its checkpoint information (the serialised
+        sampler and the tab-separated chain history) inside a per-run
+        subdirectory ``{outdir}/emcee_{label}/``. The files written there are:
+
+        - ``chain.dat``: tab-separated chain history, one row per step per
+          walker, updated incrementally as the sampler runs.
+        - ``sampler.pickle``: a dill-pickled copy of the
+          :class:`emcee.EnsembleSampler` instance, used to resume from the
+          last completed step.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names produced by the sampler.
+        list
+            List of directory names produced by the sampler.
+        """
+        run_dir = os.path.join(outdir, f"emcee_{label}")
+        filenames = [
+            os.path.join(run_dir, "chain.dat"),
+            os.path.join(run_dir, "sampler.pickle"),
+        ]
+        return filenames, [run_dir]
