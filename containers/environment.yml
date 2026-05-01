@@ -60,3 +60,6 @@ dependencies:
     - autodoc
     - ipykernel
     - build
+    - nestle-bilby    # Plugins should be moved to conda once they are available there
+    - cpnest-bilby
+    - zeus-bilby
