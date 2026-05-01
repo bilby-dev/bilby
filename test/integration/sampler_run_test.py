@@ -34,7 +34,11 @@ sampler_imports = dict(
     dynamic_dynesty="dynesty"
 )
 
-loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+# Only load the native samplers
+loaded_samplers = {
+    k: bilby.core.sampler.IMPLEMENTED_SAMPLERS[k].load()
+    for k in bilby.core.sampler.IMPLEMENTED_SAMPLERS.native_keys()
+}
 
 
 def slow_func(x, m, c):
