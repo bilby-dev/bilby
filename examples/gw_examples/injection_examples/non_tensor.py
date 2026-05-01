@@ -10,6 +10,11 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
+
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 

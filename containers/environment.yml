@@ -2,7 +2,6 @@
 # The python version should be added before creating the env
 channels:
   - conda-forge
-  - pytorch
 dependencies:
   - pip
   - setuptools
@@ -30,7 +29,6 @@ dependencies:
   - healpy
   - cython
   - pytorch
-  - cpuonly
   - python-lalsimulation
   - bilby.cython
   - pyseobnr
@@ -44,17 +42,8 @@ dependencies:
   - sphinx-design
   - dynesty
   - emcee
-  - nestle
-  - ptemcee
-  - pymultinest
-  - ultranest
-  - cpnest
-  - kombine
-  - zeus-mcmc
   - pytorch
-  - pymc>=5.9
-  - nessai
-  - ptmcmcsampler
+  - pytorch-cpu
   - jaxlib>=0.4
   - jax>=0.4
   - numba>0.53.1
@@ -66,8 +55,12 @@ dependencies:
   - nbconvert
   - twine
   - glasflow
+  - nessai-bilby
   - myst-parser
   - pip:
     - autodoc
     - ipykernel
     - build
+    - nestle-bilby    # Plugins should be moved to conda once they are available there
+    - cpnest-bilby
+    - zeus-bilby
