@@ -55,6 +55,7 @@ dependencies:
   - nbconvert
   - twine
   - glasflow
+  - nessai-bilby
   - myst-parser
   - pip:
     - autodoc
