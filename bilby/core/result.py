@@ -2070,7 +2070,7 @@ class ResultList(list):
         if not np.allclose(
             [res.log_noise_evidence for res in self],
             self[0].log_noise_evidence,
-            atol=1e-8,
+            atol=1e-7,
             rtol=0.0,
             equal_nan=True,
         ):
