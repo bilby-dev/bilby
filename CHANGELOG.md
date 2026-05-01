@@ -5,6 +5,9 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Fixes
+* Corrected incorrect docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (closes #731)
+
 ## [2.7.1]
 
 ### Fixes
