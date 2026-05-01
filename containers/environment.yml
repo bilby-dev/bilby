@@ -2,7 +2,6 @@
 # The python version should be added before creating the env
 channels:
   - conda-forge
-  - pytorch
 dependencies:
   - pip
   - setuptools
@@ -30,7 +29,6 @@ dependencies:
   - healpy
   - cython
   - pytorch
-  - cpuonly
   - python-lalsimulation
   - bilby.cython
   - pyseobnr
@@ -45,6 +43,7 @@ dependencies:
   - dynesty
   - emcee
   - pytorch
+  - pytorch-cpu
   - jaxlib>=0.4
   - jax>=0.4
   - numba>0.53.1
