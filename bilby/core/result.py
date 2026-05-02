@@ -296,6 +296,44 @@ def get_weights_for_reweighting(
     return ln_weights, new_log_likelihood_array, new_log_prior_array, old_log_likelihood_array, old_log_prior_array
 
 
+def _weighted_quantile(values, quantiles, weights=None):
+    """ Compute weighted quantiles of a 1D array of samples.
+
+    This uses the "Type 4" definition of a weighted quantile (linear
+    interpolation of the empirical cdf) so that calling with uniform weights
+    reproduces ``numpy.percentile`` to within floating-point precision.
+
+    Parameters
+    ==========
+    values: array_like
+        The sample values.
+    quantiles: array_like
+        The quantiles to compute, in the range ``[0, 1]``.
+    weights: array_like, optional
+        Sample weights. If not provided, uniform weights are used.
+
+    Returns
+    =======
+    numpy.ndarray
+        The weighted quantiles, with the same shape as ``quantiles``.
+    """
+    values = np.asarray(values)
+    quantiles = np.asarray(quantiles)
+    if np.any(quantiles < 0) or np.any(quantiles > 1):
+        raise ValueError("quantiles must be in the range [0, 1]")
+    if weights is None:
+        weights = np.ones_like(values)
+    weights = np.asarray(weights)
+    if values.shape != weights.shape:
+        raise ValueError("values and weights must have the same shape")
+    sorter = np.argsort(values)
+    values = values[sorter]
+    weights = weights[sorter]
+    cumulative = np.cumsum(weights) - 0.5 * weights
+    cumulative /= np.sum(weights)
+    return np.interp(quantiles, cumulative, values)
+
+
 def rejection_sample(posterior, weights):
     """ Perform rejection sampling on a posterior using weights
 
@@ -1022,7 +1060,8 @@ class Result(object):
                     np.mean(self.posterior['log_likelihood'])**2)
 
     def get_one_dimensional_median_and_error_bar(self, key, fmt='.2f',
-                                                 quantiles=(0.16, 0.84)):
+                                                 quantiles=(0.16, 0.84),
+                                                 samples=None, weights=None):
         """ Calculate the median and error bar for a given key
 
         Parameters
@@ -1034,6 +1073,14 @@ class Result(object):
         quantiles: list, tuple
             A length-2 tuple of the lower and upper-quantiles to calculate
             the errors bars for.
+        samples: pandas.DataFrame, optional
+            If provided, compute the quantiles from this data frame instead of
+            ``self.posterior``. Useful to compute statistics from the nested
+            samples with associated ``weights``.
+        weights: array_like, optional
+            If provided, compute weighted quantiles using these weights. Must
+            have the same length as ``samples[key]`` (or ``self.posterior[key]``
+            if ``samples`` is not given).
 
         Returns
         =======
@@ -1047,7 +1094,14 @@ class Result(object):
             raise ValueError("quantiles must be of length 2")
 
         quants_to_compute = np.array([quantiles[0], 0.5, quantiles[1]])
-        quants = np.percentile(self.posterior[key], quants_to_compute * 100)
+        if samples is None:
+            samples = self.posterior
+        values = np.asarray(samples[key])
+        if weights is None:
+            quants = np.percentile(values, quants_to_compute * 100)
+        else:
+            quants = _weighted_quantile(
+                values, quants_to_compute, weights=np.asarray(weights))
         summary.median = quants[1]
         summary.plus = quants[2] - summary.median
         summary.minus = summary.median - quants[0]
@@ -1227,7 +1281,7 @@ class Result(object):
 
     @latex_plot_format
     def plot_corner(self, parameters=None, priors=None, titles=True, save=True,
-                    filename=None, dpi=300, **kwargs):
+                    filename=None, dpi=300, use_nested_samples=False, **kwargs):
         """ Plot a corner-plot
 
         Parameters
@@ -1250,6 +1304,13 @@ class Result(object):
             If given, overwrite the default filename
         dpi: int, optional
             Dots per inch resolution of the plot
+        use_nested_samples: bool, optional
+            If true, use the weighted nested samples rather than the
+            resampled posterior. This is only available for results produced
+            by nested samplers and can produce smoother marginal distributions
+            by avoiding the Monte-Carlo noise from resampling. When enabled,
+            weights are passed through to ``corner.corner`` and to the title
+            quantile computation. Defaults to False.
         **kwargs:
             Other keyword arguments are passed to `corner.corner`. We set some
             defaults to improve the basic look and feel, but these can all be
@@ -1363,8 +1424,29 @@ class Result(object):
         if isinstance(kwargs.get('truths'), bool):
             kwargs.pop('truths')
 
-        # Create the data array to plot and pass everything to corner
-        xs = self.posterior[plot_parameter_keys].values
+        # Create the data array to plot and pass everything to corner.
+        # Optionally use the weighted nested samples instead of the
+        # resampled posterior to reduce Monte-Carlo noise in the marginals.
+        ns_weights = None
+        if use_nested_samples:
+            if self._nested_samples is None:
+                raise ValueError(
+                    "use_nested_samples=True but this result has no "
+                    "nested_samples attribute (not a nested-sampling run).")
+            if "weights" not in self.nested_samples.columns:
+                raise ValueError(
+                    "use_nested_samples=True but the nested_samples data "
+                    "frame does not contain a 'weights' column.")
+            samples_df = self.nested_samples
+            ns_weights = np.asarray(self.nested_samples["weights"])
+            xs = samples_df[plot_parameter_keys].values
+            kwargs["weights"] = ns_weights
+            hist_kwargs_defaults["weights"] = ns_weights
+            kwargs["hist_kwargs"] = hist_kwargs_defaults
+        else:
+            samples_df = self.posterior
+            xs = samples_df[plot_parameter_keys].values
+
         if len(plot_parameter_keys) > 1:
             fig = corner.corner(xs, **kwargs)
         else:
@@ -1382,7 +1464,8 @@ class Result(object):
                 ax = axes[i + i * len(plot_parameter_keys)]
                 if ax.title.get_text() == '':
                     ax.set_title(self.get_one_dimensional_median_and_error_bar(
-                        par, quantiles=kwargs['quantiles']).string,
+                        par, quantiles=kwargs['quantiles'],
+                        samples=samples_df, weights=ns_weights).string,
                         **kwargs['title_kwargs'])
 
         #  Add priors to the 1D plots

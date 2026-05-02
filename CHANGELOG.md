@@ -5,6 +5,13 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Additions
+* Added an ``use_nested_samples`` option to ``Result.plot_corner`` which uses the
+  weighted nested samples rather than the resampled posterior, reducing Monte-Carlo
+  noise in the marginal distributions. ``Result.get_one_dimensional_median_and_error_bar``
+  now also accepts ``samples`` and ``weights`` arguments for weighted quantiles.
+  (closes https://github.com/bilby-dev/bilby/issues/563)
+
 ## [2.7.1]
 
 ### Fixes

@@ -464,6 +464,69 @@ class TestResult(unittest.TestCase):
         self.result.plot_corner(parameters=["x", "y"], truths=[1, 1])
         self.result.plot_corner(parameters=dict(x=1, y=1))
 
+    def test_plot_corner_use_nested_samples(self):
+        n = 200
+        nested_samples = pd.DataFrame(
+            dict(
+                x=np.random.normal(0, 1, n),
+                y=np.random.normal(0, 1, n),
+                weights=np.random.uniform(0, 1, n),
+            )
+        )
+        self.result.nested_samples = nested_samples
+        self.result.plot_corner(use_nested_samples=True)
+        self.result.plot_corner(
+            parameters=["x", "y"], use_nested_samples=True)
+
+    def test_plot_corner_use_nested_samples_no_nested_samples(self):
+        self.result.nested_samples = None
+        with self.assertRaises(ValueError):
+            self.result.plot_corner(use_nested_samples=True)
+
+    def test_plot_corner_use_nested_samples_no_weights_column(self):
+        self.result.nested_samples = pd.DataFrame(
+            dict(x=np.random.normal(0, 1, 50), y=np.random.normal(0, 1, 50))
+        )
+        with self.assertRaises(ValueError):
+            self.result.plot_corner(use_nested_samples=True)
+
+    def test_weighted_quantile_uniform_matches_percentile(self):
+        values = np.random.normal(0, 1, 1000)
+        quantiles = np.array([0.16, 0.5, 0.84])
+        weighted = bilby.core.result._weighted_quantile(
+            values, quantiles, weights=np.ones_like(values))
+        unweighted = np.percentile(values, quantiles * 100)
+        np.testing.assert_allclose(weighted, unweighted, atol=1e-6)
+
+    def test_weighted_quantile_constant_weights(self):
+        values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        quantiles = np.array([0.0, 0.5, 1.0])
+        weighted = bilby.core.result._weighted_quantile(
+            values, quantiles, weights=np.full_like(values, 2.0))
+        np.testing.assert_allclose(weighted, [1.0, 3.0, 5.0])
+
+    def test_weighted_quantile_invalid_quantiles(self):
+        with self.assertRaises(ValueError):
+            bilby.core.result._weighted_quantile(
+                np.array([1.0, 2.0]), np.array([-0.1, 1.1]))
+
+    def test_weighted_quantile_mismatched_shapes(self):
+        with self.assertRaises(ValueError):
+            bilby.core.result._weighted_quantile(
+                np.array([1.0, 2.0, 3.0]),
+                np.array([0.5]),
+                weights=np.array([1.0, 1.0]))
+
+    def test_get_one_dimensional_median_and_error_bar_weights(self):
+        n = 500
+        samples = pd.DataFrame(
+            dict(x=np.random.normal(0, 1, n)))
+        weights = np.ones(n)
+        summary = self.result.get_one_dimensional_median_and_error_bar(
+            "x", samples=samples, weights=weights)
+        unweighted_median = np.percentile(samples["x"], 50)
+        self.assertAlmostEqual(summary.median, unweighted_median, places=6)
+
     def test_plot_corner_with_priors(self):
         priors = bilby.core.prior.PriorDict()
         priors["x"] = bilby.core.prior.Uniform(-1, 1, "x")
