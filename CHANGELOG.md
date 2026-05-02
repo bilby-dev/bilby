@@ -5,6 +5,9 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Additions
+* Added `exclude_keys` parameter to `bilby.bilby_mcmc.chain.Chain.plot` and a corresponding `plot_exclude_keys` kwarg on the `Bilby_MCMC` sampler. Accepts glob-style patterns (e.g. `["recalib_*"]`) to filter out nuisance parameters from trace plots, avoiding memory issues with high-dimensional calibration runs (closes #730)
+
 ## [2.7.1]
 
 ### Fixes
