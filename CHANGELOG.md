@@ -5,6 +5,9 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Additions
+* Added VS Code / Codespaces dev container configurations: a lightweight core container and an optional GW container with LALSuite installed (closes #843)
+
 ## [2.7.1]
 
 ### Fixes
