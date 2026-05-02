@@ -896,18 +896,28 @@ def chirp_mass_and_mass_ratio_to_component_masses(chirp_mass, mass_ratio):
 
 
 def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
-    """
-    Convert the symmetric mass ratio to the normal mass ratio.
+    r"""
+    Convert the symmetric mass ratio to the mass ratio.
+
+    Inverts the relation :math:`\eta = q / (1 + q)^2` for the smaller root
+    (i.e. ``q <= 1``), giving:
+
+    .. math::
+
+        q = \frac{1 - 2\eta}{2\eta} - \sqrt{\left(\frac{1 - 2\eta}{2\eta}\right)^2 - 1}
+
+    The branch returning :math:`q \leq 1` is chosen to match bilby's
+    convention that ``mass_ratio = mass_2 / mass_1``.
 
     Parameters
     ==========
-    symmetric_mass_ratio: float
-        Symmetric mass ratio of the binary
+    symmetric_mass_ratio: float or array_like
+        Symmetric mass ratio :math:`\eta \in (0, 1/4]`.
 
     Returns
     =======
-    mass_ratio: float
-        Mass ratio of the binary
+    mass_ratio: float or array_like
+        Mass ratio :math:`q = m_2 / m_1 \in (0, 1]`.
     """
 
     temp = (1 / symmetric_mass_ratio / 2 - 1)
@@ -915,20 +925,28 @@ def symmetric_mass_ratio_to_mass_ratio(symmetric_mass_ratio):
 
 
 def chirp_mass_and_total_mass_to_symmetric_mass_ratio(chirp_mass, total_mass):
-    """
+    r"""
     Convert chirp mass and total mass of a binary to its symmetric mass ratio.
+
+    Uses the identity :math:`\mathcal{M} = M \eta^{3/5}` where :math:`M`
+    is the total mass, which can be rearranged to:
+
+    .. math::
+
+        \eta = \left(\frac{\mathcal{M}}{M}\right)^{5/3}
 
     Parameters
     ==========
-    chirp_mass: float
-        Chirp mass of the binary
-    total_mass: float
-        Total mass of the binary
+    chirp_mass: float or array_like
+        Chirp mass :math:`\mathcal{M}` of the binary, in the same units
+        as ``total_mass``.
+    total_mass: float or array_like
+        Total mass :math:`M = m_1 + m_2` of the binary.
 
     Returns
     =======
-    symmetric_mass_ratio: float
-        Symmetric mass ratio of the binary
+    symmetric_mass_ratio: float or array_like
+        Symmetric mass ratio :math:`\eta \in (0, 1/4]`.
     """
 
     return (chirp_mass / total_mass) ** (5 / 3)
@@ -988,20 +1006,36 @@ def chirp_mass_and_mass_ratio_to_total_mass(chirp_mass, mass_ratio):
 
 
 def component_masses_to_chirp_mass(mass_1, mass_2):
-    """
+    r"""
     Convert the component masses of a binary to its chirp mass.
+
+    The chirp mass :math:`\mathcal{M}` is defined from the component masses
+    :math:`m_1, m_2` by:
+
+    .. math::
+
+        \mathcal{M} = \frac{(m_1 m_2)^{3/5}}{(m_1 + m_2)^{1/5}}
+
+    It is the leading-order parameter controlling the inspiral frequency
+    evolution of a compact binary and is therefore the best-measured mass
+    combination in gravitational-wave observations of the inspiral.
 
     Parameters
     ==========
-    mass_1: float
-        Mass of the heavier object
-    mass_2: float
-        Mass of the lighter object
+    mass_1: float or array_like
+        Mass of the primary (heavier) object, in the same units as ``mass_2``.
+    mass_2: float or array_like
+        Mass of the secondary (lighter) object, in the same units as ``mass_1``.
 
     Returns
     =======
-    chirp_mass: float
-        Chirp mass of the binary
+    chirp_mass: float or array_like
+        Chirp mass of the binary, in the same units as the input masses.
+
+    References
+    ----------
+    Peters, P. C. and Mathews, J. ``Gravitational Radiation from Point
+    Masses in a Keplerian Orbit``, Phys. Rev. **131**, 435 (1963).
     """
 
     return (mass_1 * mass_2) ** 0.6 / (mass_1 + mass_2) ** 0.2
@@ -1028,40 +1062,64 @@ def component_masses_to_total_mass(mass_1, mass_2):
 
 
 def component_masses_to_symmetric_mass_ratio(mass_1, mass_2):
-    """
+    r"""
     Convert the component masses of a binary to its symmetric mass ratio.
+
+    The symmetric mass ratio :math:`\eta` is defined by:
+
+    .. math::
+
+        \eta = \frac{m_1 m_2}{(m_1 + m_2)^2}
+
+    It takes values in :math:`(0, 1/4]`, reaching its maximum at equal
+    masses (:math:`\eta = 1/4` when :math:`m_1 = m_2`) and approaching
+    zero for extreme mass ratios. Combined with chirp mass, it uniquely
+    specifies the component masses.
 
     Parameters
     ==========
-    mass_1: float
-        Mass of the heavier object
-    mass_2: float
-        Mass of the lighter object
+    mass_1: float or array_like
+        Mass of the primary (heavier) object, in the same units as ``mass_2``.
+    mass_2: float or array_like
+        Mass of the secondary (lighter) object, in the same units as ``mass_1``.
 
     Returns
     =======
-    symmetric_mass_ratio: float
-        Symmetric mass ratio of the binary
+    symmetric_mass_ratio: float or array_like
+        Symmetric mass ratio :math:`\eta \in (0, 1/4]`. The result is
+        clipped at ``1/4`` to protect against numerical overshoot.
     """
 
     return np.minimum((mass_1 * mass_2) / (mass_1 + mass_2) ** 2, 1 / 4)
 
 
 def component_masses_to_mass_ratio(mass_1, mass_2):
-    """
-    Convert the component masses of a binary to its chirp mass.
+    r"""
+    Convert the component masses of a binary to its mass ratio.
+
+    The mass ratio :math:`q` used throughout bilby is defined as the ratio
+    of the lighter to the heavier mass:
+
+    .. math::
+
+        q = \frac{m_2}{m_1}, \qquad q \in (0, 1]
+
+    Note that some references use the reciprocal convention
+    :math:`q = m_1 / m_2 \geq 1`; bilby uses the :math:`q \leq 1` convention
+    throughout its API.
 
     Parameters
     ==========
-    mass_1: float
-        Mass of the heavier object
-    mass_2: float
-        Mass of the lighter object
+    mass_1: float or array_like
+        Mass of the primary (heavier) object, in the same units as ``mass_2``.
+    mass_2: float or array_like
+        Mass of the secondary (lighter) object, in the same units as ``mass_1``.
 
     Returns
     =======
-    mass_ratio: float
-        Mass ratio of the binary
+    mass_ratio: float or array_like
+        Mass ratio :math:`q = m_2 / m_1`, bounded by ``(0, 1]`` for
+        physically ordered inputs.
     """
 
     return mass_2 / mass_1
@@ -2096,19 +2154,76 @@ def generate_spin_parameters(sample):
 
 def generate_component_spins(sample):
     """
-    Add the component spins to the data frame/dictionary.
+    Add the component spin vectors ``spin_{1,2}{x,y,z}`` to a sample.
 
-    This function uses a lalsimulation function to transform the spins.
+    This function uses ``lalsimulation.SimInspiralTransformPrecessingNewInitialConditions``
+    to convert from the ``(theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2)``
+    parameterisation used by bilby to the Cartesian spin components aligned
+    with the orbital frame that ``lalsimulation`` waveform generators expect.
+    If the sample contains only the aligned spin parameters ``chi_1`` and
+    ``chi_2``, these are promoted to purely z-axis spins.
 
     Parameters
     ==========
-    sample: A dictionary with the necessary spin conversion parameters:
-    'theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
-    'mass_2', 'reference_frequency', 'phase'
+    sample: dict or pandas.DataFrame
+        A sample (or collection of samples) containing the necessary spin
+        parameters. For a full precessing conversion the following keys
+        are required (see Table E1 of https://arxiv.org/abs/2006.00714 and
+        Appendix E of the same paper for definitions):
+
+        - ``theta_jn`` (float, rad):
+            Inclination between the total angular momentum ``J`` and the
+            line of sight. Measured at the reference frequency.
+        - ``phi_jl`` (float, rad):
+            Azimuthal angle of the orbital angular momentum ``L`` about
+            the total angular momentum ``J``.
+        - ``tilt_1``, ``tilt_2`` (float, rad):
+            Polar angles (tilt) of the primary and secondary spin vectors
+            with respect to the orbital angular momentum ``L``.
+        - ``phi_12`` (float, rad):
+            Azimuthal angle between the projections of the primary and
+            secondary spin vectors onto the orbital plane.
+        - ``a_1``, ``a_2`` (float, dimensionless):
+            Dimensionless spin magnitudes of the primary and secondary,
+            ``|S_i| / (G m_i^2 / c)``, each in the range ``[0, 1]``.
+        - ``mass_1``, ``mass_2`` (float, solar masses):
+            Component masses in the detector frame.
+        - ``reference_frequency`` (float, Hz):
+            Reference frequency at which the spin parameters are defined.
+        - ``phase`` (float, rad):
+            Orbital phase at the reference frequency.
+
+        Alternatively, if only aligned (z-axis) spins are available, the
+        sample may instead contain:
+
+        - ``chi_1``, ``chi_2`` (float, dimensionless):
+            Signed spin components along the orbital angular momentum,
+            in ``[-1, 1]``.
 
     Returns
     =======
-    dict: The updated dictionary
+    output_sample: dict or pandas.DataFrame
+        Copy of ``sample`` updated in-place with the component spin vectors:
+
+        - ``iota`` (rad): Inclination of the orbital plane at the reference
+          frequency (the angle between ``L`` and the line of sight).
+        - ``spin_{1,2}x``, ``spin_{1,2}y``, ``spin_{1,2}z`` (dimensionless):
+          Cartesian components of the primary and secondary dimensionless
+          spin vectors in the frame used by ``lalsimulation``.
+        - ``phi_1``, ``phi_2`` (rad):
+            Azimuthal angles of the primary and secondary spin projections
+            in the orbital plane, wrapped to ``[0, 2 pi)``.
+
+        If the required keys are not present, the returned sample is
+        unchanged and a debug-level log message is emitted.
+
+    References
+    ----------
+    Romero-Shaw, I. et al. ``Bayesian inference for compact binary
+    coalescences with bilby: Validation and application to the first
+    LIGO–Virgo gravitational-wave transient catalogue``,
+    MNRAS **499**, 3295 (2020). arXiv:2006.00714 — see Table E1 and
+    Appendix E for full definitions of the precessing spin parameters.
 
     """
     output_sample = sample.copy()
