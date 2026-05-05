@@ -398,6 +398,23 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         output = {key: 0.0 for key in keys}
         return output
 
+    @property
+    def _disabled_parameters(self):
+        return set(self.defaults.keys())
+
+    def _format_parameters(self, parameters):
+        self._warn_about_disabled_parameters(parameters)
+        return super()._format_parameters(parameters)
+
+    def _warn_about_disabled_parameters(self, parameters):
+        diff = set(parameters.keys()).intersection(self._disabled_parameters)
+        if len(diff) > 0:
+            logger.warning(
+                f"The following parameters are set but will be ignored since "
+                f"spinning={self.spinning}, eccentric={self.eccentric} and "
+                f"tidal={self.tidal}: {sorted(diff)}"
+            )
+
     def _from_bilby_parameters(self, **parameters):
         from .conversion import bilby_to_lalsimulation_spins
 
