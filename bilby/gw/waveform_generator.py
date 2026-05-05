@@ -400,14 +400,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
     @property
     def _disabled_parameters(self):
-        disabled = set()
-        if not self.spinning:
-            disabled = disabled.union({"a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"})
-        if not self.eccentric:
-            disabled = disabled.union({"eccentricity", "mean_per_ano"})
-        if not self.tidal:
-            disabled = disabled.union({"lambda_1", "lambda_2"})
-        return disabled
+        return set(self.defaults.keys())
 
     def _format_parameters(self, parameters):
         self._warn_about_disabled_parameters(parameters)
