@@ -1,7 +1,9 @@
 import datetime
+import importlib.metadata
 import inspect
 import json
 import os
+import packaging
 from collections import namedtuple
 from copy import copy
 from importlib import import_module
@@ -1777,23 +1779,25 @@ class Result(object):
         return weights
 
     def to_arviz(self, prior=None):
-        """ Convert the Result object to an ArviZ InferenceData object.
+        """
+        Convert the Result object to an ArviZ object.
+        For :code:`arviz < 1` this is an `arviz.InferenceData` and for
+        :code:`arviz >= 1` this is an `xarray.DataTree`.
 
-            Parameters
-            ==========
-            prior: int
-                If a positive integer is given then that number of prior
-                samples will be drawn and stored in the ArviZ InferenceData
-                object.
+        Parameters
+        ==========
+        prior: int
+            If a positive integer is given then that number of prior
+            samples will be drawn and stored in the ArviZ object.
 
-            Returns
-            =======
-            azdata: InferenceData
-                The ArviZ InferenceData object.
+        Returns
+        =======
+        azdata: arviz.InferenceData | xarray.DataTree
+            The ArviZ result object.
 
-            Raises
-            ======
-            RuntimeError: If ArviZ is not installed.
+        Raises
+        ======
+        RuntimeError: If ArviZ is not installed.
         """
 
         try:
@@ -1829,11 +1833,16 @@ class Result(object):
             else:
                 priorsamples = self.priors.sample(size=prior)
 
-        azdata = az.from_dict(
+        az_data_dict = dict(
             posterior=posdict,
             log_likelihood=loglikedict,
             prior=priorsamples,
         )
+        az_version = packaging.version.parse(importlib.metadata.version("arviz"))
+        if az_version < packaging.version.parse("1"):
+            azdata = az.from_dict(**az_data_dict)
+        else:
+            azdata = az.from_dict(az_data_dict)
 
         # add attributes
         version = {
