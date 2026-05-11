@@ -787,7 +787,9 @@ class TestPriorClasses(unittest.TestCase):
             if not repr_prior_string.startswith("bilby"):
                 repr_prior_string = "bilby.core.prior." + repr(prior)
             if isinstance(prior, bilby.core.prior.Interped):
-                repr_prior_string = repr_prior_string.replace('\n', '')
+                with np.printoptions(threshold=np.inf):
+                    repr_prior_string = repr(prior)
+                    repr_prior_string = repr_prior_string.replace('\n', '')
             elif isinstance(prior, bilby.gw.prior.HealPixPrior):
                 repr_prior_string = repr_prior_string.replace(
                     "HealPixMapPriorDist", "bilby.gw.prior.HealPixMapPriorDist"
@@ -801,9 +803,10 @@ class TestPriorClasses(unittest.TestCase):
                     break
                 except NameError as e:
                     unknown_prior = e.name
-                    repr_prior_string = repr_prior_string.replace(unknown_prior, "bilby.core.prior." + unknown_prior)
+                    repr_prior_string = repr_prior_string.replace(
+                        unknown_prior, "bilby.core.prior." + unknown_prior)
                 except Exception as e:
-                    raise e
+                    raise Exception(f'Error evaluating {repr_prior_string} for {prior}') from e
             self.assertEqual(prior, repr_prior)
 
     def test_set_maximum_setting(self):
