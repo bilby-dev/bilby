@@ -889,7 +889,9 @@ class TestPriorClasses(unittest.TestCase):
             if not repr_prior_string.startswith("bilby"):
                 repr_prior_string = "bilby.core.prior." + repr(prior)
             if isinstance(prior, bilby.core.prior.Interped):
-                repr_prior_string = repr_prior_string.replace('\n', '')
+                with np.printoptions(threshold=np.inf):
+                    repr_prior_string = repr(prior)
+                    repr_prior_string = repr_prior_string.replace('\n', '')
             elif isinstance(prior, bilby.gw.prior.HealPixPrior):
                 repr_prior_string = repr_prior_string.replace(
                     "HealPixMapPriorDist", "bilby.gw.prior.HealPixMapPriorDist"
