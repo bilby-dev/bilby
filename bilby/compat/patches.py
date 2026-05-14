@@ -19,7 +19,7 @@ def multivariate_logpdf(xp, mean, cov):
     cov: array-like
         A two-dimensional array providing the covariance matrix of the
         distribution.
-    
+
     Returns
     =======
     logpdf: callable

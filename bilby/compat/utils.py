@@ -30,7 +30,7 @@ def array_module(arr):
        - Builtin scalars: default to numpy
        - Pandas objects: default to numpy (treated as numpy-compatible)
        - Unknown types: log a warning and default to numpy
-    
+
     This is a best-effort function, but will not cover all possible edge cases.
 
     Parameters
