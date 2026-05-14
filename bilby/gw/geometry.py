@@ -11,6 +11,7 @@ __all__ = [
     "get_polarization_tensor",
     "get_polarization_tensor_multiple_modes",
     "rotation_matrix_from_delta",
+    "theta_phi_to_zenith_azimuth",
     "three_by_three_matrix_contraction",
     "time_delay_geocentric",
     "time_delay_from_geocenter",
@@ -379,3 +380,32 @@ def zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x):
     theta = xp.arccos(omega[2])
     phi = xp.arctan2(omega[1], omega[0]) % (2 * xp.pi)
     return theta, phi
+
+
+@dispatch
+def theta_phi_to_zenith_azimuth(theta, phi, delta_x):
+    """
+    Convert Earth-frame theta/phi angles to the detector frame.
+
+    Parameters
+    ==========
+    theta: float or array-like
+        Zenith angle in the Earth frame in radians.
+    phi: float or array-like
+        Azimuthal angle in the Earth frame in radians.
+    delta_x: array-like
+        3D vector defining the detector frame.
+
+    Returns
+    =======
+    tuple of array-like
+        (zenith, azimuth) angles in the detector frame, both in radians.
+    """
+    xp = array_module(delta_x)
+    omega = xp.stack(
+        [xp.sin(theta) * xp.cos(phi), xp.sin(theta) * xp.sin(phi), xp.cos(theta)]
+    )
+    omega_prime = rotation_matrix_from_delta(delta_x).T @ omega
+    zenith = xp.arccos(xp.clip(omega_prime[2], -1, 1))
+    azimuth = xp.arctan2(omega_prime[1], omega_prime[0]) % (2 * xp.pi)
+    return zenith, azimuth
