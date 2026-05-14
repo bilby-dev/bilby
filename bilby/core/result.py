@@ -1833,11 +1833,11 @@ class Result(object):
             else:
                 priorsamples = self.priors.sample(size=prior)
 
-        az_data_dict = dict(
-            posterior=posdict,
-            log_likelihood=loglikedict,
-            prior=priorsamples,
-        )
+        az_data_dict = dict(posterior=posdict)
+        if loglikedict is not None:
+            az_data_dict["log_likelihood"] = loglikedict
+        if priorsamples is not None:
+            az_data_dict["prior"] = priorsamples
         az_version = packaging.version.parse(importlib.metadata.version("arviz"))
         version = {
             "inference_library": "bilby: {}".format(self.sampler),
