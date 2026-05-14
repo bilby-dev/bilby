@@ -4,6 +4,5 @@ include requirements.txt
 include gw_requirements.txt
 include mcmc_requirements.txt
 include optional_requirements.txt
-include sampler_requirements.txt
 include bilby/_version.py
 recursive-include test *.py *.prior

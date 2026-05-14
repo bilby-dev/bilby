@@ -14,7 +14,7 @@ unwanted = {
     "h5py", "dill", "tqdm", "tables", "deepdish", "corner",
 }
 
-for filename in ["sampler_requirements.txt", "optional_requirements.txt"]:
+for filename in ["mcmc_requirements.txt", "optional_requirements.txt"]:
     with open(filename, "r") as ff:
         packages = ff.readlines()
         for package in packages:

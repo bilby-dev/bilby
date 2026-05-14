@@ -179,9 +179,6 @@ samplers = [
     "dynamic_dynesty",
     "dynesty",
     "emcee",
-    "kombine",
-    "ptemcee",
-    "zeus",
 ]
 
 
@@ -200,13 +197,7 @@ class GenericSamplerTest(unittest.TestCase):
     def test_pool_creates_properly_no_pool(self, sampler_name):
         sampler = loaded_samplers[sampler_name](self.likelihood, self.priors)
         sampler._setup_pool()
-        if sampler_name == "kombine":
-            from kombine import SerialPool
-
-            self.assertIsInstance(sampler.pool, SerialPool)
-            pass
-        else:
-            self.assertIsNone(sampler.pool)
+        self.assertIsNone(sampler.pool)
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):

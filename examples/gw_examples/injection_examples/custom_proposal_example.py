@@ -15,6 +15,11 @@ import bilby.gw.sampler.proposal
 from bilby.core.sampler import proposal
 from bilby.core.utils.random import seed
 
+if "cpnest" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "cpnest is required to run this example. Install with `pip install cpnest-bilby`"
+    )
+
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
