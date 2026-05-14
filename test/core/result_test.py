@@ -530,7 +530,7 @@ class TestResult(unittest.TestCase):
         for var in ["x", "y"]:
             self.assertTrue(np.array_equal(az.posterior[var].values.squeeze(),
                                            self.result.posterior[var].values))
-            self.assertTrue(len(az.prior[var][0]) == Nprior)
+            self.assertTrue(len(az.prior[var]) == Nprior)
 
         self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
                                        log_likelihood))
