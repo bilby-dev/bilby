@@ -7,6 +7,7 @@ from scipy.special import (
     betaincinv,
     betaln,
     erf,
+    erfinv,
     gammaincinv,
     gammainc,
     gammaln,
@@ -18,8 +19,7 @@ from scipy.special import (
 
 from .base import Prior
 from ..utils import logger
-from ...compat.patches import erfinv_import
-from ...compat.utils import BackendNotImplementedError, array_module, xp_wrap
+from ...compat.utils import array_module, xp_wrap
 
 
 class DeltaFunction(Prior):
@@ -535,10 +535,6 @@ class Gaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        try:
-            erfinv = erfinv_import(xp)
-        except BackendNotImplementedError:
-            raise NotImplementedError(f"Gaussian prior rescale not implemented for this {xp.__name__}")
         return self.mu + erfinv(2 * val - 1) * 2 ** 0.5 * self.sigma
 
     @xp_wrap
@@ -627,12 +623,6 @@ class TruncatedGaussian(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        try:
-            erfinv = erfinv_import(xp)
-        except BackendNotImplementedError:
-            raise NotImplementedError(
-                f"Truncated Gaussian prior rescale not implemented for this {xp.__name__}"
-            )
         return erfinv(2 * val * self.normalisation + erf(
             (self.minimum - self.mu) / 2 ** 0.5 / self.sigma)) * 2 ** 0.5 * self.sigma + self.mu
 
@@ -727,10 +717,6 @@ class LogNormal(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        try:
-            erfinv = erfinv_import(xp)
-        except BackendNotImplementedError:
-            raise NotImplementedError(f"LogNormal prior rescale not implemented for this {xp.__name__}")
         return xp.exp(self.mu + (2 * self.sigma ** 2)**0.5 * erfinv(2 * val - 1))
 
     @xp_wrap

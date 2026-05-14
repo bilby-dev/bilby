@@ -3,21 +3,29 @@ import array_api_compat as aac
 from .utils import BackendNotImplementedError
 
 
-def erfinv_import(xp):
-    if aac.is_numpy_namespace(xp):
-        from scipy.special import erfinv
-    elif aac.is_jax_namespace(xp):
-        from jax.scipy.special import erfinv
-    elif aac.is_torch_namespace(xp):
-        from torch.special import erfinv
-    elif aac.is_cupy_namespace(xp):
-        from cupyx.scipy.special import erfinv
-    else:
-        raise BackendNotImplementedError
-    return erfinv
-
-
 def multivariate_logpdf(xp, mean, cov):
+    """
+    Return a function to evaluate the log probability density of a multivariate
+    Gaussian with given mean vector and covariance matrix for the provided
+    array backend.
+
+    Parameters
+    ==========
+    xp: numpy, torch, jax.numpy
+        A module that will resolve to :code:`numpy`, :code:`torch`, or
+        :code:`jax.numpy` in :code:`array_api_compat.is_..._namespace`.
+    mean: array-like
+        A one-dimensional array providing the mean of the distribution.
+    cov: array-like
+        A two-dimensional array providing the covariance matrix of the
+        distribution.
+    
+    Returns
+    =======
+    logpdf: callable
+        A callable that provides the log probaility density provided an array
+        of points to evaluate at.
+    """
     if aac.is_numpy_namespace(xp):
         from scipy.stats import multivariate_normal
 
@@ -33,18 +41,7 @@ def multivariate_logpdf(xp, mean, cov):
         mvn = MultivariateNormal(loc=mean, covariance_matrix=xp.asarray(cov))
         logpdf = mvn.log_prob
     else:
-        raise BackendNotImplementedError
+        raise BackendNotImplementedError(
+            f"Unable to import multivariate_logpdf for {xp}"
+        )
     return logpdf
-
-
-def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False, *, xp=None):
-    if xp is None:
-        xp = aac.get_namespace(a)
-
-    # the scipy version of logsumexp cannot be vmapped
-    if aac.is_jax_namespace(xp):
-        from jax.scipy.special import logsumexp as lse
-    else:
-        from scipy.special import logsumexp as lse
-
-    return lse(a=a, axis=axis, b=b, keepdims=keepdims, return_sign=return_sign)

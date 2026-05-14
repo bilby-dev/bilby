@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Iterable
 
 import numpy as np
-from array_api_compat import array_namespace
+from array_api_compat import array_namespace, is_numpy_namespace
 
 from ..core.utils.log import logger
 
@@ -10,6 +10,67 @@ __all__ = ["array_module", "promote_to_array"]
 
 
 def array_module(arr):
+    """
+    Infer the array module (namespace) from the input argument.
+    This is a generalization of the :code:`array_api_compat.array_namespace`
+    function that can handle a wider variety of inputs, including some nested
+    structures.
+
+    This function determines which array library backend is being used
+    by inspecting the input argument. It handles various input types and
+    fallback mechanisms to ensure a valid array module is always returned.
+
+    The inference logic proceeds as follows:
+    1. If a single-element tuple is provided, extract the element first.
+    2. Attempt to use the array_api_compat.array_namespace() function
+       directly, which works for most array-like objects.
+    3. If that fails, handle special cases:
+       - Dictionaries: extract values and infer from non-string values
+       - Builtin iterables (list, tuple, etc.): infer from elements
+       - Builtin scalars: default to numpy
+       - Pandas objects: default to numpy (treated as numpy-compatible)
+       - Unknown types: log a warning and default to numpy
+    
+    This is a best-effort function, but will not cover all possible edge cases.
+
+    Parameters
+    ==========
+    arr: array-like, tuple, dict, or other type
+        The input argument to infer the array module from. Can be:
+        - An array object (numpy, cupy, jax.numpy, etc.)
+        - A tuple of arrays (single-element unwrapped)
+        - A dictionary with array values
+        - An iterable containing arrays
+        - A builtin scalar or type
+
+    Returns
+    =======
+    module
+        The array namespace module (e.g., numpy, cupy, jax.numpy, etc.).
+        Defaults to numpy if the module cannot be determined.
+
+    Examples
+    ========
+    >>> import numpy as np
+    >>> import jax.numpy as jnp
+    >>> array_module(np.array([1, 2, 3]))
+    <module 'numpy' ...>
+
+    >>> array_module(jnp.array([1, 2, 3]))
+    <module 'jax.numpy' ...>
+
+    >>> array_module({'data': np.array([1, 2, 3])})
+    <module 'numpy' ...>
+
+    >>> array_module([np.array([1]), np.array([2])])
+    <module 'numpy' ...>
+
+    >>> array_module([1, jnp.array([2])])
+    <module 'jax.numpy' ...>
+
+    >>> array_module(5)
+    <module 'numpy' ...>
+    """
     if isinstance(arr, tuple) and len(arr) == 1:
         arr = arr[0]
     try:
@@ -36,13 +97,32 @@ def array_module(arr):
             return np
 
 
-def promote_to_array(args, backend, skip=None):
+def promote_to_array(args, xp):
+    """
+    Promote arguments to arrays using the specified array module.
+
+    Parameters
+    ==========
+    args: tuple
+        Tuple of arguments to promote.
+    xp: module
+        The array module (namespace) to use for promotion.
+    skip: int, optional
+        Number of trailing arguments to skip promotion for.
+        Defaults to None (promote all arguments).
+
+    Returns
+    =======
+    tuple
+        Arguments with the first (len(args) - skip) elements promoted to
+        arrays using the specified module.
+    """
     if skip is None:
         skip = len(args)
     else:
         skip = len(args) - skip
-    if backend.__name__ != "numpy":
-        args = tuple(backend.array(arg) for arg in args[:skip]) + args[skip:]
+    if not is_numpy_namespace(xp):
+        args = tuple(xp.array(arg) for arg in args[:skip]) + args[skip:]
     return args
 
 
