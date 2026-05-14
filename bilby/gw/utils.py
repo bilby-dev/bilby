@@ -7,12 +7,18 @@ from scipy.interpolate import interp1d
 from scipy.special import i0e
 from bilby_cython.geometry import (
     zenith_azimuth_to_theta_phi as _zenith_azimuth_to_theta_phi,
+    theta_phi_to_zenith_azimuth as _theta_phi_to_zenith_azimuth
 )
 from bilby_cython.time import greenwich_mean_sidereal_time
 
-from ..core.utils import (logger, run_commandline,
-                          check_directory_exists_and_if_not_mkdir,
-                          SamplesSummary, theta_phi_to_ra_dec)
+from ..core.utils import (
+    logger,
+    run_commandline,
+    check_directory_exists_and_if_not_mkdir,
+    SamplesSummary,
+    theta_phi_to_ra_dec,
+    ra_dec_to_theta_phi,
+)
 from ..core.utils.constants import solar_mass
 
 
@@ -250,6 +256,28 @@ def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos):
     return _zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
 
 
+def theta_phi_to_zenith_azimuth(theta, phi, ifos):
+    """
+    Convert from the Earth frame to the 'detector frame'.
+
+    Parameters
+    ==========
+    theta: float
+        The zenith angle in the earth frame
+    phi: float
+        The azimuthal angle in the earth frame
+    ifos: list
+        List of Interferometer objects defining the detector frame
+
+    Returns
+    =======
+    kappa, eta: float
+        The zenith and azimuthal angles in the detector frame.
+    """
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return _theta_phi_to_zenith_azimuth(theta, phi, delta_x)
+
+
 def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     """
     Convert from the 'detector frame' to the Earth frame.
@@ -275,6 +303,32 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
     ra, dec = theta_phi_to_ra_dec(theta, phi, gmst)
     ra = ra % (2 * np.pi)
     return ra, dec
+
+
+def ra_dec_to_zenith_azimuth(ra, dec, geocent_time, ifos):
+    """
+    Convert from the Earth frame to the 'detector frame'.
+
+    Parameters
+    ==========
+    ra: float
+        The right ascension of the source in radians
+    dec: float
+        The declination of the source in radians
+    geocent_time: float
+        GPS time at geocenter
+    ifos: list
+        List of Interferometer objects defining the detector frame
+
+    Returns
+    =======
+    kappa, eta: float
+        The zenith and azimuthal angles in the detector frame.
+    """
+    gmst = greenwich_mean_sidereal_time(geocent_time)
+    theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
+    zenith, azimuth = theta_phi_to_zenith_azimuth(theta, phi, ifos)
+    return zenith, azimuth
 
 
 def get_event_time(event):
