@@ -91,7 +91,7 @@ class TestRunningSamplers(unittest.TestCase):
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
 
     @staticmethod
-    def conversion_function(parameters, likelihood, prior):
+    def conversion_function(parameters, likelihood, priors):
         converted = parameters.copy()
         if "derived" not in converted:
             converted["derived"] = converted["m"] * converted["c"]
