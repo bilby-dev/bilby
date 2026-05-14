@@ -102,7 +102,7 @@ class WaveformGenerator(object):
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
                     param_conv_name, self.waveform_arguments)
 
-    def frequency_domain_strain(self, parameters):
+    def frequency_domain_strain(self, parameters=None):
         """ Wrapper to source_model.
 
         Converts parameters with self.parameter_conversion before handing it off to the source model.
@@ -110,8 +110,10 @@ class WaveformGenerator(object):
 
         Parameters
         ==========
-        parameters: dict
+        parameters: dict, optional
             Parameters to evaluate the waveform for.
+            If not passed and the generator has been called previously,
+            the last used parameters will be used.
 
         Returns
         =======
@@ -129,7 +131,7 @@ class WaveformGenerator(object):
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
-    def time_domain_strain(self, parameters):
+    def time_domain_strain(self, parameters=None):
         """ Wrapper to source_model.
 
         Converts parameters with self.parameter_conversion before handing it off to the source model.
@@ -138,8 +140,10 @@ class WaveformGenerator(object):
 
         Parameters
         ==========
-        parameters: dict
+        parameters: dict, None
             Parameters to evaluate the waveform for.
+            If not passed and the generator has been called previously,
+            the last used parameters will be used.
 
         Returns
         =======
