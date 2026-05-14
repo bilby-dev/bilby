@@ -10,13 +10,7 @@ from .utils import infer_parameters_from_function, infer_args_from_function_exce
 class Likelihood:
 
     def __init__(self):
-        """Empty likelihood class to be subclassed by other likelihoods
-
-        Parameters
-        ==========
-        parameters: dict
-            A dictionary of the parameter names and associated values
-        """
+        """Empty likelihood class to be subclassed by other likelihoods"""
         self._meta_data = None
         self._marginalized_parameters = []
 
@@ -25,6 +19,11 @@ class Likelihood:
 
     def log_likelihood(self, parameters):
         """
+
+        Parameters
+        ==========
+        parameters: dict
+            A dictionary of the parameter names and associated values
 
         Returns
         =======
@@ -43,6 +42,11 @@ class Likelihood:
 
     def log_likelihood_ratio(self, parameters):
         """Difference between log likelihood and noise log likelihood
+
+        Parameters
+        ==========
+        parameters: dict
+            A dictionary of the parameter names and associated values
 
         Returns
         =======
@@ -418,6 +422,15 @@ class Multinomial(Likelihood):
     def log_likelihood(self, parameters):
         """
         Since n - 1 parameters are sampled, the last parameter is 1 - the rest
+
+        Parameters
+        ==========
+        parameters: dict
+            A dictionary of the parameter names and associated values
+
+        Returns
+        =======
+        float
         """
         probs = [parameters[self.base + str(ii)]
                  for ii in range(self.n - 1)]
@@ -442,16 +455,16 @@ class Multinomial(Likelihood):
 
 class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
     """
-        A multivariate Gaussian likelihood
-        with known analytic solution.
+    A multivariate Gaussian likelihood
+    with known analytic solution.
 
-        Parameters
-        ==========
-        mean: array_like
-            Array with the mean values of distribution
-        cov: array_like
-            The ndim*ndim covariance matrix
-        """
+    Parameters
+    ==========
+    mean: array_like
+        Array with the mean values of distribution
+    cov: array_like
+        The ndim*ndim covariance matrix
+    """
 
     def __init__(self, mean, cov):
         self.cov = np.atleast_2d(cov)
@@ -471,17 +484,17 @@ class AnalyticalMultidimensionalCovariantGaussian(Likelihood):
 
 class AnalyticalMultidimensionalBimodalCovariantGaussian(Likelihood):
     """
-        A multivariate Gaussian likelihood
-        with known analytic solution.
+    A multivariate Gaussian likelihood
+    with known analytic solution.
 
-        Parameters
-        ==========
-        mean_1: array_like
-            Array with the mean value of the first mode
-        mean_2: array_like
-            Array with the mean value of the second mode
-        cov: array_like
-        """
+    Parameters
+    ==========
+    mean_1: array_like
+        Array with the mean value of the first mode
+    mean_2: array_like
+        Array with the mean value of the second mode
+    cov: array_like
+    """
 
     def __init__(self, mean_1, mean_2, cov):
         self.cov = np.atleast_2d(cov)
@@ -540,7 +553,18 @@ class JointLikelihood(Likelihood):
             raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
 
     def log_likelihood(self, parameters):
-        """ This is just the sum of the log likelihoods of all parts of the joint likelihood"""
+        """
+        This is just the sum of the log likelihoods of all parts of the joint likelihood
+
+        Parameters
+        ==========
+        parameters: dict
+            A dictionary of the parameter names and associated values
+
+        Returns
+        =======
+        float
+        """
         return sum([likelihood.log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
 
     def noise_log_likelihood(self):
@@ -576,26 +600,26 @@ class _GPLikelihood(Likelihood):
 
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6, gp_class=None):
         """
-            Basic Gaussian Process likelihood interface for `celerite` and `george`.
-            For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
-            For `george` documentation see: https://george.readthedocs.io/en/latest/
+        Basic Gaussian Process likelihood interface for `celerite` and `george`.
+        For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
+        For `george` documentation see: https://george.readthedocs.io/en/latest/
 
-            Parameters
-            ==========
-            kernel: Union[celerite.term.Term, george.kernels.Kernel]
-                `celerite` or `george` kernel. See the respective package documentation about the usage.
-            mean_model: Union[celerite.modeling.Model, george.modeling.Model]
-                Mean model
-            t: array_like
-                The `times` or `x` values of the data set.
-            y: array_like
-                The `y` values of the data set.
-            yerr: float, int, array_like, optional
-                The error values on the y-values. If a single value is given, it is assumed that the value
-                applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
-            gp_class: type, None, optional
-                GPClass to use. This is determined by the child class used to instantiate the GP. Should usually
-                not be given by the user and is mostly used for testing
+        Parameters
+        ==========
+        kernel: Union[celerite.term.Term, george.kernels.Kernel]
+            `celerite` or `george` kernel. See the respective package documentation about the usage.
+        mean_model: Union[celerite.modeling.Model, george.modeling.Model]
+            Mean model
+        t: array_like
+            The `times` or `x` values of the data set.
+        y: array_like
+            The `y` values of the data set.
+        yerr: float, int, array_like, optional
+            The error values on the y-values. If a single value is given, it is assumed that the value
+            applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
+        gp_class: type, None, optional
+            GPClass to use. This is determined by the child class used to instantiate the GP. Should usually
+            not be given by the user and is mostly used for testing
         """
         self.kernel = kernel
         self.mean_model = mean_model
@@ -628,23 +652,23 @@ class CeleriteLikelihood(_GPLikelihood):
 
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6):
         """
-            Basic Gaussian Process likelihood interface for `celerite` and `george`.
-            For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
-            For `george` documentation see: https://george.readthedocs.io/en/latest/
+        Basic Gaussian Process likelihood interface for `celerite` and `george`.
+        For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
+        For `george` documentation see: https://george.readthedocs.io/en/latest/
 
-            Parameters
-            ==========
-            kernel: celerite.term.Term
-                `celerite` or `george` kernel. See the respective package documentation about the usage.
-            mean_model: celerite.modeling.Model
-                Mean model
-            t: array_like
-                The `times` or `x` values of the data set.
-            y: array_like
-                The `y` values of the data set.
-            yerr: float, int, array_like, optional
-                The error values on the y-values. If a single value is given, it is assumed that the value
-                applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
+        Parameters
+        ==========
+        kernel: celerite.term.Term
+            `celerite` or `george` kernel. See the respective package documentation about the usage.
+        mean_model: celerite.modeling.Model
+            Mean model
+        t: array_like
+            The `times` or `x` values of the data set.
+        y: array_like
+            The `y` values of the data set.
+        yerr: float, int, array_like, optional
+            The error values on the y-values. If a single value is given, it is assumed that the value
+            applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
         """
         import celerite
         super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=celerite.GP)
@@ -668,23 +692,23 @@ class GeorgeLikelihood(_GPLikelihood):
 
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6):
         """
-            Basic Gaussian Process likelihood interface for `celerite` and `george`.
-            For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
-            For `george` documentation see: https://george.readthedocs.io/en/latest/
+        Basic Gaussian Process likelihood interface for `celerite` and `george`.
+        For `celerite` documentation see: https://celerite.readthedocs.io/en/stable/
+        For `george` documentation see: https://george.readthedocs.io/en/latest/
 
-            Parameters
-            ==========
-            kernel: george.kernels.Kernel
-                `celerite` or `george` kernel. See the respective package documentation about the usage.
-            mean_model: george.modeling.Model
-                Mean model
-            t: array_like
-                The `times` or `x` values of the data set.
-            y: array_like
-                The `y` values of the data set.
-            yerr: float, int, array_like, optional
-                The error values on the y-values. If a single value is given, it is assumed that the value
-                applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
+        Parameters
+        ==========
+        kernel: george.kernels.Kernel
+            `celerite` or `george` kernel. See the respective package documentation about the usage.
+        mean_model: george.modeling.Model
+            Mean model
+        t: array_like
+            The `times` or `x` values of the data set.
+        y: array_like
+            The `y` values of the data set.
+        yerr: float, int, array_like, optional
+            The error values on the y-values. If a single value is given, it is assumed that the value
+            applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
         """
         import george
         super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=george.GP)

@@ -44,8 +44,9 @@ class WaveformGenerator(object):
             A python function taking some arguments and returning the time
             domain strain. Note the first argument must be the times at
             which to compute the strain
-        parameters: dict, optional
-            Initial values for the parameters
+        parameters: DEPRECATED
+            Passing parameters via the waveform generator init is deprecated
+            and will be removed in a future release.
         parameter_conversion: func, optional
             Function to convert from sampled parameters to parameters of the
             waveform generator. Default value is the identity, i.e. it leaves
@@ -101,7 +102,7 @@ class WaveformGenerator(object):
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
                     param_conv_name, self.waveform_arguments)
 
-    def frequency_domain_strain(self, parameters=None):
+    def frequency_domain_strain(self, parameters):
         """ Wrapper to source_model.
 
         Converts parameters with self.parameter_conversion before handing it off to the source model.
@@ -109,7 +110,7 @@ class WaveformGenerator(object):
 
         Parameters
         ==========
-        parameters: dict, optional
+        parameters: dict
             Parameters to evaluate the waveform for.
 
         Returns
@@ -128,7 +129,7 @@ class WaveformGenerator(object):
                                       transformed_model=self.time_domain_source_model,
                                       transformed_model_data_points=self.time_array)
 
-    def time_domain_strain(self, parameters=None):
+    def time_domain_strain(self, parameters):
         """ Wrapper to source_model.
 
         Converts parameters with self.parameter_conversion before handing it off to the source model.
@@ -137,7 +138,7 @@ class WaveformGenerator(object):
 
         Parameters
         ==========
-        parameters: dict, optional
+        parameters: dict
             Parameters to evaluate the waveform for.
 
         Returns
@@ -211,28 +212,16 @@ class WaveformGenerator(object):
         =======
         dict: The dictionary of parameter key-value pairs
 
+        Raises
+        ======
+        AttributeError: If :code:`parameters` is not present in the internal cache.
         """
-        if hasattr(self, "_parameters"):
-            return self._parameters
+        if self._cache.get("parameters", None) is not None:
+            return self._cache["parameters"]
         else:
-            return self._cache.get("parameters", None)
-
-    @parameters.setter
-    def parameters(self, parameters):
-        """
-        Set parameters, this applies the conversion function and then removes
-        any parameters which aren't required by the source function.
-
-        (set.symmetric_difference is the opposite of set.intersection)
-
-        Parameters
-        ==========
-        parameters: dict
-            Input parameter dictionary, this is copied, passed to the conversion
-            function and has self.waveform_arguments added to it.
-        """
-        new_parameters = self._format_parameters(parameters)
-        self._parameters = new_parameters
+            raise AttributeError(
+                "Parameters not available in the WaveformGenerator cache."
+            )
 
     def _format_parameters(self, parameters):
         if not isinstance(parameters, dict):
@@ -316,8 +305,9 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         Time duration of data
     start_time: float, optional
         Starting time of the time array
-    parameters: dict, optional
-        Initial values for the parameters
+    parameters: DEPRECATED
+        Passing parameters via the waveform generator init is deprecated
+        and will be removed in a future release.
     parameter_conversion: func, optional
         Function to convert from sampled parameters to parameters of the
         waveform generator. The default value is the identity, i.e., it leaves
