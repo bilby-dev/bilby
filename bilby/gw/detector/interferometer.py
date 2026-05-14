@@ -327,7 +327,6 @@ class Interferometer(object):
         """
         xp = array_module(waveform_polarizations)
         if frequencies is None:
-            # frequencies = self.frequency_array[self.frequency_mask]
             frequencies = self.frequency_array
             mask = self.frequency_mask
         else:

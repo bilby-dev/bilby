@@ -71,6 +71,7 @@ class DeltaFunction(Prior):
 
         """
         at_peak = (val == self.peak)
+        # coerce bool to float for some array backends
         return at_peak * 1.0
 
     def cdf(self, val, *, xp=None):
@@ -1755,5 +1756,3 @@ class Triangular(Prior):
                 / (self.mode - self.rescaled_minimum)
             )
         )
-
-    betaln,

@@ -97,7 +97,7 @@ def array_module(arr):
             return np
 
 
-def promote_to_array(args, xp):
+def promote_to_array(args, xp, skip=None):
     """
     Promote arguments to arrays using the specified array module.
 
@@ -116,6 +116,12 @@ def promote_to_array(args, xp):
     tuple
         Arguments with the first (len(args) - skip) elements promoted to
         arrays using the specified module.
+
+    Notes
+    =====
+    This function cannot handle manual specification of devices. Arrays
+    are promoted to the default device of the specified array module. This
+    may be added in future if there is a need.
     """
     if skip is None:
         skip = len(args)

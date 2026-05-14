@@ -20,7 +20,29 @@ __all__ = [
 
 @dispatch
 def antenna_response(detector_tensor, ra, dec, time, psi, mode):
-    """"""
+    """
+    Calculate the antenna response for a detector.
+
+    Parameters
+    ==========
+    detector_tensor: array-like
+        The detector tensor (3x3 matrix).
+    ra: float or array-like
+        Right ascension of the source in radians.
+    dec: float or array-like
+        Declination of the source in radians.
+    time: float or array-like
+        GPS time of the observation.
+    psi: float or array-like
+        Polarization angle in radians.
+    mode: str
+        Polarization mode ('plus', 'cross', 'breathing', 'longitudinal', 'x', 'y').
+
+    Returns
+    =======
+    array-like
+        The antenna response (scalar or array depending on input).
+    """
     xp = array_module(detector_tensor)
     polarization_tensor = get_polarization_tensor(*promote_to_array((ra, dec, time, psi), xp), mode)
     return three_by_three_matrix_contraction(detector_tensor, polarization_tensor)
@@ -28,7 +50,25 @@ def antenna_response(detector_tensor, ra, dec, time, psi, mode):
 
 @dispatch
 def calculate_arm(arm_tilt, arm_azimuth, longitude, latitude):
-    """"""
+    """
+    Calculate arm unit vector from tilt, azimuth, and location.
+
+    Parameters
+    ==========
+    arm_tilt: float or array-like
+        Tilt angle of the arm from horizontal in radians.
+    arm_azimuth: float or array-like
+        Azimuth angle of the arm in radians.
+    longitude: float or array-like
+        Longitude of the detector in radians.
+    latitude: float or array-like
+        Latitude of the detector in radians.
+
+    Returns
+    =======
+    array-like
+        3D unit vector (shape (3,) or (3, ...)) representing the arm direction.
+    """
     xp = array_module(arm_tilt)
     e_long = xp.asarray([-xp.sin(longitude), xp.cos(longitude), longitude * 0])
     e_lat = xp.asarray(
@@ -55,14 +95,50 @@ def calculate_arm(arm_tilt, arm_azimuth, longitude, latitude):
 
 @dispatch
 def detector_tensor(x, y):
-    """"""
+    """
+    Calculate the detector tensor from x and y arm components.
+
+    Parameters
+    ==========
+    x: array-like
+        3D unit vector for the x arm.
+    y: array-like
+        3D unit vector for the y arm.
+
+    Returns
+    =======
+    array-like
+        3x3 detector tensor with components
+        :math:`d_{ij} = (x_i x_j - y_i y_j) / 2`.
+    """
     xp = array_module(x)
     return (xp.outer(x, x) - xp.outer(y, y)) / 2
 
 
 @dispatch
 def get_polarization_tensor(ra, dec, time, psi, mode):
-    """"""
+    """
+    Calculate the polarization tensor for a given sky location and mode.
+
+    Parameters
+    ==========
+    ra: float or array-like
+        Right ascension of the source in radians.
+    dec: float or array-like
+        Declination of the source in radians.
+    time: float or array-like
+        GPS time of the observation.
+    psi: float or array-like
+        Polarization angle in radians.
+    mode: str
+        Polarization mode: 'plus', 'cross', 'breathing', 'longitudinal',
+        'x', or 'y'.
+
+    Returns
+    =======
+    array-like
+        3x3 polarization tensor for the specified mode.
+    """
     from functools import partial
 
     xp = array_module(ra)
@@ -112,13 +188,47 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
 
 @dispatch
 def get_polarization_tensor_multiple_modes(ra, dec, time, psi, modes):
-    """"""
+    """
+    Calculate polarization tensors for multiple modes.
+
+    Parameters
+    ==========
+    ra: float or array-like
+        Right ascension of the source in radians.
+    dec: float or array-like
+        Declination of the source in radians.
+    time: float or array-like
+        GPS time of the observation.
+    psi: float or array-like
+        Polarization angle in radians.
+    modes: list of str
+        List of polarization modes to calculate.
+
+    Returns
+    =======
+    list
+        List of 3x3 polarization tensors, one for each mode.
+    """
     return [get_polarization_tensor(ra, dec, time, psi, mode) for mode in modes]
 
 
 @dispatch
 def rotation_matrix_from_delta(delta_x):
-    """"""
+    r"""
+    Calculate rotation matrix from a delta vector.
+
+    Parameters
+    ==========
+    delta_x: array-like
+        3D vector :math:`\vec{\Delta}x` representing the separation
+        or orientation.
+
+    Returns
+    =======
+    array-like
+        3x3 rotation matrix that rotates the z-axis to align with
+        :math:`\vec{\Delta}x` direction.
+    """
     xp = array_module(delta_x)
     delta_x = delta_x / (delta_x**2).sum() ** 0.5
     alpha = xp.arctan2(-delta_x[1] * delta_x[2], delta_x[0])
@@ -150,14 +260,50 @@ def rotation_matrix_from_delta(delta_x):
 
 @dispatch
 def three_by_three_matrix_contraction(a, b):
-    """"""
+    """
+    Perform contraction of two 3x3 matrices.
+
+    Parameters
+    ==========
+    a: array-like
+        First 3x3 matrix.
+    b: array-like
+        Second 3x3 matrix.
+
+    Returns
+    =======
+    float or array-like
+        Scalar result of the einsum contraction :math:`a_{ij} b_{ij}`.
+    """
     xp = array_module(a)
     return xp.einsum("ij,ij->", a, b)
 
 
 @dispatch
 def time_delay_geocentric(detector1, detector2, ra, dec, time):
-    """"""
+    r"""
+    Calculate time delay between two detectors for a source direction.
+
+    Parameters
+    ==========
+    detector1: array-like
+        3D position vector of the first detector in meters.
+    detector2: array-like
+        3D position vector of the second detector in meters.
+    ra: float or array-like
+        Right ascension of the source in radians.
+    dec: float or array-like
+        Declination of the source in radians.
+    time: float or array-like
+        GPS time of the observation.
+
+    Returns
+    =======
+    float or array-like
+        Time delay :math:`\Delta t = \hat{\omega} \cdot (\vec{d}_2 - \vec{d}_1) / c`
+        in seconds, where :math:`\hat{\omega}` is the unit vector to the
+        source and :math:`c` is the speed of light.
+    """
     xp = array_module(detector1)
     gmst = greenwich_mean_sidereal_time(time) % (2 * xp.pi)
     speed_of_light = 299792458.0
@@ -172,14 +318,50 @@ def time_delay_geocentric(detector1, detector2, ra, dec, time):
 
 @dispatch
 def time_delay_from_geocenter(detector1, ra, dec, time):
-    """"""
+    r"""
+    Calculate time delay from geocenter to a detector.
+
+    Parameters
+    ==========
+    detector1: array-like
+        3D position vector of the detector in meters.
+    ra: float or array-like
+        Right ascension of the source in radians.
+    dec: float or array-like
+        Declination of the source in radians.
+    time: float or array-like
+        GPS time of the observation.
+
+    Returns
+    =======
+    float or array-like
+        Time delay :math:`\Delta t = \hat{\omega} \cdot \vec{d} / c` in
+        seconds, where :math:`\vec{d}` is the detector position and
+        :math:`c` is the speed of light.
+    """
     xp = array_module(detector1)
     return time_delay_geocentric(detector1, xp.zeros(3), ra, dec, time)
 
 
 @dispatch
 def zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x):
-    """"""
+    """
+    Convert zenith/azimuth angles to theta/phi in a rotated frame.
+
+    Parameters
+    ==========
+    zenith: float or array-like
+        Zenith angle in radians.
+    azimuth: float or array-like
+        Azimuth angle in radians.
+    delta_x: array-like
+        3D vector defining the rotation frame.
+
+    Returns
+    =======
+    tuple of array-like
+        (theta, phi) angles in the rotated frame, both in radians.
+    """
     xp = array_module(delta_x)
     omega_prime = xp.stack(
         [
