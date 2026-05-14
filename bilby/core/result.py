@@ -1842,7 +1842,7 @@ class Result(object):
         if az_version < packaging.version.parse("1"):
             azdata = az.from_dict(**az_data_dict)
         else:
-            azdata = az.from_dict(az_data_dict)
+            azdata = az.from_dict(az_data_dict, sample_dims=["sample"])
 
         # add attributes
         version = {
