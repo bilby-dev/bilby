@@ -1833,28 +1833,30 @@ class Result(object):
             else:
                 priorsamples = self.priors.sample(size=prior)
 
-        az_data_dict = dict(
-            posterior=posdict,
-            log_likelihood=loglikedict,
-            prior=priorsamples,
-        )
+        az_data_dict = dict(posterior=posdict)
+        if loglikedict is not None:
+            az_data_dict["log_likelihood"] = loglikedict
+        if priorsamples is not None:
+            az_data_dict["prior"] = priorsamples
         az_version = packaging.version.parse(importlib.metadata.version("arviz"))
-        if az_version < packaging.version.parse("1"):
-            azdata = az.from_dict(**az_data_dict)
-        else:
-            azdata = az.from_dict(az_data_dict)
-
-        # add attributes
         version = {
             "inference_library": "bilby: {}".format(self.sampler),
             "inference_library_version": get_version_information()
         }
-
-        azdata.posterior.attrs.update(version)
-        if "log_likelihood" in azdata._groups:
-            azdata.log_likelihood.attrs.update(version)
-        if "prior" in azdata._groups:
-            azdata.prior.attrs.update(version)
+        if az_version < packaging.version.parse("1"):
+            azdata = az.from_dict(**az_data_dict)
+            azdata.posterior.attrs.update(version)
+            if "log_likelihood" in azdata._groups:
+                azdata.log_likelihood.attrs.update(version)
+            if "prior" in azdata._groups:
+                azdata.prior.attrs.update(version)
+        else:
+            azdata = az.from_dict(az_data_dict, sample_dims=["sample"])
+            azdata.posterior.attrs.update(version)
+            if "log_likelihood" in azdata.children:
+                azdata.log_likelihood.attrs.update(version)
+            if "prior" in azdata.children:
+                azdata.prior.attrs.update(version)
 
         return azdata
 
