@@ -166,6 +166,14 @@ class TestGWTransient(unittest.TestCase):
         self.assertAlmostEqual(self.likelihood.log_likelihood(self.parameters),
                                -4032.4397343470005, 3)
 
+    def test_log_likelihood_ratio(self):
+        """Test log likelihood ratio returns the correct value"""
+        self.assertAlmostEqual(
+            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            self.likelihood.log_likelihood_ratio(self.parameters),
+            3,
+        )
+
     def test_noise_log_likelihood_with_cropping(self):
         """Test noise log likelihood matches precomputed value"""
         self.interferometers[0].crop_duration = 1.0
