@@ -32,9 +32,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - name: Python 3.10
-            version: 3.10
-            short-version: 310
           - name: Python 3.11
             version: 3.11
             short-version: 311
@@ -71,8 +68,6 @@ jobs:
         python -m pip install .[jax]
         SCIPY_ARRAY_API=1 pytest --array-backend jax --durations 10
     - name: Run torch-backend unit tests
-      # there are scipy version issues with python 3.10 and torch
-      if: matrix.python.version > 3.10
       run: |
         SCIPY_ARRAY_API=1 pytest --array-backend torch --durations 10
     - name: Run sampler tests
