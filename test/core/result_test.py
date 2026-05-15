@@ -77,7 +77,7 @@ class TestResult(unittest.TestCase):
         result = bilby.core.result.Result(
             label="label",
             outdir=self.outdir,
-            sampler="nestle",
+            sampler="emcee",
             search_parameter_keys=["x", "y"],
             fixed_parameter_keys=["c", "d"],
             priors=priors,
@@ -182,7 +182,7 @@ class TestResult(unittest.TestCase):
         result = bilby.core.result.Result(
             label="label",
             outdir="outdir",
-            sampler="nestle",
+            sampler="emcee",
             search_parameter_keys=["x", "y"],
             fixed_parameter_keys=["c", "d"],
             priors=None,
@@ -202,7 +202,7 @@ class TestResult(unittest.TestCase):
             bilby.core.result.Result(
                 label="label",
                 outdir="outdir",
-                sampler="nestle",
+                sampler="emcee",
                 search_parameter_keys=["x", "y"],
                 fixed_parameter_keys=["c", "d"],
                 priors=["a", "b"],
@@ -530,7 +530,7 @@ class TestResult(unittest.TestCase):
         for var in ["x", "y"]:
             self.assertTrue(np.array_equal(az.posterior[var].values.squeeze(),
                                            self.result.posterior[var].values))
-            self.assertTrue(len(az.prior[var][0]) == Nprior)
+            self.assertTrue(len(np.squeeze(az.prior[var])) == Nprior)
 
         self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
                                        log_likelihood))
@@ -574,10 +574,10 @@ class TestResult(unittest.TestCase):
 
         class SimpleLikelihood(bilby.Likelihood):
             def __init__(self):
-                super().__init__(parameters={"x": None})
+                super().__init__()
 
-            def log_likelihood(self):
-                return -self.parameters["x"]**2
+            def log_likelihood(self, parameters):
+                return -parameters["x"]**2
 
         likelihood = SimpleLikelihood()
         priors = dict(x=bilby.core.prior.Uniform(-5, 5, "x"))
@@ -648,7 +648,7 @@ class TestResultListError(unittest.TestCase):
             result = bilby.core.result.Result(
                 label=self.label + str(i),
                 outdir=self.outdir,
-                sampler="cpnest",
+                sampler="emcee",
                 search_parameter_keys=["x", "y"],
                 fixed_parameter_keys=["c", "d"],
                 priors=self.priors,
@@ -780,7 +780,7 @@ class TestResultListError(unittest.TestCase):
         result = bilby.core.result.Result(
             label=self.label,
             outdir=self.outdir,
-            sampler="cpnest",
+            sampler="emcee",
             search_parameter_keys=["x", "y"],
             fixed_parameter_keys=["c", "d"],
             priors=self.priors,
@@ -858,13 +858,13 @@ class SimpleGaussianLikelihood(bilby.core.likelihood.Likelihood):
         A very simple Gaussian likelihood for testing
         """
         from scipy.stats import norm
-        super().__init__(parameters=dict())
+        super().__init__()
         self.mean = mean
         self.sigma = sigma
         self.dist = norm(loc=mean, scale=sigma)
 
-    def log_likelihood(self):
-        return self.dist.logpdf(self.parameters["mu"])
+    def log_likelihood(self, parameters):
+        return self.dist.logpdf(parameters["mu"])
 
 
 class TestReweight(unittest.TestCase):
@@ -884,9 +884,8 @@ class TestReweight(unittest.TestCase):
         likelihood_1 = SimpleGaussianLikelihood()
         likelihood_2 = SimpleGaussianLikelihood(sigma=sigma)
         original_ln_likelihoods = list()
-        for ii in range(len(self.result.posterior)):
-            likelihood_1.parameters = self.result.posterior.iloc[ii]
-            original_ln_likelihoods.append(likelihood_1.log_likelihood())
+        for params in self.result.posterior.to_dict(orient="records"):
+            original_ln_likelihoods.append(likelihood_1.log_likelihood(params))
         self.result.posterior["log_prior"] = self.priors.ln_prob(self.result.posterior)
         self.result.posterior["log_likelihood"] = original_ln_likelihoods
         self.original_ln_likelihoods = original_ln_likelihoods
@@ -940,7 +939,7 @@ class TestResultSaveAndRead(unittest.TestCase):
         result = bilby.core.result.Result(
             label="label",
             outdir=self.outdir,
-            sampler="nestle",
+            sampler="emcee",
             search_parameter_keys=["x", "y"],
             fixed_parameter_keys=["c", "d"],
             priors=priors,

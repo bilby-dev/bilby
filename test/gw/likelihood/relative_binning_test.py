@@ -125,19 +125,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
                 0.1
             )
 
-    def test_matches_non_binned_many_state(self):
-        for _ in range(100):
-            parameters = self.priors.sample()
-            self.non_bin.parameters.update(parameters)
-            self.binned.parameters.update(parameters)
-            regular_ln_l = self.non_bin.log_likelihood_ratio()
-            binned_ln_l = self.binned.log_likelihood_ratio()
-            self.assertLess(
-                abs(regular_ln_l - binned_ln_l)
-                / abs(self.reference_ln_l - regular_ln_l),
-                0.1
-            )
-
     @parameterized.expand([(False, ), (True, )])
     def test_matches_non_binned(self, add_cal_errors):
         parameters = deepcopy(self.test_parameters)
@@ -145,11 +132,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             parameters.update(self.calibration_parameters)
         regular_ln_l = self.non_bin.log_likelihood_ratio(parameters)
         binned_ln_l = self.binned.log_likelihood_ratio(parameters)
-        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
-        self.non_bin.parameters.update(parameters)
-        self.binned.parameters.update(parameters)
-        regular_ln_l = self.non_bin.log_likelihood_ratio()
-        binned_ln_l = self.binned.log_likelihood_ratio()
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
     def test_optimization_gives_good_match(self):
@@ -171,11 +153,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         regular_ln_l = self.non_bin.log_likelihood_ratio(self.test_parameters)
         binned_ln_l = binned.log_likelihood_ratio(self.test_parameters)
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
-        self.non_bin.parameters.update(self.test_parameters)
-        binned.parameters.update(self.test_parameters)
-        regular_ln_l = self.non_bin.log_likelihood_ratio()
-        binned_ln_l = binned.log_likelihood_ratio()
-        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
     def test_very_small_epsilon_returns_good_value(self):
         """
@@ -189,8 +166,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             epsilon=0.001,
         )
         self.assertFalse(np.isnan(binned.log_likelihood_ratio(self.test_parameters)))
-        binned.parameters.update(self.test_parameters)
-        self.assertFalse(np.isnan(binned.log_likelihood_ratio()))
 
     def test_likelihood_when_waveform_extends_beyond_maximum_frequency(self):
         """
@@ -280,13 +255,6 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
 
         regular_ln_l = non_bin.log_likelihood_ratio(test_parameters)
         binned_ln_l = binned.log_likelihood_ratio(test_parameters)
-        self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
-
-        non_bin.parameters.update(test_parameters)
-        binned.parameters.update(test_parameters)
-
-        regular_ln_l = non_bin.log_likelihood_ratio()
-        binned_ln_l = binned.log_likelihood_ratio()
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
 

@@ -11,7 +11,6 @@ import attr
 import numpy as np
 from pandas import DataFrame
 
-from ..likelihood import _safe_likelihood_call
 from ..prior import Constraint, DeltaFunction, Prior, PriorDict
 from ..result import Result, read_in_result
 from ..utils import (
@@ -495,9 +494,7 @@ class Sampler(object):
         parameters = deepcopy(self.parameters)
         parameters.update(self.priors.sample())
 
-        ratio_is_nan = np.isnan(
-            _safe_likelihood_call(self.likelihood, parameters, use_ratio=True)
-        )
+        ratio_is_nan = np.isnan(self.likelihood.log_likelihood_ratio(parameters))
 
         if self.use_ratio is True and ratio_is_nan:
             logger.warning(
@@ -560,9 +557,10 @@ class Sampler(object):
 
         params = deepcopy(self.parameters)
         params.update({key: t for key, t in zip(self._search_parameter_keys, theta)})
-        return _safe_likelihood_call(
-            self.likelihood, parameters=params, use_ratio=self.use_ratio
-        )
+        if self.use_ratio:
+            return self.likelihood.log_likelihood_ratio(params)
+        else:
+            return self.likelihood.log_likelihood(params)
 
     def get_random_draw_from_prior(self):
         """Get a random draw from the prior distribution
@@ -1153,12 +1151,12 @@ class LikePriorEvaluator:
         search_parameter_keys = _sampling_convenience_dump.search_parameter_keys
         parameters = _sampling_convenience_dump.parameters.copy()
         parameters.update({key: v for key, v in zip(search_parameter_keys, v_array)})
-        if priors.evaluate_constraints(parameters) > 0:
-            return _safe_likelihood_call(
-                likelihood, parameters, _sampling_convenience_dump.use_ratio
-            )
-        else:
+        if priors.evaluate_constraints(parameters) == 0:
             return np.nan_to_num(-np.inf)
+        elif _sampling_convenience_dump.use_ratio:
+            return likelihood.log_likelihood_ratio(parameters)
+        else:
+            return likelihood.log_likelihood(parameters)
 
     def logp(self, v_array):
         priors = _sampling_convenience_dump.priors

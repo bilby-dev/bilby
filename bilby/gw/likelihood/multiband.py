@@ -11,7 +11,6 @@ from ...core.utils import (
     recursively_load_dict_contents_from_group,
     recursively_save_dict_contents_to_group
 )
-from ...core.likelihood import _fallback_to_parameters
 from ..prior import CBCPriorDict
 from ..utils import ln_i0
 
@@ -726,7 +725,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         ) / 2
         self.interferometers.reference_time = self._beam_pattern_reference_time
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, return_array=True, parameters=None):
+    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
         """
         Compute the snrs
 
@@ -747,7 +746,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             An object containing the SNR quantities.
 
         """
-        parameters = _fallback_to_parameters(self, parameters)
 
         modes = {
             mode: value[self.unique_to_original_frequencies]
@@ -807,8 +805,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         for mode in signal:
             signal[mode] *= self._ref_dist / new_distance
 
-    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, parameters=None):
-        parameters = _fallback_to_parameters(self, parameters)
+    def generate_time_sample_from_marginalized_likelihood(self, signal_polarizations=None, *, parameters):
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         if signal_polarizations is None:
             signal_polarizations = \
@@ -819,14 +816,15 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         for interferometer in self.interferometers:
             snrs += self.calculate_snrs(
                 waveform_polarizations=signal_polarizations,
-                interferometer=interferometer
+                interferometer=interferometer,
+                parameters=parameters,
             )
         d_inner_h = snrs.d_inner_h_array
         h_inner_h = snrs.optimal_snr_squared
 
         if self.distance_marginalization:
             time_log_like = self.distance_marginalized_likelihood(
-                d_inner_h, h_inner_h)
+                d_inner_h, h_inner_h, parameters=parameters)
         elif self.phase_marginalization:
             time_log_like = ln_i0(abs(d_inner_h)) - h_inner_h.real / 2
         else:

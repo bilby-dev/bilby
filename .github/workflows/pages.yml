@@ -20,10 +20,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CONDA_PATH: /opt/conda/
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python311:latest
+    container: ghcr.io/bilby-dev/bilby-python312:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,9 +35,11 @@ jobs:
           fetch-tags: true
       - name: install
         run: |
+          source $CONDA_PATH/bin/activate python312
           conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
           python -m pip install -r docs/requirements.txt
           python -m pip install .
+        shell: bash
       - name: Run jupyter notebooks
         run: |
           python -m ipykernel install

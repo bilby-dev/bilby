@@ -61,6 +61,19 @@ class ImplementedSamplers:
         keys = set(self._samplers.keys())
         return iter(keys.union({k.replace("bilby.", "") for k in keys}))
 
+    def native_keys(self):
+        """Iterator of native sampler names (without the `bilby.` prefix).
+
+        This excludes any samplers that are only available through plugins.
+        """
+        return iter(
+            {
+                k.replace("bilby.", "")
+                for k in self._samplers.keys()
+                if k.startswith("bilby.")
+            }
+        )
+
     def __getitem__(self, key):
         if key in self._samplers:
             return self._samplers[key]

@@ -19,6 +19,8 @@ concurrency:
 
 env:
   CONDA_PATH: /opt/conda/
+  BILBY_ALLOW_PARAMETERS_AS_STATE: FALSE
+  SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER: 1
 
 jobs:
   build:
@@ -39,6 +41,9 @@ jobs:
           - name: Python 3.12
             version: 3.12
             short-version: 312
+          - name: Python 3.13
+            version: 3.13
+            short-version: 313
 
     steps:
     - uses: actions/checkout@v4

@@ -135,9 +135,11 @@ class TestWaveformGeneratorInstantiationWithoutOptionalParameters(unittest.TestC
         self.assertIsInstance(self.waveform_generator.time_array, np.ndarray)
 
     def test_source_model_parameters(self):
-        self.waveform_generator.parameters = self.simulation_parameters.copy()
+        formatted_parameters = self.waveform_generator._format_parameters(
+            self.simulation_parameters.copy()
+        )
         self.assertListEqual(
-            sorted(list(self.waveform_generator.parameters.keys())),
+            sorted(list(formatted_parameters.keys())),
             sorted(list(self.simulation_parameters.keys())),
         )
 
@@ -229,32 +231,13 @@ class TestSetters(unittest.TestCase):
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             1, 4096, frequency_domain_source_model=dummy_func_dict_return_value
         )
-        self.simulation_parameters = dict(
-            amplitude=1e-21,
-            mu=100,
-            sigma=1,
-            ra=1.375,
-            dec=-1.2108,
-            geocent_time=1126259642.413,
-            psi=2.659,
-        )
 
     def tearDown(self):
         del self.waveform_generator
-        del self.simulation_parameters
 
-    def test_parameter_setter_sets_expected_values_with_expected_keys(self):
-        self.waveform_generator.parameters = self.simulation_parameters.copy()
-        for key in self.simulation_parameters:
-            self.assertEqual(
-                self.waveform_generator.parameters[key], self.simulation_parameters[key]
-            )
-
-    def test_parameter_setter_none_handling(self):
-        with self.assertRaises(TypeError):
+    def test_parameter_setter_raises_error(self):
+        with self.assertRaises(AttributeError):
             self.waveform_generator.parameters = None
-        # self.assertListEqual(sorted(list(self.waveform_generator.parameters.keys())),
-        #                      sorted(list(self.simulation_parameters.keys())))
 
     def test_frequency_array_setter(self):
         new_frequency_array = np.arange(1, 100)
@@ -268,24 +251,6 @@ class TestSetters(unittest.TestCase):
         self.waveform_generator.time_array = new_time_array
         self.assertTrue(
             np.array_equal(new_time_array, self.waveform_generator.time_array)
-        )
-
-    def test_parameters_set_from_frequency_domain_source_model(self):
-        self.waveform_generator.frequency_domain_source_model = (
-            dummy_func_dict_return_value
-        )
-        self.waveform_generator.parameters = self.simulation_parameters.copy()
-        self.assertListEqual(
-            sorted(list(self.waveform_generator.parameters.keys())),
-            sorted(list(self.simulation_parameters.keys())),
-        )
-
-    def test_parameters_set_from_time_domain_source_model(self):
-        self.waveform_generator.time_domain_source_model = dummy_func_dict_return_value
-        self.waveform_generator.parameters = self.simulation_parameters.copy()
-        self.assertListEqual(
-            sorted(list(self.waveform_generator.parameters.keys())),
-            sorted(list(self.simulation_parameters.keys())),
         )
 
     def test_set_parameter_conversion_at_init(self):
@@ -766,6 +731,55 @@ class TestGWSignalGenerator(unittest.TestCase):
         wf_1 = wfg.frequency_domain_strain(parameters_1)
         wf_2 = wfg.frequency_domain_strain(parameters_2)
         np.testing.assert_equal(wf_1["plus"], wf_2["plus"])
+
+    def test_warns_for_disabled_eccentric_parameters(self):
+        wfg = self.get_wfgen(eccentric=False, spinning=False, tidal=False)
+        parameters = dict(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            eccentricity=0.1,
+            mean_per_ano=0.2,
+        )
+        with mock.patch.object(bilby.gw.waveform_generator.logger, "warning") as warning:
+            wfg._format_parameters(parameters)
+        warning.assert_called_once_with(
+            "The following parameters are set but will be ignored since "
+            "spinning=False, eccentric=False and tidal=False: ['eccentricity', 'mean_per_ano']"
+        )
+
+    def test_warns_for_disabled_tides(self):
+        wfg = self.get_wfgen(eccentric=False, spinning=False, tidal=False)
+        parameters = dict(
+            mass_1=10.0,
+            mass_2=10.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+            lambda_1=1000.0,
+            lambda_2=1000.0,
+        )
+        with mock.patch.object(bilby.gw.waveform_generator.logger, "warning") as warning:
+            wfg._format_parameters(parameters)
+        warning.assert_called_once_with(
+            "The following parameters are set but will be ignored since "
+            "spinning=False, eccentric=False and tidal=False: ['lambda_1', 'lambda_2']"
+        )
+
+    def test_does_not_warn_for_unrelated_parameters(self):
+        wfg = self.get_wfgen(eccentric=False, spinning=False, tidal=False)
+        parameters = dict(
+            chirp_mass=10.0,
+            mass_ratio=1.0,
+            theta_jn=1.0,
+            luminosity_distance=1.0,
+            phase=0.0,
+        )
+        with mock.patch.object(bilby.gw.waveform_generator.logger, "warning") as warning:
+            wfg._format_parameters(parameters)
+        warning.assert_not_called()
 
     def test_eccentric_parameters_work(self):
         wfg = self.get_wfgen(
