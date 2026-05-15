@@ -4,7 +4,7 @@
 Using Containers
 ================
 
-Containers package software together, providing all the neccersery dependencies
+Containers package software together, providing all the necessary dependencies
 to run :code:`bilby`. Using containers can help eliminate
 installation/dependency issues, as well as ensure things are run in a
 standardized, reproducible environment. For a general introduction to
@@ -24,7 +24,7 @@ getting started with singularity
 While Docker is better known throughout software development, singularity
 is often preferred in science applications as it focuses on reproducibility,
 makes interacting with your home file system easy, and is typically preferred
-by cluster admins as it does not require root-priveledges as run time.
+by cluster admins as it does not require root-privileges as run time.
 
 Running a bilby script with Singularity
 ---------------------------------------
@@ -68,7 +68,7 @@ container run
    $ python --version
    Python 3.7.2
 
-The benefit of the container is that it has all the neccersery software
+The benefit of the container is that it has all the necessary software
 is preinstalled, circumventing any dependency issues.
 
 .. note::
@@ -91,9 +91,3 @@ is preinstalled, circumventing any dependency issues.
    **Binding your local directory** - in the examples above, we gave the flag
    :code:`-B $PWD`. This can be neglected if you are working in your
    home directory.
-
-
-
-
-
-
