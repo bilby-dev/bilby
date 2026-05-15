@@ -42,6 +42,10 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
     def test_start_time_from_init(self):
         self.assertEqual(self.start_time, self.series.start_time)
 
+    def test_end_time(self):
+        expected = self.start_time + self.duration
+        self.assertEqual(expected, self.series.end_time)
+
     def test_frequency_array_type(self):
         self.assertIsInstance(self.series.frequency_array, np.ndarray)
 
