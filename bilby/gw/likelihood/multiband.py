@@ -746,9 +746,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             An object containing the SNR quantities.
 
         """
-        if self.time_marginalization:
-            original_time = parameters["geocent_time"]
-            parameters["geocent_time"] = self._beam_pattern_reference_time
 
         modes = {
             mode: value[self.unique_to_original_frequencies]
@@ -757,9 +754,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         strain = interferometer.get_detector_response(
             modes, parameters, frequencies=self.banded_frequency_points
         )
-
-        if self.time_marginalization:
-            parameters["geocent_time"] = original_time
 
         d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conj()
 
