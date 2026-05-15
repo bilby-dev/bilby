@@ -485,22 +485,5 @@ def load_interferometer(filename):
 
 @zenith_azimuth_to_theta_phi.dispatch
 def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
-    """
-    Convert from the 'detector frame' to the Earth frame.
-
-    Parameters
-    ==========
-    kappa: float
-        The zenith angle in the detector frame
-    eta: float
-        The azimuthal angle in the detector frame
-    ifos: list
-        List of Interferometer objects defining the detector frame
-
-    Returns
-    =======
-    theta, phi: float
-        The zenith and azimuthal angles in the earth frame.
-    """
     delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
     return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
