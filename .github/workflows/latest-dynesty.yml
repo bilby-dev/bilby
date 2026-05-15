@@ -23,7 +23,7 @@ env:
 jobs:
   build:
 
-    name: ${{ matrix.python.name }} unit tests
+    name: ${{ matrix.python.name }} latest dynesty
     runs-on: ubuntu-latest
     container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
     strategy:
