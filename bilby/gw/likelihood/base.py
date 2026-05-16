@@ -352,9 +352,10 @@ class GravitationalWaveTransient(Likelihood):
             )
         if key not in self.priors or not isinstance(
                 self.priors[key], Prior):
-            logger.warning(
-                'Prior not provided for {}, using the BBH default.'.format(key))
             if key == 'geocent_time':
+                logger.warning(
+                    'Prior not provided for geocent time, using the full segment.'
+                )
                 self.priors[key] = Uniform(
                     self.interferometers.start_time,
                     self.interferometers.start_time + self.interferometers.duration)
@@ -371,6 +372,9 @@ class GravitationalWaveTransient(Likelihood):
                         )
                         del self.priors[key]
             else:
+                logger.warning(
+                    'Prior not provided for {}, using the BBH default.'.format(key)
+                )
                 self.priors[key] = BBHPriorDict()[key]
 
     @property
