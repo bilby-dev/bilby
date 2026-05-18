@@ -293,6 +293,35 @@ class TestSkyFrameConversion(unittest.TestCase):
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
 
+    def test_inverse_conversion_gives_correct_prior(self) -> None:
+        ras = self.samples["ra"]
+        decs = self.samples["dec"]
+        times = self.samples["time"]
+        args = zip(*[
+            (ra, dec, time, self.ifos)
+            for ra, dec, time in zip(ras, decs, times)
+        ])
+        zeniths, azimuths = zip(*map(bilby.gw.utils.ra_dec_to_zenith_azimuth, *args))
+        self.assertGreaterEqual(ks_2samp(self.samples["zenith"], zeniths).pvalue, 0.01)
+        self.assertGreaterEqual(ks_2samp(self.samples["azimuth"], azimuths).pvalue, 0.01)
+
+    def test_sky_conversion_invertibility(self) -> None:
+        zeniths = self.samples["zenith"]
+        azimuths = self.samples["azimuth"]
+        times = self.samples["time"]
+        args = zip(*[
+            (zenith, azimuth, time, self.ifos)
+            for zenith, azimuth, time in zip(zeniths, azimuths, times)
+        ])
+        ras, decs = zip(*map(bilby.gw.utils.zenith_azimuth_to_ra_dec, *args))
+        args = zip(*[
+            (ra, dec, time, self.ifos)
+            for ra, dec, time in zip(ras, decs, times)
+        ])
+        zeniths_out, azimuths_out = zip(*map(bilby.gw.utils.ra_dec_to_zenith_azimuth, *args))
+        self.assertTrue(np.allclose(zeniths_out, zeniths))
+        self.assertTrue(np.allclose(azimuths_out, azimuths))
+
 
 def test_ln_i0_mathces_scipy():
     from scipy.special import i0
