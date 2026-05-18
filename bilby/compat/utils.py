@@ -9,8 +9,7 @@ from ..core.utils.log import logger
 
 __all__ = ["array_module", "promote_to_array"]
 
-# environment variable to control whether to use the array API or not
-# implemetation taken from
+# environment variable to control whether to use the array API or not implementation taken from
 # https://github.com/scipy/scipy/blob/514aeea23e1c90cc4d736ef0ee8b5d762dab461a/scipy/_lib/_array_api_override.py#L27
 BILBY_ARRAY_API = os.getenv("BILBY_ARRAY_API", False)
 # FIXME: add BILBY_DEVICE following SCIPY_DEVICE
