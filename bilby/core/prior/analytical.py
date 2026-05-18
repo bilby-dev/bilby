@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-os.environ["SCIPY_ARRAY_API"] = "1"  # noqa  # flag for scipy backend switching
 from scipy.special import (
     betainc,
     betaincinv,

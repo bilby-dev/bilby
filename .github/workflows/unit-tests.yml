@@ -66,10 +66,10 @@ jobs:
     - name: Run jax-backend unit tests
       run: |
         python -m pip install .[jax]
-        SCIPY_ARRAY_API=1 pytest --array-backend jax --durations 10
+        BILBY_ARRAY_API=1 SCIPY_ARRAY_API=1 pytest --array-backend jax --durations 10
     - name: Run torch-backend unit tests
       run: |
-        SCIPY_ARRAY_API=1 pytest --array-backend torch --durations 10
+        BILBY_ARRAY_API=1 SCIPY_ARRAY_API=1 pytest --array-backend torch --durations 10
     - name: Run sampler tests
       run: |
         pytest test/integration/sampler_run_test.py --durations 10 -v        

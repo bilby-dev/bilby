@@ -1,4 +1,5 @@
 import inspect
+import os
 from collections.abc import Iterable
 
 import numpy as np
@@ -7,6 +8,21 @@ from array_api_compat import array_namespace, is_numpy_namespace
 from ..core.utils.log import logger
 
 __all__ = ["array_module", "promote_to_array"]
+
+# environment variable to control whether to use the array API or not
+# implemetation taken from
+# https://github.com/scipy/scipy/blob/514aeea23e1c90cc4d736ef0ee8b5d762dab461a/scipy/_lib/_array_api_override.py#L27
+BILBY_ARRAY_API = os.getenv("BILBY_ARRAY_API", False)
+# FIXME: add BILBY_DEVICE following SCIPY_DEVICE
+# FIXME: should we also enforce SCIPY_ARRAY_API for consistency?
+SCIPY_ARRAY_API = os.getenv("SCIPY_ARRAY_API", False)
+if BILBY_ARRAY_API and not SCIPY_ARRAY_API:
+    logger.warning(
+        "BILBY_ARRAY_API is set but SCIPY_ARRAY_API is not set. "
+        "This may lead to unexpected behavior since some functions in "
+        "scipy will not be array API compatible. It is recommended to set "
+        "both environment variables to ensure consistent behavior."
+    )
 
 
 def array_module(arr):
@@ -32,6 +48,9 @@ def array_module(arr):
        - Unknown types: log a warning and default to numpy
 
     This is a best-effort function, but will not cover all possible edge cases.
+
+    If support for the general array API is not activated via :code:`BILBY_ARRAY_API=1`,
+    this always returns numpy.
 
     Parameters
     ==========
@@ -71,6 +90,9 @@ def array_module(arr):
     >>> array_module(5)
     <module 'numpy' ...>
     """
+    if not BILBY_ARRAY_API:
+        return np
+
     # FIXME: remove direct import of orng to avoid hard dependency
     import orng
     if isinstance(arr, orng.ArrayRNG):

@@ -31,6 +31,8 @@ import array_api_compat as aac
 import numpy as np
 from numpy.random import default_rng, SeedSequence
 
+from ...compat.utils import BILBY_ARRAY_API
+
 
 def __getattr__(name):
     if name == "rng":
@@ -128,20 +130,30 @@ def resolve_random_state(random_state):
     np.random.Generator or orng.ArrayRNG
         The resolved random number generator.
     """
+
+    def _resolve_numpy_generator(random_state):
+        if isinstance(random_state, np.random.Generator):
+            return random_state
+        elif random_state is None:
+            return Generator.rng
+        elif isinstance(random_state, int):
+            return np.random.default_rng(random_state)
+        else:
+            raise ValueError(
+                "Invalid random state. Must be None, int, or np.random.Generator."
+            )
+
+    if not BILBY_ARRAY_API:
+        return _resolve_numpy_generator(random_state)
+
     import orng
     if isinstance(random_state, (np.random.Generator, orng.ArrayRNG)):
         return random_state
-    elif random_state is None:
-        return Generator.rng
     elif aac.is_jax_array(random_state):
         rng = orng.ArrayRNG(generator=random_state, backend="jax")
         return rng
-    elif isinstance(random_state, int):
-        return np.random.default_rng(random_state)
     else:
-        raise ValueError(
-            "Invalid random state. Must be None, int, or np.random.Generator."
-        )
+        return _resolve_numpy_generator(random_state)
 
 
 def random_array_module(random_state):
@@ -160,7 +172,7 @@ def random_array_module(random_state):
     numpy or jax.numpy
         The array module corresponding to the provided random state.
     """
-    if random_state is None:
+    if random_state is None or not BILBY_ARRAY_API:
         return np
     elif aac.is_jax_array(random_state):
         import jax.numpy as jnp

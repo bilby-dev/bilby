@@ -1,6 +1,6 @@
 import array_api_compat as aac
 
-from .utils import BackendNotImplementedError
+from .utils import BackendNotImplementedError, BILBY_ARRAY_API
 
 
 def multivariate_logpdf(xp, mean, cov):
@@ -26,9 +26,9 @@ def multivariate_logpdf(xp, mean, cov):
         A callable that provides the log probaility density provided an array
         of points to evaluate at.
     """
-    if aac.is_numpy_namespace(xp):
-        from scipy.stats import multivariate_normal
+    from scipy.stats import multivariate_normal
 
+    if not BILBY_ARRAY_API or aac.is_numpy_namespace(xp):
         logpdf = multivariate_normal(mean=mean, cov=cov).logpdf
     elif aac.is_jax_namespace(xp):
         from functools import partial

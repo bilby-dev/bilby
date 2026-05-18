@@ -15,6 +15,16 @@ Overview
 The Array API support allows you to use different array libraries with Bilby seamlessly. 
 This can significantly improve performance, especially when using hardware accelerators like GPUs 
 or when you need automatic differentiation capabilities.
+To activate array API support you need to set the :code:`BILBY_ARRAY_API` environment variable to
+:code:`1` before importing Bilby.
+You will also need to set the corresponding :code:`scipy` environment variable (:code:`SCIPY_ARRAY_API`)
+for most functionality.
+This can be most easily done by setting the environment variable in your shell:
+
+.. code-block:: bash
+
+    export BILBY_ARRAY_API=1
+    export SCIPY_ARRAY_API=1
 
 **Key principle**: In most cases, you don't need to explicitly specify which array backend to use. 
 Bilby automatically detects the array type you're working with and uses the appropriate backend. 
@@ -61,22 +71,23 @@ to specify the ``xp`` parameter:
     val_np = np.array([0.5, 1.5, 2.5])
     prob_np = prior.prob(val_np)  # Returns NumPy array
 
-Sampling with Array Backends (Explicit xp Required)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sampling with Array Backends (Explicit RNG Required)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When sampling from priors, you **must** explicitly specify the array backend using the ``xp`` parameter, 
+When sampling from priors, you **must** explicitly specify the random state for
+the operation using the ``random_state`` parameter,
 as there's no input array to infer the backend from:
 
 .. code-block:: python
 
     import bilby
-    import jax.numpy as jnp
+    import jax
     
     prior = bilby.core.prior.Uniform(minimum=0, maximum=10)
-    samples = prior.sample(size=1000, xp=jnp)  # Returns JAX array
+    samples = prior.sample(size=1000, random_state=jax.random.PRNGKey(42))  # Returns JAX array
     
     # Or with NumPy (default)
-    samples_np = prior.sample(size=1000)  # Or explicitly: xp=np
+    samples_np = prior.sample(size=1000)  # Or explicitly: random_state=np.random.default_rng(42)
 
 .. note::
 
@@ -87,11 +98,12 @@ as there's no input array to infer the backend from:
 Prior Dictionaries
 ~~~~~~~~~~~~~~~~~~
 
-Prior dictionaries work the same way - automatic detection for most methods, explicit ``xp`` for sampling:
+Prior dictionaries work the same way - automatic detection for most methods, explicit ``random_state`` for sampling:
 
 .. code-block:: python
 
     import bilby
+    import jax
     import jax.numpy as jnp
     
     priors = bilby.core.prior.PriorDict({
@@ -99,8 +111,8 @@ Prior dictionaries work the same way - automatic detection for most methods, exp
         'y': bilby.core.prior.Uniform(0, 1)
     })
     
-    # Sampling requires explicit xp
-    samples = priors.sample(size=1000, xp=jnp)
+    # Sampling requires explicit random_state
+    samples = priors.sample(size=1000, random_state=jax.random.PRNGKey(42))
     
     # Evaluation automatically detects backend from input
     theta = jnp.array([50.0, 0.5])
@@ -326,11 +338,13 @@ The ``@xp_wrap`` decorator:
 Missing functionality
 ---------------------
 
-The most significant missing functionality is the lack of a consistent random number generation
-interface across different array backends.
-Currently, all random calls use :code:`numpy.random` with the seed specified as described in :doc:`rng`.
-This means that functionality like prior sampling and generating noise realizations in gravitational-wave
-detectors will not be :code:`JIT`-compatible.
+__JAX pytrees__: Currently, Bilby types are not defined as JAX pytrees, which means they cannot be
+passed as arguments to JIT-compiled functions.
+This is a known limitation and we plan to add support for JAX pytrees in future releases.
+
+__Device management__: Bilby does not currently manage device placement for arrays.
+When using JAX or PyTorch, you may need to manually ensure that your arrays are on the
+correct device (CPU/GPU). We may revisit this in the future.
 
 For Bilby Developers
 =====================
@@ -362,14 +376,6 @@ All array-processing methods in prior classes follow this pattern:
     def prob(self, val, *, xp=None):
         """Method that uses xp for array operations."""
         return xp.some_operation(val) * self.is_in_prior_range(val)
-
-**For methods without @xp_wrap (that use xp directly)**:
-
-.. code-block:: python
-
-    def sample(self, size=None, *, xp=np):
-        """Method that uses xp but isn't wrapped."""
-        return xp.asarray(random.rng.uniform(0, 1, size))
 
 Key rules:
 
@@ -426,7 +432,7 @@ backends using the ``array_backend`` marker:
         def test_sample(self):
             prior = MyPrior()
             # Sampling requires explicit xp
-            samples = prior.sample(size=100, xp=self.xp)
+            samples = prior.sample(size=100, random_state=self.rng)
             assert aac.get_namespace(samples) == self.xp
 
 The array_backend Marker
@@ -440,6 +446,7 @@ Without the marker, tests run with the default NumPy backend only. With the mark
 
 - Tests are parametrized to run with different backends
 - The ``xp_class`` fixture is available, providing access to the array module via ``self.xp``
+  and the random state via ``self.rng``
 - Tests verify that code works correctly regardless of the array backend
 
 Running Tests with Different Backends
@@ -456,9 +463,9 @@ Use the ``--array-backend`` flag to test with specific backends::
     # Test with CuPy backend
     pytest --array-backend cupy test/core/prior/analytical_test.py
 
-Bilby automatically sets ``SCIPY_ARRAY_API=1`` on import, so you don't need to set this 
-environment variable manually. The ``--array-backend`` flag controls which backend the 
-``xp_class`` fixture provides to your tests.
+You need to set both `BILBY_ARRAY_API=1` and `SCIPY_ARRAY_API=1` environment variables
+to enable array API support in testing
+The ``--array-backend`` flag controls which backend the  ``xp_class`` fixture provides to your tests.
 
 Migration Guide from Previous Versions
 --------------------------------------
@@ -470,6 +477,7 @@ Key Differences
 2. **Decorator added**: Many methods now use ``@xp_wrap``
 3. **Default values differ**: Methods with ``@xp_wrap`` use ``xp=None``, others use ``xp=np``
 4. **Validation added**: Custom priors are checked for ``xp`` support
+5. **Explicit random state**: Sampling methods accept a ``random_state`` argument
 
 Best Practices for Contributors
 --------------------------------
