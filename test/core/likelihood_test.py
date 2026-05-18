@@ -7,6 +7,7 @@ import pytest
 import array_api_extra as xpx
 
 import bilby.core.likelihood
+from bilby.compat.utils import array_module
 from bilby.core.likelihood import (
     Likelihood,
     GaussianLikelihood,
@@ -499,7 +500,10 @@ class TestExponentialLikelihood(unittest.TestCase):
         exponential_likelihood = ExponentialLikelihood(
             x=self.x, y=self.y, func=lambda x: self.xp.asarray([4.2])
         )
-        with mock.patch(f"{self.xp.__name__}.sum") as m:
+        # xp is not always the same as self.xp as array_api_compat uses its
+        # own version of numpy
+        xp = array_module(exponential_likelihood.func(None))
+        with mock.patch(f"{xp.__name__}.sum") as m:
             m.return_value = 3
             self.assertEqual(-3, exponential_likelihood.log_likelihood(dict()))
 
