@@ -156,7 +156,7 @@ def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
                 sampling_frequency * duration
             )
         )
-    
+
 
 def safe_white_noise(number_of_samples: int, duration: float, *, random_state=None):
     """
@@ -170,7 +170,7 @@ def safe_white_noise(number_of_samples: int, duration: float, *, random_state=No
         The duration of the time series.
     random_state: None, int, np.random.Generator, or jax.random.KeyArray
         The random state to use for noise generation.
-    
+
     Returns
     =======
     white_noise: array_like
@@ -182,9 +182,9 @@ def safe_white_noise(number_of_samples: int, duration: float, *, random_state=No
 
     rng = random.resolve_random_state(random_state)
 
-    norm1 = 0.5 * duration**0.5 
+    norm1 = 0.5 * duration**0.5
     re1, im1 = rng.normal(0, norm1, (2, len(frequencies)))
-    
+
     white_noise = re1 + 1j * im1
 
     # set DC and Nyquist = 0
@@ -192,7 +192,7 @@ def safe_white_noise(number_of_samples: int, duration: float, *, random_state=No
     # no Nyquist frequency when N=odd
     if number_of_samples % 2 == 0:
         white_noise = xpx.at(white_noise, -1).set(0)
-    
+
     # python: transpose for use with infft
     white_noise = white_noise.T
     frequencies = frequencies.T

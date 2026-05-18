@@ -4,7 +4,6 @@ import array_api_compat as aac
 import array_api_extra as xpx
 import numpy as np
 
-from ...compat.utils import xp_wrap
 from ...core.utils.calculus import interp1d
 from ...core import utils
 from ...core.utils import logger
@@ -239,9 +238,9 @@ class PowerSpectralDensity(object):
            for arbitrary frequency arrays.
         """
         self._power_spectral_density_interpolated = interp1d(self.frequency_array,
-                                                              self.psd_array,
-                                                              bounds_error=False,
-                                                              fill_value=np.inf)
+                                                             self.psd_array,
+                                                             bounds_error=False,
+                                                             fill_value=np.inf)
         self._update_cache(self.frequency_array)
 
     def get_power_spectral_density_array(self, frequency_array):

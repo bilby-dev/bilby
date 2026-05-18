@@ -115,14 +115,14 @@ def resolve_random_state(random_state):
     Parameters
     ==========
     random_state: None, int, np.random.Generator, or jax.random.KeyArray
-        The random state to resolve. 
+        The random state to resolve.
         If None, the default random generator will be used.
         If an int, a new :code:`numpy.random.default_rng` object will be
         created with that seed.
         If a :code:`numpy.random.Generator`, it will be returned as is.
         If a :code:`jax.random.KeyArray`, a corresponding
         :code:`orng.ArrayRNG` generator will be created and returned.
-    
+
     Returns
     =======
     np.random.Generator or orng.ArrayRNG

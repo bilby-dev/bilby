@@ -1,5 +1,3 @@
-import numpy as np
-
 from .base import Prior, PriorException
 from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \

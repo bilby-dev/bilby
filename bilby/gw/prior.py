@@ -1608,7 +1608,6 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             norm = np.finfo(array.dtype).eps
         return array / norm
 
-
     def _sample(self, size, *, xp=np, random_state=None, **kwargs):
         """
         Overwrites the _sample method of BaseJoint Prior. Picks a pixel value according to their probabilities, then

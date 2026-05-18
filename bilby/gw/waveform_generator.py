@@ -192,8 +192,12 @@ class WaveformGenerator(object):
         if model is not None:
             model_strain = self._strain_from_model(xp.asarray(model_data_points), model, parameters)
         elif transformed_model is not None:
-            model_strain = self._strain_from_transformed_model(xp.asarray(transformed_model_data_points), transformed_model,
-                                                               transformation_function, parameters)
+            model_strain = self._strain_from_transformed_model(
+                xp.asarray(transformed_model_data_points),
+                transformed_model,
+                transformation_function,
+                parameters,
+            )
         else:
             raise RuntimeError("No source model given")
         self._cache['waveform'] = model_strain
