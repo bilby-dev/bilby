@@ -189,9 +189,7 @@ def safe_white_noise(number_of_samples: int, duration: float, *, random_state=No
 
     # set DC and Nyquist = 0
     white_noise = xpx.at(white_noise, 0).set(0)
-    # no Nyquist frequency when N=odd
-    if number_of_samples % 2 == 0:
-        white_noise = xpx.at(white_noise, -1).set(0)
+    white_noise = xpx.at(white_noise, -1).set(0)
 
     # python: transpose for use with infft
     white_noise = white_noise.T
@@ -215,7 +213,7 @@ def create_white_noise(sampling_frequency, duration, random_state=None):
     array_like: frequency array
     """
     number_of_samples = duration * sampling_frequency
-    number_of_samples = int(np.round(number_of_samples))
+    number_of_samples = int(np.round(number_of_samples)) // 2 + 1
     return safe_white_noise(number_of_samples, duration, random_state=random_state)
 
 
