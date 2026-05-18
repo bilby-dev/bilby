@@ -66,6 +66,17 @@ def _xp(request):
     return aac.get_namespace(xp.ones(1))
 
 
+def _rng(xp):
+    from bilby.core.utils.random import resolve_random_state
+
+    if xp.__name__ == "numpy":
+        return resolve_random_state(12345)
+    elif xp.__name__ == "jax.numpy":
+        import jax.random
+
+        return resolve_random_state(jax.random.PRNGKey(12345))
+
+
 @pytest.fixture
 def xp(request):
     return _xp(request)
@@ -74,3 +85,4 @@ def xp(request):
 @pytest.fixture(scope="class")
 def xp_class(request):
     request.cls.xp = _xp(request)
+    request.cls.rng = _rng(request.cls.xp)

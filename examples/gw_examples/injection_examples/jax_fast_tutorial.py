@@ -19,7 +19,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from bilby.compat.jax import JittedLikelihood
-from ripple.waveforms import IMRPhenomPv2
+from ripplegw.waveforms import IMRPhenomPv2
 
 jax.config.update("jax_enable_x64", True)
 

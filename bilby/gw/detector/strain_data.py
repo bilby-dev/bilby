@@ -103,8 +103,10 @@ class InterferometerStrainData(object):
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
         if self.sampling_frequency is not None:
-            if 2 * self._maximum_frequency > self.sampling_frequency:
-                self._maximum_frequency = self.sampling_frequency / 2.
+            xp = array_module(self._maximum_frequency)
+            self._maximum_frequency = xp.minimum(
+                self._maximum_frequency, self.sampling_frequency / 2
+            )
         return self._maximum_frequency
 
     @maximum_frequency.setter
@@ -624,7 +626,7 @@ class InterferometerStrainData(object):
 
     def set_from_power_spectral_density(
             self, power_spectral_density, sampling_frequency, duration,
-            start_time=0):
+            start_time=0, *, random_state=None):
         """ Set the `frequency_domain_strain` by generating a noise realisation
 
         Parameters
@@ -648,9 +650,13 @@ class InterferometerStrainData(object):
             'power_spectal_density')
         frequency_domain_strain, frequency_array = \
             power_spectral_density.get_noise_realisation(
-                self.sampling_frequency, self.duration)
+                self.frequency_array.shape[0], self.duration, random_state=random_state)
 
-        if np.array_equal(frequency_array, self.frequency_array):
+        xp = aac.array_namespace(frequency_domain_strain)
+        self._frequency_array = xp.asarray(self.frequency_array)
+        self._time_array = xp.asarray(self.time_array)
+
+        if self.duration == duration and frequency_array.shape == self.frequency_array.shape:
             self._frequency_domain_strain = frequency_domain_strain
         else:
             raise ValueError("Data frequencies do not match frequency_array")

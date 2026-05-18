@@ -1,5 +1,9 @@
+import array_api_compat as aac
+import array_api_extra as xpx
 import numpy as np
+
 from ...compat.utils import array_module
+from . import random
 
 _TOL = 14
 
@@ -122,7 +126,8 @@ def create_frequency_series(sampling_frequency, duration):
 
     """
     xp = array_module(sampling_frequency)
-    _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
+    if not aac.is_jax_namespace(xp):
+        _check_legal_sampling_frequency_and_duration(sampling_frequency, duration)
     number_of_samples = xp.round(duration * sampling_frequency)
     number_of_frequencies = int(xp.round(number_of_samples / 2) + 1)
 
@@ -151,9 +156,51 @@ def _check_legal_sampling_frequency_and_duration(sampling_frequency, duration):
                 sampling_frequency * duration
             )
         )
+    
+
+def safe_white_noise(number_of_samples: int, duration: float, *, random_state=None):
+    """
+    A JIT-compilable function to generate white noise in the frequency domain.
+
+    Parameters
+    ==========
+    number_of_samples: int
+        The number of samples in the time domain.
+    duration: float
+        The duration of the time series.
+    random_state: None, int, np.random.Generator, or jax.random.KeyArray
+        The random state to use for noise generation.
+    
+    Returns
+    =======
+    white_noise: array_like
+        The generated complex white noise in the frequency domain.
+    frequencies: array_like
+        The corresponding frequency array for the white noise.
+    """
+    frequencies = np.arange(number_of_samples) / duration
+
+    rng = random.resolve_random_state(random_state)
+
+    norm1 = 0.5 * duration**0.5 
+    re1, im1 = rng.normal(0, norm1, (2, len(frequencies)))
+    
+    white_noise = re1 + 1j * im1
+
+    # set DC and Nyquist = 0
+    white_noise = xpx.at(white_noise, 0).set(0)
+    # no Nyquist frequency when N=odd
+    if number_of_samples % 2 == 0:
+        white_noise = xpx.at(white_noise, -1).set(0)
+    
+    # python: transpose for use with infft
+    white_noise = white_noise.T
+    frequencies = frequencies.T
+
+    return white_noise, frequencies
 
 
-def create_white_noise(sampling_frequency, duration):
+def create_white_noise(sampling_frequency, duration, random_state=None):
     """ Create white_noise which is then coloured by a given PSD
 
     Parameters
@@ -167,28 +214,9 @@ def create_white_noise(sampling_frequency, duration):
     array_like: white noise
     array_like: frequency array
     """
-    from . import random
-
     number_of_samples = duration * sampling_frequency
     number_of_samples = int(np.round(number_of_samples))
-
-    frequencies = create_frequency_series(sampling_frequency, duration)
-
-    norm1 = 0.5 * duration**0.5
-    re1, im1 = random.rng.normal(0, norm1, (2, len(frequencies)))
-    white_noise = re1 + 1j * im1
-
-    # set DC and Nyquist = 0
-    white_noise[0] = 0
-    # no Nyquist frequency when N=odd
-    if np.mod(number_of_samples, 2) == 0:
-        white_noise[-1] = 0
-
-    # python: transpose for use with infft
-    white_noise = np.transpose(white_noise)
-    frequencies = np.transpose(frequencies)
-
-    return white_noise, frequencies
+    return safe_white_noise(number_of_samples, duration, random_state=random_state)
 
 
 def nfft(time_domain_strain, sampling_frequency):

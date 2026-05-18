@@ -243,7 +243,8 @@ class Recalibrate(object):
         calibration_factor : array-like
             The factor to multiply the strain by.
         """
-        return np.ones_like(frequency_array)
+        xp = aac.array_namespace(frequency_array)
+        return xp.ones_like(frequency_array)
 
     def set_calibration_parameters(self, **params):
         self.params.update({key[len(self.prefix):]: params[key] for key in params

@@ -155,7 +155,7 @@ class Interferometer(object):
             start_time=start_time, frequency_array=frequency_array)
 
     def set_strain_data_from_power_spectral_density(
-            self, sampling_frequency, duration, start_time=0):
+            self, sampling_frequency, duration, start_time=0, *, random_state=None):
         """ Set the `Interferometer.strain_data` from a power spectal density
 
         This uses the `interferometer.power_spectral_density` object to set
@@ -174,7 +174,7 @@ class Interferometer(object):
         """
         self.strain_data.set_from_power_spectral_density(
             self.power_spectral_density, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time)
+            duration=duration, start_time=start_time, random_state=random_state)
 
     def set_strain_data_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,
@@ -955,6 +955,7 @@ class Interferometer(object):
 
     def set_array_backend(self, xp):
         self.geometry.set_array_backend(xp=xp)
+        self.power_spectral_density.set_array_backend(xp=xp)
 
     @property
     def array_backend(self):

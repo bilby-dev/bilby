@@ -57,4 +57,29 @@ For example:
 .. note::
     Some sampler interfaces do not support seeding.
 
+--------------------------------------------------------
+Random number generation and non-:code:`NumpPy` backends
+--------------------------------------------------------
 
+To support random number generation with non-:code:`NumPy` array backends,
+any :code:`bilby` function or method that supports random number generation and accepts a
+:code:`random_state` argument.
+This argument should be one of the following types:
+
+- :code:`None` (the default): the function will use the :code:`bilby` global
+  :code:`numpy` random number generator (set using :code:`bilby.core.random.seed`).
+- :code:`numpy.random.Generator`: the function will use the provided generator.
+- :code:`orng.ArrayRNG`: the function will use the provided :code:`orng` random number generator.
+- :code:`int`: the function will create a new :code:`numpy` random number generator seeded with
+  the provided integer and use it for random number generation.
+- :code:`jax.random.PRNGKey`: the function will create a new :code:`orng` random number generator
+  with the "jax" backend seeded with the provided key and use it for random number generation.
+
+For example,
+
+.. code:: python
+
+    >>> import orng
+    >>> rng = orng.ArrayRNG("jax", seed=1234)
+    >>> x = rng.uniform()
+    >>> priors.sample(xp=jnp, rng=rng)

@@ -268,6 +268,10 @@ class TestPriorClasses(unittest.TestCase):
     def tearDown(self):
         del self.priors
 
+    def _validate_return_type(self, val):
+        if not isinstance(val, (int, float)):
+            self.assertEqual(aac.get_namespace(val), self.xp)
+
     def test_minimum_rescaling(self):
         """Test the the rescaling works as expected."""
         for prior in self.priors:
@@ -324,15 +328,15 @@ class TestPriorClasses(unittest.TestCase):
             self.assertTrue(
                 all((many_samples >= prior.minimum) & (many_samples <= prior.maximum))
             )
-            self.assertEqual(aac.get_namespace(many_samples), self.xp)
+            self._validate_return_type(many_samples)
 
     def test_least_recently_sampled(self):
         for prior in self.priors:
-            least_recently_sampled_expected = prior.sample(xp=self.xp)
+            least_recently_sampled_expected = prior.sample(random_state=self.rng)
             self.assertEqual(
                 least_recently_sampled_expected, prior.least_recently_sampled
             )
-            self.assertEqual(aac.get_namespace(least_recently_sampled_expected), self.xp)
+            self._validate_return_type(least_recently_sampled_expected)
 
     def test_sampling_single(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -340,11 +344,11 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
                 continue
-            single_sample = prior.sample(xp=self.xp)
+            single_sample = prior.sample(random_state=self.rng)
             self.assertTrue(
                 (single_sample >= prior.minimum) & (single_sample <= prior.maximum)
             )
-            self.assertEqual(aac.get_namespace(single_sample), self.xp)
+            self._validate_return_type(single_sample)
 
     def test_sampling_many(self):
         """Test that sampling from the prior always returns values within its domain."""
@@ -352,12 +356,12 @@ class TestPriorClasses(unittest.TestCase):
             if isinstance(prior, bilby.core.prior.analytical.SymmetricLogUniform):
                 # SymmetricLogUniform has support down to -maximum
                 continue
-            many_samples = prior.sample(5000, xp=self.xp)
+            many_samples = prior.sample(5000, random_state=self.rng)
             self.assertTrue(
                 (all(many_samples >= prior.minimum))
                 & (all(many_samples <= prior.maximum))
             )
-            self.assertEqual(aac.get_namespace(many_samples), self.xp)
+            self._validate_return_type(many_samples)
 
     def test_probability_above_domain(self):
         """Test that the prior probability is non-negative in domain of validity and zero outside."""
@@ -390,20 +394,20 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_least_recently_sampled_2(self):
         for prior in self.priors:
-            lrs = prior.sample(xp=self.xp)
+            lrs = prior.sample(random_state=self.rng)
             self.assertEqual(lrs, prior.least_recently_sampled)
-            self.assertEqual(aac.get_namespace(lrs), self.xp)
+            self._validate_return_type(lrs)
 
     def test_prob_and_ln_prob(self):
         for prior in self.priors:
-            sample = prior.sample(xp=self.xp)
+            sample = prior.sample(random_state=self.rng)
             if not bilby.core.prior.JointPrior in prior.__class__.__mro__:  # noqa
                 # due to the way that the Multivariate Gaussian prior must sequentially call
                 # the prob and ln_prob functions, it must be ignored in this test.
                 lnprob = prior.ln_prob(sample)
                 prob = prior.prob(sample)
-                self.assertEqual(aac.get_namespace(lnprob), self.xp)
-                self.assertEqual(aac.get_namespace(prob), self.xp)
+                self._validate_return_type(lnprob)
+                self._validate_return_type(prob)
                 # lower precision for jax running tests with float32
                 lnprob = np.asarray(lnprob)
                 prob = np.asarray(prob)
@@ -411,15 +415,15 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_many_prob_and_many_ln_prob(self):
         for prior in self.priors:
-            samples = prior.sample(10, xp=self.xp)
+            samples = prior.sample(10, random_state=self.rng)
             if not bilby.core.prior.JointPrior in prior.__class__.__mro__:  # noqa
                 ln_probs = prior.ln_prob(samples)
                 probs = prior.prob(samples)
                 for sample, logp, p in zip(samples, ln_probs, probs):
                     self.assertAlmostEqual(prior.ln_prob(sample), logp)
                     self.assertAlmostEqual(prior.prob(sample), p)
-                self.assertEqual(aac.get_namespace(ln_probs), self.xp)
-                self.assertEqual(aac.get_namespace(probs), self.xp)
+                self._validate_return_type(ln_probs)
+                self._validate_return_type(probs)
 
     def test_cdf_is_inverse_of_rescaling(self):
         domain = self.xp.linspace(0, 1, 100)
@@ -441,11 +445,11 @@ class TestPriorClasses(unittest.TestCase):
                 self.assertTrue(np.array_equal(rescaled, rescaled_2))
                 max_difference = max(np.abs(cdf_vals - cdf_vals_2))
                 for arr in [rescaled, rescaled_2, cdf_vals, cdf_vals_2]:
-                    self.assertEqual(aac.get_namespace(arr), self.xp)
+                    self._validate_return_type(arr)
             else:
                 rescaled = prior.rescale(domain)
                 max_difference = max(np.abs(domain - prior.cdf(rescaled)))
-                self.assertEqual(aac.get_namespace(rescaled), self.xp)
+                self._validate_return_type(rescaled)
             self.assertLess(max_difference, threshold)
 
     def test_cdf_one_above_domain(self):
@@ -632,7 +636,7 @@ class TestPriorClasses(unittest.TestCase):
             print(prior)
             prob = prior.prob(domain)
             print(min(prob))
-            self.assertEqual(aac.get_namespace(prob), self.xp)
+            self._validate_return_type(prob)
             prob = np.asarray(prob)
             self.assertTrue(all(prob >= 0))
 
@@ -701,14 +705,14 @@ class TestPriorClasses(unittest.TestCase):
             elif isinstance(prior, bilby.core.prior.WeightedDiscreteValues):
                 domain = prior.values
                 probs = prior.prob(self.xp.asarray(domain))
-                self.assertEqual(aac.get_namespace(probs), self.xp)
+                self._validate_return_type(probs)
                 self.assertTrue(np.sum(np.asarray(probs)) == 1)
                 continue
             else:
                 domain = np.linspace(prior.minimum, prior.maximum, 1000)
             probs = prior.prob(self.xp.asarray(domain))
             self.assertAlmostEqual(trapezoid(np.array(probs), domain), 1, 3)
-            self.assertEqual(aac.get_namespace(probs), self.xp)
+            self._validate_return_type(probs)
 
     def test_accuracy(self):
         """Test that each of the priors' functions is calculated accurately, as compared to scipy's calculations"""
@@ -896,7 +900,7 @@ class TestPriorClasses(unittest.TestCase):
             ):
                 continue
             prior.maximum = (prior.maximum + prior.minimum) / 2
-            self.assertTrue(max(prior.sample(10000, xp=self.xp)) < prior.maximum)
+            self.assertTrue(max(prior.sample(10000, random_state=self.rng)) < prior.maximum)
 
     def test_set_minimum_setting(self):
         for prior in self.priors:
@@ -922,7 +926,7 @@ class TestPriorClasses(unittest.TestCase):
             ):
                 continue
             prior.minimum = (prior.maximum + prior.minimum) / 2
-            self.assertTrue(min(prior.sample(10000, xp=self.xp)) > prior.minimum)
+            self.assertTrue(min(prior.sample(10000, random_state=self.rng)) > prior.minimum)
 
 
 if __name__ == "__main__":

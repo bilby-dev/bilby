@@ -1,5 +1,6 @@
 import re
 
+import array_api_compat as aac
 import array_api_extra as xpx
 import numpy as np
 import scipy.stats
@@ -263,7 +264,7 @@ class BaseJointPriorDist(object):
         """
         return lnprob
 
-    def sample(self, size=1, *, xp=np, **kwargs):
+    def sample(self, size=1, *, random_state=None, **kwargs):
         """
         Draw, and set, a sample from the Dist, accompanying method _sample needs to overwritten
 
@@ -275,11 +276,11 @@ class BaseJointPriorDist(object):
 
         if size is None:
             size = 1
-        samps = self._sample(size=size, xp=xp, **kwargs)
+        samps = self._sample(size=size, random_state=random_state, **kwargs)
         for i, name in enumerate(self.names):
             self.current_sample[name] = samps[:, i].flatten()[()]
 
-    def _sample(self, size, *, xp=np, **kwargs):
+    def _sample(self, size, *, random_state=None, **kwargs):
         """
         Draw, and set, a sample from the joint dist (**needs to be ovewritten by child class**)
 
@@ -288,11 +289,7 @@ class BaseJointPriorDist(object):
         size: int
             number of samples to generate, defaults to 1
         """
-        samps = xp.zeros((size, len(self)))
-        """
-        Here is where the subclass where overwrite sampling method
-        """
-        return samps
+        raise NotImplementedError
 
     @xp_wrap
     def rescale(self, value, *, xp=None, **kwargs):
@@ -634,23 +631,25 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         )
         return samp
 
-    def _sample(self, size, *, xp=np, **kwargs):
+    def _sample(self, size, *, random_state=None, **kwargs):
         try:
             mode = kwargs["mode"]
         except KeyError:
             mode = None
+
+        rng = random.resolve_random_state(random_state)
 
         if mode is None:
             if self.nmodes == 1:
                 mode = 0
             else:
                 if size == 1:
-                    mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
+                    mode = np.argwhere(self.cumweights - rng.uniform(0, 1) > 0)[0][0]
                 else:
                     # pick modes
                     mode = [
                         np.argwhere(self.cumweights - r > 0)[0][0]
-                        for r in random.rng.uniform(0, 1, size)
+                        for r in rng.uniform(0, 1, size)
                     ]
 
         samps = np.zeros((size, len(self)))
@@ -658,7 +657,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             inbound = False
             while not inbound:
                 # sample the multivariate Gaussian keys
-                vals = random.rng.uniform(0, 1, len(self))
+                vals = rng.uniform(0, 1, len(self))
 
                 if isinstance(mode, list):
                     samp = np.atleast_1d(self.rescale(vals, mode=mode[i]))
@@ -676,6 +675,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 if not outbound:
                     inbound = True
 
+        xp = aac.array_namespace(vals)
         return xp.asarray(samps)
 
     @xp_wrap
@@ -814,7 +814,7 @@ class JointPrior(Prior):
         else:
             return []  # return empty list
 
-    def sample(self, size=1, *, xp=np, **kwargs):
+    def sample(self, size=1, *, random_state=None, **kwargs):
         """
         Draw a sample from the prior.
 
@@ -839,7 +839,7 @@ class JointPrior(Prior):
 
         if len(self.dist.current_sample) == 0:
             # generate a sample
-            self.dist.sample(size=size, xp=xp, **kwargs)
+            self.dist.sample(size=size, random_state=random_state, **kwargs)
 
         sample = self.dist.current_sample[self.name]
 

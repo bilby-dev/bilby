@@ -1,6 +1,7 @@
 
 import logging
 
+import array_api_compat as aac
 import numpy as np
 
 from ..compat.utils import array_module
@@ -50,14 +51,17 @@ class HyperparameterLikelihood(Likelihood):
             self.evidence_factor = np.sum(log_evidences)
         else:
             self.evidence_factor = np.nan
-        self.posteriors = posteriors
+        if aac.is_jax_namespace(xp):
+            self.posteriors = None
+        else:
+            self.posteriors = posteriors
         self.hyper_prior = hyper_prior
         self.sampling_prior = sampling_prior
         self.max_samples = max_samples
         super(HyperparameterLikelihood, self).__init__()
 
-        self.data = self.resample_posteriors(xp=xp)
-        self.n_posteriors = len(self.posteriors)
+        self.data = self.resample_posteriors(posteriors=posteriors, xp=xp)
+        self.n_posteriors = len(posteriors)
         self.samples_per_posterior = self.max_samples
         self.samples_factor =\
             - self.n_posteriors * np.log(self.samples_per_posterior)
@@ -75,7 +79,7 @@ class HyperparameterLikelihood(Likelihood):
     def log_likelihood(self, parameters):
         return self.noise_log_likelihood() + self.log_likelihood_ratio(parameters=parameters)
 
-    def resample_posteriors(self, max_samples=None, xp=np):
+    def resample_posteriors(self, posteriors=None, max_samples=None, xp=np):
         """
         Convert list of pandas DataFrame object to dict of arrays.
 
@@ -90,18 +94,26 @@ class HyperparameterLikelihood(Likelihood):
             Dictionary containing arrays of size (n_posteriors, max_samples)
             There is a key for each shared key in self.posteriors.
         """
+        if posteriors is None:
+            posteriors = self.posteriors
+        if isinstance(posteriors, int):
+            raise ValueError(
+                "Input posteriors is an integer. This may have been intended for the "
+                "max_samples argument. The API changed in Bilby v3."
+            )
+
         if max_samples is not None:
             self.max_samples = max_samples
-        for posterior in self.posteriors:
+        for posterior in posteriors:
             self.max_samples = min(len(posterior), self.max_samples)
-        data = {key: [] for key in self.posteriors[0]}
+        data = {key: [] for key in posteriors[0]}
         if 'log_prior' in data.keys():
             data.pop('log_prior')
         if 'prior' not in data.keys():
             data['prior'] = []
         logging.debug('Downsampling to {} samples per posterior.'.format(
             self.max_samples))
-        for posterior in self.posteriors:
+        for posterior in posteriors:
             temp = posterior.sample(self.max_samples)
             if self.sampling_prior is not None:
                 temp['prior'] = self.sampling_prior.prob(temp, axis=0)

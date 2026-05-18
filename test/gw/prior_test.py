@@ -259,7 +259,7 @@ class TestPriorConversion(unittest.TestCase):
         )
 
         nsamples = 5000
-        bilby_samples = bilby_prior.sample(nsamples, xp=self.xp)
+        bilby_samples = bilby_prior.sample(nsamples, random_state=self.rng)
         bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
             bilby_samples
         )
@@ -268,7 +268,7 @@ class TestPriorConversion(unittest.TestCase):
         # Quicker way to generate LA prior samples (rather than specifying Constraint)
         lalinf_samples = []
         while len(lalinf_samples) < nsamples:
-            s = lalinf_prior.sample()
+            s = lalinf_prior.sample(random_state=self.rng)
             if s["mass_1"] < s["mass_2"]:
                 s["mass_1"], s["mass_2"] = s["mass_2"], s["mass_1"]
             if s["mass_2"] / s["mass_1"] > 0.125:
@@ -580,8 +580,8 @@ class TestAlignedSpin(unittest.TestCase):
         a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
         z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
         chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
-        chis = chi_prior.sample(100000, xp=self.xp)
-        alts = a_prior.sample(100000, xp=self.xp) * z_prior.sample(100000, xp=self.xp)
+        chis = chi_prior.sample(100000, random_state=self.rng)
+        alts = a_prior.sample(100000, random_state=self.rng) * z_prior.sample(100000, random_state=self.rng)
         self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
         self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
         self.assertEqual(aac.get_namespace(chis), self.xp)
@@ -600,7 +600,7 @@ class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
         priors["a_1"] = bilby.gw.prior.ConditionalChiUniformSpinMagnitude(
             minimum=0.1, maximum=priors["chi_1"].maximum, name="a_1"
         )
-        samples = priors.sample(100000, xp=self.xp)["a_1"]
+        samples = priors.sample(100000, random_state=self.rng)["a_1"]
         ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
         self.assertTrue(ks.pvalue > 0.001)
         self.assertEqual(aac.get_namespace(samples), self.xp)

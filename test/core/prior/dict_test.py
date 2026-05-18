@@ -273,7 +273,7 @@ class TestPriorDict(unittest.TestCase):
         size = 7
         samples = self.prior_set_from_dict.sample_subset(
             keys=self.prior_set_from_dict.keys(), size=size,
-            xp=self.xp,
+            random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
         for key in samples:
@@ -284,16 +284,17 @@ class TestPriorDict(unittest.TestCase):
         self.prior_set_from_dict["asdf"] = "not_a_prior"
         samples = self.prior_set_from_dict.sample_subset(
             keys=self.prior_set_from_dict.keys(),
-            xp=self.xp,
+            random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
         for key in samples:
-            self.assertIsNotNone(aac.get_namespace(samples[key]), self.xp)
+            if not isinstance(samples[key], (int, float)):
+                self.assertIsNotNone(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_with_actual_subset(self):
         size = 3
         samples = self.prior_set_from_dict.sample_subset(
-            keys=["length"], size=size, xp=self.xp
+            keys=["length"], size=size, random_state=self.rng
         )
         expected = dict(length=self.xp.asarray([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
@@ -303,7 +304,7 @@ class TestPriorDict(unittest.TestCase):
         size = 3
         keys = ["mass", "speed"]
         out = self.prior_set_from_dict.sample_subset_constrained_as_array(
-            keys, size, xp=self.xp
+            keys, size, random_state=self.rng
         )
         self.assertEqual(aac.get_namespace(out), self.xp)
         self.assertTrue(out.shape == (len(keys), size))
@@ -326,7 +327,7 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples1 = priors1.sample_subset_constrained(
-                keys=list(priors1.keys()), size=N, xp=self.xp
+                keys=list(priors1.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors1) - 1, len(samples1))
             for key in samples1:
@@ -339,7 +340,7 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples2 = priors2.sample_subset_constrained(
-                keys=list(priors2.keys()), size=N, xp=self.xp
+                keys=list(priors2.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors2), len(samples2))
             for key in samples2:
@@ -350,10 +351,10 @@ class TestPriorDict(unittest.TestCase):
         size = 7
         bilby.core.utils.random.seed(42)
         samples1 = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size, xp=self.xp
+            keys=self.prior_set_from_dict.keys(), size=size, random_state=self.rng
         )
         bilby.core.utils.random.seed(42)
-        samples2 = self.prior_set_from_dict.sample(size=size, xp=self.xp)
+        samples2 = self.prior_set_from_dict.sample(size=size, random_state=self.rng)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
             self.assertTrue(np.array_equal(samples1[key], samples2[key]))
@@ -361,7 +362,7 @@ class TestPriorDict(unittest.TestCase):
             self.assertEqual(aac.get_namespace(samples2[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], xp=self.xp)
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
@@ -369,7 +370,7 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], xp=self.xp)
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
@@ -398,7 +399,7 @@ class TestPriorDict(unittest.TestCase):
 
         Note that the format of inputs/outputs is different between the two methods.
         """
-        sample = self.prior_set_from_dict.sample(xp=self.xp)
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
         original = self.xp.asarray(list(sample.values()))
         new = self.xp.asarray(self.prior_set_from_dict.rescale(
             sample.keys(),

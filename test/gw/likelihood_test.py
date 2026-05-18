@@ -1398,11 +1398,9 @@ class TestMBLikelihood(unittest.TestCase):
         parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
             parameters.update(self.calibration_parameters)
+        ll = likelihood.log_likelihood_ratio(parameters)
         llmb = likelihood_mb.log_likelihood_ratio(parameters)
-        self.assertLess(
-            abs(likelihood.log_likelihood_ratio(parameters) - llmb),
-            tolerance
-        )
+        self.assertLess(abs(ll - llmb), tolerance)
         self.assertEqual(aac.get_namespace(llmb), self.xp)
 
     def test_large_accuracy_factor(self):

@@ -441,15 +441,16 @@ class UniformInComponentsMassRatio(Prior):
             val = 2 * xp.minimum(val, 1 - val)
         return self.icdf(val)
 
-    def prob(self, val, *, xp=np):
+    def prob(self, val, *, xp=None):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         with np.errstate(invalid="ignore"):
             prob = (1. + val)**(2. / 5.) / (val**(6. / 5.)) / self.norm * in_prior
         return prob
 
-    def ln_prob(self, val, *, xp=np):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=None):
         with np.errstate(divide="ignore"):
-            return np.log(self.prob(val, xp=xp))
+            return xp.log(self.prob(val, xp=xp))
 
 
 class AlignedSpin(Interped):
@@ -1607,7 +1608,8 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             norm = np.finfo(array.dtype).eps
         return array / norm
 
-    def _sample(self, size, *, xp=np, **kwargs):
+
+    def _sample(self, size, *, xp=np, random_state=None, **kwargs):
         """
         Overwrites the _sample method of BaseJoint Prior. Picks a pixel value according to their probabilities, then
         uniformly samples ra, and decs that are contained in chosen pixel. If the PriorDist includes distance it then
@@ -1626,21 +1628,23 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         sample : array_like
             sample of ra, and dec (and distance if 3D=True)
         """
-        sample_pix = random.rng.choice(self.npix, size=size, p=self.prob, replace=True)
+        rng = random.resolve_random_state(random_state)
+
+        sample_pix = rng.choice(self.npix, size=size, p=self.prob, replace=True)
         sample = np.empty((size, self.num_vars))
         for samp in range(size):
             theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])
             dec = 0.5 * np.pi - theta
             if self.distance:
                 self.update_distance(sample_pix[samp])
-                dist = self.draw_distance(sample_pix[samp])
-                ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp])
+                dist = self.draw_distance(sample_pix[samp], random_state=rng)
+                ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
                 sample[samp, :] = [ra_dec[0], ra_dec[1], dist]
             else:
-                sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp])
+                sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
         return xp.asarray(sample.reshape((-1, self.num_vars)))
 
-    def draw_distance(self, pix):
+    def draw_distance(self, pix, *, random_state=None):
         """
         Method to recursively draw a distance value from the given set distance distribution and check that it is in
         the bounds
@@ -1656,16 +1660,18 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         dist : float
             sample drawn from the distance distribution at set pixel index
         """
+        rng = random.resolve_random_state(random_state)
+
         if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
             return 0
-        dist = self.distance_icdf(random.rng.uniform(0, 1))
+        dist = self.distance_icdf(rng.uniform(0, 1))
         name = self.names[-1]
         if (dist > self.bounds[name][1]) | (dist < self.bounds[name][0]):
-            self.draw_distance(pix)
+            self.draw_distance(pix, random_state=rng)
         else:
             return dist
 
-    def draw_from_pixel(self, ra, dec, pix):
+    def draw_from_pixel(self, ra, dec, pix, *, random_state=None):
         """
         Recursive function to uniformly draw ra, and dec values that are located in the given pixel
 
@@ -1683,12 +1689,14 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         ra_dec : tuple
             this returns a tuple of ra, and dec sampled uniformly that are in the pixel given
         """
+        rng = random.resolve_random_state(random_state)
+
         if not self.check_in_pixel(ra, dec, pix):
-            self.draw_from_pixel(ra, dec, pix)
+            self.draw_from_pixel(ra, dec, pix, random_state=rng)
         return np.array(
             [
-                random.rng.uniform(ra - self.pixel_length, ra + self.pixel_length),
-                random.rng.uniform(dec - self.pixel_length, dec + self.pixel_length),
+                rng.uniform(ra - self.pixel_length, ra + self.pixel_length),
+                rng.uniform(dec - self.pixel_length, dec + self.pixel_length),
             ]
         )
 

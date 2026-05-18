@@ -712,9 +712,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                 setattr(self, key, value)
 
     def _setup_time_marginalization_multiband(self):
-        self._beam_pattern_reference_time = (
-            self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
-        ) / 2
         N = self.Nbs[-1] // 2
         self._delta_tc = self.durations[0] / N
         self._times = self.interferometers.start_time + np.arange(N) * self._delta_tc
@@ -723,6 +720,9 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         self._full_d_h = np.zeros(N, dtype=complex)
         # idxs to convert full frequency points to banded frequency points, used for filling _full_d_h.
         self._full_to_multiband = [int(f * self.durations[0]) for f in self.banded_frequency_points]
+        self._beam_pattern_reference_time = (
+            self.priors['geocent_time'].minimum + self.priors['geocent_time'].maximum
+        ) / 2
         self.interferometers.reference_time = self._beam_pattern_reference_time
 
     def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
@@ -755,9 +755,9 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
             modes, parameters, frequencies=self.banded_frequency_points
         )
 
-        d_inner_h = (strain @ self.linear_coeffs[interferometer.name]).conj()
-
         xp = array_module(strain)
+
+        d_inner_h = xp.conj(xp.dot(strain, self.linear_coeffs[interferometer.name]))
 
         if self.linear_interpolation:
             optimal_snr_squared = xp.vdot(
@@ -784,7 +784,6 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
                         xp.asarray(self.wths[interferometer.name][b])
                     )
                     thbc = xp.fft.rfft(xp.asarray(self.hbcs[interferometer.name][b]))
-                    print(self.Ibcs[interferometer.name][b])
                     optimal_snr_squared += (4. / self.Tbhats[b]) * xp.vdot(
                         xp.abs(thbc)**2, xp.asarray(self.Ibcs[interferometer.name][b].real))
 

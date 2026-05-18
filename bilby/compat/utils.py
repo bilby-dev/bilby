@@ -71,6 +71,15 @@ def array_module(arr):
     >>> array_module(5)
     <module 'numpy' ...>
     """
+    # FIXME: remove direct import of orng to avoid hard dependency
+    import orng
+    if isinstance(arr, orng.ArrayRNG):
+        match arr.backend:
+            case "jax":
+                import jax.numpy as jnp
+                return jnp
+            case _:
+                return np
     if isinstance(arr, tuple) and len(arr) == 1:
         arr = arr[0]
     try:

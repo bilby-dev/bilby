@@ -85,7 +85,7 @@ class InterferometerList(list):
                     logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(
-        self, sampling_frequency, duration, start_time=0
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
     ):
         """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
@@ -108,6 +108,7 @@ class InterferometerList(list):
                 sampling_frequency=sampling_frequency,
                 duration=duration,
                 start_time=start_time,
+                random_state=random_state,
             )
 
     def set_strain_data_from_zero_noise(

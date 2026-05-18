@@ -60,7 +60,7 @@ class Prior(object):
         self._is_fixed = False
 
     def __init_subclass__(cls):
-        for method_name in ["prob", "ln_prob", "rescale", "cdf", "sample"]:
+        for method_name in ["prob", "ln_prob", "rescale", "cdf"]:
             method = getattr(cls, method_name, None)
             if method is not None:
                 from inspect import signature
@@ -139,7 +139,7 @@ class Prior(object):
                     return False
         return True
 
-    def sample(self, size=None, *, xp=np):
+    def sample(self, size=None, *, random_state=None):
         """Draw a sample from the prior
 
         Parameters
@@ -153,10 +153,10 @@ class Prior(object):
 
         """
         from ..utils import random
+        rng = random.resolve_random_state(random_state)
 
-        self.least_recently_sampled = self.rescale(
-            xp.asarray(random.rng.uniform(0, 1, size))
-        )
+        unit = rng.uniform(low=0, high=1, size=size)
+        self.least_recently_sampled = self.rescale(unit)
         return self.least_recently_sampled
 
     def rescale(self, val, *, xp=None):

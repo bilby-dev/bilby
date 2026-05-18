@@ -62,7 +62,7 @@ def conditional_prior_factory(prior_class):
             self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
             self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
 
-        def sample(self, size=None, *, xp=np, **required_variables):
+        def sample(self, size=None, *, random_state=None, **required_variables):
             """Draw a sample from the prior
 
             Parameters
@@ -78,11 +78,10 @@ def conditional_prior_factory(prior_class):
 
             """
             from ..utils import random
+            rng = random.resolve_random_state(random_state)
 
             self.least_recently_sampled = self.rescale(
-                xp.asarray(random.rng.uniform(0, 1, size)),
-                xp=xp,
-                **required_variables,
+                rng.uniform(0, 1, size), **required_variables
             )
             return self.least_recently_sampled
 

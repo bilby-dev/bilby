@@ -470,7 +470,7 @@ class TestDirichletPrior(unittest.TestCase):
             shutil.rmtree("priors")
 
     def test_samples_correct_type(self):
-        samples = self.priors.sample(10, xp=self.xp)
+        samples = self.priors.sample(10, random_state=self.rng)
         self.assertEqual(aac.get_namespace(samples["dirichlet_1"]), self.xp)
 
     def test_samples_sum_to_less_than_one(self):

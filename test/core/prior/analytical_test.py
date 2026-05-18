@@ -18,7 +18,7 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
         in_prior = True
         for _ in range(1000):
-            s = discrete_value_prior.sample(xp=self.xp)
+            s = discrete_value_prior.sample(random_state=self.rng)
             if s not in values:
                 in_prior = False
         self.assertTrue(in_prior)
@@ -28,7 +28,7 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         nvalues = 4
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
         N = 100000
-        s = discrete_value_prior.sample(N, xp=self.xp)
+        s = discrete_value_prior.sample(N, random_state=self.rng)
         zeros = np.sum(s == 1.0)
         ones = np.sum(s == 1.1)
         twos = np.sum(s == 1.2)
@@ -100,7 +100,7 @@ class TestCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.Categorical(3)
         in_prior = True
         for _ in range(1000):
-            s = categorical_prior.sample(xp=self.xp)
+            s = categorical_prior.sample(random_state=self.rng)
             if s not in [0, 1, 2]:
                 in_prior = False
         self.assertTrue(in_prior)
@@ -109,7 +109,7 @@ class TestCategoricalPrior(unittest.TestCase):
         ncat = 4
         categorical_prior = bilby.core.prior.Categorical(ncat)
         N = 100000
-        s = categorical_prior.sample(N, xp=self.xp)
+        s = categorical_prior.sample(N, random_state=self.rng)
         self.assertEqual(aac.get_namespace(s), self.xp)
         s = np.asarray(s)
         zeros = np.sum(s == 0)
@@ -173,7 +173,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.WeightedCategorical(3, [1, 2, 3])
         in_prior = True
         for _ in range(1000):
-            s = categorical_prior.sample(xp=self.xp)
+            s = categorical_prior.sample(random_state=self.rng)
             if s not in [0, 1, 2]:
                 in_prior = False
         self.assertTrue(in_prior)
@@ -189,7 +189,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         weights = np.arange(1, ncat + 1)
         categorical_prior = bilby.core.prior.WeightedCategorical(ncat, weights=weights)
         N = 100000
-        s = categorical_prior.sample(N, xp=self.xp)
+        s = categorical_prior.sample(N, random_state=self.rng)
         self.assertEqual(aac.get_namespace(s), self.xp)
         s = np.asarray(s)
         cases = 0
@@ -257,7 +257,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         weights = np.arange(1, N + 1)
 
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
-        sample = categorical_prior.sample(size=10)
+        sample = categorical_prior.sample(size=10, random_state=self.rng)
         original = self.xp.asarray(sample)
         new = self.xp.asarray(categorical_prior.rescale(
             categorical_prior.cdf(sample)

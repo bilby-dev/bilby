@@ -158,7 +158,7 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
     def test_prob_integrate_to_one(self):
         keys = ["a", "b", "c"]
         n_samples = 1000000
-        samples = self.priors.sample_subset(keys=keys, size=n_samples, xp=self.xp)
+        samples = self.priors.sample_subset(keys=keys, size=n_samples, random_state=self.rng)
         prob = self.priors.prob(samples, axis=0)
         self.assertEqual(aac.get_namespace(prob), self.xp)
         prob = np.asarray(prob)
