@@ -12,8 +12,6 @@ __all__ = ["array_module", "promote_to_array"]
 # environment variable to control whether to use the array API or not implementation taken from
 # https://github.com/scipy/scipy/blob/514aeea23e1c90cc4d736ef0ee8b5d762dab461a/scipy/_lib/_array_api_override.py#L27
 BILBY_ARRAY_API = os.getenv("BILBY_ARRAY_API", False)
-# FIXME: add BILBY_DEVICE following SCIPY_DEVICE
-# FIXME: should we also enforce SCIPY_ARRAY_API for consistency?
 SCIPY_ARRAY_API = os.getenv("SCIPY_ARRAY_API", False)
 if BILBY_ARRAY_API and not SCIPY_ARRAY_API:
     logger.warning(
@@ -22,6 +20,16 @@ if BILBY_ARRAY_API and not SCIPY_ARRAY_API:
         "scipy will not be array API compatible. It is recommended to set "
         "both environment variables to ensure consistent behavior."
     )
+BILBY_DEVICE = os.getenv("BILBY_DEVICE", None)
+SCIPY_DEVICE = os.getenv("SCIPY_DEVICE", None)
+if BILBY_DEVICE and SCIPY_DEVICE is None:
+    logger.warning(
+        "BILBY_DEVICE is set but SCIPY_DEVICE is not set. "
+        "This may lead to unexpected behavior since some functions may not"
+        "set the default device consistently. It is recommended to set "
+        "both environment variables to ensure consistent behavior."
+    )
+
 
 
 def array_module(arr):
@@ -150,15 +158,18 @@ def promote_to_array(args, xp, skip=None):
     Notes
     =====
     This function cannot handle manual specification of devices. Arrays
-    are promoted to the default device of the specified array module. This
-    may be added in future if there is a need.
+    are promoted to the default device of the specified array module unless
+    the :code:`BILBY_DEVICE` environment variable is set, e.g., to ignore a
+    GPU when using :code:`pytorch`, users can specify :code:`BILBY_DEVICE=cpu`.
     """
     if skip is None:
         skip = len(args)
     else:
         skip = len(args) - skip
     if not is_numpy_namespace(xp):
-        args = tuple(xp.array(arg) for arg in args[:skip]) + args[skip:]
+        args = tuple(
+            xp.asarray(arg, device=BILBY_DEVICE) for arg in args[:skip]
+        ) + args[skip:]
     return args
 
 

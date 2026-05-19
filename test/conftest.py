@@ -3,6 +3,8 @@ import importlib
 import array_api_compat as aac
 import pytest
 
+from bilby.compat.utils import BILBY_DEVICE
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -37,6 +39,8 @@ def pytest_collection_modifyitems(config, items):
 
 
 def _xp(request):
+    # The configuration here loosely follows scipy
+    # https://github.com/scipy/scipy/blob/b167cae18888a34fc43a439e729383b50f4d373e/scipy/conftest.py#L186
     backend = request.config.getoption("--array-backend")
     match backend:
         case None | "numpy":
@@ -45,12 +49,14 @@ def _xp(request):
             import jax
 
             jax.config.update("jax_enable_x64", True)
+            jax.config.update("jax_default_device", jax.devices(BILBY_DEVICE)[0])
             xp = jax.numpy
         case "torch":
             import torch
             # torch starts a lot of threads, so disable this on the first import
             # to avoid segfaults
             try:
+                torch.set_default_device(BILBY_DEVICE)
                 torch.set_num_threads(1)
                 torch.set_num_interop_threads(1)
                 torch.set_default_dtype(torch.float64)
