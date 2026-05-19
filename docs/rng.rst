@@ -27,6 +27,10 @@ The random number generation can be seeded using the
     >>> from bilby.core.utils import random
     >>> random.seed(1234)
 
+For more fine-grained control, every function/method that relies on random number
+generation supports a :code:`random_state` argument that can be used to specify
+the random number generator to use for that function/method.
+
 ----------------
 Seeding samplers
 ----------------

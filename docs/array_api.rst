@@ -44,7 +44,7 @@ Bilby is currently tested with the following array backends:
 While :code:`Bilby` should be compatible with other Array API compliant libraries,
 these are not currently tested or officially supported.
 If you notice any issues when using other backends,
-please report them on the `Bilby GitHub repository <https://github.com/bilby-dev/bilby/issues>`.
+please report them on the `Bilby GitHub repository <https://github.com/bilby-dev/bilby/issues>`__.
 
 Using Different Array Backends
 -------------------------------
@@ -88,12 +88,6 @@ as there's no input array to infer the backend from:
     
     # Or with NumPy (default)
     samples_np = prior.sample(size=1000)  # Or explicitly: random_state=np.random.default_rng(42)
-
-.. note::
-
-    Currently, prior sampling is done by first generating uniform samples in [0, 1]
-    using :code:`NumPy`, then converting to the desired backend.
-    In future releases, this may be altered to generate samples directly in the specified backend.
 
 Prior Dictionaries
 ~~~~~~~~~~~~~~~~~~
@@ -194,7 +188,7 @@ and the analysis is then performed using the JIT-compiled likelihood.
         duration=4,
         sampling_frequency=2048,
         frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-        waveform_arguments={"approximant": "IMRPhenomXODE"}
+        waveform_arguments={"approximant": "IMRPhenomXPHM"}
     )
     ifos.inject_signal(parameters=injection_parameters, waveform_generator=injection_wfg)
 
@@ -306,8 +300,8 @@ The ``xp`` parameter should:
 **Note**: Users of your custom prior won't need to pass ``xp`` explicitly for evaluation methods - 
 it will be automatically inferred from their input arrays. They only need to specify ``xp`` when sampling.
 
-Using the :code:`xp_wrap`` Decorator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the :code:`xp_wrap` Decorator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For methods that perform array operations, use the ``@xp_wrap`` decorator:
 
@@ -338,11 +332,11 @@ The ``@xp_wrap`` decorator:
 Missing functionality
 ---------------------
 
-__JAX pytrees__: Currently, Bilby types are not defined as JAX pytrees, which means they cannot be
+**JAX pytrees**: Currently, Bilby types are not defined as JAX pytrees, which means they cannot be
 passed as arguments to JIT-compiled functions.
 This is a known limitation and we plan to add support for JAX pytrees in future releases.
 
-__Device management__: Bilby does not currently manage device placement for arrays.
+**Device management**: Bilby does not currently manage device placement for arrays.
 When using JAX or PyTorch, you may need to manually ensure that your arrays are on the
 correct device (CPU/GPU). We may revisit this in the future.
 
@@ -356,7 +350,7 @@ The Array API support in Bilby is built around several key components:
 
 1. **The xp parameter**: A keyword-only parameter added to prior methods
 2. **The @xp_wrap decorator**: Handles array module selection and injection
-4. **Compatibility utilities**: Helper functions for array module detection
+3. **Compatibility utilities**: Helper functions for array module detection
 
 Core Changes to Prior Base Class
 ---------------------------------
@@ -384,8 +378,8 @@ Key rules:
 - Methods without ``@xp_wrap`` that use ``xp`` use ``xp=np`` as default
 - Methods that don't use ``xp`` have ``xp=None`` as default
 
-The :code:`@xp_wrap`` Decorator
--------------------------------
+The :code:`@xp_wrap` Decorator
+------------------------------
 
 Located in ``bilby/compat/utils.py``, this decorator:
 
@@ -463,7 +457,7 @@ Use the ``--array-backend`` flag to test with specific backends::
     # Test with CuPy backend
     pytest --array-backend cupy test/core/prior/analytical_test.py
 
-You need to set both `BILBY_ARRAY_API=1` and `SCIPY_ARRAY_API=1` environment variables
+You need to set both ``BILBY_ARRAY_API=1`` and ``SCIPY_ARRAY_API=1`` environment variables
 to enable array API support in testing
 The ``--array-backend`` flag controls which backend the  ``xp_class`` fixture provides to your tests.
 
@@ -492,8 +486,8 @@ When adding or modifying prior methods:
 6. **Document xp parameter**: Note it in docstrings, but emphasize it's usually auto-detected
 7. **Use array module functions**: Use ``xp.function()`` not ``np.function()`` in wrapped methods
 
-Handling Array Updates with :code:`array_api_extra.at``
--------------------------------------------------------
+Handling Array Updates with :code:`array_api_extra.at`
+------------------------------------------------------
 
 One key difference between array backends is how they handle array updates.
 NumPy allows in-place  modification of array slices,
