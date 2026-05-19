@@ -40,7 +40,7 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
         else:
             raise ValueError("Input must be an array API object or a dict of such objects.")
 
-    def _strain_from_model(self, model_data_points, model, parameters):
+    def _strain_from_model(self, model_data_points, model, parameters, *, xp=None):
         model_data_points = np.asarray(model_data_points)
         return super()._strain_from_model(model_data_points, model, parameters)
 
