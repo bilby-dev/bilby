@@ -31,7 +31,6 @@ if BILBY_DEVICE and SCIPY_DEVICE is None:
     )
 
 
-
 def array_module(arr):
     """
     Infer the array module (namespace) from the input argument.
