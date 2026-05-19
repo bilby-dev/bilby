@@ -169,13 +169,17 @@ def random_array_module(random_state):
 
     Returns
     -------
-    numpy or jax.numpy
+    array module
         The array module corresponding to the provided random state.
     """
     if random_state is None or not BILBY_ARRAY_API:
         return np
-    elif aac.is_jax_array(random_state):
+
+    if aac.is_jax_array(random_state) or getattr(random_state, "backend") == "jax":
         import jax.numpy as jnp
         return jnp
+    elif aac.is_torch_array(random_state) or getattr(random_state, "backend") == "torch":
+        import torch
+        return torch
     else:
         return np

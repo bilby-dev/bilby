@@ -347,19 +347,33 @@ class TestPriorDict(unittest.TestCase):
                 self.assertEqual(N, len(samples2[key]))
             mock_warning.assert_not_called()
 
-    def test_sample(self):
+    def test_sample_with_random_seed(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
         size = 7
         bilby.core.utils.random.seed(42)
         samples1 = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size, random_state=self.rng
+            keys=self.prior_set_from_dict.keys(), size=size
         )
         bilby.core.utils.random.seed(42)
-        samples2 = self.prior_set_from_dict.sample(size=size, random_state=self.rng)
+        samples2 = self.prior_set_from_dict.sample(size=size)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
-            self.assertTrue(np.array_equal(samples1[key], samples2[key]))
+            np.testing.assert_array_equal(samples1[key], samples2[key])
             self.assertEqual(aac.get_namespace(samples1[key]), self.xp)
             self.assertEqual(aac.get_namespace(samples2[key]), self.xp)
+
+    def test_sample_returns_correct_type(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
+        size = 7
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=self.prior_set_from_dict.keys(), size=size, random_state=self.rng
+        )
+        for key in samples:
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
         samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)

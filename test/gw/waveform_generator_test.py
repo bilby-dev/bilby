@@ -544,6 +544,25 @@ class TestTimeDomainStrainMethod(unittest.TestCase):
         self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
         self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
 
+    def test_time_domain_source_model_call_with_explicit_backend(self):
+        expected = self.waveform_generator.time_domain_source_model(
+            self.waveform_generator.time_array,
+            self.simulation_parameters["amplitude"],
+            self.simulation_parameters["mu"],
+            self.simulation_parameters["sigma"],
+            self.simulation_parameters["ra"],
+            self.simulation_parameters["dec"],
+            self.simulation_parameters["geocent_time"],
+            self.simulation_parameters["psi"],
+        )
+        actual = self.waveform_generator.time_domain_strain(
+            parameters=self.simulation_parameters, xp=self.xp
+        )
+        self.assertTrue(np.array_equal(expected["plus"], actual["plus"]))
+        self.assertTrue(np.array_equal(expected["cross"], actual["cross"]))
+        self.assertEqual(aac.get_namespace(actual["plus"]), self.xp)
+        self.assertEqual(aac.get_namespace(actual["cross"]), self.xp)
+
     def test_frequency_domain_source_model_call_with_ndarray(self):
         self.waveform_generator.time_domain_source_model = None
         self.waveform_generator.frequency_domain_source_model = (

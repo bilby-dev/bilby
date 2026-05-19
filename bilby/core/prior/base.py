@@ -155,6 +155,9 @@ class Prior(object):
         from ..utils import random
         rng = random.resolve_random_state(random_state)
 
+        if isinstance(size, (int, np.integer)):
+            size = (size,)
+
         unit = rng.uniform(low=0, high=1, size=size)
         self.least_recently_sampled = self.rescale(unit)
         return self.least_recently_sampled

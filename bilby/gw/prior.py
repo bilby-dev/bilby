@@ -1527,7 +1527,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         return healpy
 
     @xp_wrap
-    def _rescale(self, samp, *, xp=np, **kwargs):
+    def _rescale(self, samp, *, xp=None, **kwargs):
         """
         Overwrites the _rescale method of BaseJoint Prior to rescale a single value from the unitcube onto
         two values (ra, dec) or 3 (ra, dec, dist) if distance is included
@@ -1608,7 +1608,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             norm = np.finfo(array.dtype).eps
         return array / norm
 
-    def _sample(self, size, *, xp=np, random_state=None, **kwargs):
+    def _sample(self, size, *, random_state=None, **kwargs):
         """
         Overwrites the _sample method of BaseJoint Prior. Picks a pixel value according to their probabilities, then
         uniformly samples ra, and decs that are contained in chosen pixel. If the PriorDist includes distance it then
@@ -1628,9 +1628,10 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             sample of ra, and dec (and distance if 3D=True)
         """
         rng = random.resolve_random_state(random_state)
+        xp = random.random_array_module(rng)
 
         sample_pix = rng.choice(self.npix, size=size, p=self.prob, replace=True)
-        sample = np.empty((size, self.num_vars))
+        sample = xp.empty((size, self.num_vars))
         for samp in range(size):
             theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])
             dec = 0.5 * np.pi - theta
@@ -1638,9 +1639,9 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                 self.update_distance(sample_pix[samp])
                 dist = self.draw_distance(sample_pix[samp], random_state=rng)
                 ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
-                sample[samp, :] = [ra_dec[0], ra_dec[1], dist]
+                sample = xpx.at(sample, samp).set(xp.asarray([ra_dec[0], ra_dec[1], dist]))
             else:
-                sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
+                sample = xpx.at(sample, samp).set(xp.asarray(sample[samp, :]))
         return xp.asarray(sample.reshape((-1, self.num_vars)))
 
     def draw_distance(self, pix, *, random_state=None):
