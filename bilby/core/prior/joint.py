@@ -850,7 +850,7 @@ class JointPrior(Prior):
             # reset samples
             self.dist.reset_sampled()
         self.least_recently_sampled = sample
-        return sample
+        return sample.squeeze()
 
     @xp_wrap
     def ln_prob(self, val, *, xp=None):
