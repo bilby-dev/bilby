@@ -60,9 +60,15 @@ class Interped(Prior):
     def __eq__(self, other):
         if self.__class__ != other.__class__:
             return False
-        if np.array_equal(self.xx, other.xx) and np.array_equal(self.yy, other.yy):
-            return True
-        return False
+        if self.xx.shape != other.xx.shape:
+            return False
+        if self.yy.shape != other.yy.shape:
+            return False
+        if not np.isclose(self.xx, other.xx, rtol=1e-10).all():
+            return False
+        if not np.isclose(self.yy, other.yy, rtol=1e-10).all():
+            return False
+        return True
 
     def prob(self, val):
         """Return the prior probability of val.
