@@ -300,7 +300,7 @@ class TestPriorConversion(unittest.TestCase):
 
         # Check that the non-reweighted posteriors fail a KS test
         ks = ks_2samp(
-            bilby_samples["mass_ratio"].values, 
+            bilby_samples["mass_ratio"].values,
             lalinf_samples["mass_ratio"].values,
         )
         print("Non-reweighted KS test = ", ks)
