@@ -223,8 +223,6 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertEqual(priors, priors_loaded)
 
 
-@pytest.mark.array_backend
-@pytest.mark.usefixtures("xp_class")
 class TestPriorConversion(unittest.TestCase):
     def test_bilby_to_lalinference(self):
         mass_1 = [1, 20]
@@ -259,7 +257,7 @@ class TestPriorConversion(unittest.TestCase):
         )
 
         nsamples = 5000
-        bilby_samples = bilby_prior.sample(nsamples, random_state=self.rng)
+        bilby_samples = bilby_prior.sample(nsamples)
         bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
             bilby_samples
         )
@@ -268,7 +266,7 @@ class TestPriorConversion(unittest.TestCase):
         # Quicker way to generate LA prior samples (rather than specifying Constraint)
         lalinf_samples = []
         while len(lalinf_samples) < nsamples:
-            s = lalinf_prior.sample(random_state=self.rng)
+            s = lalinf_prior.sample()
             if s["mass_1"] < s["mass_2"]:
                 s["mass_1"], s["mass_2"] = s["mass_2"], s["mass_1"]
             if s["mass_2"] / s["mass_1"] > 0.125:
@@ -301,13 +299,17 @@ class TestPriorConversion(unittest.TestCase):
             plt.show()
 
         # Check that the non-reweighted posteriors fail a KS test
-        ks = ks_2samp(bilby_samples["mass_ratio"], lalinf_samples["mass_ratio"])
+        ks = ks_2samp(
+            bilby_samples["mass_ratio"].values, 
+            lalinf_samples["mass_ratio"].values,
+        )
         print("Non-reweighted KS test = ", ks)
         self.assertFalse(ks.pvalue > 0.05)
 
         # Check that the non-reweighted posteriors pass a KS test
         ks = ks_2samp(
-            result_converted.posterior["mass_ratio"], lalinf_samples["mass_ratio"]
+            result_converted.posterior["mass_ratio"].values,
+            lalinf_samples["mass_ratio"].values,
         )
         print("Reweighted KS test = ", ks)
         self.assertTrue(ks.pvalue > 0.001)

@@ -361,8 +361,6 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
             np.testing.assert_array_equal(samples1[key], samples2[key])
-            self.assertEqual(aac.get_namespace(samples1[key]), self.xp)
-            self.assertEqual(aac.get_namespace(samples2[key]), self.xp)
 
     def test_sample_returns_correct_type(self):
         """

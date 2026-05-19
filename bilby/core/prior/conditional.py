@@ -1,3 +1,5 @@
+import numpy as np
+
 from .base import Prior, PriorException
 from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
@@ -77,6 +79,9 @@ def conditional_prior_factory(prior_class):
             """
             from ..utils import random
             rng = random.resolve_random_state(random_state)
+
+            if isinstance(size, int | np.integer):
+                size = (size,)
 
             self.least_recently_sampled = self.rescale(
                 rng.uniform(0, 1, size), **required_variables
