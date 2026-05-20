@@ -95,7 +95,7 @@ jobs:
             version: 3.13
             short-version: 313
         backend:
-          - name: numpy:
+          - name: numpy
             install-args: .
           - name: jax
             install-args: .[jax]
