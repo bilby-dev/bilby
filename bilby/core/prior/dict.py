@@ -55,13 +55,29 @@ class PriorDict(dict):
             self.conversion_function = self.default_conversion_function
 
     def evaluate_constraints(self, sample):
+        """Evaluate the constraints for a given sample.
+
+        Applies the conversion function to the sample and evaluates the
+        constraints on the converted sample.
+
+        Raises
+        ======
+        ValueError:
+            If a constraint parameter is not present in the sample after
+            conversion.
+        """
         out_sample = self.conversion_function(sample)
         try:
             prob = np.ones_like(next(iter(out_sample.values())))
         except TypeError:
             prob = np.ones_like(out_sample)
         for key in self:
-            if isinstance(self[key], Constraint) and key in out_sample:
+            if isinstance(self[key], Constraint):
+                if key not in out_sample:
+                    raise ValueError(
+                        f"Constraint {key} is not present in the sample. "
+                        "Cannot evaluate constraints."
+                    )
                 prob *= self[key].prob(out_sample[key])
         return prob
 
