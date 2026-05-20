@@ -86,7 +86,7 @@ def interp(x, xs, fs, /, left=None, right=None, period=None, *, xp=None):
         left = fs[0]
     if right is None:
         right = fs[-1]
-    
+
     x = xp.atleast_1d(x)
 
     m = (fs[1:] - fs[:-1]) / (xs[1:] - xs[:-1])

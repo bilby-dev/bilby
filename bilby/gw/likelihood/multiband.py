@@ -757,7 +757,7 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
 
         xp = array_module(strain)
 
-        d_inner_h = xp.conj(xp.dot(strain, self.linear_coeffs[interferometer.name]))
+        d_inner_h = xp.conj(xp.dot(strain, xp.asarray(self.linear_coeffs[interferometer.name])))
 
         if self.linear_interpolation:
             optimal_snr_squared = xp.vdot(

@@ -177,8 +177,9 @@ def random_array_module(random_state):
     """
     if random_state is None or not BILBY_ARRAY_API:
         return np
-
-    if aac.is_jax_array(random_state) or getattr(random_state, "backend") == "jax":
+    elif isinstance(random_state, np.random.Generator):
+        return np
+    elif aac.is_jax_array(random_state) or getattr(random_state, "backend") == "jax":
         import jax.numpy as jnp
         return jnp
     elif aac.is_torch_array(random_state) or getattr(random_state, "backend") == "torch":

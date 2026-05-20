@@ -368,7 +368,10 @@ class PowerSpectralDensity(object):
         with np.errstate(invalid="ignore"):
             frequency_domain_strain = self._power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
         xp = aac.array_namespace(frequency_domain_strain)
-        out_of_bounds = (frequencies < xp.min(self.frequency_array)) | (frequencies > xp.max(self.frequency_array))
+        out_of_bounds = (
+            (frequencies < self.frequency_array.min())
+            | (frequencies > self.frequency_array.max())
+        )
         frequency_domain_strain = xpx.at(frequency_domain_strain, out_of_bounds).set(0j)
         return xp.nan_to_num(frequency_domain_strain), xp.asarray(frequencies)
 

@@ -217,6 +217,7 @@ class interp1d(_interp1d):
                 right=right,
             )
 
+
 class BoundedRectBivariateSpline(RectBivariateSpline):
 
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
