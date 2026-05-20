@@ -1638,10 +1638,11 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             if self.distance:
                 self.update_distance(sample_pix[samp])
                 dist = self.draw_distance(sample_pix[samp], random_state=rng)
-                ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
-                sample = xpx.at(sample, samp).set(xp.asarray([ra_dec[0], ra_dec[1], dist]))
+                ra, dec = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
+                new = [ra, dec, dist]
             else:
-                sample = xpx.at(sample, samp).set(xp.asarray(sample[samp, :]))
+                new = self.draw_from_pixel(ra, dec, sample_pix[samp])
+            sample = xpx.at(sample, samp).set(xp.asarray(new))
         return xp.asarray(sample.reshape((-1, self.num_vars)))
 
     def draw_distance(self, pix, *, random_state=None):
@@ -1752,7 +1753,9 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                     phi, dec = samp[0]
                 theta = 0.5 * np.pi - dec
                 pixel = self.hp.ang2pix(self.nside, theta, phi)
-                xpx.at(lnprob, i).set(xp.log(xp.asarray(self.prob[pixel] / self.pixel_area)))
+                lnprob = xpx.at(lnprob, i).set(
+                    xp.log(xp.asarray(self.prob[pixel] / self.pixel_area))
+                )
                 if self.distance:
                     self.update_distance(pixel)
                     lnprob = xpx.at(lnprob, i).set(
