@@ -392,6 +392,62 @@ class TestPriorDict(unittest.TestCase):
         for key in self.prior_set_from_dict.keys():
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))
 
+    def test_evaluate_constraints(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.7, "mass_2": 1.2}
+        self.assertTrue(priors.evaluate_constraints(theta))
+
+        theta = {"mass_1": 1.5, "mass_2": 1.2}
+        self.assertFalse(priors.evaluate_constraints(theta))
+
+    def test_evaluate_constraints_batches(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": np.array([1.7, 1.5]), "mass_2": np.array([1.2, 1.2])}
+        expected = np.array([True, False])
+        self.assertTrue(np.array_equal(expected, priors.evaluate_constraints(theta)))
+
+    def test_evaluate_constraints_missing_keys(self):
+
+        def conversion_function(parameters):
+            return parameters.copy()
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.5, "mass_2": 1.2}
+
+        with self.assertRaises(
+            ValueError,
+            msg="Constraint delta_mass is not present in the sample. Cannot evaluate constraints."
+        ):
+            priors.evaluate_constraints(theta)
+
 
 class TestJsonIO(unittest.TestCase):
     def setUp(self):
