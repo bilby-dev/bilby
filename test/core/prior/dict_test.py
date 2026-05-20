@@ -480,6 +480,23 @@ class TestPriorDict(unittest.TestCase):
         ):
             priors.evaluate_constraints(theta)
 
+    def test_normalize_constraint_keys(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["mass_ratio"] = parameters["mass_2"] / parameters["mass_1"]
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=2)
+        priors["mass_ratio"] = bilby.core.prior.Constraint(minimum=0.0, maximum=1.0)
+
+        # Factor should close to 2 since half the prior volume is removed by the constraint
+        keys = ("mass_1", "mass_2")
+        factor = priors.normalize_constraint_factor(keys)
+        self.assertAlmostEqual(factor, 2.0, delta=0.01)
+
 
 class TestJsonIO(unittest.TestCase):
     def setUp(self):
