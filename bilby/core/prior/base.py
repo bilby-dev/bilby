@@ -15,6 +15,7 @@ from ..utils import (
     logger,
     get_dict_with_properties,
 )
+from ...compat.patches import interp
 from ...compat.utils import xp_wrap
 
 
@@ -205,7 +206,7 @@ class Prior(object):
         x = xp.linspace(self.minimum, self.maximum, 1000)
         pdf = self.prob(x, xp=xp)
         cdf = cumulative_trapezoid(pdf, x, initial=0)
-        output = xp.interp(val, x, cdf / cdf[-1], left=0, right=1)
+        output = interp(val, x, cdf / cdf[-1], left=0, right=1)
         return output[()]
 
     @xp_wrap

@@ -152,6 +152,9 @@ def resolve_random_state(random_state):
     elif aac.is_jax_array(random_state):
         rng = orng.ArrayRNG(generator=random_state, backend="jax")
         return rng
+    elif aac.is_torch_array(random_state):
+        rng = orng.ArrayRNG(seed=int(random_state), backend="torch")
+        return rng
     else:
         return _resolve_numpy_generator(random_state)
 

@@ -6,7 +6,7 @@ from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
-from ...compat.utils import array_module, xp_wrap
+from ...compat.utils import array_module, xp_wrap, BILBY_ARRAY_API
 
 
 def derivatives(
@@ -193,27 +193,29 @@ def logtrapzexp(lnf, dx, *, xp=np):
 class interp1d(_interp1d):
 
     def __call__(self, x):
-        from array_api_compat import is_numpy_namespace
+        if not BILBY_ARRAY_API:
+            return super().__call__(x)
+
+        import array_api_compat as aac
 
         xp = array_module(x)
-        if is_numpy_namespace(xp):
+        if aac.is_numpy_namespace(xp):
             return super().__call__(x)
         else:
-            return self._call_alt(x, xp=xp)
+            from ...compat.patches import interp
 
-    def _call_alt(self, x, *, xp=np):
-        if isinstance(self.fill_value, tuple):
-            left, right = self.fill_value
-        else:
-            left = right = self.fill_value
-        return xp.interp(
-            x,
-            xp.asarray(self.x),
-            xp.asarray(self.y),
-            left=left,
-            right=right,
-        )
+            if isinstance(self.fill_value, tuple):
+                left, right = self.fill_value
+            else:
+                left = right = self.fill_value
 
+            return interp(
+                x,
+                xp.asarray(self.x),
+                xp.asarray(self.y),
+                left=left,
+                right=right,
+            )
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
 

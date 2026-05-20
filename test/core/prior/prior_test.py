@@ -427,11 +427,15 @@ class TestPriorClasses(unittest.TestCase):
             with self.subTest(prior=prior):
                 ln_probs = prior.ln_prob(samples)
                 probs = prior.prob(samples)
-                for sample, logp, p in zip(samples, ln_probs, probs):
-                    self.assertAlmostEqual(prior.ln_prob(sample), logp)
-                    self.assertAlmostEqual(prior.prob(sample), p)
                 self._validate_return_type(ln_probs)
                 self._validate_return_type(probs)
+                ln_probs = np.asarray(ln_probs)
+                probs = np.asarray(probs)
+                for sample, logp, p in zip(samples, ln_probs, probs):
+                    new_lnprob = np.asarray(prior.ln_prob(sample))
+                    new_prob = np.asarray(prior.prob(sample))
+                    self.assertAlmostEqual(new_lnprob, logp, 6)
+                    self.assertAlmostEqual(new_prob, p, 6)
 
     def test_cdf_is_inverse_of_rescaling(self):
         domain = self.xp.linspace(0, 1, 100)

@@ -73,14 +73,19 @@ def _xp(request):
 
 
 def _rng(xp):
+    import array_api_compat as aac
     from bilby.core.utils.random import resolve_random_state
 
-    if xp.__name__ == "numpy":
+    if aac.is_numpy_namespace(xp):
         return resolve_random_state(12345)
-    elif xp.__name__ == "jax.numpy":
+    elif aac.is_jax_namespace(xp):
         import jax.random
-
         return resolve_random_state(jax.random.PRNGKey(12345))
+    elif aac.is_torch_namespace(xp):
+        import torch
+        return resolve_random_state(torch.Tensor([12345]))
+    else:
+        raise ValueError(f"Unknown array namespace {xp} for RNG")
 
 
 @pytest.fixture
