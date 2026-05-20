@@ -64,7 +64,8 @@ class TestGWUtils(unittest.TestCase):
         psd = PSD.power_spectral_density_interpolated(frequency)
         duration = 4
         nwip = gwutils.noise_weighted_inner_product(aa, bb, psd, duration)
-        self.assertEqual(nwip, 239.87768033598326)
+        # torch doesn't have enough precision
+        self.assertAlmostEqual(float(nwip), 239.87768033598326, 10)
 
         self.assertEqual(
             gwutils.optimal_snr_squared(aa, psd, duration),
@@ -83,7 +84,8 @@ class TestGWUtils(unittest.TestCase):
         mfsnr = gwutils.matched_filter_snr(
             signal, frequency_domain_strain, psd, duration
         )
-        self.assertEqual(mfsnr, 25.510869054168282)
+        # torch doesn't have enough precision
+        self.assertAlmostEqual(float(mfsnr), 25.510869054168282, 10)
         self.assertEqual(aac.get_namespace(mfsnr), self.xp)
 
     def test_overlap(self):
