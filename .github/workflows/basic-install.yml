@@ -38,8 +38,7 @@ jobs:
       - name: Test imports
         run: bash test/ci_test_imports.sh
       - name: Test entry points
-        run: |
-      - if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-latest'
         run: |
           for script in $(pip show -f bilby | grep "bin\/" | xargs -I {} basename {}); do
               ${script} --help;
