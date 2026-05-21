@@ -47,7 +47,7 @@ wave inference, please additionally run the following commands.
 Install bilby from source
 -------------------------
 
-:code:`bilby` is developed and tested with Python 3.10-3.12. In the
+:code:`bilby` is developed and tested with Python 3.11+. In the
 following, we assume you have a working python installation, `python pip
 <https://packaging.python.org/tutorials/installing-packages/#use-pip-for-installing)>`_,
 and `git <https://git-scm.com/>`_. See :ref:`installing-python` for our

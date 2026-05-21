@@ -15,6 +15,9 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Physics"
 ]
 description = "A user-friendly Bayesian inference library"
@@ -29,7 +32,7 @@ maintainers = [
 ]
 name = "bilby"
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.entry-points."bilby.samplers"]
 "bilby.bilby_mcmc" = "bilby.bilby_mcmc.sampler:Bilby_MCMC"
@@ -102,11 +105,13 @@ addopts = [
 packages = [
   "bilby",
   "bilby.bilby_mcmc",
+  "bilby.compat",
   "bilby.core",
   "bilby.core.prior",
   "bilby.core.sampler",
   "bilby.core.utils",
   "bilby.gw",
+  "bilby.gw.compat",
   "bilby.gw.detector",
   "bilby.gw.eos",
   "bilby.gw.likelihood",
@@ -121,10 +126,12 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.dynamic.optional-dependencies]
 all = {file = [
   "gw_requirements.txt",
+  "jax_requirements.txt",
   "mcmc_requirements.txt",
   "optional_requirements.txt"
 ]}
 gw = {file = ["gw_requirements.txt"]}
+jax = {file = ["jax_requirements.txt"]}
 mcmc = {file = ["mcmc_requirements.txt"]}
 
 [tool.setuptools.package-data]

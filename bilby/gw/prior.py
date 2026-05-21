@@ -1,12 +1,14 @@
 import os
 import copy
 
+import array_api_extra as xpx
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, trapezoid, quad
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.special import hyp2f1
 from scipy.stats import norm
 
+from ..compat.utils import xp_wrap
 from ..core.prior import (
     PriorDict, Uniform, Prior, DeltaFunction, Gaussian, Interped, Constraint,
     conditional_prior_factory, PowerLaw, ConditionalLogUniform,
@@ -430,23 +432,25 @@ class UniformInComponentsMassRatio(Prior):
     def _integral(q):
         return -5. * q**(-1. / 5.) * hyp2f1(-2. / 5., -1. / 5., 4. / 5., -q)
 
-    def cdf(self, val):
+    def cdf(self, val, *, xp=np):
         return (self._integral(val) - self._integral(self.minimum)) / self.norm
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=None):
         if self.equal_mass:
-            val = 2 * np.minimum(val, 1 - val)
+            val = 2 * xp.minimum(val, 1 - val)
         return self.icdf(val)
 
-    def prob(self, val):
+    def prob(self, val, *, xp=None):
         in_prior = (val >= self.minimum) & (val <= self.maximum)
         with np.errstate(invalid="ignore"):
             prob = (1. + val)**(2. / 5.) / (val**(6. / 5.)) / self.norm * in_prior
         return prob
 
-    def ln_prob(self, val):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=None):
         with np.errstate(divide="ignore"):
-            return np.log(self.prob(val))
+            return xp.log(self.prob(val, xp=xp))
 
 
 class AlignedSpin(Interped):
@@ -511,7 +515,7 @@ class AlignedSpin(Interped):
                 after performing the integral over spin orientation using a
                 delta function identity.
                 """
-                return a_prior.prob(aa) * z_prior.prob(chi / aa) / aa
+                return a_prior.prob(aa, xp=None) * z_prior.prob(chi / aa, xp=None) / aa
 
             self.num_interp = 10_000 if num_interp is None else num_interp
             xx = np.linspace(chi_min, chi_max, self.num_interp)
@@ -600,21 +604,26 @@ class ConditionalChiInPlane(ConditionalBasePrior):
         self.__class__.__name__ = "ConditionalChiInPlane"
         self.__class__.__qualname__ = "ConditionalChiInPlane"
 
-    def prob(self, val, **required_variables):
-        self.update_conditions(**required_variables)
+    @xp_wrap
+    def prob(self, val, *, xp=np, **required_variables):
+        parameters = self.condition_func(self.reference_params.copy(), **required_variables)
         chi_aligned = abs(required_variables[self._required_variables[0]])
+        minimum = parameters.get("minimum", self.minimum)
+        maximum = parameters.get("maximum", self.maximum)
         return (
-            (val >= self.minimum) * (val <= self.maximum)
+            (val >= minimum) * (val <= maximum)
             * val
             / (chi_aligned ** 2 + val ** 2)
-            / np.log(self._reference_maximum / chi_aligned)
+            / xp.log(self._reference_maximum / chi_aligned)
         )
 
-    def ln_prob(self, val, **required_variables):
+    @xp_wrap
+    def ln_prob(self, val, *, xp=np, **required_variables):
         with np.errstate(divide="ignore"):
-            return np.log(self.prob(val, **required_variables))
+            return xp.log(self.prob(val, **required_variables))
 
-    def cdf(self, val, **required_variables):
+    @xp_wrap
+    def cdf(self, val, *, xp=np, **required_variables):
         r"""
         .. math::
             \text{CDF}(\chi_\per) = N ln(1 + (\chi_\perp / \chi) ** 2)
@@ -634,14 +643,15 @@ class ConditionalChiInPlane(ConditionalBasePrior):
         """
         self.update_conditions(**required_variables)
         chi_aligned = abs(required_variables[self._required_variables[0]])
-        return np.maximum(np.minimum(
+        return xp.clip(
             (val >= self.minimum) * (val <= self.maximum)
-            * np.log(1 + (val / chi_aligned) ** 2)
-            / 2 / np.log(self._reference_maximum / chi_aligned)
-            , 1
-        ), 0)
+            * xp.log(1 + (val / chi_aligned) ** 2)
+            / 2 / xp.log(self._reference_maximum / chi_aligned),
+            0,
+            1
+        )
 
-    def rescale(self, val, **required_variables):
+    def rescale(self, val, *, xp=np, **required_variables):
         r"""
         .. math::
             \text{PPF}(\chi_\perp) = ((a_\max / \chi) ** (2x) - 1) ** 0.5 * \chi
@@ -664,9 +674,9 @@ class ConditionalChiInPlane(ConditionalBasePrior):
 
     def _condition_function(self, reference_params, **kwargs):
         with np.errstate(invalid="ignore"):
-            maximum = np.sqrt(
+            maximum = (
                 self._reference_maximum ** 2 - kwargs[self._required_variables[0]] ** 2
-            )
+            )**0.5
         return dict(minimum=0, maximum=maximum)
 
     def __repr__(self):
@@ -690,13 +700,13 @@ class EOSCheck(Constraint):
 
         super().__init__(minimum=minimum, maximum=maximum, name=None, latex_label=None, unit=None)
 
-    def prob(self, val):
+    def prob(self, val, *, xp=np):
         """
         Returns the result of the equation of state check in the conversion function.
         """
         return val
 
-    def ln_prob(self, val):
+    def ln_prob(self, val, *, xp=np):
 
         if val:
             result = 0.0
@@ -1516,7 +1526,8 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             raise ImportError("Must have healpy installed on this machine to use HealPixMapPrior")
         return healpy
 
-    def _rescale(self, samp, **kwargs):
+    @xp_wrap
+    def _rescale(self, samp, *, xp=None, **kwargs):
         """
         Overwrites the _rescale method of BaseJoint Prior to rescale a single value from the unitcube onto
         two values (ra, dec) or 3 (ra, dec, dist) if distance is included
@@ -1539,17 +1550,19 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         else:
             samp = samp[:, 0]
         pix_rescale = self.inverse_cdf(samp)
-        sample = np.empty((len(pix_rescale), 2))
-        dist_samples = np.empty((len(pix_rescale)))
+        sample = xp.empty((len(pix_rescale), 2))
+        dist_samples = xp.empty((len(pix_rescale)))
         for i, val in enumerate(pix_rescale):
             theta, ra = self.hp.pix2ang(self.nside, int(round(val)))
             dec = 0.5 * np.pi - theta
-            sample[i, :] = self.draw_from_pixel(ra, dec, int(round(val)))
+            sample = xpx.at(sample, i).set(xp.asarray(self.draw_from_pixel(ra, dec, int(round(val)))))
             if self.distance:
                 self.update_distance(int(round(val)))
-                dist_samples[i] = self.distance_icdf(dist_samp[i])
+                dist_samples = xpx.at(dist_samples, i).set(
+                    xp.asarray(self.distance_icdf(dist_samp[i]))
+                )
         if self.distance:
-            sample = np.vstack([sample[:, 0], sample[:, 1], dist_samples])
+            sample = xp.vstack([sample[:, 0], sample[:, 1], dist_samples])
         return sample.reshape((-1, self.num_vars))
 
     def update_distance(self, pix_idx):
@@ -1595,7 +1608,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
             norm = np.finfo(array.dtype).eps
         return array / norm
 
-    def _sample(self, size, **kwargs):
+    def _sample(self, size, *, random_state=None, **kwargs):
         """
         Overwrites the _sample method of BaseJoint Prior. Picks a pixel value according to their probabilities, then
         uniformly samples ra, and decs that are contained in chosen pixel. If the PriorDist includes distance it then
@@ -1614,21 +1627,25 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         sample : array_like
             sample of ra, and dec (and distance if 3D=True)
         """
-        sample_pix = random.rng.choice(self.npix, size=size, p=self.prob, replace=True)
-        sample = np.empty((size, self.num_vars))
+        rng = random.resolve_random_state(random_state)
+        xp = random.random_array_module(rng)
+
+        sample_pix = rng.choice(self.npix, size=size, p=self.prob, replace=True)
+        sample = xp.empty((size, self.num_vars))
         for samp in range(size):
             theta, ra = self.hp.pix2ang(self.nside, sample_pix[samp])
             dec = 0.5 * np.pi - theta
             if self.distance:
                 self.update_distance(sample_pix[samp])
-                dist = self.draw_distance(sample_pix[samp])
-                ra_dec = self.draw_from_pixel(ra, dec, sample_pix[samp])
-                sample[samp, :] = [ra_dec[0], ra_dec[1], dist]
+                dist = self.draw_distance(sample_pix[samp], random_state=rng)
+                ra, dec = self.draw_from_pixel(ra, dec, sample_pix[samp], random_state=rng)
+                new = [ra, dec, dist]
             else:
-                sample[samp, :] = self.draw_from_pixel(ra, dec, sample_pix[samp])
-        return sample.reshape((-1, self.num_vars))
+                new = self.draw_from_pixel(ra, dec, sample_pix[samp])
+            sample = xpx.at(sample, samp).set(xp.asarray(new))
+        return xp.asarray(sample.reshape((-1, self.num_vars)))
 
-    def draw_distance(self, pix):
+    def draw_distance(self, pix, *, random_state=None):
         """
         Method to recursively draw a distance value from the given set distance distribution and check that it is in
         the bounds
@@ -1644,16 +1661,18 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         dist : float
             sample drawn from the distance distribution at set pixel index
         """
+        rng = random.resolve_random_state(random_state)
+
         if self.distmu[pix] == np.inf or self.distmu[pix] <= 0:
             return 0
-        dist = self.distance_icdf(random.rng.uniform(0, 1))
+        dist = self.distance_icdf(rng.uniform(0, 1))
         name = self.names[-1]
         if (dist > self.bounds[name][1]) | (dist < self.bounds[name][0]):
-            self.draw_distance(pix)
+            self.draw_distance(pix, random_state=rng)
         else:
             return dist
 
-    def draw_from_pixel(self, ra, dec, pix):
+    def draw_from_pixel(self, ra, dec, pix, *, random_state=None):
         """
         Recursive function to uniformly draw ra, and dec values that are located in the given pixel
 
@@ -1671,12 +1690,14 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         ra_dec : tuple
             this returns a tuple of ra, and dec sampled uniformly that are in the pixel given
         """
+        rng = random.resolve_random_state(random_state)
+
         if not self.check_in_pixel(ra, dec, pix):
-            self.draw_from_pixel(ra, dec, pix)
+            self.draw_from_pixel(ra, dec, pix, random_state=rng)
         return np.array(
             [
-                random.rng.uniform(ra - self.pixel_length, ra + self.pixel_length),
-                random.rng.uniform(dec - self.pixel_length, dec + self.pixel_length),
+                rng.uniform(ra - self.pixel_length, ra + self.pixel_length),
+                rng.uniform(dec - self.pixel_length, dec + self.pixel_length),
             ]
         )
 
@@ -1705,7 +1726,8 @@ class HealPixMapPriorDist(BaseJointPriorDist):
         pixel = self.hp.ang2pix(self.nside, theta, phi)
         return pix == pixel
 
-    def _ln_prob(self, samp, lnprob, outbounds):
+    @xp_wrap
+    def _ln_prob(self, samp, lnprob, outbounds, *, xp=None):
         """
         Overwrites the _lnprob method of BaseJoint Prior
 
@@ -1731,11 +1753,15 @@ class HealPixMapPriorDist(BaseJointPriorDist):
                     phi, dec = samp[0]
                 theta = 0.5 * np.pi - dec
                 pixel = self.hp.ang2pix(self.nside, theta, phi)
-                lnprob[i] = np.log(self.prob[pixel] / self.pixel_area)
+                lnprob = xpx.at(lnprob, i).set(
+                    xp.log(xp.asarray(self.prob[pixel] / self.pixel_area))
+                )
                 if self.distance:
                     self.update_distance(pixel)
-                    lnprob[i] += np.log(self.distance_pdf(dist) * dist ** 2)
-        lnprob[outbounds] = -np.inf
+                    lnprob = xpx.at(lnprob, i).set(
+                        lnprob[i] + xp.log(xp.asarray(self.distance_pdf(dist) * dist ** 2))
+                    )
+        lnprob = xp.where(xp.asarray(outbounds), -np.inf, lnprob)
         return lnprob
 
     def __eq__(self, other):

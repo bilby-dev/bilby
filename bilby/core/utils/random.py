@@ -27,7 +27,11 @@ https://numpy.org/doc/stable/reference/random/generator.html
 import sys
 import warnings
 
+import array_api_compat as aac
+import numpy as np
 from numpy.random import default_rng, SeedSequence
+
+from ...compat.utils import BILBY_ARRAY_API
 
 
 def __getattr__(name):
@@ -104,3 +108,82 @@ def generate_seeds(nseeds):
         A SeedSequence object containing the generated seeds.
     """
     return SeedSequence(Generator.rng.integers(0, 2**63 - 1, size=4)).spawn(nseeds)
+
+
+def resolve_random_state(random_state):
+    """
+    Resolve the provided random state into a random number generator.
+
+    Parameters
+    ==========
+    random_state: None, int, np.random.Generator, or jax.random.KeyArray
+        The random state to resolve.
+        If None, the default random generator will be used.
+        If an int, a new :code:`numpy.random.default_rng` object will be
+        created with that seed.
+        If a :code:`numpy.random.Generator`, it will be returned as is.
+        If a :code:`jax.random.KeyArray`, a corresponding
+        :code:`orng.ArrayRNG` generator will be created and returned.
+
+    Returns
+    =======
+    np.random.Generator or orng.ArrayRNG
+        The resolved random number generator.
+    """
+
+    def _resolve_numpy_generator(random_state):
+        if isinstance(random_state, np.random.Generator):
+            return random_state
+        elif random_state is None:
+            return Generator.rng
+        elif isinstance(random_state, int):
+            return np.random.default_rng(random_state)
+        else:
+            raise ValueError(
+                "Invalid random state. Must be None, int, or np.random.Generator."
+            )
+
+    if not BILBY_ARRAY_API:
+        return _resolve_numpy_generator(random_state)
+
+    import orng
+    if isinstance(random_state, (np.random.Generator, orng.ArrayRNG)):
+        return random_state
+    elif aac.is_jax_array(random_state):
+        rng = orng.ArrayRNG(generator=random_state, backend="jax")
+        return rng
+    elif aac.is_torch_array(random_state):
+        rng = orng.ArrayRNG(seed=int(random_state), backend="torch")
+        return rng
+    else:
+        return _resolve_numpy_generator(random_state)
+
+
+def random_array_module(random_state):
+    """
+    Return the array module corresponding to the provided random state.
+    The the random state is a JAX random key, this will return :code:`jax.numpy`.
+    Otherwise, it will return :code:`numpy`.
+
+    Parameters
+    ==========
+    random_state: None, int, np.random.Generator, or jax.random.KeyArray
+        The random state to resolve.
+
+    Returns
+    -------
+    array module
+        The array module corresponding to the provided random state.
+    """
+    if random_state is None or not BILBY_ARRAY_API:
+        return np
+    elif isinstance(random_state, np.random.Generator):
+        return np
+    elif aac.is_jax_array(random_state) or getattr(random_state, "backend") == "jax":
+        import jax.numpy as jnp
+        return jnp
+    elif aac.is_torch_array(random_state) or getattr(random_state, "backend") == "torch":
+        import torch
+        return torch
+    else:
+        return np
