@@ -218,6 +218,32 @@ class TestConditionalPriorDict(unittest.TestCase):
         ).items():
             self.conditional_priors_manually_set_items[key] = value
 
+        names = ["mvgvar_a", "mvgvar_b"]
+        mu = [[0.79, -0.83]]
+        cov = [[[0.03, 0.0], [0.0, 0.04]]]
+        mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
+
+        def condition_func_4(reference_parameters, mvgvar_a):
+            return dict(minimum=reference_parameters["minimum"], maximum=mvgvar_a)
+
+        prior_4 = bilby.core.prior.ConditionalUniform(
+            condition_func=condition_func_4, minimum=self.minimum, maximum=self.maximum
+        )
+
+        self.conditional_priors_with_joint_prior = (
+            bilby.core.prior.ConditionalPriorDict(
+                dict(
+                    var_4=prior_4,
+                    var_3=self.prior_3,
+                    var_2=self.prior_2,
+                    var_0=self.prior_0,
+                    var_1=self.prior_1,
+                    mvgvar_a=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_a"),
+                    mvgvar_b=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_b"),
+                )
+            )
+        )
+
     def tearDown(self):
         del self.minimum
         del self.maximum
@@ -227,6 +253,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         del self.prior_3
         del self.conditional_priors
         del self.conditional_priors_manually_set_items
+        del self.conditional_priors_with_joint_prior
         del self.test_sample
 
     def test_conditions_resolved_upon_instantiation(self):
@@ -333,35 +360,23 @@ class TestConditionalPriorDict(unittest.TestCase):
         """
 
         # set multivariate Gaussian distribution
-        names = ["mvgvar_0", "mvgvar_1"]
-        mu = [[0.79, -0.83]]
-        cov = [[[0.03, 0.], [0., 0.04]]]
-        mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
-        priordict = bilby.core.prior.ConditionalPriorDict(
-            dict(
-                var_3=self.prior_3,
-                var_2=self.prior_2,
-                var_0=self.prior_0,
-                var_1=self.prior_1,
-                mvgvar_0=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_0"),
-                mvgvar_1=bilby.core.prior.MultivariateGaussian(mvg, "mvgvar_1"),
-            )
-        )
+        priordict = self.conditional_priors_with_joint_prior
+        names = ["mvgvar_a", "mvgvar_b"]
 
-        ref_variables = list(self.test_sample.values()) + [0.4, 0.1]
-        keys = list(self.test_sample.keys()) + names
+        ref_variables = [0.1] + list(self.test_sample.values()) + [0.4, 0.1]
+        keys = ["var_4"] + list(self.test_sample.keys()) + names
         res = priordict.rescale(keys=keys, theta=ref_variables)
 
         self.assertIsInstance(res, list)
-        self.assertEqual(np.shape(res), (6,))
-        self.assertListEqual([isinstance(r, float) for r in res], 6 * [True])
+        self.assertEqual(np.shape(res), (7,))
+        self.assertListEqual([isinstance(r, float) for r in res], 7 * [True])
 
         # check conditional values are still as expected
         expected = [self.test_sample["var_0"]]
         for ii in range(1, 4):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
-        self.assertListEqual(expected, res[0:4])
+        self.assertListEqual(expected, res[1:5])
 
     def test_cdf(self):
         """
