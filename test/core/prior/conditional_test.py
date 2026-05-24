@@ -326,6 +326,17 @@ class TestConditionalPriorDict(unittest.TestCase):
             expected.append(expected[-1] * self.test_sample[f"var_{ii}"])
         self.assertListEqual(expected, res)
 
+    def test_rescale_subset(self):
+        test_sample_subset = {
+            key: self.test_sample[key] for key in ["var_0", "var_1", "var_2"]
+        }
+
+        res = self.conditional_priors.rescale(
+            keys=list(test_sample_subset.keys()),
+            theta=list(test_sample_subset.values()),
+        )
+        assert len(res) == 3
+
     def test_rescale_with_joint_prior(self):
         """
         Add a joint prior into the conditional prior dictionary and check that
