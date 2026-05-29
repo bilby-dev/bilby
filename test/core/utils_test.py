@@ -462,6 +462,38 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
         b = data["rng"].random()
         self.assertEqual(a, b)
 
+    def test_hdf5_seed_sequence(self):
+        seed_sequence = np.random.SeedSequence(1234).spawn(1)[0]
+        data = {"seed_sequence": seed_sequence}
+
+        with h5py.File(self.outdir / "test_seed_sequence.h5", "w") as f:
+            bilby.core.utils.recursively_save_dict_contents_to_group(
+                f, "/", data
+            )
+
+        with h5py.File(self.outdir / "test_seed_sequence.h5", "r") as f:
+            loaded = bilby.core.utils.recursively_load_dict_contents_from_group(
+                f, "/"
+            )
+
+        self.assertIsInstance(loaded["seed_sequence"], np.random.SeedSequence)
+        self.assertEqual(loaded["seed_sequence"].state, seed_sequence.state)
+
+    def test_json_seed_sequence(self):
+        seed_sequence = np.random.SeedSequence(1234).spawn(1)[0]
+        data = {"seed_sequence": seed_sequence}
+
+        with open(self.outdir / "test_seed_sequence.json", "w") as file:
+            json.dump(data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
+
+        with open(self.outdir / "test_seed_sequence.json", "r") as file:
+            loaded = json.load(
+                file, object_hook=bilby.core.utils.decode_bilby_json
+            )
+
+        self.assertIsInstance(loaded["seed_sequence"], np.random.SeedSequence)
+        self.assertEqual(loaded["seed_sequence"].state, seed_sequence.state)
+
     def test_pickle(self):
         with open(self.outdir / "test.pkl", 'wb') as file:
             dill.dump(self.data, file)
