@@ -9,7 +9,6 @@ from bilby_cython.geometry import (
 
 from ...core import utils
 from ...core.utils import docstring, logger, PropertyAccessor, safe_file_dump
-from ...core.utils.env import string_to_boolean
 from .. import utils as gwutils
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
