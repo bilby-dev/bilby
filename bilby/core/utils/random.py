@@ -123,11 +123,11 @@ def resolve_random_state(random_state):
         created with that seed.
         If a :code:`numpy.random.Generator`, it will be returned as is.
         If a :code:`jax.random.KeyArray`, a corresponding
-        :code:`orng.ArrayRNG` generator will be created and returned.
+        :code:`orng.RandomGenerator` generator will be created and returned.
 
     Returns
     =======
-    np.random.Generator or orng.ArrayRNG
+    np.random.Generator or orng.RandomGenerator
         The resolved random number generator.
     """
 
@@ -147,13 +147,13 @@ def resolve_random_state(random_state):
         return _resolve_numpy_generator(random_state)
 
     import orng
-    if isinstance(random_state, (np.random.Generator, orng.ArrayRNG)):
+    if isinstance(random_state, (np.random.Generator, orng.RandomGenerator)):
         return random_state
     elif aac.is_jax_array(random_state):
-        rng = orng.ArrayRNG(generator=random_state, backend="jax")
+        rng = orng.RandomGenerator(generator=random_state, backend="jax")
         return rng
     elif aac.is_torch_array(random_state):
-        rng = orng.ArrayRNG(seed=int(random_state), backend="torch")
+        rng = orng.RandomGenerator(seed=int(random_state), backend="torch")
         return rng
     else:
         return _resolve_numpy_generator(random_state)

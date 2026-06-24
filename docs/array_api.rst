@@ -84,7 +84,7 @@ as there's no input array to infer the backend from:
     import jax
     
     prior = bilby.core.prior.Uniform(minimum=0, maximum=10)
-    samples = prior.sample(size=1000, random_state=jax.random.PRNGKey(42))  # Returns JAX array
+    samples = prior.sample(size=1000, random_state=jax.random.key(42))  # Returns JAX array
     
     # Or with NumPy (default)
     samples_np = prior.sample(size=1000)  # Or explicitly: random_state=np.random.default_rng(42)
@@ -106,7 +106,7 @@ Prior dictionaries work the same way - automatic detection for most methods, exp
     })
     
     # Sampling requires explicit random_state
-    samples = priors.sample(size=1000, random_state=jax.random.PRNGKey(42))
+    samples = priors.sample(size=1000, random_state=jax.random.key(42))
     
     # Evaluation automatically detects backend from input
     theta = jnp.array([50.0, 0.5])

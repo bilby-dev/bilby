@@ -80,7 +80,7 @@ def _rng(xp):
         return resolve_random_state(12345)
     elif aac.is_jax_namespace(xp):
         import jax.random
-        return resolve_random_state(jax.random.PRNGKey(12345))
+        return resolve_random_state(jax.random.key(12345))
     elif aac.is_torch_namespace(xp):
         import torch
         return resolve_random_state(torch.Tensor([12345]))

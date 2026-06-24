@@ -1,6 +1,5 @@
 import json
 import os
-from copy import copy
 
 import array_api_compat as aac
 import numpy as np
@@ -11,7 +10,7 @@ from .utils import (
     BilbyJsonEncoder, load_json, move_old_file
 )
 from .result import FileMovedError
-from ..compat.utils import array_module
+from ..compat.utils import array_module, copy_array
 
 
 def grid_file_name(outdir, label, gzip=False):
@@ -169,7 +168,7 @@ class Grid(object):
         else:
             raise TypeError("Parameters names must be a list or string")
 
-        out_array = copy(log_array)
+        out_array = copy_array(log_array)
         names = list(self.parameter_names)
 
         for name in params:

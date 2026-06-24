@@ -334,6 +334,12 @@ class SymmetricLogUniform(Prior):
         Returns
         =======
         Union[float, array_like]: Rescaled probability
+
+        Notes
+        =====
+        The behaviour at the discontinuity changed in :code:`Bilby` version 3.
+        Prior to version 3, this returned :code:`self.minimum` for :code:`rescale(0.5)`,
+        now this returns :code:`0`.
         """
         return (
             xp.sign(2 * val - 1)
@@ -374,7 +380,10 @@ class SymmetricLogUniform(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        asymmetric = xp.log(xp.abs(val) / self.minimum) / xp.log(xp.asarray(self.maximum / self.minimum))
+        asymmetric = (
+            xp.log(xp.maximum(xp.abs(val) / self.minimum, 1))
+            / xp.log(xp.asarray(self.maximum / self.minimum))
+        )
         return xp.clip(0.5 * (1 + xp.sign(val) * asymmetric), 0, 1)
 
 
@@ -996,9 +1005,18 @@ class Beta(Prior):
         =======
         Union[float, array_like]: Prior probability of val
         """
-        ln_prob = xlog1py(xp.asarray(self.beta - 1.0), -val) + xlogy(xp.asarray(self.alpha - 1.0), val)
-        ln_prob -= betaln(xp.asarray(self.alpha), xp.asarray(self.beta))
-        return xp.nan_to_num(ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf)
+        normalized = (val - self.minimum) / (self.maximum - self.minimum)
+        ln_prob = (
+            xlog1py(xp.asarray(self.beta - 1.0), -normalized)
+            + xlogy(xp.asarray(self.alpha - 1.0), normalized)
+            - xlogy(xp.asarray(self.alpha + self.beta - 1), xp.asarray(self.maximum - self.minimum))
+            - betaln(xp.asarray(self.alpha), xp.asarray(self.beta))
+        )
+        return xp.where(
+            xp.abs(normalized - 0.5) <= 0.5,
+            xp.nan_to_num(ln_prob, nan=-xp.inf, neginf=-xp.inf, posinf=-xp.inf),
+            -xp.inf,
+        )
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
@@ -1198,6 +1216,12 @@ class Gamma(Prior):
         'Rescale' a sample from the unit line element to the appropriate Gamma prior.
 
         This maps to the inverse CDF. This has been analytically solved for this case.
+
+        Notes
+        =====
+        Currently, the underlying function :code:`scipy.special.gammaincinv` does not
+        support GPU dispatch and so may lead to performance degradation when using
+        hardware acceleration.
         """
         return xp.asarray(gammaincinv(self.k, val)) * self.theta
 

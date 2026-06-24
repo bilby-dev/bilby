@@ -1,9 +1,10 @@
 import inspect
 import os
 from collections.abc import Iterable
+from copy import copy
 
+import array_api_compat as aac
 import numpy as np
-from array_api_compat import array_namespace, is_numpy_namespace
 
 from ..core.utils.log import logger
 
@@ -101,7 +102,7 @@ def array_module(arr):
 
     # FIXME: remove direct import of orng to avoid hard dependency
     import orng
-    if isinstance(arr, orng.ArrayRNG):
+    if isinstance(arr, orng.RandomGenerator):
         match arr.backend:
             case "jax":
                 import jax.numpy as jnp
@@ -111,16 +112,16 @@ def array_module(arr):
     if isinstance(arr, tuple) and len(arr) == 1:
         arr = arr[0]
     try:
-        return array_namespace(arr)
+        return aac.array_namespace(arr)
     except TypeError:
         if isinstance(arr, dict):
             try:
-                return array_namespace(*[val for val in arr.values() if not isinstance(val, str)])
+                return aac.array_namespace(*[val for val in arr.values() if not isinstance(val, str)])
             except TypeError:
                 return np
         elif arr.__class__.__module__ == "builtins" and isinstance(arr, Iterable):
             try:
-                return array_namespace(*arr)
+                return aac.array_namespace(*arr)
             except TypeError:
                 return np
         elif arr.__class__.__module__ == "builtins":
@@ -165,7 +166,7 @@ def promote_to_array(args, xp, skip=None):
         skip = len(args)
     else:
         skip = len(args) - skip
-    if not is_numpy_namespace(xp):
+    if not aac.is_numpy_namespace(xp):
         args = tuple(
             xp.asarray(arg, device=BILBY_DEVICE) for arg in args[:skip]
         ) + args[skip:]
@@ -225,6 +226,29 @@ def xp_wrap(func, no_xp=False):
             return func(*args, **kwargs)
 
     return wrapped
+
+
+def copy_array(arr):
+    """
+    Return a copy of the passed array.
+    For :code:`torch` tensors, this uses the :code:`clone` method,
+    for everything else we use :code:`copy.copy` to perform a shallow
+    copy.
+
+    Parameters
+    ==========
+    arr: array-like
+        The array to copy
+
+    Returns
+    =======
+    array-like
+        The copied array
+    """
+    if acc.is_torch_array(arr):
+        return arr.clone()
+    else:
+        return copy(arr)
 
 
 class BackendNotImplementedError(NotImplementedError):
