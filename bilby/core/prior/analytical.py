@@ -381,7 +381,7 @@ class SymmetricLogUniform(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=None):
         asymmetric = (
-            xp.log(xp.maximum(xp.abs(val) / self.minimum, 1))
+            xp.log(xp.maximum(xp.abs(val) / self.minimum, xp.asarray(1)))
             / xp.log(xp.asarray(self.maximum / self.minimum))
         )
         return xp.clip(0.5 * (1 + xp.sign(val) * asymmetric), 0, 1)
