@@ -253,10 +253,9 @@ def get_weights_for_reweighting(
             else:
                 chunksize = max(100, n // (2 * npool))
                 map_fn = partial(my_pool.imap, chunksize=chunksize)
-            likelihood_fn = partial(_safe_likelihood_call, this_logl)
 
             log_l = list(tqdm(
-                map_fn(likelihood_fn, dict_samples[starting_index:]),
+                map_fn(this_logl.log_likelihood, dict_samples[starting_index:]),
                 desc='Computing likelihoods',
                 total=n,
             ))
