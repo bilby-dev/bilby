@@ -245,7 +245,7 @@ def copy_array(arr):
     array-like
         The copied array
     """
-    if acc.is_torch_array(arr):
+    if aac.is_torch_array(arr):
         return arr.clone()
     else:
         return copy(arr)
