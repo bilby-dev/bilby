@@ -1009,7 +1009,7 @@ class Beta(Prior):
         ln_prob = (
             xlog1py(xp.asarray(self.beta - 1.0), -normalized)
             + xlogy(xp.asarray(self.alpha - 1.0), normalized)
-            - xlogy(xp.asarray(self.alpha + self.beta - 1), xp.asarray(self.maximum - self.minimum))
+            -  xp.log(self.maximum - self.minimum)
             - betaln(xp.asarray(self.alpha), xp.asarray(self.beta))
         )
         return xp.where(
