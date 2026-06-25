@@ -55,6 +55,8 @@ class PriorDict(dict):
             self.conversion_function = self.default_conversion_function
 
     def evaluate_constraints(self, sample):
+        if self.conversion_function == self.default_conversion_function and type(self).default_conversion_function == PriorDict.default_conversion_function and any(isinstance(v, Constraint) for v in self.values()):
+            logger.warning("Sampling from prior with Constraints, but no conversion function. The Constraints will be ignored.")
         out_sample = self.conversion_function(sample)
         try:
             prob = np.ones_like(next(iter(out_sample.values())))
