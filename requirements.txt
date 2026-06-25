@@ -1,7 +1,7 @@
 # see https://github.com/data-apis/array-api-compat/pull/341
 array_api_compat>=1.13
 array_api_extra
-dynesty>=2.0.1
+dynesty>=3.0.0
 emcee
 corner
 numpy
