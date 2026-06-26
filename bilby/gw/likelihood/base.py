@@ -289,15 +289,15 @@ class GravitationalWaveTransient(Likelihood):
             signal *= self.calibration_draws[interferometer.name][int(parameters['recalib_index'])]
 
         whitened_signal = interferometer.whiten_frequency_series(signal)
+        xp = aac.array_namespace(whitened_signal)
 
-        d_inner_h = (interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal).sum()
+        d_inner_h = (xp.conjugate(interferometer.whitened_frequency_domain_strain) * whitened_signal).sum()
         optimal_snr_squared = (abs(whitened_signal)**2).sum()
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
         d_inner_h_array = None
         optimal_snr_squared_array = None
 
-        xp = aac.array_namespace(signal)
 
         if return_array is False:
             d_inner_h_array = None
@@ -305,7 +305,7 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization and self.calibration_marginalization:
 
             d_inner_h_integrand = xp.tile(
-                interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal,
+                xp.conjugate(interferometer.whitened_frequency_domain_strain) * whitened_signal,
                 (self.number_of_response_curves, 1)
             ).T
 
@@ -322,13 +322,13 @@ class GravitationalWaveTransient(Likelihood):
         elif self.time_marginalization and not self.calibration_marginalization:
             d_inner_h_integrand = (
                 whitened_signal
-                * interferometer.whitened_frequency_domain_strain.conjugate()
+                * xp.conjugate(interferometer.whitened_frequency_domain_strain)
             )
             d_inner_h_array = xp.fft.fft(d_inner_h_integrand[:-1])
 
         elif self.calibration_marginalization and ('recalib_index' not in parameters):
             d_inner_h_integrand = (
-                interferometer.whitened_frequency_domain_strain.conjugate() * whitened_signal
+                xp.conjugate(interferometer.whitened_frequency_domain_strain) * whitened_signal
             )[interferometer.frequency_mask]
             d_inner_h_array = xp.dot(d_inner_h_integrand, self.calibration_draws[interferometer.name].T)
 
