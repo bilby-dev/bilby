@@ -298,7 +298,6 @@ class GravitationalWaveTransient(Likelihood):
         d_inner_h_array = None
         optimal_snr_squared_array = None
 
-
         if return_array is False:
             d_inner_h_array = None
             optimal_snr_squared_array = None
