@@ -5,11 +5,13 @@ import os
 import sys
 import pickle
 
+import array_api_compat as aac
 import numpy as np
 from astropy import cosmology
 from scipy.stats import ks_2samp
 import matplotlib.pyplot as plt
 import pandas as pd
+import pytest
 
 import bilby
 from bilby.core.prior import Uniform, Constraint
@@ -259,6 +261,7 @@ class TestPriorConversion(unittest.TestCase):
         bilby_samples, _ = conversion.convert_to_lal_binary_black_hole_parameters(
             bilby_samples
         )
+        bilby_samples = pd.DataFrame(bilby_samples)
 
         # Quicker way to generate LA prior samples (rather than specifying Constraint)
         lalinf_samples = []
@@ -278,7 +281,7 @@ class TestPriorConversion(unittest.TestCase):
         result.search_parameter_keys = ["mass_ratio", "chirp_mass"]
         result.meta_data = dict()
         result.priors = bilby_prior
-        result.posterior = pd.DataFrame(bilby_samples)
+        result.posterior = bilby_samples
         result_converted = bilby.gw.prior.convert_to_flat_in_component_mass_prior(
             result, fraction=0.1
         )
@@ -296,13 +299,17 @@ class TestPriorConversion(unittest.TestCase):
             plt.show()
 
         # Check that the non-reweighted posteriors fail a KS test
-        ks = ks_2samp(bilby_samples["mass_ratio"], lalinf_samples["mass_ratio"])
+        ks = ks_2samp(
+            bilby_samples["mass_ratio"].values,
+            lalinf_samples["mass_ratio"].values,
+        )
         print("Non-reweighted KS test = ", ks)
         self.assertFalse(ks.pvalue > 0.05)
 
         # Check that the non-reweighted posteriors pass a KS test
         ks = ks_2samp(
-            result_converted.posterior["mass_ratio"], lalinf_samples["mass_ratio"]
+            result_converted.posterior["mass_ratio"].values,
+            lalinf_samples["mass_ratio"].values,
         )
         print("Reweighted KS test = ", ks)
         self.assertTrue(ks.pvalue > 0.001)
@@ -557,14 +564,17 @@ class TestUniformComovingVolumePrior(unittest.TestCase):
         self.assertEqual(new_prior.name, "comoving_distance")
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestAlignedSpin(unittest.TestCase):
     def setUp(self):
-        pass
+        if aac.is_torch_namespace(self.xp):
+            self.skipTest("Torch doesn't support interpolated priors.")
 
     def test_default_prior_matches_analytic(self):
         prior = bilby.gw.prior.AlignedSpin()
-        chis = np.linspace(-1, 1, 20)
-        analytic = -np.log(np.abs(chis)) / 2
+        chis = self.xp.linspace(-1, 1, 20)
+        analytic = -self.xp.log(self.xp.abs(chis)) / 2
         max_difference = max(abs(analytic - prior.prob(chis)))
         self.assertAlmostEqual(max_difference, 0, 2)
 
@@ -572,25 +582,30 @@ class TestAlignedSpin(unittest.TestCase):
         a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
         z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
         chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
-        chis = chi_prior.sample(100000)
-        alts = a_prior.sample(100000) * z_prior.sample(100000)
+        chis = chi_prior.sample(100000, random_state=self.rng)
+        alts = a_prior.sample(100000, random_state=self.rng) * z_prior.sample(100000, random_state=self.rng)
         self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
         self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
+        self.assertEqual(aac.get_namespace(chis), self.xp)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
 
     def setUp(self):
-        pass
+        if aac.is_torch_namespace(self.xp):
+            self.skipTest("Torch doesn't support interpolated priors.")
 
     def test_marginalized_prior_is_uniform(self):
         priors = bilby.gw.prior.BBHPriorDict(aligned_spin=True)
         priors["a_1"] = bilby.gw.prior.ConditionalChiUniformSpinMagnitude(
             minimum=0.1, maximum=priors["chi_1"].maximum, name="a_1"
         )
-        samples = priors.sample(100000)["a_1"]
+        samples = priors.sample(100000, random_state=self.rng)["a_1"]
         ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
         self.assertTrue(ks.pvalue > 0.001)
+        self.assertEqual(aac.get_namespace(samples), self.xp)
 
 
 if __name__ == "__main__":

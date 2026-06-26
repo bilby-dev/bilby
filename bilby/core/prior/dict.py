@@ -5,6 +5,7 @@ from importlib import import_module
 from io import open as ioopen
 from warnings import warn
 
+import array_api_compat as aac
 import numpy as np
 
 from .analytical import DeltaFunction
@@ -16,6 +17,8 @@ from ..utils import (
     BilbyJsonEncoder,
     decode_bilby_json,
 )
+from ..utils.random import resolve_random_state, random_array_module
+from ...compat.utils import array_module, xp_wrap
 
 
 class PriorDict(dict):
@@ -54,12 +57,16 @@ class PriorDict(dict):
         else:
             self.conversion_function = self.default_conversion_function
 
-    def evaluate_constraints(self, sample):
+    def __hash__(self):
+        return hash(str(self))
+
+    @xp_wrap
+    def evaluate_constraints(self, sample, *, xp=None):
         out_sample = self.conversion_function(sample)
         try:
-            prob = np.ones_like(next(iter(out_sample.values())))
+            prob = xp.ones_like(next(iter(out_sample.values())), dtype=bool)
         except TypeError:
-            prob = np.ones_like(out_sample)
+            prob = xp.ones_like(out_sample, dtype=bool)
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
@@ -349,7 +356,7 @@ class PriorDict(dict):
         for key in self:
             self.test_redundancy(key)
 
-    def sample(self, size=None):
+    def sample(self, size=None, *, random_state=None):
         """Draw samples from the prior set
 
         Parameters
@@ -361,9 +368,13 @@ class PriorDict(dict):
         =======
         dict: Dictionary of the samples
         """
-        return self.sample_subset_constrained(keys=list(self.keys()), size=size)
+        return self.sample_subset_constrained(
+            keys=list(self.keys()), size=size, random_state=random_state
+        )
 
-    def sample_subset_constrained_as_array(self, keys=iter([]), size=None):
+    def sample_subset_constrained_as_array(
+        self, keys=iter([]), size=None, *, random_state=None
+    ):
         """Return an array of samples
 
         Parameters
@@ -378,12 +389,15 @@ class PriorDict(dict):
         array: array_like
             An array of shape (len(key), size) of the samples (ordered by keys)
         """
-        samples_dict = self.sample_subset_constrained(keys=keys, size=size)
-        samples_dict = {key: np.atleast_1d(val) for key, val in samples_dict.items()}
+        samples_dict = self.sample_subset_constrained(
+            keys=keys, size=size, random_state=random_state
+        )
+        xp = random_array_module(random_state)
+        samples_dict = {key: xp.atleast_1d(val) for key, val in samples_dict.items()}
         samples_list = [samples_dict[key] for key in keys]
-        return np.array(samples_list)
+        return xp.stack(samples_list)
 
-    def sample_subset(self, keys=iter([]), size=None):
+    def sample_subset(self, keys=iter([]), size=None, *, random_state=None):
         """Draw samples from the prior set for parameters which are not a DeltaFunction
 
         Parameters
@@ -403,7 +417,7 @@ class PriorDict(dict):
             if isinstance(self[key], Constraint):
                 continue
             elif isinstance(self[key], Prior):
-                samples[key] = self[key].sample(size=size)
+                samples[key] = self[key].sample(size=size, random_state=random_state)
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
@@ -426,7 +440,7 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
-    def sample_subset_constrained(self, keys=iter([]), size=None):
+    def sample_subset_constrained(self, keys=iter([]), size=None, *, random_state=None):
         """
         Sample a subset of priors while ensuring constraints are satisfied.
 
@@ -441,8 +455,10 @@ class PriorDict(dict):
         =======
         dict: Dictionary of valid samples.
         """
+        rng = resolve_random_state(random_state)
+
         if not any(isinstance(self[key], Constraint) for key in self):
-            return self.sample_subset(keys=keys, size=size)
+            return self.sample_subset(keys=keys, size=size, random_state=rng)
 
         efficiency_warning_was_issued = False
 
@@ -458,10 +474,10 @@ class PriorDict(dict):
         n_tested_samples, n_valid_samples = 0, 0
         if size is None or size == 1:
             while True:
-                sample = self.sample_subset(keys=keys, size=size)
+                sample = self.sample_subset(keys=keys, size=size, random_state=rng)
                 is_valid = self.evaluate_constraints(sample)
                 n_tested_samples += 1
-                n_valid_samples += int(is_valid)
+                n_valid_samples += int(is_valid.item())
                 check_efficiency(n_tested_samples, n_valid_samples)
                 if is_valid:
                     return sample
@@ -470,20 +486,23 @@ class PriorDict(dict):
             for key in keys.copy():
                 if isinstance(self[key], Constraint):
                     del keys[keys.index(key)]
-            all_samples = {key: np.array([]) for key in keys}
+            xp = random_array_module(random_state)
+            all_samples = {key: xp.asarray([]) for key in keys}
             _first_key = list(all_samples.keys())[0]
             while len(all_samples[_first_key]) < needed:
-                samples = self.sample_subset(keys=keys, size=needed)
-                keep = np.array(self.evaluate_constraints(samples), dtype=bool)
+                samples = self.sample_subset(keys=keys, size=needed, random_state=rng)
+                keep = self.evaluate_constraints(samples)
                 for key in keys:
-                    all_samples[key] = np.hstack(
+                    all_samples[key] = xp.hstack(
                         [all_samples[key], samples[key][keep].flatten()]
                     )
                 n_tested_samples += needed
-                n_valid_samples += np.sum(keep)
+                n_valid_samples += int(xp.sum(keep))
                 check_efficiency(n_tested_samples, n_valid_samples)
+            if not isinstance(size, tuple):
+                size = (size,)
             all_samples = {
-                key: np.reshape(all_samples[key][:needed], size) for key in keys
+                key: xp.reshape(all_samples[key][:needed], size) for key in keys
             }
             return all_samples
 
@@ -523,7 +542,7 @@ class PriorDict(dict):
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
-    def prob(self, sample, **kwargs):
+    def prob(self, sample, *, normalized=True, xp=None, **kwargs):
         """
 
         Parameters
@@ -538,29 +557,31 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        prob = np.prod([self[key].prob(sample[key]) for key in sample], **kwargs)
+        if xp is None:
+            xp = array_module(sample.values())
+        prob = xp.prod(xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs)
 
-        return self.check_prob(sample, prob)
+        return self.check_prob(sample, prob, normalized=normalized, xp=xp)
 
-    def check_prob(self, sample, prob):
-        ratio = self.normalize_constraint_factor(tuple(sample.keys()))
-        if np.all(prob == 0.0):
+    def check_prob(self, sample, prob, *, normalized=True, xp=None):
+        if normalized:
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+        else:
+            ratio = 1
+        if not aac.is_jax_namespace(xp) and xp.all(prob == 0.0):
             return prob * ratio
         else:
             if isinstance(prob, float):
-                if self.evaluate_constraints(sample):
+                if self.evaluate_constraints(sample, xp=xp):
                     return prob * ratio
                 else:
                     return 0.0
             else:
-                constrained_prob = np.zeros_like(prob)
-                in_bounds = np.isfinite(prob)
-                subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = np.array(self.evaluate_constraints(subsample), dtype=bool)
-                constrained_prob[in_bounds] = prob[in_bounds] * keep * ratio
+                keep = self.evaluate_constraints(sample, xp=xp)
+                constrained_prob = xp.where(keep, prob * ratio, 0.0)
                 return constrained_prob
 
-    def ln_prob(self, sample, axis=None, normalized=True):
+    def ln_prob(self, sample, axis=None, *, normalized=True, xp=None):
         """
 
         Parameters
@@ -579,32 +600,34 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        ln_prob = np.sum([self[key].ln_prob(sample[key]) for key in sample], axis=axis)
-        return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized)
+        if xp is None and isinstance(sample, dict):
+            xp = array_module(sample.values())
+        elif xp is None:
+            # assume input is a dataframe
+            xp = array_module(sample.values)
+        ln_prob = xp.sum(xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]), axis=axis)
+        return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
-    def check_ln_prob(self, sample, ln_prob, normalized=True):
+    def check_ln_prob(self, sample, ln_prob, normalized=True, *, xp=None):
         if normalized:
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             ratio = 1
-        if np.all(np.isinf(ln_prob)):
+        if not aac.is_jax_namespace(xp) and xp.all(xp.isfinite(ln_prob)):
             return ln_prob
         else:
             if isinstance(ln_prob, float):
-                if np.all(self.evaluate_constraints(sample)):
-                    return ln_prob + np.log(ratio)
+                if xp.all(self.evaluate_constraints(sample, xp=xp)):
+                    return ln_prob + xp.log(ratio)
                 else:
                     return -np.inf
             else:
-                constrained_ln_prob = -np.inf * np.ones_like(ln_prob)
-                in_bounds = np.isfinite(ln_prob)
-                subsample = {key: sample[key][in_bounds] for key in sample}
-                keep = np.log(np.array(self.evaluate_constraints(subsample), dtype=bool))
-                constrained_ln_prob[in_bounds] = ln_prob[in_bounds] + keep + np.log(ratio)
+                keep = self.evaluate_constraints(sample, xp=xp)
+                constrained_ln_prob = xp.where(keep, ln_prob + xp.log(ratio), -xp.inf)
                 return constrained_ln_prob
 
-    def cdf(self, sample):
+    @xp_wrap
+    def cdf(self, sample, *, xp=None):
         """Evaluate the cumulative distribution function at the provided points
 
         Parameters
@@ -618,10 +641,10 @@ class PriorDict(dict):
 
         """
         return sample.__class__(
-            {key: self[key].cdf(sample) for key, sample in sample.items()}
+            {key: self[key].cdf(sample, xp=xp) for key, sample in sample.items()}
         )
 
-    def rescale(self, keys, theta):
+    def rescale(self, keys, theta, *, xp=None):
         """Rescale samples from unit cube to prior
 
         Parameters
@@ -635,9 +658,12 @@ class PriorDict(dict):
         =======
         list: List of floats containing the rescaled sample
         """
-        return list(
-            [self[key].rescale(sample) for key, sample in zip(keys, theta)]
-        )
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
+        if xp is None:
+            xp = array_module(theta)
+
+        return xp.asarray([self[key].rescale(sample, xp=xp) for key, sample in zip(keys, theta)])
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -737,7 +763,7 @@ class ConditionalPriorDict(PriorDict):
                 conditions_resolved = False
         return conditions_resolved
 
-    def sample_subset(self, keys=iter([]), size=None):
+    def sample_subset(self, keys=iter([]), size=None, *, random_state=None):
         self.convert_floats_to_delta_functions()
         add_delta_keys = [
             key
@@ -757,18 +783,24 @@ class ConditionalPriorDict(PriorDict):
             if isinstance(self[key], Prior):
                 try:
                     samples[key] = subset_dict[key].sample(
-                        size=size, **subset_dict.get_required_variables(key)
+                        size=size,
+                        random_state=random_state,
+                        **subset_dict.get_required_variables(key),
                     )
                 except ValueError:
                     # Some prior classes can not handle an array of conditional parameters (e.g. alpha for PowerLaw)
                     # If that is the case, we sample each sample individually.
                     required_variables = subset_dict.get_required_variables(key)
-                    samples[key] = np.zeros(size)
-                    for i in range(size):
+                    if size is None:
+                        shape = ()
+                    else:
+                        shape = (size,)
+                    samples[key] = np.zeros(shape)
+                    for i in range(size if size is not None else 1):
                         rvars = {
                             key: value[i] for key, value in required_variables.items()
                         }
-                        samples[key][i] = subset_dict[key].sample(**rvars)
+                        samples[key][i] = subset_dict[key].sample(**rvars, random_state=random_state)
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
@@ -790,7 +822,7 @@ class ConditionalPriorDict(PriorDict):
             for k in getattr(self[key], "required_variables", [])
         }
 
-    def prob(self, sample, **kwargs):
+    def prob(self, sample, *, normalized=True, xp=None, **kwargs):
         """
 
         Parameters
@@ -806,14 +838,16 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
-            self[key].prob(sample[key], **self.get_required_variables(key))
+        if xp is None:
+            xp = array_module(sample.values())
+        res = xp.asarray([
+            self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
-        ]
-        prob = np.prod(res, **kwargs)
-        return self.check_prob(sample, prob)
+        ])
+        prob = xp.prod(res, **kwargs)
+        return self.check_prob(sample, prob, normalized=normalized, xp=xp)
 
-    def ln_prob(self, sample, axis=None, normalized=True):
+    def ln_prob(self, sample, *, axis=None, normalized=True, xp=None):
         """
 
         Parameters
@@ -832,18 +866,20 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        res = [
-            self[key].ln_prob(sample[key], **self.get_required_variables(key))
+        if xp is None:
+            xp = array_module(sample.values())
+        res = xp.asarray([
+            self[key].ln_prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
-        ]
-        ln_prob = np.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob,
-                                  normalized=normalized)
+        ])
+        ln_prob = xp.sum(res, axis=axis)
+        return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
-    def cdf(self, sample):
+    @xp_wrap
+    def cdf(self, sample, *, xp=None):
         self._prepare_evaluation(*zip(*sample.items()))
         res = {
-            key: self[key].cdf(sample[key], **self.get_required_variables(key))
+            key: self[key].cdf(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
         }
         return sample.__class__(res)
@@ -862,8 +898,11 @@ class ConditionalPriorDict(PriorDict):
         =======
         list: List of floats containing the rescaled sample
         """
+        if isinstance(theta, {}.values().__class__):
+            theta = list(theta)
+        xp = array_module(theta)
+
         keys = list(keys)
-        theta = list(theta)
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
@@ -880,30 +919,14 @@ class ConditionalPriorDict(PriorDict):
             elif isinstance(self[key], JointPrior):
                 joint[self[key].dist.distname].append(key)
         for names in joint.values():
-            # this is needed to unpack how joint prior rescaling works
-            # as an example of a joint prior over {a, b, c, d} we might
-            # get the following based on the order within the joint prior
-            # {a: [], b: [], c: [1, 2, 3, 4], d: []}
-            # -> [1, 2, 3, 4]
-            # -> {a: 1, b: 2, c: 3, d: 4}
-            values = list()
             for key in names:
-                values = np.concatenate([values, result[key]])
-            for key, value in zip(names, values):
-                result[key] = value
+                if result[key] is None:
+                    continue
+                for subkey, val in zip(self[key].dist.names, result[key]):
+                    self[subkey].least_recently_sampled = val
+                    result[subkey] = val
 
-        def safe_flatten(value):
-            """
-            this is gross but can be removed whenever we switch to returning
-            arrays, flatten converts 0-d arrays to 1-d so has to be special
-            cased
-            """
-            if isinstance(value, (float, int, np.int64)):
-                return value
-            else:
-                return result[key].flatten()
-
-        return [safe_flatten(result[key]) for key in keys]
+        return xp.asarray([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
         if not keys == self._least_recently_rescaled_keys:

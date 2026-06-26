@@ -32,9 +32,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - name: Python 3.10
-            version: 3.10
-            short-version: 310
           - name: Python 3.11
             version: 3.11
             short-version: 311
@@ -84,3 +81,59 @@ jobs:
       with:
         name: pytest-${{ matrix.python.short-version }}
         path: pytest.xml
+
+  array-backend:
+
+    name: ${{ matrix.python.name }} array backend (${{ matrix.backend.name }})
+    runs-on: ubuntu-latest
+    container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - name: Python 3.13
+            version: 3.13
+            short-version: 313
+        backend:
+          - name: numpy
+            install-args: .
+          - name: jax
+            install-args: .[jax]
+          - name: torch
+            install-args: .
+    env:
+      BILBY_ARRAY_API: 1
+      SCIPY_ARRAY_API: 1
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    - name: Install package
+      run: |
+        # activate env so that conda list shows the correct environment
+        apt-get update
+        apt-get install -y gnupg curl
+        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
+        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
+        python -m pip install ${{ matrix.backend.install-args }}
+        python -m pip install orng
+        conda list --show-channel-urls
+      shell: bash
+    - name: Run array-backend unit tests
+      run: |
+        pytest --array-backend ${{ matrix.backend.name }} --durations 10 --junitxml=pytest-array.xml
+    - name: Publish coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.xml
+        flags: python${{ matrix.backend.name }}
+        slug: bilby-dev/bilby
+    - name: Upload array-backend test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-array-${{ matrix.python.short-version }}-${{ matrix.backend.name }}
+        path: pytest-array.xml

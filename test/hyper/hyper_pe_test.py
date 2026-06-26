@@ -105,7 +105,7 @@ class TestHyperLikelihood(unittest.TestCase):
             self.sampling_model,
             log_evidences=self.log_evidences,
         )
-        resampled = like.resample_posteriors(10)
+        resampled = like.resample_posteriors(max_samples=10)
         self.assertEqual(resampled["a"].shape, (len(self.lengths), 10))
 
 

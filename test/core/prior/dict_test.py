@@ -2,7 +2,9 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
+import array_api_compat as aac
 import numpy as np
+import pytest
 
 import bilby
 
@@ -22,6 +24,8 @@ class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
 setattr(bilby.core.prior, "FakeJointPriorDist", FakeJointPriorDist)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestPriorDict(unittest.TestCase):
 
     def setUp(self):
@@ -268,30 +272,41 @@ class TestPriorDict(unittest.TestCase):
     def test_sample_subset_correct_size(self):
         size = 7
         samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size
+            keys=self.prior_set_from_dict.keys(), size=size,
+            random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
         for key in samples:
             self.assertEqual(size, len(samples[key]))
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_correct_size_when_non_priors_in_dict(self):
         self.prior_set_from_dict["asdf"] = "not_a_prior"
         samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys()
+            keys=self.prior_set_from_dict.keys(),
+            random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
+        for key in samples:
+            if not isinstance(samples[key], (int, float)):
+                self.assertIsNotNone(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_with_actual_subset(self):
         size = 3
-        samples = self.prior_set_from_dict.sample_subset(keys=["length"], size=size)
-        expected = dict(length=np.array([42.0, 42.0, 42.0]))
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=["length"], size=size, random_state=self.rng
+        )
+        expected = dict(length=self.xp.asarray([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
+        self.assertEqual(aac.get_namespace(samples["length"]), self.xp)
 
     def test_sample_subset_constrained_as_array(self):
         size = 3
         keys = ["mass", "speed"]
-        out = self.prior_set_from_dict.sample_subset_constrained_as_array(keys, size)
-        self.assertTrue(isinstance(out, np.ndarray))
+        out = self.prior_set_from_dict.sample_subset_constrained_as_array(
+            keys, size, random_state=self.rng
+        )
+        self.assertEqual(aac.get_namespace(out), self.xp)
         self.assertTrue(out.shape == (len(keys), size))
 
     def test_sample_subset_constrained(self):
@@ -312,7 +327,7 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples1 = priors1.sample_subset_constrained(
-                keys=list(priors1.keys()), size=N
+                keys=list(priors1.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors1) - 1, len(samples1))
             for key in samples1:
@@ -325,14 +340,17 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples2 = priors2.sample_subset_constrained(
-                keys=list(priors2.keys()), size=N
+                keys=list(priors2.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors2), len(samples2))
             for key in samples2:
                 self.assertEqual(N, len(samples2[key]))
             mock_warning.assert_not_called()
 
-    def test_sample(self):
+    def test_sample_with_random_seed(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
         size = 7
         bilby.core.utils.random.seed(42)
         samples1 = self.prior_set_from_dict.sample_subset(
@@ -342,21 +360,34 @@ class TestPriorDict(unittest.TestCase):
         samples2 = self.prior_set_from_dict.sample(size=size)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
-            self.assertTrue(np.array_equal(samples1[key], samples2[key]))
+            np.testing.assert_array_equal(samples1[key], samples2[key])
+
+    def test_sample_returns_correct_type(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
+        size = 7
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=self.prior_set_from_dict.keys(), size=size, random_state=self.rng
+        )
+        for key in samples:
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
         self.assertEqual(expected, self.prior_set_from_dict.prob(samples))
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]
@@ -380,13 +411,14 @@ class TestPriorDict(unittest.TestCase):
 
         Note that the format of inputs/outputs is different between the two methods.
         """
-        sample = self.prior_set_from_dict.sample()
-        original = np.array(list(sample.values()))
-        new = np.array(self.prior_set_from_dict.rescale(
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        original = self.xp.asarray(list(sample.values()))
+        new = self.xp.asarray(self.prior_set_from_dict.rescale(
             sample.keys(),
             self.prior_set_from_dict.cdf(sample=sample).values()
         ))
         self.assertLess(max(abs(original - new)), 1e-10)
+        self.assertEqual(aac.get_namespace(new), self.xp)
 
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():
