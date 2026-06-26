@@ -1,3 +1,4 @@
+import array_api_compat as aac
 import numpy as np
 
 from ...core.likelihood import Likelihood
@@ -43,8 +44,10 @@ class BasicGravitationalWaveTransient(Likelihood):
         """
         log_l = 0
         for interferometer in self.interferometers:
+            strain = interferometer.whitened_frequency_domain_strain
+            xp = aac.array_namespace(strain)
             log_l -= (
-                abs(interferometer.whitened_frequency_domain_strain)**2
+                xp.abs(strain)**2
             ).sum() / 2
         return log_l.real
 
@@ -87,6 +90,7 @@ class BasicGravitationalWaveTransient(Likelihood):
 
         residual = interferometer.frequency_domain_strain - signal_ifo
         white_residual = interferometer.whiten_frequency_series(residual)
+        xp = aac.array_namespace(white_residual)
 
-        log_l = - (abs(white_residual)**2).sum() / 2
+        log_l = - (xp.abs(white_residual)**2).sum() / 2
         return log_l.real
