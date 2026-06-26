@@ -110,10 +110,9 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_noise_log_likelihood_with_cropping(self):
         """Test noise log likelihood matches precomputed value"""
         self.interferometers[0].crop_duration = 1.0
-        self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(
-            -1991.4986550018828, self.likelihood.noise_log_likelihood(), 3
-        )
+        nll = self.likelihood.noise_log_likelihood()
+        self.assertAlmostEqual(-1991.4986550018828, float(nll), 3)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
@@ -124,10 +123,9 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_log_likelihood_with_cropping(self):
         """Test noise log likelihood matches precomputed value"""
         self.interferometers[0].crop_duration = 1.0
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(
-            -2009.7686313437, self.likelihood.log_likelihood(), 3
-        )
+        logl = self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(-2009.7686313437, float(logl), 3)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_ratio(self):
         """Test log likelihood ratio returns the correct value"""
@@ -234,17 +232,16 @@ class TestGWTransient(unittest.TestCase):
     def test_noise_log_likelihood_with_cropping(self):
         """Test noise log likelihood matches precomputed value"""
         self.interferometers[0].crop_duration = 1.0
-        self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(
-            -1991.4986550018828, self.likelihood.noise_log_likelihood(), 3
-        )
+        nll = self.likelihood.noise_log_likelihood()
+        self.assertAlmostEqual(-1991.4986550018828, float(nll), 3)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_log_likelihood_with_cropping(self):
         """Test log likelihood matches precomputed value"""
         self.interferometers[0].crop_duration = 1.0
-        self.likelihood.log_likelihood()
-        self.assertAlmostEqual(self.likelihood.log_likelihood(),
-                               -2009.7686313436998, 3)
+        logl = self.likelihood.log_likelihood(self.parameters)
+        self.assertAlmostEqual(float(logl), -2009.7686313436998, 3)
+        self.assertEqual(aac.get_namespace(logl), self.xp)
 
     def test_likelihood_zero_when_waveform_is_none(self):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
