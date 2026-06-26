@@ -112,7 +112,7 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers[0].crop_duration = 1.0
         nll = self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(-1991.4986550018828, float(nll), 3)
-        self.assertEqual(aac.get_namespace(logl), self.xp)
+        self.assertEqual(aac.get_namespace(nlll), self.xp)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
@@ -234,7 +234,7 @@ class TestGWTransient(unittest.TestCase):
         self.interferometers[0].crop_duration = 1.0
         nll = self.likelihood.noise_log_likelihood()
         self.assertAlmostEqual(-1991.4986550018828, float(nll), 3)
-        self.assertEqual(aac.get_namespace(logl), self.xp)
+        self.assertEqual(aac.get_namespace(nll), self.xp)
 
     def test_log_likelihood_with_cropping(self):
         """Test log likelihood matches precomputed value"""
