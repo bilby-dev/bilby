@@ -746,6 +746,7 @@ class Interferometer(object):
             * self.frequency_mask.sum()**0.5
             / frequency_window_factor
             * self.time_mask.mean()**0.5
+        )
 
         return whitened_time_series
 
