@@ -7,7 +7,7 @@ dependencies:
   - setuptools
   - setuptools_scm
   - matplotlib
-  - numpy<2.4
+  - numpy
   - scipy
   - pandas
   - astropy
