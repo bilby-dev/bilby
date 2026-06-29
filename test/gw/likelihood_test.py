@@ -3,6 +3,7 @@ import unittest
 import tempfile
 from functools import cached_property
 from itertools import product
+from unittest import mock
 from parameterized import parameterized
 import pytest
 from copy import deepcopy
@@ -1032,13 +1033,25 @@ class TestCreateROQLikelihood(unittest.TestCase, ROQBasisMixin):
             )
         )
 
-        bilby.gw.likelihood.ROQGravitationalWaveTransient(
+        likelihood = bilby.gw.likelihood.ROQGravitationalWaveTransient(
             interferometers=interferometers,
             priors=priors,
             waveform_generator=search_waveform_generator,
             linear_matrix=f"{self.roq_dir}/{basis_linear}",
             quadratic_matrix=f"{self.roq_dir}/{basis_quadratic}"
         )
+        assert np.asarray(likelihood.roq_params).shape == ()
+
+    def test_roq_params_requires_scalar_structured_array(self):
+        likelihood = mock.Mock()
+        with self.assertRaisesRegex(ValueError, "scalar structured array"):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient.roq_params.fset(
+                likelihood,
+                np.array(
+                    [(20.0, 1024.0, 16.0)],
+                    dtype=[("flow", float), ("fhigh", float), ("seglen", float)],
+                ),
+            )
 
     @parameterized.expand([(False, ), (True, )])
     def test_from_npy(self, from_array):
