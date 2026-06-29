@@ -40,7 +40,7 @@ dependencies:
   - nbsphinx
   - sphinx_rtd_theme
   - sphinx-design
-  - dynesty>3.0.0
+  - dynesty>=3.0.0
   - emcee
   - pytorch
   - pytorch-cpu
