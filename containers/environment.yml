@@ -57,6 +57,9 @@ dependencies:
   - glasflow
   - nessai-bilby
   - myst-parser
+  - array-api-compat
+  - array-api-extra
+  - plum-dispatch
   - pip:
     - autodoc
     - ipykernel
