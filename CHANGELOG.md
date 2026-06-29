@@ -12,6 +12,10 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 * BUG: Fix 0-dimensional array in priors by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/886 and backported https://github.com/bilby-dev/bilby/pull/1103
 * BUG: Fix typo in interferometer.py to_pickle method by @AlexandreGoettel in https://github.com/bilby-dev/bilby/pull/1081 and backported in https://github.com/bilby-dev/bilby/pull/1103
 
+### Changes
+
+* MAINT: Relax tolerance for log noise evidence comparison by @mattpitkin in https://github.com/bilby-dev/bilby/pull/1087 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
 ## [2.8.0]
 
 This is our last planned minor version increase before Bilby version 3.
