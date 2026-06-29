@@ -347,6 +347,59 @@ class TestPriorDict(unittest.TestCase):
                 self.assertEqual(N, len(samples2[key]))
             mock_warning.assert_not_called()
 
+    def test_sample_subset_constrained_with_partial_subset(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        samples = priors.sample_subset_constrained(
+            keys=["mass_1"], size=16, random_state=self.rng
+        )
+
+        self.assertListEqual(["mass_1"], list(samples.keys()))
+        self.assertEqual(16, len(samples["mass_1"]))
+
+    def test_sample_subset_constrained_full_sample_requires_constraints(self):
+
+        def conversion_function(parameters):
+            return parameters.copy()
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        with self.assertRaises(ValueError):
+            priors.sample_subset_constrained(
+                keys=list(priors.keys()), size=1, random_state=self.rng
+            )
+
+    def test_prob_on_partial_subset_requires_constraints(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        with self.assertRaises(KeyError):
+            priors.prob({"mass_1": 1.5})
+
     def test_sample_with_random_seed(self):
         """
         This test uses the default RNG, so don't specify random_state.
