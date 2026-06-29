@@ -9,7 +9,7 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ### Fixes
 
-* BUG: Fix 0-dimensional array in priors by @GregoryAshton in https://github.com/bilby-dev/bilby/pull/1061 and backported in https://github.com/bilby-dev/bilby/pull/1103
+* BUG: Fix 0-dimensional array in priors by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/886 and backported https://github.com/bilby-dev/bilby/pull/1103
 * BUG: Fix typo in interferometer.py to_pickle method by @AlexandreGoettel in https://github.com/bilby-dev/bilby/pull/1081 and backported in https://github.com/bilby-dev/bilby/pull/1103
 
 ## [2.8.0]
