@@ -1053,6 +1053,17 @@ class TestCreateROQLikelihood(unittest.TestCase, ROQBasisMixin):
                 ),
             )
 
+    def test_roq_params_requires_expected_fields(self):
+        likelihood = mock.Mock()
+        with self.assertRaisesRegex(ValueError, "missing required fields: seglen"):
+            bilby.gw.likelihood.ROQGravitationalWaveTransient.roq_params.fset(
+                likelihood,
+                np.array(
+                    (20.0, 1024.0),
+                    dtype=[("flow", float), ("fhigh", float)],
+                ),
+            )
+
     @parameterized.expand([(False, ), (True, )])
     def test_from_npy(self, from_array):
         basis_linear = f"{self.roq_dir}/B_linear.npy"
