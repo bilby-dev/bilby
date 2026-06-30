@@ -90,14 +90,22 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     @roq_params.setter
     def roq_params(self, roq_params):
-        if (
-            isinstance(roq_params, np.ndarray)
-            and roq_params.dtype.names is not None
-        ):
+        if roq_params is not None:
+            if not isinstance(roq_params, np.ndarray) or roq_params.dtype.names is None:
+                raise TypeError(
+                    "roq_params must be None or a scalar structured numpy array"
+                )
             if roq_params.ndim != 0:
                 raise ValueError(
                     "roq_params must be a scalar structured array; "
                     f"received shape {roq_params.shape}"
+                )
+            required_fields = {"flow", "fhigh", "seglen"}
+            missing_fields = required_fields.difference(roq_params.dtype.names)
+            if missing_fields:
+                raise ValueError(
+                    "roq_params is missing required fields: "
+                    + ", ".join(sorted(missing_fields))
                 )
         self._roq_params = roq_params
 
