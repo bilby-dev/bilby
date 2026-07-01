@@ -12,6 +12,9 @@ import numpy as np
 from pandas import DataFrame, Series
 from scipy.stats import norm
 
+from .eos.eos import IntegrateTOV
+from .cosmology import get_cosmology, z_at_value
+from .geometry import transform_precessing_spins
 from .utils import (lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
                     lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition,
                     lalsim_SimNeutronStarEOS4ParamSDViableFamilyCheck,
@@ -25,15 +28,10 @@ from .utils import (lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
                     lalsim_SimNeutronStarMaximumMass,
                     lalsim_SimNeutronStarRadius,
                     lalsim_SimNeutronStarLoveNumberK2)
-
 from ..compat.utils import array_module
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
-from ..core.utils import logger, solar_mass, gravitational_constant, speed_of_light, command_line_args, safe_file_dump
 from ..core.prior import DeltaFunction
-from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
-from .eos.eos import IntegrateTOV
-from .cosmology import get_cosmology, z_at_value
-from .geometry import transform_precessing_spins
+from ..core.utils import logger, solar_mass, gravitational_constant, speed_of_light, command_line_args, safe_file_dump
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -159,7 +157,6 @@ def bilby_to_lalsimulation_spins(
             mass_1, mass_2, reference_frequency, phase
         )
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
-
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters):
