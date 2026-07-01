@@ -7,7 +7,7 @@ dependencies:
   - setuptools
   - setuptools_scm
   - matplotlib
-  - numpy<2.4
+  - numpy
   - scipy
   - pandas
   - astropy
@@ -40,7 +40,7 @@ dependencies:
   - nbsphinx
   - sphinx_rtd_theme
   - sphinx-design
-  - dynesty>3.0.0
+  - dynesty>=3.0.0
   - emcee
   - pytorch
   - pytorch-cpu
@@ -57,6 +57,9 @@ dependencies:
   - glasflow
   - nessai-bilby
   - myst-parser
+  - array-api-compat
+  - array-api-extra
+  - plum-dispatch
   - pip:
     - autodoc
     - ipykernel
