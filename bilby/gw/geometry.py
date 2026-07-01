@@ -2,6 +2,7 @@ from plum import dispatch
 
 from .time import greenwich_mean_sidereal_time
 from ..compat.utils import array_module, promote_to_array
+from ...core.utils.constants import msun_time_si
 
 
 __all__ = [
@@ -472,7 +473,7 @@ def transform_precessing_spins(
     eta = mass_1 * mass_2 / (m_total * m_total)
 
     # v parameter at reference point (c=G=1 units)
-    v0 = (m_total * msun_time_si * xp.pi * f_ref) ** (1/3)
+    v0 = (m_total * msun_time_si * xp.pi * f_ref) ** (1 / 3)
 
     # Compute angular momentum magnitude using PN expressions
     # L/M = eta * v^(-1) * (1 + v^2 * L_2PN)
