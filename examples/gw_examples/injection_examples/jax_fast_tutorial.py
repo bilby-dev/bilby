@@ -78,8 +78,19 @@ def ripple_bbh(
     dict
         Dictionary containing the plus and cross polarizations of the waveform.
     """
+    reference_frequency = jnp.asarray(kwargs["reference_frequency"])
     iota, *cartesian_spins = bilby.gw.geometry.transform_precessing_spins(
-        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2, f_ref, phase
+        theta_jn,
+        phi_jl,
+        tilt_1,
+        tilt_2,
+        phi_12,
+        a_1,
+        a_2,
+        mass_1,
+        mass_2,
+        reference_frequency,
+        phase,
     )
     frequencies = jnp.maximum(frequency, kwargs["minimum_frequency"])
     theta = jnp.array(
@@ -94,7 +105,7 @@ def ripple_bbh(
         ]
     )
     wf_func = jax.jit(IMRPhenomPv2.gen_IMRPhenomPv2)
-    hp, hc = wf_func(frequencies, theta, jnp.array(20.0))
+    hp, hc = wf_func(frequencies, theta, reference_frequency)
     return dict(plus=hp, cross=hc)
 
 
