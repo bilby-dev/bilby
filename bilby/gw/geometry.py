@@ -2,7 +2,7 @@ from plum import dispatch
 
 from .time import greenwich_mean_sidereal_time
 from ..compat.utils import array_module, promote_to_array
-from ...core.utils.constants import msun_time_si
+from ..core.utils.constants import msun_time_si
 
 
 __all__ = [
