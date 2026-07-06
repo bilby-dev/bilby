@@ -40,7 +40,7 @@ class TestTransformPrecessingSpins:
                 point["reference_frequency"],
                 point["phase"],
             )
-            assert aac.get_namespace(bilby_transformed) == self.xp
+            assert aac.get_namespace(*bilby_transformed) == self.xp
             bilby_transformed = np.asarray(bilby_transformed)
             lalsim_transformed = np.asarray(SimInspiralTransformPrecessingNewInitialConditions(
                 float(point["theta_jn"]),
@@ -88,7 +88,7 @@ class TestTransformPrecessingSpins:
             points["reference_frequency"],
             points["phase"],
         )
-        assert aac.get_namespace(bilby_transformed) == self.xp
+        assert aac.get_namespace(*bilby_transformed) == self.xp
         bilby_transformed = np.asarray(bilby_transformed)
         lalsim_transformed = list()
         for ii in range(len(points["theta_jn"])):
