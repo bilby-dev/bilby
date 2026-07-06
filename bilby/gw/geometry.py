@@ -1,7 +1,7 @@
 from plum import dispatch
 
 from .time import greenwich_mean_sidereal_time
-from ..compat.utils import array_module, promote_to_array
+from ..compat.utils import array_module, promote_to_array, xp_wrap
 from ..core.utils.constants import msun_time_si
 
 
@@ -378,6 +378,7 @@ def zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x):
     return theta, phi
 
 
+@xp_wrap
 def transform_precessing_spins(
     theta_jn,
     phi_jl,
@@ -390,6 +391,8 @@ def transform_precessing_spins(
     mass_2,
     f_ref,
     phase,
+    *,
+    xp=None,
 ):
     """
     A direct reimplementation of
@@ -428,8 +431,6 @@ def transform_precessing_spins(
         - spin_1x, spin_1y, spin_1z: Components of spin 1
         - spin_2x, spin_2y, spin_2z: Components of spin 2
     """
-
-    xp = array_module(theta_jn)
 
     # Helper rotation functions
     def rotate_z(angle, vec):
