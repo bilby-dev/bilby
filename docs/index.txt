@@ -56,6 +56,7 @@ API:
    :caption: API:
    :recursive:
 
+    compat
     core
     gw
     hyper
