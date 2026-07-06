@@ -15,18 +15,18 @@ class TestTransformPrecessingSpins:
         """
         import lal
         from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
-    
+
         priors = BBHPriorDict()
         priors["mass_1"] = Uniform(1, 1000)
         priors["mass_2"] = Uniform(1, 1000)
         priors["reference_frequency"] = Uniform(10, 100)
-    
+
         # some default priors are problematic for some array backends
         for key in ["luminosity_distance", "chirp_mass", "mass_ratio"]:
             del priors[key]
-    
+
         for _ in range(100):
-            point = priors.sample(rng=self.rng)
+            point = priors.sample(random_state=self.rng)
             bilby_transformed = transform_precessing_spins(
                 point["theta_jn"],
                 point["phi_jl"],
@@ -56,8 +56,7 @@ class TestTransformPrecessingSpins:
                 float(point["phase"]),
             ))
             np.testing.assert_allclose(bilby_transformed, lalsim_transformed, rtol=1e-10)
-    
-    
+
     @pytest.mark.array_backend
     def test_transform_precessing_spins_vectorized(self):
         """
@@ -65,17 +64,17 @@ class TestTransformPrecessingSpins:
         """
         import lal
         from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
-    
+
         priors = BBHPriorDict()
         priors["mass_1"] = Uniform(1, 1000)
         priors["mass_2"] = Uniform(1, 1000)
         priors["reference_frequency"] = Uniform(10, 100)
-    
+
         # some default priors are problematic for some array backends
         for key in ["luminosity_distance", "chirp_mass", "mass_ratio"]:
             del priors[key]
-    
-        points = priors.sample(100, rng=self.rng)
+
+        points = priors.sample(100, random_state=self.rng)
         bilby_transformed = transform_precessing_spins(
             points["theta_jn"],
             points["phi_jl"],
