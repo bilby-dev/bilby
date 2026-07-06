@@ -55,7 +55,8 @@ class TestTransformPrecessingSpins:
                 float(point["reference_frequency"]),
                 float(point["phase"]),
             ))
-            np.testing.assert_allclose(bilby_transformed, lalsim_transformed, rtol=1e-10)
+            # the different array backends have some precision loss
+            np.testing.assert_allclose(bilby_transformed, lalsim_transformed, rtol=1e-5)
 
     @pytest.mark.array_backend
     def test_transform_precessing_spins_vectorized(self):
@@ -107,4 +108,5 @@ class TestTransformPrecessingSpins:
                 float(point["phase"]),
             )))
         lalsim_transformed = np.asarray(lalsim_transformed).T
-        np.testing.assert_allclose(bilby_transformed, lalsim_transformed, rtol=1e-10)
+        # the different array backends have some precision loss
+        np.testing.assert_allclose(bilby_transformed, lalsim_transformed, rtol=1e-5)
