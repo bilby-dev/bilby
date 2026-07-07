@@ -21,6 +21,8 @@ from ...compat.utils import array_module, xp_wrap
 
 class DeltaFunction(Prior):
 
+    _leaves = ["peak", "_minimum", "_maximum", "least_recently_sampled"]
+
     def __init__(self, peak, name=None, latex_label=None, unit=None):
         """Dirac delta function prior, this always returns peak.
 
@@ -76,6 +78,8 @@ class DeltaFunction(Prior):
 
 
 class PowerLaw(Prior):
+
+    _leaves = ["alpha"]
 
     def __init__(self, alpha, minimum, maximum, name=None, latex_label=None,
                  unit=None, boundary=None):
@@ -509,6 +513,8 @@ class Sine(Prior):
 
 class Gaussian(Prior):
 
+    _leaves = ["mu", "sigma"]
+
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None):
         """Gaussian prior with mean mu and width sigma
 
@@ -581,6 +587,8 @@ class Normal(Gaussian):
 
 
 class TruncatedGaussian(Prior):
+
+    _leaves = ["mu", "sigma"]
 
     def __init__(self, mu, sigma, minimum, maximum, name=None,
                  latex_label=None, unit=None, boundary=None):
@@ -662,6 +670,9 @@ class TruncatedNormal(TruncatedGaussian):
 
 
 class HalfGaussian(TruncatedGaussian):
+
+    _leaves = ["sigma", "mu"]
+
     def __init__(self, sigma, name=None, latex_label=None, unit=None, boundary=None):
         """A Gaussian with its mode at zero, and truncated to only be positive.
 
@@ -688,6 +699,9 @@ class HalfNormal(HalfGaussian):
 
 
 class LogNormal(Prior):
+
+    _leaves = ["mu", "sigma"]
+
     def __init__(self, mu, sigma, name=None, latex_label=None, unit=None, boundary=None):
         """Log-normal prior with mean mu and width sigma
 
@@ -771,6 +785,9 @@ class LogGaussian(LogNormal):
 
 
 class Exponential(Prior):
+
+    _leaves = ["mu"]
+
     def __init__(self, mu, name=None, latex_label=None, unit=None, boundary=None):
         """Exponential prior with mean mu
 
@@ -837,6 +854,9 @@ class Exponential(Prior):
 
 
 class StudentT(Prior):
+
+    _leaves = ["df", "mu", "scale"]
+
     def __init__(self, df, mu=0., scale=1., name=None, latex_label=None,
                  unit=None, boundary=None):
         """Student's t-distribution prior with number of degrees of freedom df,
@@ -925,6 +945,9 @@ class StudentT(Prior):
 
 
 class Beta(Prior):
+
+    _leaves = ["alpha", "beta"]
+
     def __init__(self, alpha, beta, minimum=0, maximum=1, name=None,
                  latex_label=None, unit=None, boundary=None):
         """Beta distribution
@@ -1030,6 +1053,9 @@ class Beta(Prior):
 
 
 class Logistic(Prior):
+
+    _leaves = ["mu", "scale"]
+
     def __init__(self, mu, scale, name=None, latex_label=None, unit=None, boundary=None):
         """Logistic distribution
 
@@ -1105,6 +1131,9 @@ class Logistic(Prior):
 
 
 class Cauchy(Prior):
+
+    _leaves = ["alpha", "beta"]
+
     def __init__(self, alpha, beta, name=None, latex_label=None, unit=None, boundary=None):
         """Cauchy distribution
 
@@ -1181,6 +1210,9 @@ class Lorentzian(Cauchy):
 
 
 class Gamma(Prior):
+
+    _leaves = ["k", "theta"]
+
     def __init__(self, k, theta=1., name=None, latex_label=None, unit=None, boundary=None):
         """Gamma distribution
 
@@ -1264,6 +1296,9 @@ class Gamma(Prior):
 
 
 class ChiSquared(Gamma):
+
+    _leaves = ["nu", "theta"]
+
     def __init__(self, nu, name=None, latex_label=None, unit=None, boundary=None):
         """Chi-squared distribution
 
@@ -1299,6 +1334,9 @@ class ChiSquared(Gamma):
 
 
 class FermiDirac(Prior):
+
+    _leaves = ["sigma", "mu", "r", "expr"]
+
     def __init__(self, sigma, mu=None, r=None, name=None, latex_label=None,
                  unit=None):
         """A Fermi-Dirac type prior, with a fixed lower boundary at zero
@@ -1580,6 +1618,46 @@ class WeightedDiscreteValues(Prior):
         # turn 0d array to scalar
         return lnp[()]
 
+   @property
+    def weights(self):
+        return self._weights_array.tolist()
+
+    def pytree_flatten(self):
+        children = (
+            self._values_array,
+            self._weights_array,
+            self._lnweights_array,
+            self._cumulative_weights_array,
+            self.minimum,
+            self.maximum,
+        )
+        aux_data = (
+            self.name,
+            self.latex_label,
+            self.unit,
+            self.boundary,
+            self.nvalues,
+        )
+        return children, aux_data
+
+    @classmethod
+    def pytree_unflatten(cls, aux_data, children):
+        prior = cls.__new__(cls)
+        name, latex_label, unit, boundary, nvalues = aux_data
+        values, weights, ln_weights, cumulative_weights, minimum, maximum = children
+        prior.name = name
+        prior.latex_label = latex_label
+        prior.unit = unit
+        prior.boundary = boundary
+        prior.nvalues = nvalues
+        prior._values_array = values
+        prior._weights_array = weights
+        prior._lnweights_array = ln_weights
+        prior._cumulative_weights_array = cumulative_weights
+        prior._minimum= minimum
+        prior._maximum = maximum
+        return prior
+
 
 class DiscreteValues(WeightedDiscreteValues):
     def __init__(self, values, name=None, latex_label=None,
@@ -1646,6 +1724,17 @@ class WeightedCategorical(WeightedDiscreteValues):
             boundary=boundary,
         )
 
+    def pytree_flatten(self):
+        children, aux_data = super().pytree_flatten()
+        aux_data += (self.ncategories,)
+        return children, aux_data
+
+    @classmethod
+    def pytree_unflatten(cls, aux_data, children):
+        prior = super().pytree_unflatten(aux_data[:-1], children)
+        prior.ncategories = aux_data[-1]
+        return prior
+
 
 class Categorical(DiscreteValues):
     def __init__(
@@ -1685,6 +1774,15 @@ class Triangular(Prior):
     where the mode has the highest pdf value.
 
     """
+
+    _leaves = [
+        "mode",
+        "fractional_mode",
+        "scale",
+        "rescaled_minimum",
+        "rescaled_maximum",
+    ]
+
     def __init__(self, mode, minimum, maximum, name=None, latex_label=None, unit=None):
         super(Triangular, self).__init__(
             name=name,
