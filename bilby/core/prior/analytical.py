@@ -1618,7 +1618,7 @@ class WeightedDiscreteValues(Prior):
         # turn 0d array to scalar
         return lnp[()]
 
-   @property
+    @property
     def weights(self):
         return self._weights_array.tolist()
 
@@ -1654,7 +1654,7 @@ class WeightedDiscreteValues(Prior):
         prior._weights_array = weights
         prior._lnweights_array = ln_weights
         prior._cumulative_weights_array = cumulative_weights
-        prior._minimum= minimum
+        prior._minimum = minimum
         prior._maximum = maximum
         return prior
 
