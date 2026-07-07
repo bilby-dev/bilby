@@ -1,3 +1,6 @@
+# flake8: noqa
+# global imports make pre-commits unhappy
+
 from jax.tree_util import register_pytree_node
 
 from ...core.prior.analytical import *
@@ -151,8 +154,6 @@ for cls in list(globals().values()):
         continue
     elif hasattr(cls, "pytree_flatten"):
         register_pytree_node(cls, cls.pytree_flatten, cls.pytree_unflatten)
-    elif cls in REGISTRY:
-        register_pytree_node(cls, *REGISTRY[cls])
     elif hasattr(cls, "condition_func"):
         register_pytree_node(cls, conditional_flatten, conditional_unflatten)
     else:
