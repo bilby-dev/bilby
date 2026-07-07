@@ -127,13 +127,17 @@ def joint_likelihood_unflatten(aux_data, flat) -> JointLikelihood:
     return likelihood
 
 
-def analytical_multidimensional_covariant_gaussian_flatten(likelihood: AnalyticalMultidimensionalCovariantGaussian):
+def analytical_multidimensional_covariant_gaussian_flatten(
+    likelihood: AnalyticalMultidimensionalCovariantGaussian
+):
     _, aux_data = likelihood_flatten(likelihood)
     children = (likelihood.cov, likelihood.mean, likelihood.sigma)
     return children, aux_data
 
 
-def analytical_multidimensional_covariant_gaussian_unflatten(aux_data, flat) -> AnalyticalMultidimensionalCovariantGaussian:
+def analytical_multidimensional_covariant_gaussian_unflatten(
+    aux_data, flat
+) -> AnalyticalMultidimensionalCovariantGaussian:
     likelihood = likelihood_unflatten(aux_data, flat)
     cov, mean, sigma = flat
     likelihood.cov = cov
@@ -143,13 +147,17 @@ def analytical_multidimensional_covariant_gaussian_unflatten(aux_data, flat) -> 
     return likelihood
 
 
-def analytical_multidimensional_bimodal_covariant_gaussian_flatten(likelihood: AnalyticalMultidimensionalBimodalCovariantGaussian):
+def analytical_multidimensional_bimodal_covariant_gaussian_flatten(
+    likelihood: AnalyticalMultidimensionalBimodalCovariantGaussian
+):
     _, aux_data = likelihood_flatten(likelihood)
     children = (likelihood.cov, likelihood.mean_1, likelihood.mean_2, likelihood.sigma)
     return children, aux_data
 
 
-def analytical_multidimensional_bimodal_covariant_gaussian_unflatten(aux_data, flat) -> AnalyticalMultidimensionalBimodalCovariantGaussian:
+def analytical_multidimensional_bimodal_covariant_gaussian_unflatten(
+    aux_data, flat
+) -> AnalyticalMultidimensionalBimodalCovariantGaussian:
     likelihood = likelihood_unflatten(aux_data, flat)
     cov, mean_1, mean_2, sigma = flat
     likelihood.cov = cov
@@ -171,7 +179,15 @@ for tpl in [
     (StudentTLikelihood, student_t_likelihood_flatten, student_t_likelihood_unflatten),
     (Multinomial, multinomial_flatten, multinomial_unflatten),
     (JointLikelihood, joint_likelihood_flatten, joint_likelihood_unflatten),
-    (AnalyticalMultidimensionalCovariantGaussian, analytical_multidimensional_covariant_gaussian_flatten, analytical_multidimensional_covariant_gaussian_unflatten),
-    (AnalyticalMultidimensionalBimodalCovariantGaussian, analytical_multidimensional_bimodal_covariant_gaussian_flatten, analytical_multidimensional_bimodal_covariant_gaussian_unflatten),
+    (
+        AnalyticalMultidimensionalCovariantGaussian,
+        analytical_multidimensional_covariant_gaussian_flatten,
+        analytical_multidimensional_covariant_gaussian_unflatten,
+    ),
+    (
+        AnalyticalMultidimensionalBimodalCovariantGaussian,
+        analytical_multidimensional_bimodal_covariant_gaussian_flatten,
+        analytical_multidimensional_bimodal_covariant_gaussian_unflatten,
+    ),
 ]:
     register_pytree_node(*tpl)

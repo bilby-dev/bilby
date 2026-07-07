@@ -61,8 +61,6 @@ def likelihood_unflatten(aux_data, flat) -> GravitationalWaveTransient:
     return likelihood
 
 
-
-
 def interferometer_list_flatten(ifos: InterferometerList):
     return tuple(ifos), None
 

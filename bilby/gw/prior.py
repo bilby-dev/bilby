@@ -476,7 +476,7 @@ class AlignedSpin(Interped):
     analytic form of the PDF.
     """
 
-    _leaves = Interped._leaves + ["a_prior", "z_prior"]    
+    _leaves = Interped._leaves + ["a_prior", "z_prior"]
 
     def __init__(
         self,
