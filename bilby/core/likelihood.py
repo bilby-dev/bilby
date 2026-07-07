@@ -276,7 +276,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
     @property
     def y(self):
         """ Property assures that y-value is a positive integer. """
-        return self.__y
+        return self._y
 
     @y.setter
     def y(self, y):
@@ -287,7 +287,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
         # torch doesn't support checking dtype kind
         if (not aac.is_torch_namespace(xp) and y.dtype.kind not in 'ui') or xp.any(y < 0):
             raise ValueError("Data must be non-negative integers")
-        self.__y = y
+        self._y = y
 
 
 class ExponentialLikelihood(Analytical1DLikelihood):
