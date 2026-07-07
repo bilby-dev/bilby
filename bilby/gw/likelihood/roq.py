@@ -84,6 +84,31 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         - e.g., "H1": sample in the time of arrival at H1
 
     """
+    @property
+    def roq_params(self):
+        return self._roq_params
+
+    @roq_params.setter
+    def roq_params(self, roq_params):
+        if roq_params is not None:
+            if not isinstance(roq_params, np.ndarray) or roq_params.dtype.names is None:
+                raise TypeError(
+                    "roq_params must be None or a scalar structured numpy array"
+                )
+            if roq_params.ndim != 0:
+                raise ValueError(
+                    "roq_params must be a scalar structured array; "
+                    f"received shape {roq_params.shape}"
+                )
+            required_fields = {"flow", "fhigh", "seglen"}
+            missing_fields = required_fields.difference(roq_params.dtype.names)
+            if missing_fields:
+                raise ValueError(
+                    "roq_params is missing required fields: "
+                    + ", ".join(sorted(missing_fields))
+                )
+        self._roq_params = roq_params
+
     def __init__(
             self, interferometers, waveform_generator, priors,
             weights=None, linear_matrix=None, quadratic_matrix=None,
@@ -96,6 +121,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     ):
         self._delta_tc = delta_tc
+        self._roq_params = None
         super(ROQGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator, priors=priors,
@@ -130,17 +156,17 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             if self.roq_params is None:
                 if is_hdf5_linear:
                     self.roq_params = np.array(
-                        [(linear_matrix['minimum_frequency_hz'][()],
-                          linear_matrix['maximum_frequency_hz'][()],
-                          linear_matrix['duration_s'][()])],
+                        (linear_matrix['minimum_frequency_hz'][()],
+                         linear_matrix['maximum_frequency_hz'][()],
+                         linear_matrix['duration_s'][()]),
                         dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
                     )
                 if is_hdf5_quadratic:
                     if self.roq_params is None:
                         self.roq_params = np.array(
-                            [(quadratic_matrix['minimum_frequency_hz'][()],
-                              quadratic_matrix['maximum_frequency_hz'][()],
-                              quadratic_matrix['duration_s'][()])],
+                            (quadratic_matrix['minimum_frequency_hz'][()],
+                             quadratic_matrix['maximum_frequency_hz'][()],
+                             quadratic_matrix['duration_s'][()]),
                             dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
                         )
                     else:
