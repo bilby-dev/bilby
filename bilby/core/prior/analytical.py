@@ -146,7 +146,7 @@ class PowerLaw(Prior):
         with np.errstate(divide='ignore', invalid='ignore'):
             norm = xp.where(
                 self.alpha != -1,
-                (1 + self.alpha) / (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
+                (1 + self.alpha) / xp.asarray(self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
                 1 / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
             )
         return xp.nan_to_num(val ** self.alpha * norm) * self.is_in_prior_range(val)
