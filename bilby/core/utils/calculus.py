@@ -190,11 +190,8 @@ def logtrapzexp(lnf, dx, *, xp=np):
     return logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)])) - np.log(2)
 
 
-def interp1d(x, y, kind=None, axis=-1, bounds_error=None, fill_value=np.nan):
+def interp1d(x, y, kind="linear", axis=-1, bounds_error=None, fill_value=np.nan):
     if not BILBY_ARRAY_API:
-        if kind is None:
-            kind = "linear"
-
         return WrappedInterp1d(
             x=x,
             y=y,
@@ -205,8 +202,6 @@ def interp1d(x, y, kind=None, axis=-1, bounds_error=None, fill_value=np.nan):
         )
 
     if aac.is_jax_array(x):
-        if kind is None:
-            kind = "cubic"
         from interpax import Interpolator1D
 
         return Interpolator1D(
@@ -216,8 +211,6 @@ def interp1d(x, y, kind=None, axis=-1, bounds_error=None, fill_value=np.nan):
             extrap=fill_value,
         )
     else:
-        if kind is None:
-            kind = "linear"
         return WrappedInterp1d(
             x=x,
             y=y,
@@ -302,7 +295,7 @@ class WrappedInterp1d(_interp1d):
         # some backends, e.g., torch don't support interpolation, add an explicit
         # cast to make it not crash
         output = super().__call__(x)
-        xp = aac.array_namespace(x)
+        xp = array_module(x)
         return xp.asarray(output)
 
     def __eq__(self, other):
