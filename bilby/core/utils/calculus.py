@@ -299,8 +299,11 @@ class WrappedInterp1d(_interp1d):
         self.kind = kind
 
     def __call__(self, x):
+        # some backends, e.g., torch don't support interpolation, add an explicit
+        # cast to make it not crash
         output = super().__call__(x)
-        return output
+        xp = aac.array_namespace(x)
+        return xp.asarray(output)
 
     def __eq__(self, other):
         for key in self.__dict__:
