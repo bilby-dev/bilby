@@ -123,11 +123,13 @@ class PowerLaw(Prior):
         =======
         Union[float, array_like]: Rescaled probability
         """
-        if self.alpha == -1:
-            return self.minimum * xp.exp(val * xp.log(xp.asarray(self.maximum / self.minimum)))
-        else:
-            return (self.minimum ** (1 + self.alpha) + val *
-                    (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / (1 + self.alpha))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return xp.where(
+                self.alpha != -1,
+                (self.minimum ** (1 + self.alpha) + val *
+                (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / xp.asarray(1 + self.alpha)),
+                self.minimum * xp.exp(val * xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)))
+            )
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -141,14 +143,13 @@ class PowerLaw(Prior):
         =======
         float: Prior probability of val
         """
-        if self.alpha == -1:
-            return xp.nan_to_num(
-                1 / val / xp.log(xp.asarray(self.maximum / self.minimum))
-            ) * self.is_in_prior_range(val)
-        else:
-            return xp.nan_to_num(val ** self.alpha * (1 + self.alpha) /
-                                 (self.maximum ** (1 + self.alpha) -
-                                  self.minimum ** (1 + self.alpha))) * self.is_in_prior_range(val)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            norm = xp.where(
+                self.alpha != -1,
+                (1 + self.alpha) / (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
+                1 / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
+            )
+        return xp.nan_to_num(val ** self.alpha * norm) * self.is_in_prior_range(val)
 
     @xp_wrap
     def ln_prob(self, val, *, xp=None):
@@ -163,14 +164,13 @@ class PowerLaw(Prior):
         float:
 
         """
-        if self.alpha == -1:
-            normalising = 1. / xp.log(xp.asarray(self.maximum / self.minimum))
-        else:
-            normalising = (1 + self.alpha) / xp.asarray(
-                self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)
-            )
-
         with np.errstate(divide='ignore', invalid='ignore'):
+            normalising = xp.where(
+                self.alpha != -1,
+                (1 + self.alpha)
+                / xp.asarray(self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
+                1 / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
+            )
             ln_in_range = xp.log(1. * self.is_in_prior_range(val))
             ln_p = self.alpha * xp.nan_to_num(xp.log(val)) + xp.log(normalising)
 
@@ -178,13 +178,13 @@ class PowerLaw(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        if self.alpha == -1:
-            with np.errstate(invalid="ignore"):
-                _cdf = xp.log(val / self.minimum) / xp.log(xp.asarray(self.maximum / self.minimum))
-        else:
-            _cdf = (
+        with np.errstate(divide='ignore', invalid='ignore'):
+            _cdf = xp.where(
+                self.alpha != -1,
                 (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
-                / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
+                / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)),
+                xp.log(val / self.minimum)
+                / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
             )
         _cdf = xp.clip(_cdf, 0, 1)
         return _cdf
