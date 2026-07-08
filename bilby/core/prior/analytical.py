@@ -1531,7 +1531,6 @@ class WeightedDiscreteValues(Prior):
                 + f"while number of values is {self.values}"
             )
         self._weights_array = weights[sorter]
-        self.weights = self._weights_array.tolist()
         self._lnweights_array = xp.log(self._weights_array)
 
         # save cdf for rescaling

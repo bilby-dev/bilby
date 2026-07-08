@@ -300,8 +300,6 @@ class WrappedInterp1d(_interp1d):
 
     def __call__(self, x):
         output = super().__call__(x)
-        if isinstance(x, (float, int)):
-            output = output.item()
         return output
 
     def __eq__(self, other):
