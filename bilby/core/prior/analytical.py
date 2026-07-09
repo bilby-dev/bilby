@@ -262,8 +262,8 @@ class Uniform(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        _cdf = (val - self.minimum) / (self.maximum - self.minimum)
-        return xp.clip(_cdf, 0, 1)
+        _cdf = xp.asarray((val - self.minimum) / (self.maximum - self.minimum))
+        return xp.clip(_cdf, xp.asarray(0), xp.asarray(1))
 
 
 class LogUniform(PowerLaw):
