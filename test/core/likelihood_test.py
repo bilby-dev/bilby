@@ -669,8 +669,8 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestJointLikelihood(unittest.TestCase):
     def setUp(self):
-        self.x = self.xp.array([1, 2, 3])
-        self.y = self.xp.array([1, 2, 3])
+        self.x = self.xp.asarray([1, 2, 3])
+        self.y = self.xp.asarray([1, 2, 3])
         self.first_likelihood = GaussianLikelihood(
             x=self.x,
             y=self.y,
