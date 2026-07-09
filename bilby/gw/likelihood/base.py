@@ -1112,7 +1112,7 @@ class GravitationalWaveTransient(Likelihood):
                 f"Cannot find {self.time_reference}_time in parameters. "
                 "Falling back to geocent time"
             )
-        if not self.reference_frame == "sky":
+        if self.reference_frame is not None:
             try:
                 ra, dec = zenith_azimuth_to_ra_dec(
                     parameters['zenith'], parameters['azimuth'],

@@ -27,12 +27,12 @@ def _evaluate_with_jit(likelihood, parameters, xp):
 
     import jax
 
-    from bilby.compat.pytrees import likelihood as _
+    from bilby.compat.pytrees import likelihood as _  # noqa
 
     @jax.jit
     def jit_fn(likelihood, parameters):
         return likelihood.log_likelihood(parameters)
-    
+
     expected = likelihood.log_likelihood(parameters)
     jitted = jit_fn(likelihood, parameters)
     jitted = jit_fn(likelihood, parameters)
@@ -665,10 +665,12 @@ class TestAnalyticalMultidimensionalBimodalCovariantGaussian(unittest.TestCase):
         _evaluate_with_jit(self.likelihood, self.parameters, self.xp)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestJointLikelihood(unittest.TestCase):
     def setUp(self):
-        self.x = np.array([1, 2, 3])
-        self.y = np.array([1, 2, 3])
+        self.x = self.xp.array([1, 2, 3])
+        self.y = self.xp.array([1, 2, 3])
         self.first_likelihood = GaussianLikelihood(
             x=self.x,
             y=self.y,
