@@ -78,7 +78,6 @@ def interferometer_flatten(ifo: Interferometer):
         ifo.geometry,
         ifo.calibration_model,
         ifo.reference_time,
-        getattr(ifo, "_reference_gmst", None),
     )
     aux_data = (
         ifo.name,
@@ -93,41 +92,38 @@ def interferometer_unflatten(aux_data, flat) -> Interferometer:
     ifo.power_spectral_density = flat[1]
     ifo.geometry = flat[2]
     ifo.calibration_model = flat[3]
-    ifo._reference_time = flat[4]
-    ifo._reference_gmst = flat[5]
+    ifo.reference_time = flat[4]
     ifo.meta_data = dict(name=ifo.name)
     return ifo
 
 
 def strain_data_flatten(strain_data: InterferometerStrainData):
     children = (
-        strain_data._frequency_mask,
-        # None,
         strain_data._minimum_frequency,
         strain_data._maximum_frequency,
         strain_data._frequency_domain_strain,
         strain_data._time_domain_strain,
         strain_data._times_and_frequencies,
         strain_data.notch_list,
+        strain_data.frequency_mask,
     )
-    aux_data = (
-        # strain_data.frequency_mask,
-    )
+    aux_data = ()
     return children, aux_data
 
 
 def strain_data_unflatten(aux_data, children) -> InterferometerStrainData:
     strain_data = InterferometerStrainData.__new__(InterferometerStrainData)
 
-    strain_data.notch_list = children[6]
+    strain_data.notch_list = children[5]
 
-    strain_data._frequency_mask = children[0]
+    strain_data._frequency_mask = children[6]
     strain_data._frequency_mask_updated = True
-    strain_data._minimum_frequency = children[1]
-    strain_data._maximum_frequency = children[2]
-    strain_data._frequency_domain_strain = children[3]
-    strain_data._time_domain_strain = children[4]
-    strain_data._times_and_frequencies = children[5]
+
+    strain_data._minimum_frequency = children[0]
+    strain_data._maximum_frequency = children[1]
+    strain_data._frequency_domain_strain = children[2]
+    strain_data._time_domain_strain = children[3]
+    strain_data._times_and_frequencies = children[4]
 
     return strain_data
 
@@ -228,9 +224,9 @@ def notch_list_unflatten(aux_data, children) -> NotchList:
 
 def wfg_flatten(wfg: WaveformGenerator):
     children = (
+        wfg._times_and_frequencies,
     )
     aux_data = (
-        wfg._times_and_frequencies,
         wfg.frequency_domain_source_model,
         wfg.time_domain_source_model,
         wfg.source_parameter_keys,
@@ -244,14 +240,14 @@ def wfg_flatten(wfg: WaveformGenerator):
 
 def wfg_unflatten(aux_data, children) -> WaveformGenerator:
     wfg = WaveformGenerator.__new__(WaveformGenerator)
-    wfg._times_and_frequencies = aux_data[0]
-    wfg.frequency_domain_source_model = aux_data[1]
-    wfg.time_domain_source_model = aux_data[2]
-    wfg.source_parameter_keys = aux_data[3]
-    wfg.parameter_conversion = aux_data[4]
-    wfg.use_cache = aux_data[5]
-    wfg._cache = aux_data[6]
-    wfg.waveform_arguments = aux_data[7]
+    wfg._times_and_frequencies = children[0]
+    wfg.frequency_domain_source_model = aux_data[0]
+    wfg.time_domain_source_model = aux_data[1]
+    wfg.source_parameter_keys = aux_data[2]
+    wfg.parameter_conversion = aux_data[3]
+    wfg.use_cache = aux_data[4]
+    wfg._cache = aux_data[5]
+    wfg.waveform_arguments = aux_data[6]
     return wfg
 
 

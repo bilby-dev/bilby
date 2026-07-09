@@ -1070,13 +1070,15 @@ class GravitationalWaveTransient(Likelihood):
     def _reference_frame_str(self):
         if isinstance(self.reference_frame, str):
             return self.reference_frame
+        elif self.reference_frame is None:
+            return "sky"
         else:
             return "".join([ifo.name for ifo in self.reference_frame])
 
     @reference_frame.setter
     def reference_frame(self, frame):
         if frame == "sky":
-            self._reference_frame = frame
+            self._reference_frame = None
         elif isinstance(frame, InterferometerList):
             self._reference_frame = frame[:2]
         elif isinstance(frame, list):
