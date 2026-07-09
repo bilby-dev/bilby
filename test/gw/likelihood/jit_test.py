@@ -14,15 +14,14 @@ def _evaluate_with_jit(likelihood, parameters, xp):
         pytest.skip("JIT test only runs for JAX backend")
 
     import jax
-    from jax.tree_util import register_pytree_node
 
-    from bilby.compat.pytrees import likelihood as _
-    from bilby.gw.compat import pytrees as _
+    from bilby.compat.pytrees import likelihood as _  # noqa
+    from bilby.gw.compat import pytrees as _  # noqa
 
     @jax.jit
     def jit_fn(likelihood, parameters):
         return likelihood.log_likelihood_ratio(parameters)
-    
+
     expected = likelihood.log_likelihood_ratio(parameters)
     jitted = jit_fn(likelihood, parameters)
     jitted = jit_fn(likelihood, parameters)
