@@ -44,6 +44,10 @@ class Interferometer(object):
     minimum_frequency = PropertyAccessor('strain_data', 'minimum_frequency')
     maximum_frequency = PropertyAccessor('strain_data', 'maximum_frequency')
     frequency_mask = PropertyAccessor('strain_data', 'frequency_mask')
+    time_mask = PropertyAccessor('strain_data', 'time_mask')
+    crop_duration = PropertyAccessor('strain_data', 'crop_duration')
+    cropped_duration = PropertyAccessor('strain_data', 'cropped_duration')
+    cropped_frequency_mask = PropertyAccessor('strain_data', 'cropped_frequency_mask')
     frequency_domain_strain = PropertyAccessor('strain_data', 'frequency_domain_strain')
     time_domain_strain = PropertyAccessor('strain_data', 'time_domain_strain')
 
@@ -614,12 +618,9 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float: The optimal signal-to-noise ratio squared of the signal
         """
-        return gwutils.optimal_snr_squared(
-            signal=signal[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+        return (abs(self.whiten_frequency_series(signal))**2).sum()
 
     def inner_product(self, signal):
         """
@@ -631,13 +632,13 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float:
+            The noise-weighted inner product between the passed signal
+            and the data stored in the :code:`Interferometer`.
         """
-        return gwutils.noise_weighted_inner_product(
-            aa=signal[self.strain_data.frequency_mask],
-            bb=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+        whitened_signal = self.whiten_frequency_series(signal)
+        whitened_data = self.whitened_frequency_domain_strain
+        return (whitened_signal.T * whitened_data.conj()).sum()
 
     def template_template_inner_product(self, signal_1, signal_2):
         """A noise weighted inner product between two templates, using this ifo's PSD.
@@ -653,11 +654,9 @@ class Interferometer(object):
         =======
         float: The noise weighted inner product of the two templates
         """
-        return gwutils.noise_weighted_inner_product(
-            aa=signal_1[self.strain_data.frequency_mask],
-            bb=signal_2[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+        whitened_1 = self.whiten_frequency_series(signal_1)
+        whitened_2 = self.whiten_frequency_series(signal_2)
+        return (whitened_1 * whitened_2.conj()).sum()
 
     def matched_filter_snr(self, signal):
         """
@@ -672,13 +671,9 @@ class Interferometer(object):
         complex: The matched filter signal to noise ratio
 
         """
-        return gwutils.matched_filter_snr(
-            signal=signal[self.strain_data.frequency_mask],
-            frequency_domain_strain=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+        return self.inner_product(signal) / self.optimal_snr_squared(signal)**0.5
 
-    def whiten_frequency_series(self, frequency_series : np.array) -> np.array:
+    def whiten_frequency_series(self, frequency_series: np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
 
         .. math::
@@ -697,7 +692,21 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        return frequency_series / (self.amplitude_spectral_density_array * (self.duration / 4)**0.5)
+        if self.crop_duration == 0:
+            return gwutils.frequency_domain_whiten(
+                frequency_series=frequency_series,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                duration=self.duration,
+            )
+        else:
+            return gwutils.whiten_and_crop(
+                frequency_series=frequency_series,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                time_mask=self.time_mask,
+                duration=self.duration,
+            )
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self,
@@ -734,7 +743,9 @@ class Interferometer(object):
 
         whitened_time_series = (
             xp.fft.irfft(whitened_frequency_series)
-            * self.frequency_mask.sum()**0.5 / frequency_window_factor
+            * self.frequency_mask.sum()**0.5
+            / frequency_window_factor
+            * self.time_mask.mean()**0.5
         )
 
         return whitened_time_series

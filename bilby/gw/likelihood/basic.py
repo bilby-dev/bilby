@@ -1,3 +1,4 @@
+import array_api_compat as aac
 import numpy as np
 
 from ...core.likelihood import Likelihood
@@ -43,11 +44,12 @@ class BasicGravitationalWaveTransient(Likelihood):
         """
         log_l = 0
         for interferometer in self.interferometers:
-            log_l -= 2. / self.waveform_generator.duration * (
-                abs(interferometer.frequency_domain_strain) ** 2
-                / interferometer.power_spectral_density_array
-            ).sum()
-        return log_l
+            strain = interferometer.whitened_frequency_domain_strain
+            xp = aac.array_namespace(strain)
+            log_l -= (
+                xp.abs(strain)**2
+            ).sum() / 2
+        return log_l.real
 
     def log_likelihood(self, parameters):
         """ Calculates the real part of log-likelihood value
@@ -87,8 +89,8 @@ class BasicGravitationalWaveTransient(Likelihood):
             waveform_polarizations, parameters)
 
         residual = interferometer.frequency_domain_strain - signal_ifo
+        white_residual = interferometer.whiten_frequency_series(residual)
+        xp = aac.array_namespace(white_residual)
 
-        log_l = - 2. / self.waveform_generator.duration * (
-            abs(residual)**2 / interferometer.power_spectral_density_array
-        ).sum()
+        log_l = - (xp.abs(white_residual)**2).sum() / 2
         return log_l.real

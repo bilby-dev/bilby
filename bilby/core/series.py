@@ -128,3 +128,7 @@ class CoupledTimeAndFrequencySeries(object):
     def start_time(self, start_time):
         self._start_time = start_time
         self._time_array_updated = False
+
+    @property
+    def end_time(self):
+        return self.start_time + self.duration
