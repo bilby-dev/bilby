@@ -125,9 +125,11 @@ class PowerLaw(Prior):
         """
         with np.errstate(divide='ignore', invalid='ignore'):
             return xp.where(
-                self.alpha != -1,
-                (self.minimum ** (1 + self.alpha) + val *
-                (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))) ** (1. / xp.asarray(1 + self.alpha)),
+                xp.asarray(self.alpha != -1),
+                (
+                    self.minimum ** (1 + self.alpha)
+                    + val * (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))
+                ) ** (1. / xp.asarray(1 + self.alpha)),
                 self.minimum * xp.exp(val * xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)))
             )
 
@@ -145,7 +147,7 @@ class PowerLaw(Prior):
         """
         with np.errstate(divide='ignore', invalid='ignore'):
             norm = xp.where(
-                self.alpha != -1,
+                xp.asarray(self.alpha != -1),
                 (1 + self.alpha) / xp.asarray(self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
                 1 / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
             )
@@ -166,7 +168,7 @@ class PowerLaw(Prior):
         """
         with np.errstate(divide='ignore', invalid='ignore'):
             normalising = xp.where(
-                self.alpha != -1,
+                xp.asarray(self.alpha != -1),
                 (1 + self.alpha)
                 / xp.asarray(self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha)),
                 1 / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
@@ -180,7 +182,7 @@ class PowerLaw(Prior):
     def cdf(self, val, *, xp=None):
         with np.errstate(divide='ignore', invalid='ignore'):
             _cdf = xp.where(
-                self.alpha != -1,
+                xp.asarray(self.alpha != -1),
                 (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
                 / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)),
                 xp.log(val / self.minimum)
