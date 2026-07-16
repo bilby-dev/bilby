@@ -274,6 +274,9 @@ def get_weights_for_reweighting(
         if "log_likelihood" in sample:
             del sample["log_likelihood"]
 
+        if "weights" in sample:
+            del sample["weights"]
+
         if old_prior is not None:
             old_log_prior_array[ii] = old_prior.ln_prob(sample)
         else:
