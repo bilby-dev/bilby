@@ -420,6 +420,36 @@ class TestConvertToLALParams(unittest.TestCase):
     def test_lambda_1(self):
         self._conversion_to_component_tidal(["lambda_1"])
 
+    def test_complete_component_tidal_parameters_take_precedence(self):
+        component_parameters = dict(
+            mass_1=7.320188129088971,
+            mass_2=1.4957247709090036,
+            lambda_1=0.0,
+            lambda_2=1097.4026147742702,
+        )
+        lambda_tilde = conversion.lambda_1_lambda_2_to_lambda_tilde(
+            **component_parameters
+        )
+        delta_lambda_tilde = conversion.lambda_1_lambda_2_to_delta_lambda_tilde(
+            **component_parameters
+        )
+
+        for derived_parameters in [
+            dict(lambda_tilde=lambda_tilde),
+            dict(
+                lambda_tilde=lambda_tilde,
+                delta_lambda_tilde=delta_lambda_tilde,
+            ),
+        ]:
+            with self.subTest(derived_parameters=derived_parameters):
+                self.parameters = component_parameters | derived_parameters
+                self.bns_convert()
+                self.assertEqual(self.parameters["lambda_1"], 0.0)
+                self.assertEqual(
+                    self.parameters["lambda_2"],
+                    component_parameters["lambda_2"],
+                )
+
 
 class TestGenerateAllParameters(unittest.TestCase):
     def setUp(self):
