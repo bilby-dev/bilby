@@ -60,6 +60,14 @@ class PriorDict(dict):
     def __hash__(self):
         return hash(str(self))
 
+    def __setitem__(self, key, value):
+        if not isinstance(value, (Prior, int, float, str, dict)):
+            raise TypeError(
+                "Unable to parse prior, bad entry: {} "
+                "= {} of type {}".format(key, value, type(value))
+            )
+        super().__setitem__(key, value)
+
     @xp_wrap
     def evaluate_constraints(self, sample, *, xp=None):
         out_sample = self.conversion_function(sample)
