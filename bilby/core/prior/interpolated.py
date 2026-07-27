@@ -3,7 +3,9 @@ from scipy.integrate import trapezoid, cumulative_simpson
 
 from .base import Prior
 from .dict import PriorDict
-from ..utils import logger, WrappedInterp1d as interp1d
+from ..utils import logger
+from ..utils.calculus import interp1d
+from ...compat.utils import xp_wrap
 
 
 class Interped(Prior):
@@ -71,7 +73,8 @@ class Interped(Prior):
             return False
         return True
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val.
 
         Parameters
@@ -82,9 +85,10 @@ class Interped(Prior):
         =======
          Union[float, array_like]: Prior probability of val
         """
-        return self.probability_density(val)
+        return self.probability_density(val)[()]
 
-    def cdf(self, val):
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
         """
         Return the cumulative distribution function of val.
 
@@ -97,9 +101,10 @@ class Interped(Prior):
         Union[float, array_like]
             CDF of val.
         """
-        return self.cumulative_distribution(val)
+        return self.cumulative_distribution(val)[()]
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 
@@ -109,7 +114,7 @@ class Interped(Prior):
         ==========
         val : Union[float, int, array_like]
         """
-        return self.inverse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)[()]
 
     @property
     def minimum(self):
@@ -303,10 +308,11 @@ class Mixture(Interped):
             # ignore when setup is not yet complete
             return
         self.xx = np.linspace(self.minimum, self.maximum, 1000)
-        self._yy = self._exact_prob(self.xx)
+        self._yy = self.prob(self.xx)
         self._initialize_attributes()
 
-    def _exact_prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """
         Return the prior probability of val, evaluating the underlying priors.
 
@@ -321,7 +327,7 @@ class Mixture(Interped):
         """
         prob = 0
         for weight, prior in zip(self.weights, self._priors):
-            prob += weight * prior.prob(val)
+            prob += weight * prior.prob(val, xp=xp)
         return prob
 
 
