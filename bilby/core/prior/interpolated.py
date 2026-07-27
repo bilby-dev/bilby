@@ -330,7 +330,6 @@ class Mixture(Interped):
             prob += weight * prior.prob(val, xp=xp)
         return prob
 
-
     @property
     def priors(self):
         return self._priors

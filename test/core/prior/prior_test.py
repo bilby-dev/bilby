@@ -126,7 +126,7 @@ class TestPriorClasses(unittest.TestCase):
                     bilby.core.prior.PowerLaw(name="test", unit="unit", alpha=-1, minimum=0.1, maximum=1),
                     bilby.core.prior.TruncatedGaussian(name="test", unit="unit", mu=1, sigma=0.4, minimum=0, maximum=1),
                 ],
-                weights=[0.2, 0.5, 0.3], name="test", unit="unit", 
+                weights=[0.2, 0.5, 0.3], name="test", unit="unit",
             ),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testa", unit="unit"),
             bilby.core.prior.MultivariateGaussian(dist=mvg, name="testb", unit="unit"),
@@ -903,10 +903,10 @@ class TestPriorClasses(unittest.TestCase):
                 repr_prior_string = "bilby.gw.prior." + repr(prior)
             with self.subTest(prior=prior):
                 while True:
-                    # this loop inserts module names that bilby cuts out of the repr string 
+                    # this loop inserts module names that bilby cuts out of the repr string
                     try:
-                        repr_prior = eval(repr_prior_string, None, 
-                                          dict(inf=np.inf, array = np.array))
+                        repr_prior = eval(repr_prior_string, None,
+                                          dict(inf=np.inf, array=np.array))
                         break
                     except NameError as e:
                         unknown_prior = e.name
