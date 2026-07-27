@@ -885,6 +885,8 @@ class TestPriorClasses(unittest.TestCase):
 
     def test_repr(self):
         for prior in self.priors:
+            if "Conditional" in prior.__class__.__name__:
+                continue  # This feature does not exist because we cannot recreate the condition function
             repr_prior_string = repr(prior)
             if not repr_prior_string.startswith("bilby"):
                 repr_prior_string = "bilby.core.prior." + repr(prior)
@@ -899,17 +901,18 @@ class TestPriorClasses(unittest.TestCase):
                 prior.dist.rescale_parameters = {key: None for key in prior.dist.names}
             elif isinstance(prior, bilby.gw.prior.UniformComovingVolume):
                 repr_prior_string = "bilby.gw.prior." + repr(prior)
-            elif "Conditional" in prior.__class__.__name__:
-                continue  # This feature does not exist because we cannot recreate the condition function
             with self.subTest(prior=prior):
                 while True:
                     # this loop inserts module names that bilby cuts out of the repr string 
                     try:
-                        repr_prior = eval(repr_prior_string, None, dict(inf=np.inf, array = np.array))
+                        repr_prior = eval(repr_prior_string, None, 
+                                          dict(inf=np.inf, array = np.array))
                         break
                     except NameError as e:
                         unknown_prior = e.name
-                        repr_prior_string = repr_prior_string.replace(unknown_prior, "bilby.core.prior." + unknown_prior)
+                        repr_prior_string = repr_prior_string.replace(
+                            unknown_prior, "bilby.core.prior." + unknown_prior
+                        )
                     except Exception as e:
                         raise e
                 self.assertEqual(prior, repr_prior)
