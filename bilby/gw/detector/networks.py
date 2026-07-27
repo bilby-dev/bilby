@@ -5,6 +5,7 @@ import math
 
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 
@@ -84,7 +85,7 @@ class InterferometerList(list):
                     logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(
-        self, sampling_frequency, duration, start_time=0
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
     ):
         """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
@@ -107,6 +108,7 @@ class InterferometerList(list):
                 sampling_frequency=sampling_frequency,
                 duration=duration,
                 start_time=start_time,
+                random_state=random_state,
             )
 
     def set_strain_data_from_zero_noise(
@@ -341,6 +343,14 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
+    def set_array_backend(self, xp):
+        for ifo in self:
+            ifo.set_array_backend(xp)
+
+    @property
+    def array_backend(self):
+        return self[0].array_backend
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
@@ -472,3 +482,9 @@ def load_interferometer(filename):
             "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
         )
     return ifo
+
+
+@zenith_azimuth_to_theta_phi.dispatch
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)

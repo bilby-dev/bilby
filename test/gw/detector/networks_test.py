@@ -203,7 +203,9 @@ class TestInterferometerList(unittest.TestCase):
         self.ifo_list.set_strain_data_from_power_spectral_densities(
             sampling_frequency=123, duration=6.2, start_time=3
         )
-        m.assert_called_with(sampling_frequency=123, duration=6.2, start_time=3)
+        m.assert_called_with(
+            sampling_frequency=123, duration=6.2, start_time=3, random_state=None
+        )
         self.assertEqual(len(self.ifo_list), m.call_count)
 
     def test_inject_signal_pol_and_wg_none(self):
