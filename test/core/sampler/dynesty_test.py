@@ -87,7 +87,7 @@ class TestDynesty(unittest.TestCase):
             facc=0.2,
             save_bounds=False,
             dlogz=0.1,
-            bound="live",
+            bound="none",
             update_interval=600,
         )
         for key in expected:
