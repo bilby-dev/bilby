@@ -29,7 +29,7 @@ class TestDynamicDynesty(unittest.TestCase):
         """Only test the kwargs where we specify different defaults to dynesty"""
         expected = dict(
             sample="act-walk",
-            bound="live",
+            bound="none",
             facc=0.2,
             save_bounds=False,
             update_interval=600,
