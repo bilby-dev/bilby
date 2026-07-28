@@ -19,7 +19,6 @@ concurrency:
 
 env:
   CONDA_PATH: /opt/conda/
-  BILBY_ALLOW_PARAMETERS_AS_STATE: FALSE
   SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER: 1
 
 jobs:
