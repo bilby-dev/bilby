@@ -397,4 +397,3 @@ class TestMBLikelihood(unittest.TestCase):
             tolerance
         )
         self.assertEqual(aac.get_namespace(llrmb), self.xp)
-

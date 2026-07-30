@@ -15,6 +15,7 @@ from bilby.gw.likelihood import BilbyROQParamsRangeError
 
 from utils import BackendWaveformGenerator
 
+
 class ROQBasisMixin:
 
     @property
