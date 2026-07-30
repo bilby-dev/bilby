@@ -11,6 +11,28 @@ from ..prior import CBCPriorDict
 from ..utils import ln_i0
 
 
+class _WaveformGeneratorWrapper:
+    """
+    Thin proxy around a WaveformGenerator that calls _update_basis before
+    every frequency_domain_strain call, keeping the basis selection in sync
+    with the parameters without requiring manual call-sites.
+    """
+
+    def __init__(self, waveform_generator, update_basis):
+        object.__setattr__(self, '_wrapped', waveform_generator)
+        object.__setattr__(self, '_update_basis', update_basis)
+
+    def frequency_domain_strain(self, parameters=None, **kwargs):
+        self._update_basis(parameters)
+        return self._wrapped.frequency_domain_strain(parameters, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+    def __setattr__(self, name, value):
+        setattr(self._wrapped, name, value)
+
+
 class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     """A reduced order quadrature likelihood object
 
@@ -458,11 +480,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     @waveform_generator.setter
     def waveform_generator(self, waveform_generator):
-        self._waveform_generator = waveform_generator
-
-    def log_likelihood_ratio(self, parameters):
-        self._update_basis(parameters)
-        return super().log_likelihood_ratio(parameters=parameters)
+        self._waveform_generator = _WaveformGeneratorWrapper(waveform_generator, self._update_basis)
 
     def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
         """
@@ -474,7 +492,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         interferometer: bilby.gw.detector.Interferometer
 
         """
-        self._update_basis(parameters)
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
         else:
