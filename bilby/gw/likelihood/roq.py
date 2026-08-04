@@ -16,6 +16,9 @@ class _WaveformGeneratorWrapper:
     Thin proxy around a WaveformGenerator that calls _update_basis before
     every frequency_domain_strain call, keeping the basis selection in sync
     with the parameters without requiring manual call-sites.
+
+    This should be used like the underlying WaveformGenerator except it has
+    a side effect of updating the likelihood through `update_basis`.
     """
 
     def __init__(self, waveform_generator, update_basis):
