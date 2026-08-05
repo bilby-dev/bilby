@@ -27,7 +27,7 @@ class BaseCBCResultTest(unittest.TestCase):
                 time_marginalization=True,
                 frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
                 waveform_arguments=dict(
-                    reference_frequency=20.0, waveform_approximant="IMRPhenomPv2"
+                    reference_frequency=20.0, waveform_approximant="IMRPhenomXPHM"
                 ),
                 interferometers=dict(
                     H1=dict(optimal_SNR=1, parameters=injection_parameters),
