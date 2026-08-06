@@ -465,6 +465,12 @@ class TestPriorClasses(unittest.TestCase):
                     self._validate_return_type(rescaled)
                 self.assertLess(max_difference, threshold)
 
+    def test_cauchy_cdf_is_monotonic(self):
+        cauchy = bilby.core.prior.Cauchy(name="test", unit="unit", alpha=0, beta=1)
+        domain = self.xp.asarray(np.linspace(-1e2, 1e2, 1000))
+        cdf = np.asarray(cauchy.cdf(domain))
+        self.assertTrue(np.all(np.diff(cdf) >= 0))
+
     def test_cdf_one_above_domain(self):
         for prior in self.priors:
             if isinstance(prior, bilby.gw.prior.HealPixPrior) and aac.is_torch_namespace(self.xp):

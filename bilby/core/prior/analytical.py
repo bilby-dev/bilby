@@ -1140,9 +1140,17 @@ class Cauchy(Prior):
 
         This maps to the inverse CDF. This has been analytically solved for this case.
         """
-        rescaled = self.alpha + self.beta * xp.tan(np.pi * (val - 0.5))
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return rescaled - xp.log(val < 1) + xp.log(val > 0)
+        val = xp.asarray(val)
+        dtype = getattr(val, "dtype", None)
+        alpha = xp.asarray(self.alpha, dtype=dtype)
+        beta = xp.asarray(self.beta, dtype=dtype)
+        rescaled = alpha + beta * xp.tan(np.pi * (val - 0.5))
+        inf = xp.asarray(np.inf, dtype=dtype)
+        return xp.where(
+            val <= 0,
+            -inf,
+            xp.where(val >= 1, inf, rescaled),
+        )
 
     def prob(self, val, *, xp=None):
         """Return the prior probability of val.
@@ -1173,7 +1181,11 @@ class Cauchy(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        return 0.5 + xp.arctan((val - self.alpha) / self.beta) / np.pi
+        val = xp.asarray(val)
+        dtype = getattr(val, "dtype", None)
+        alpha = xp.asarray(self.alpha, dtype=dtype)
+        beta = xp.asarray(self.beta, dtype=dtype)
+        return 0.5 + xp.atan2(val - alpha, beta) / np.pi
 
 
 class Lorentzian(Cauchy):
