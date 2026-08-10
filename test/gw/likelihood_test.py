@@ -916,6 +916,44 @@ class TestROQLikelihoodHDF5(unittest.TestCase):
             llr_roq = likelihood_roq.log_likelihood_ratio(parameters)
             self.assertLess(np.abs(llr - llr_roq), max_llr_error)
 
+    @parameterized.expand([
+        ("log_likelihood_ratio", ),
+        ("compute_per_detector_log_likelihood", ),
+        ("generate_posterior_sample_from_marginalized_likelihood", )
+    ])
+    def test_method_switches_basis(self, method):
+        interferometers = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        interferometers.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            start_time=1.2 - self.duration + 1
+        )
+        for ifo in interferometers:
+            ifo.minimum_frequency = self.minimum_frequency
+        waveform_generator = bilby.gw.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            waveform_arguments=dict(
+                reference_frequency=self.reference_frequency,
+                waveform_approximant=self.waveform_approximant
+            )
+        )
+        priors = deepcopy(self.priors)
+        priors["chirp_mass"].minimum = 8
+        priors["chirp_mass"].maximum = 14
+        likelihood_roq = bilby.gw.likelihood.ROQGravitationalWaveTransient(
+            interferometers=interferometers,
+            priors=priors,
+            waveform_generator=waveform_generator,
+            linear_matrix=self._path_to_basis,
+            quadratic_matrix=self._path_to_basis
+        )
+        parameters = self.injection_parameters.copy()
+        for mc in np.linspace(8, 14, 11):
+            parameters["chirp_mass"] = mc
+            getattr(likelihood_roq, method)(parameters)
+
 
 @pytest.mark.requires_roqs
 class TestCreateROQLikelihood(unittest.TestCase):
