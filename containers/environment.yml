@@ -44,8 +44,6 @@ dependencies:
   - emcee
   - pytorch
   - pytorch-cpu
-  - jaxlib>=0.4
-  - jax>=0.4
   - numba>0.53.1
   - make
   - pre-commit
@@ -67,3 +65,7 @@ dependencies:
     - nestle-bilby    # Plugins should be moved to conda once they are available there
     - cpnest-bilby
     - zeus-bilby
+    # JAX's conda-forge build has had issues and
+    # lags behind pypi, hence install from pypi
+    - jax>=0.4
+    - jaxlib>=0.4
