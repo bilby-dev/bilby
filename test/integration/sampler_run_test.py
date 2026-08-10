@@ -131,7 +131,7 @@ class TestRunningSamplers(unittest.TestCase):
 
         def trigger_signal():
             # You could do something more robust, e.g. wait until port is listening
-            time.sleep(4)
+            time.sleep(10)
             os.kill(pid, SIGINT)
 
         thread = threading.Thread(target=trigger_signal)

@@ -1,3 +1,4 @@
+import os
 import unittest
 import pytest
 
@@ -296,11 +297,9 @@ class TestEccentricLalBBH(unittest.TestCase):
 @pytest.mark.requires_roqs
 class TestROQBBH(unittest.TestCase):
     def setUp(self):
-        roq_dir = "/roq_basis"
-
-        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear_file = f"{self.roq_dir}/fnodes_linear.npy"
         fnodes_linear = np.load(fnodes_linear_file).T
-        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic_file = f"{self.roq_dir}/fnodes_quadratic.npy"
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
 
         self.parameters = dict(
@@ -328,6 +327,20 @@ class TestROQBBH(unittest.TestCase):
         del self.parameters
         del self.waveform_kwargs
         del self.frequency_array
+
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
 
     def test_roq_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)

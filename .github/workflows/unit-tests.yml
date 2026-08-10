@@ -20,51 +20,77 @@ concurrency:
 env:
   CONDA_PATH: /opt/conda/
   SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER: 1
+  BILBY_TESTING_ROQ_DIR: ${{ github.workspace }}/.roq-data
 
 jobs:
-  unit-tests:
+  prepare-data:
+    name: Download ROQ data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache test data
+        id: test-data-cache
+        uses: actions/cache@v4
+        with:
+          path: .roq-data
+          key: roq-data-v1
 
+      - name: Download test data
+        if: steps.test-data-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .roq-data
+          cd .roq-data
+          wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_linear.npy \
+            && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/B_quadratic.npy \
+            && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_linear.npy \
+            && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/fnodes_quadratic.npy \
+            && wget https://git.ligo.org/lscsoft/ROQ_data/raw/master/IMRPhenomPv2/4s/params.dat \
+            && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis_addcal.hdf5 \
+            && wget https://git.ligo.org/soichiro.morisaki/roq_basis/raw/main/IMRPhenomD/16s_nospins/basis_multiband_addcal.hdf5
+
+  unit-tests:
     name: ${{ matrix.python.name }} unit tests
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
+    needs: prepare-data
     strategy:
       fail-fast: false
       matrix:
         python:
           - name: Python 3.11
-            version: 3.11
             short-version: 311
+            environment: py311
           - name: Python 3.12
-            version: 3.12
             short-version: 312
+            environment: py312
           - name: Python 3.13
-            version: 3.13
             short-version: 313
+            environment: py313
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         fetch-tags: true
-    - name: Install package
+
+    - name: Restore cached ROQ data
+      id: test-data-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: .roq-data
+        key: roq-data-v1
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: ${{ matrix.python.environment }}
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+
+    - name: Run tests
       run: |
-        # activate env so that conda list shows the correct environment
-        apt-get update
-        apt-get install -y gnupg curl
-        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
-        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
-        python -m pip install .
-        conda list --show-channel-urls
-      shell: bash
-    # - name: Run precommits
-    #   run: |
-    #     pre-commit run --all-files --verbose --show-diff-on-failure
-    - name: Run unit tests
-      run: |
-        python -m pytest --cov=bilby --cov-branch --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
-    - name: Run sampler tests
-      run: |
-        pytest test/integration/sampler_run_test.py --durations 10 -v        
+        pixi run -e ${{ matrix.python.environment }} \
+          pytest . --cov=bilby --cov-branch \
+          --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
+
     - name: Publish coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
@@ -73,7 +99,9 @@ jobs:
         flags: python${{ matrix.python.short-version }}
         slug: bilby-dev/bilby
     - name: Coverage report
-      run: python -m coverage report --show-missing
+      run: |
+        pixi run -e ${{ matrix.python.environment }} \
+          python -m coverage report --show-missing
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
@@ -82,10 +110,8 @@ jobs:
         path: pytest.xml
 
   doc-tests:
-
     name: Python 3.13 docstring tests
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python313:latest
     env:
       BILBY_ARRAY_API: 1
       SCIPY_ARRAY_API: 1
@@ -95,38 +121,71 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-    - name: Install package
-      run: |
-        apt-get update
-        apt-get install -y gnupg curl
-        source $CONDA_PATH/bin/activate python313
-        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0 orng pytest-doctestplus
-        python -m pip install ".[jax]"
-        conda list --show-channel-urls
-      shell: bash
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: py313
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+
     - name: Run docstring tests
       run: |
-        python -m pytest --doctest-plus --doctest-modules bilby -v
+        pixi run -e py313 \
+          python -m pytest --doctest-plus --doctest-modules bilby -v
+
+  sampler-run:
+
+    name: ${{ matrix.python.name }} run samplers
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - name: Python 3.11
+            environment: py311
+          - name: Python 3.12
+            environment: py312
+          - name: Python 3.13
+            environment: py313
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: ${{ matrix.python.environment }}
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+    - name: Run sampler tests
+      run: |
+        pixi run -e ${{ matrix.python.environment }} \
+          pytest test/integration/sampler_run_test.py --durations 10 -v
 
   array-backend:
 
+    needs: prepare-data
+
     name: ${{ matrix.python.name }} array backend (${{ matrix.backend.name }})
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
     strategy:
       fail-fast: false
       matrix:
         python:
           - name: Python 3.13
-            version: 3.13
             short-version: 313
         backend:
           - name: numpy
-            install-args: .
+            environment: numpy
           - name: jax
-            install-args: .[jax]
+            environment: jax
           - name: torch
-            install-args: .
+            environment: torch
     env:
       BILBY_ARRAY_API: 1
       SCIPY_ARRAY_API: 1
@@ -136,20 +195,25 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-    - name: Install package
-      run: |
-        # activate env so that conda list shows the correct environment
-        apt-get update
-        apt-get install -y gnupg curl
-        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
-        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
-        python -m pip install ${{ matrix.backend.install-args }}
-        python -m pip install orng
-        conda list --show-channel-urls
-      shell: bash
+
+    - name: Restore cached ROQ data
+      id: test-data-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: .roq-data
+        key: roq-data-v1
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: ${{ matrix.python.environment }}
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+
     - name: Run array-backend unit tests
       run: |
-        pytest --array-backend ${{ matrix.backend.name }} --durations 10 --junitxml=pytest-array.xml
+        pixi run -e ${{ matrix.backend.environment }} \
+          pytest --array-backend ${{ matrix.backend.name }} --durations 10 --junitxml=pytest-array.xml
     - name: Publish coverage to Codecov
       uses: codecov/codecov-action@v5
       with:

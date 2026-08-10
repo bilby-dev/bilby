@@ -1,0 +1,110 @@
+[dependencies]
+array-api-compat = "*"
+array-api-extra = "*"
+attrs = "*"
+corner = "*"
+dill = "*"
+emcee = "*"
+h5py = "*"
+matplotlib = "*"
+numpy = "*"
+pandas = "*"
+plum-dispatch = "*"
+scipy = ">=1.5"
+setuptools_scm = "*"
+tqdm = "*"
+
+[environments]
+documentation = ["py313", "gw", "doc", "test", "jax", "torch"]
+jax = ["py313", "gw", "test", "array_api", "jax"]
+latest-dynesty = ["py313", "gw", "test", "dynesty"]
+numpy = ["py313", "gw", "test", "array_api"]
+py311 = ["py311", "gw", "test"]
+py312 = ["py312", "gw", "test"]
+py313 = ["py313", "gw", "test"]
+py313-base = ["py313"]
+torch = ["py313", "gw", "test", "array_api", "torch"]
+
+[feature.array_api.dependencies]
+orng = ">=0.1"
+
+[feature.doc.dependencies]
+jupyter = "*"
+nbconvert = "*"
+nbsphinx = "*"
+numpydoc = "*"
+pandoc = "*"
+sphinx = "<9"
+sphinx-design = "*"
+sphinx-sitemap = "*"
+sphinx_rtd_theme = "*"
+
+[feature.doc.pypi-dependencies]
+autodoc = "*"
+myst_parser = "*"
+nessai-bilby = "*"
+nestle-bilby = "*"
+zeus-bilby = "*"
+
+[feature.dynesty.pypi-dependencies]
+dynesty = {git = "https://github.com/joshspeagle/dynesty.git", branch = "master"}
+
+[feature.gw.dependencies]
+astropy = ">=5.0.0"
+gwpy = ">=4.0.0"
+healpy = "*"
+liblal = "!=7.7.0"
+ligo-gracedb = "*"
+pyfftw = "*"
+pyseobnr = "*"
+python-lal = "!=7.7.0"
+python-lalframe = "*"
+python-lalsimulation = "*"
+
+[feature.gw.pypi-dependencies]
+bilby-cython = ">=0.5.4"
+
+[feature.jax.dependencies]
+numpy = "<2.5"
+
+[feature.jax.pypi-dependencies]
+interpax = "*"
+jax = ">=0.4"
+
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[feature.py312.dependencies]
+python = "3.12.*"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.test.dependencies]
+arviz = "*"
+celerite = "*"
+coverage = "*"
+george = "*"
+glasflow = "*"
+parameterized = "*"
+plotly = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-requires = "*"
+pytest-rerunfailures = "*"
+pytorch-cpu = "*"
+scikit-learn = "*"
+
+[feature.test.pypi-dependencies]
+bilby = {path = ".", editable = true}
+
+[feature.torch.dependencies]
+pytorch = "*"
+
+[pypi-dependencies]
+dynesty = ">=3.0.0"
+
+[workspace]
+channels = ["conda-forge"]
+name = "ci"
+platforms = ["linux-64", "osx-arm64"]

@@ -208,9 +208,8 @@ class TestPriorSubclassWithoutXpWarning(unittest.TestCase):
                     return val * 2
 
             prior = CustomPriorWithoutXp(name="custom_prior")
-            import jax.numpy as jnp
-            rescaled = prior.rescale(jnp.array([0.1, 0.2, 3]))
-            self.assertEqual(aac.get_namespace(rescaled), jnp)
+            rescaled = prior.rescale(np.array([0.1, 0.2, 3]))
+            self.assertEqual(aac.get_namespace(rescaled), aac.numpy)
 
 
 if __name__ == "__main__":
