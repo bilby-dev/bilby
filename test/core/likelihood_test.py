@@ -34,10 +34,21 @@ def _evaluate_with_jit(likelihood, parameters, xp):
         return likelihood.log_likelihood(parameters)
 
     expected = likelihood.log_likelihood(parameters)
-    jitted = jit_fn(likelihood, parameters)
-    jitted = jit_fn(likelihood, parameters)
 
+    cache_size = jit_fn._cache_size()
+    jitted = jit_fn(likelihood, parameters)
+    jitted = jit_fn(likelihood, parameters)
     assert xp.abs(expected - jitted) < 1e-12
+
+    alt_likelihood = deepcopy(likelihood)
+    alt_likelihood.interferometers.set_strain_data_from_power_spectral_densities(
+        duration=alt_likelihood.interferometers.duration,
+        sampling_frequency=alt_likelihood.interferometers.sampling_frequency,
+    )
+    new_value = jit_fn(alt_likelihood, parameters)
+
+    new_cache_size = jit_fn._cache_size()
+    assert new_cache_size <= cache_size + 1, "Cache size increased by more than 1"
 
 
 class TestLikelihoodBase(unittest.TestCase):
