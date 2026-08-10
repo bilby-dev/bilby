@@ -5,6 +5,12 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.8.2]
+
+### Fixes
+
+* BUG: Make sure the ROQ likelihood switches basis consistently by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1120 and backported in https://github.com/bilby-dev/bilby/pull/1122
+
 ## [2.8.1]
 
 ### Fixes
@@ -1286,7 +1292,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.1...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.2...main
+[2.8.2]: https://github.com/bilby-dev/bilby/compare/v2.8.1...v2.8.2
 [2.8.1]: https://github.com/bilby-dev/bilby/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
