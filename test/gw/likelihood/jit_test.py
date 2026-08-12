@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import array_api_compat as aac
 import numpy as np
 import pytest
@@ -23,10 +25,25 @@ def _evaluate_with_jit(likelihood, parameters, xp):
         return likelihood.log_likelihood_ratio(parameters)
 
     expected = likelihood.log_likelihood_ratio(parameters)
-    jitted = jit_fn(likelihood, parameters)
-    jitted = jit_fn(likelihood, parameters)
 
-    assert xp.abs(expected - jitted) < 1e-10
+    cache_size = jit_fn._cache_size()
+    # call the function twice so that we test with and without compilation
+    jitted = jit_fn(likelihood, parameters)
+    jitted = jit_fn(likelihood, parameters)
+    assert xp.abs(expected - jitted) < 1e-12
+
+    # call with a copy of the likelihood with new data
+    # to make sure it doesn't retrigger a compilation
+    alt_likelihood = deepcopy(likelihood)
+    alt_likelihood.interferometers.set_strain_data_from_power_spectral_densities(
+        duration=alt_likelihood.interferometers.duration,
+        sampling_frequency=alt_likelihood.interferometers.sampling_frequency,
+    )
+    new_value = jit_fn(alt_likelihood, parameters)
+
+    new_cache_size = jit_fn._cache_size()
+    assert new_cache_size <= cache_size + 1, "Cache size increased by more than 1"
+    assert new_value != jitted
 
 
 def null_convert(parameters):

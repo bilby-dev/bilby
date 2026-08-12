@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from unittest import mock
 
 import array_api_compat as aac
@@ -36,19 +37,18 @@ def _evaluate_with_jit(likelihood, parameters, xp):
     expected = likelihood.log_likelihood(parameters)
 
     cache_size = jit_fn._cache_size()
+    # call the function twice so that we test with and without compilation
     jitted = jit_fn(likelihood, parameters)
     jitted = jit_fn(likelihood, parameters)
     assert xp.abs(expected - jitted) < 1e-12
 
+    # call with a copy of the likelihood to make sure it doesn't retrigger a compilation
     alt_likelihood = deepcopy(likelihood)
-    alt_likelihood.interferometers.set_strain_data_from_power_spectral_densities(
-        duration=alt_likelihood.interferometers.duration,
-        sampling_frequency=alt_likelihood.interferometers.sampling_frequency,
-    )
     new_value = jit_fn(alt_likelihood, parameters)
 
     new_cache_size = jit_fn._cache_size()
     assert new_cache_size <= cache_size + 1, "Cache size increased by more than 1"
+    assert new_value == jitted
 
 
 class TestLikelihoodBase(unittest.TestCase):
