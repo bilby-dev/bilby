@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import trapezoid, cumulative_simpson
+from scipy.integrate import trapezoid, cumulative_trapezoid
 
 from .base import Prior
 from .dict import PriorDict
@@ -190,7 +190,7 @@ class Interped(Prior):
         if trapezoid(self._yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self._yy /= trapezoid(self._yy, self.xx)
-        self.YY = cumulative_simpson(y=self._yy, x=self.xx, initial=0)
+        self.YY = cumulative_trapezoid(y=self._yy, x=self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
         self.YY[-1] = 1
         self.probability_density = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
