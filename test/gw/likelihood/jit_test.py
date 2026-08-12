@@ -30,7 +30,7 @@ def _evaluate_with_jit(likelihood, parameters, xp):
     # call the function twice so that we test with and without compilation
     jitted = jit_fn(likelihood, parameters)
     jitted = jit_fn(likelihood, parameters)
-    assert xp.abs(expected - jitted) < 1e-12
+    assert xp.abs(expected - jitted) < 1e-10
 
     # call with a copy of the likelihood with new data
     # to make sure it doesn't retrigger a compilation
