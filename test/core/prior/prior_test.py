@@ -62,9 +62,9 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.PowerLaw(
                 name="test", unit="unit", alpha=0, minimum=0, maximum=1
             ),
-            # bilby.core.prior.PowerLaw(
-            #     name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1
-            # ),
+            bilby.core.prior.PowerLaw(
+                name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1
+            ),
             bilby.core.prior.PowerLaw(
                 name="test", unit="unit", alpha=2, minimum=1, maximum=1e2
             ),
@@ -140,14 +140,14 @@ class TestPriorClasses(unittest.TestCase):
                 minimum=0,
                 maximum=1,
             ),
-            # bilby.core.prior.ConditionalPowerLaw(
-            #     condition_func=condition_func,
-            #     name="test",
-            #     unit="unit",
-            #     alpha=-1,
-            #     minimum=0.5,
-            #     maximum=1,
-            # ),
+            bilby.core.prior.ConditionalPowerLaw(
+                condition_func=condition_func,
+                name="test",
+                unit="unit",
+                alpha=-1,
+                minimum=0.5,
+                maximum=1,
+            ),
             bilby.core.prior.ConditionalPowerLaw(
                 condition_func=condition_func,
                 name="test",
