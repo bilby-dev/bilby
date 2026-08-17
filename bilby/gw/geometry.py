@@ -439,7 +439,7 @@ def transform_precessing_spins(
         sin_a = xp.sin(angle)
         x_new = cos_a * vec[0] - sin_a * vec[1]
         y_new = sin_a * vec[0] + cos_a * vec[1]
-        return xp.stack([x_new, y_new, vec[2]], axis=0)
+        return xp.asarray([x_new, y_new, vec[2]])
 
     def rotate_y(angle, vec):
         """Rotate vector about y-axis"""
@@ -447,27 +447,23 @@ def transform_precessing_spins(
         sin_a = xp.sin(angle)
         x_new = cos_a * vec[0] + sin_a * vec[2]
         z_new = -sin_a * vec[0] + cos_a * vec[2]
-        return xp.stack([x_new, vec[1], z_new], axis=0)
+        return xp.asarray([x_new, vec[1], z_new])
 
     # Starting frame: LNhat is along the z-axis
-    ln_hat = xp.stack([
-        xp.zeros_like(theta_jn),
-        xp.zeros_like(theta_jn),
-        xp.ones_like(theta_jn)
-    ], axis=0)
+    ln_hat = xp.asarray([theta_jn * 0, theta_jn * 0, theta_jn ** 0])
 
     # Initial spin unit vectors
-    s1_hat = xp.stack([
+    s1_hat = xp.asarray([
         xp.sin(tilt_1) * xp.cos(phase),
         xp.sin(tilt_1) * xp.sin(phase),
-        xp.cos(tilt_1)
-    ], axis=0)
+        xp.cos(tilt_1),
+    ])
 
-    s2_hat = xp.stack([
+    s2_hat = xp.asarray([
         xp.sin(tilt_2) * xp.cos(phi_12 + phase),
         xp.sin(tilt_2) * xp.sin(phi_12 + phase),
-        xp.cos(tilt_2)
-    ], axis=0)
+        xp.cos(tilt_2),
+    ])
 
     # Compute physical parameters
     m_total = mass_1 + mass_2
@@ -487,11 +483,12 @@ def transform_precessing_spins(
     s2 = mass_2 * mass_2 * chi_2 * s2_hat
 
     # Total angular momentum J = L + S1 + S2
-    l_vec = xp.stack([xp.zeros_like(theta_jn), xp.zeros_like(theta_jn), l_mag], axis=0)
+    # l_vec = xp.asarray([xp.zeros_like(theta_jn), xp.zeros_like(theta_jn), l_mag])
+    l_vec = xp.asarray([l_mag * 0, l_mag * 0, l_mag])
     j = l_vec + s1 + s2
 
     # Normalize J to get Jhat and find its angles
-    j_norm = xp.sqrt(xp.sum(j * j, axis=0))
+    j_norm = xp.sqrt(xp.sum(j ** 2, axis=0))
     j_hat = j / j_norm
 
     theta_0 = xp.arccos(j_hat[2])
@@ -515,11 +512,7 @@ def transform_precessing_spins(
     s2_hat = rotate_z(angle, s2_hat)
 
     # Compute inclination: angle between L and N
-    n = xp.stack([
-        xp.zeros_like(theta_jn),
-        xp.sin(theta_jn),
-        xp.cos(theta_jn)
-    ], axis=0)
+    n = xp.asarray([theta_jn * 0, xp.sin(theta_jn), xp.cos(theta_jn)])
     iota = xp.arccos(xp.sum(n * ln_hat, axis=0))
 
     # Rotation 4-5: Bring L into the z-axis
