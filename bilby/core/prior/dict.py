@@ -557,8 +557,11 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
-        if xp is None:
+        if xp is None and isinstance(sample, dict):
             xp = array_module(sample.values())
+        elif xp is None:
+            # assume input is a dataframe
+            xp = array_module(sample.values)
         prob = xp.prod(xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs)
 
         return self.check_prob(sample, prob, normalized=normalized, xp=xp)
@@ -838,8 +841,11 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        if xp is None:
+        if xp is None and isinstance(sample, dict):
             xp = array_module(sample.values())
+        elif xp is None:
+            # assume input is a dataframe
+            xp = array_module(sample.values)
         res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
@@ -866,8 +872,11 @@ class ConditionalPriorDict(PriorDict):
 
         """
         self._prepare_evaluation(*zip(*sample.items()))
-        if xp is None:
+        if xp is None and isinstance(sample, dict):
             xp = array_module(sample.values())
+        elif xp is None:
+            # assume input is a dataframe
+            xp = array_module(sample.values)
         res = xp.asarray([
             self[key].ln_prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
