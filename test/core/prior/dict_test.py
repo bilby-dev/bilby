@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import array_api_compat as aac
 import numpy as np
+import pandas as pd
 import pytest
 
 import bilby
@@ -388,6 +389,30 @@ class TestPriorDict(unittest.TestCase):
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
         self.assertEqual(aac.get_namespace(expected), self.xp)
+
+    def test_prob_dataframe(self):
+        """
+        Regression test: :code:`prob` used to assume :code:`sample.values()`
+        was callable, which fails for a :code:`pandas.DataFrame` because
+        :code:`DataFrame.values` is a property, not a method.
+        """
+        sample = pd.DataFrame({"mass": [0.3, 0.6], "speed": [1.2, 1.5]})
+        expected = np.asarray(self.first_prior.prob(sample["mass"].to_numpy())) * np.asarray(
+            self.second_prior.prob(sample["speed"].to_numpy())
+        )
+        # axis=0 is needed to get one probability per row rather than the
+        # fully-reduced scalar product over the whole (rows, keys) array.
+        prob = self.prior_set_from_dict.prob(sample, axis=0)
+        np.testing.assert_allclose(np.asarray(prob), expected)
+
+    def test_ln_prob_dataframe(self):
+        """See :code:`test_prob_dataframe`; same issue affects :code:`ln_prob`."""
+        sample = pd.DataFrame({"mass": [0.3, 0.6], "speed": [1.2, 1.5]})
+        expected = np.asarray(self.first_prior.ln_prob(sample["mass"].to_numpy())) + np.asarray(
+            self.second_prior.ln_prob(sample["speed"].to_numpy())
+        )
+        ln_prob = self.prior_set_from_dict.ln_prob(sample, axis=0)
+        np.testing.assert_allclose(np.asarray(ln_prob), expected)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]

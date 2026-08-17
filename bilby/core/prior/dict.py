@@ -63,10 +63,13 @@ class PriorDict(dict):
     @xp_wrap
     def evaluate_constraints(self, sample, *, xp=None):
         out_sample = self.conversion_function(sample)
-        try:
+        if isinstance(out_sample, dict):
             prob = xp.ones_like(next(iter(out_sample.values())), dtype=bool)
-        except TypeError:
-            prob = xp.ones_like(out_sample, dtype=bool)
+        else:
+            # assume input is a dataframe; take a single column so the shape
+            # matches the number of samples, not the whole (n_samples, n_keys)
+            # frame.
+            prob = xp.ones_like(out_sample[next(iter(out_sample))], dtype=bool)
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
