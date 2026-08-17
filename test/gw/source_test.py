@@ -620,6 +620,23 @@ class TestRelbinBBH(unittest.TestCase):
             dict,
         )
 
+    def test_relbin_fiducial_bbh_ignores_frequency_bin_edges(self):
+        """
+        Once bins are set up, ``RelativeBinningGravitationalWaveTransient``
+        leaves ``frequency_bin_edges`` in the waveform generator's persistent
+        ``waveform_arguments``, so any later fiducial (full-resolution) call
+        is made with it still present. The fiducial branch must drop it
+        rather than pass it through as an unused kwarg.
+        """
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["frequency_bin_edges"] = np.arange(20, 1500, 50)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
     def test_relbin_bbh_xpprecession_version(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.parameters["waveform_approximant"] = "IMRPhenomXP"
@@ -696,6 +713,26 @@ class TestRelbinBNS(unittest.TestCase):
                 self.frequency_array,
                 **self.parameters,
                 **self.waveform_kwargs_binned,
+            ),
+            dict,
+        )
+
+    def test_relbin_fiducial_bns_ignores_frequency_bin_edges(self):
+        """
+        Regression test for the missing ``frequency_bin_edges`` pop in the
+        fiducial branch (unlike the BBH counterpart, which already drops it).
+        Once bins are set up, ``RelativeBinningGravitationalWaveTransient``
+        leaves ``frequency_bin_edges`` in the waveform generator's persistent
+        ``waveform_arguments``, so any later fiducial (full-resolution) call
+        -- e.g. from an iterative fiducial-parameter update, or an external
+        Fisher-matrix calculation -- is made with it still present. Before the
+        fix this raised the "unused waveform kwargs" ``ValueError``.
+        """
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["frequency_bin_edges"] = np.arange(20, 1500, 50)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
             ),
             dict,
         )
