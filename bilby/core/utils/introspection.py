@@ -31,9 +31,9 @@ def infer_parameters_from_function(func):
     This allows the reference to the instance (conventionally named `self`)
     to be removed.
     """
-    if isinstance(func, types.MethodType):
+    if isinstance(func, (types.MethodType, types.BuiltinMethodType)):
         return infer_args_from_function_except_n_args(func=func, n=2)
-    elif isinstance(func, types.FunctionType):
+    elif isinstance(func, (types.FunctionType, types.BuiltinFunctionType)):
         return _infer_args_from_function_except_for_first_arg(func=func)
     else:
         raise ValueError("This doesn't look like a function.")
