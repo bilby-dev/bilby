@@ -77,27 +77,37 @@ def array_module(arr):
 
     Examples
     ========
-    .. doctest-requires:: jax
 
-    >>> import numpy as np
-    >>> import jax.numpy as jnp
-    >>> array_module(np.array([1, 2, 3]))
-    <module 'numpy' ...>
+    .. testsetup::
 
-    >>> array_module(jnp.array([1, 2, 3]))
-    <module 'jax.numpy' ...>
+        >>> from unittest.mock import patch
+        >>> _array_module = array_module
+        >>> def array_module(arr):
+        ...     with patch.dict(_array_module.__globals__, BILBY_ARRAY_API=True):
+        ...         return _array_module(arr)
 
-    >>> array_module({'data': np.array([1, 2, 3])})
-    <module 'numpy' ...>
+    .. doctest-requires-all:: jax, orng
 
-    >>> array_module([np.array([1]), np.array([2])])
-    <module 'numpy' ...>
+        >>> import numpy as np
+        >>> import jax.numpy as jnp
+        >>> array_module(np.array([1, 2, 3]))
+        <module 'array_api_compat.numpy' ...>
 
-    >>> array_module([1, jnp.array([2])])
-    <module 'jax.numpy' ...>
+        >>> array_module(jnp.array([1, 2, 3]))
+        <module 'jax.numpy' ...>
 
-    >>> array_module(5)
-    <module 'numpy' ...>
+        >>> array_module({'data': np.array([1, 2, 3])})
+        <module 'array_api_compat.numpy' ...>
+
+        >>> array_module([np.array([1]), np.array([2])])
+        <module 'array_api_compat.numpy' ...>
+
+        >>> array_module([1, jnp.array([2])])
+        <module 'jax.numpy' ...>
+
+        >>> array_module(5)
+        <module 'numpy' ...>
+
     """
     if not BILBY_ARRAY_API:
         return np
