@@ -64,7 +64,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
             import lal
 
             if isinstance(obj, lal.Dict):
-                return encode_ligo_lal_dict(obj)
+                return encode_lal_dict(obj)
         except ImportError:
             logger.debug("Cannot import lal, cannot write LAL dictionaries")
         if aac.is_array_api_obj(obj):
@@ -194,27 +194,27 @@ def encode_numpy_seed_sequence(seed_sequence):
     }
 
 
-def encode_ligo_lal_dict(obj):
+def encode_lal_dict(obj):
     """Encode a :code:`lal.Dict` object to a dictionary.
 
     Adds the key :code:`__lal_dict__` to the dictionary to indicate that the
     object is a LAL dictionary object.
 
-    .. versionadded:: 3.1.0
+    .. versionadded:: 3.0.0
     """
     from lalsimulation.gwsignal.core.utils import from_lal_dict
 
     return {"__lal_dict__": True, "content": from_lal_dict(obj)}
 
 
-def decode_ligo_lal_dict(dct):
+def decode_lal_dict(dct):
     """Decode a :code:`lal.Dict` object from a dictionary.
 
     The dictionary should have been encoded using
-    :py:func:`~bilby.core.utils.io.encode_ligo_lal_dict` and should have the
+    :py:func:`~bilby.core.utils.io.encode_lal_dict` and should have the
     key :code:`__lal_dict__`.
 
-    .. versionadded:: 3.1.0
+    .. versionadded:: 3.0.0
     """
     from lalsimulation.gwsignal.core.utils import to_lal_dict
 
@@ -391,7 +391,7 @@ def decode_bilby_json(dct):
     if dct.get("__astropy_unit__", False):
         return decode_astropy_unit(dct)
     if dct.get("__lal_dict__", False):
-        return decode_ligo_lal_dict(dct)
+        return decode_lal_dict(dct)
     if dct.get("__array__", False):
         namespace = dct.get("__array_namespace__", "numpy")
         xp = import_module(namespace)
@@ -561,7 +561,7 @@ def encode_for_hdf5(key, item):
     elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
         output = encode_astropy_unit(item)
     elif lal is not None and isinstance(item, lal.Dict):
-        output = encode_ligo_lal_dict(item)
+        output = encode_lal_dict(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
@@ -600,7 +600,7 @@ def decode_hdf5_dict(output):
     elif "__numpy_seed_sequence__" in output:
         output = decode_numpy_seed_sequence(output)
     elif "__lal_dict__" in output:
-        output = decode_ligo_lal_dict(output)
+        output = decode_lal_dict(output)
     return output
 
 
