@@ -1089,3 +1089,22 @@ def safe_cast_mode_to_int(value):
         raise TypeError("Conversion from float to int is not allowed.")
     else:
         raise TypeError(f"Unsupported type '{type(value).__name__}'.")
+
+
+def gwsignal_from_lal_dict(ldict):
+    """
+    Convert LALDict object to a Python dictionary
+
+    Parameters
+    ==========
+    ldict: LALDict
+        LALDict object
+
+    Returns
+    =======
+    d: dict
+        Python dictionary
+    """
+    from lalsimulation.gwsignal.core.utils import from_lal_dict
+
+    return from_lal_dict(ldict)
