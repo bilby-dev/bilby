@@ -60,6 +60,13 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
+        try:
+            import lal
+
+            if isinstance(obj, lal.Dict):
+                return encode_ligo_lal_dict(obj)
+        except ImportError:
+            logger.debug("Cannot import lal, cannot write LAL dictionaries")
         if aac.is_array_api_obj(obj):
             return {
                 "__array__": True,
@@ -185,6 +192,33 @@ def encode_numpy_seed_sequence(seed_sequence):
         "__numpy_seed_sequence__": True,
         "state": state,
     }
+
+
+def encode_ligo_lal_dict(obj):
+    """Encode a :code:`lal.Dict` object to a dictionary.
+
+    Adds the key :code:`__lal_dict__` to the dictionary to indicate that the
+    object is a LAL dictionary object.
+
+    .. versionadded:: 3.1.0
+    """
+    from lalsimulation.gwsignal.core.utils import from_lal_dict
+
+    return {"__lal_dict__": True, "content": from_lal_dict(obj)}
+
+
+def decode_ligo_lal_dict(dct):
+    """Decode a :code:`lal.Dict` object from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_ligo_lal_dict` and should have the
+    key :code:`__lal_dict__`.
+
+    .. versionadded:: 3.1.0
+    """
+    from lalsimulation.gwsignal.core.utils import to_lal_dict
+
+    return to_lal_dict(dct["content"])
 
 
 def decode_astropy_cosmology(dct):
@@ -356,6 +390,8 @@ def decode_bilby_json(dct):
         return decode_astropy_quantity(dct)
     if dct.get("__astropy_unit__", False):
         return decode_astropy_unit(dct)
+    if dct.get("__lal_dict__", False):
+        return decode_ligo_lal_dict(dct)
     if dct.get("__array__", False):
         namespace = dct.get("__array_namespace__", "numpy")
         xp = import_module(namespace)
@@ -466,6 +502,12 @@ def encode_for_hdf5(key, item):
         cosmo = None
         units = None
 
+    try:
+        import lal
+    except ImportError:
+        logger.debug("Cannot import lal, cannot write LAL dictionaries")
+        lal = None
+
     if isinstance(item, np.int_):
         item = int(item)
     elif isinstance(item, np.float64):
@@ -518,6 +560,8 @@ def encode_for_hdf5(key, item):
         output = encode_astropy_quantity(item)
     elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
         output = encode_astropy_unit(item)
+    elif lal is not None and isinstance(item, lal.Dict):
+        output = encode_ligo_lal_dict(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
@@ -555,6 +599,8 @@ def decode_hdf5_dict(output):
         output = decode_numpy_random_generator(output)
     elif "__numpy_seed_sequence__" in output:
         output = decode_numpy_seed_sequence(output)
+    elif "__lal_dict__" in output:
+        output = decode_ligo_lal_dict(output)
     return output
 
 
