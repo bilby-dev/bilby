@@ -56,6 +56,9 @@ jobs:
         python -m pip install .
         conda list --show-channel-urls
       shell: bash
+    - name: Run docstring tests
+      run: |
+        python -m pytest --doctest-modules bilby -v
     # - name: Run precommits
     #   run: |
     #     pre-commit run --all-files --verbose --show-diff-on-failure
