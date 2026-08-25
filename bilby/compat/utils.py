@@ -77,6 +77,8 @@ def array_module(arr):
 
     Examples
     ========
+    .. doctest-requires:: jax
+
     >>> import numpy as np
     >>> import jax.numpy as jnp
     >>> array_module(np.array([1, 2, 3]))
