@@ -1,5 +1,4 @@
 import inspect
-import types
 
 
 def infer_parameters_from_function(func):
@@ -50,7 +49,7 @@ def infer_args_from_method(method):
     list: A list of strings with the parameters
     """
 
-    return infer_args_from_function_except_n_args(func=method)
+    return infer_args_from_function_except_n_args(func=method, n=0)
 
 
 def infer_args_from_function_except_n_args(func, n=1):
