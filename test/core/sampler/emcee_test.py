@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import MagicMock
 
 import bilby
 import bilby.core.sampler.emcee
@@ -7,7 +6,7 @@ import bilby.core.sampler.emcee
 
 class TestEmcee(unittest.TestCase):
     def setUp(self):
-        self.likelihood = MagicMock()
+        self.likelihood = bilby.core.likelihood.Likelihood()
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
@@ -70,6 +69,18 @@ class TestEmcee(unittest.TestCase):
             new_kwargs[equiv] = 100
             self.sampler.kwargs = new_kwargs
             self.assertDictEqual(expected, self.sampler.kwargs)
+
+    def test_expected_output_files(self):
+        expected_filenames = [
+            "outdir/emcee_output_test/chain.dat",
+            "outdir/emcee_output_test/sampler.pickle",
+        ]
+        expected_dirs = [
+            "outdir/emcee_output_test"
+        ]
+        filenames, dirs = self.sampler.get_expected_outputs(outdir="outdir", label="output_test")
+        self.assertListEqual(expected_filenames, filenames)
+        self.assertListEqual(expected_dirs, dirs)
 
 
 if __name__ == "__main__":

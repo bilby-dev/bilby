@@ -8,6 +8,7 @@ from importlib import import_module
 from pathlib import Path
 from datetime import timedelta
 
+import array_api_compat as aac
 import numpy as np
 import pandas as pd
 
@@ -59,8 +60,19 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
-        if isinstance(obj, np.ndarray):
-            return {"__array__": True, "content": obj.tolist()}
+        try:
+            import lal
+
+            if isinstance(obj, lal.Dict):
+                return encode_lal_dict(obj)
+        except ImportError:
+            logger.debug("Cannot import lal, cannot write LAL dictionaries")
+        if aac.is_array_api_obj(obj):
+            return {
+                "__array__": True,
+                "__array_namespace__": aac.get_namespace(obj).__name__,
+                "content": obj.tolist(),
+            }
         if isinstance(obj, complex):
             return {"__complex__": True, "real": obj.real, "imag": obj.imag}
         if isinstance(obj, pd.DataFrame):
@@ -69,6 +81,8 @@ class BilbyJsonEncoder(json.JSONEncoder):
             return {"__series__": True, "content": obj.to_dict()}
         if isinstance(obj, np.random.Generator):
             return encode_numpy_random_generator(obj)
+        if isinstance(obj, np.random.SeedSequence):
+            return encode_numpy_seed_sequence(obj)
         if inspect.isfunction(obj):
             return {
                 "__function__": True,
@@ -162,11 +176,56 @@ def encode_numpy_random_generator(generator):
     }
 
 
+def encode_numpy_seed_sequence(seed_sequence):
+    """Encode a numpy SeedSequence to a dictionary.
+
+    Adds the key :code:`__numpy_seed_sequence__` to the dictionary to indicate
+    that the object is a numpy SeedSequence.
+
+    The :code:`state` key contains the state of the seed sequence.
+
+    .. versionadded:: 3.0.0
+    """
+    state = dict(seed_sequence.state)
+    state["spawn_key"] = list(state["spawn_key"])
+    return {
+        "__numpy_seed_sequence__": True,
+        "state": state,
+    }
+
+
+def encode_lal_dict(obj):
+    """Encode a :code:`lal.Dict` object to a dictionary.
+
+    Adds the key :code:`__lal_dict__` to the dictionary to indicate that the
+    object is a LAL dictionary object.
+
+    .. versionadded:: 3.0.0
+    """
+    from lalsimulation.gwsignal.core.utils import from_lal_dict
+
+    return {"__lal_dict__": True, "content": from_lal_dict(obj)}
+
+
+def decode_lal_dict(dct):
+    """Decode a :code:`lal.Dict` object from a dictionary.
+
+    The dictionary should have been encoded using
+    :py:func:`~bilby.core.utils.io.encode_lal_dict` and should have the
+    key :code:`__lal_dict__`.
+
+    .. versionadded:: 3.0.0
+    """
+    from lalsimulation.gwsignal.core.utils import to_lal_dict
+
+    return to_lal_dict(dct["content"])
+
+
 def decode_astropy_cosmology(dct):
     """Decode an astropy cosmology from a dictionary.
 
     The dictionary should have been encoded using
-    :py:func:`~bibly.core.utils.io.encode_astropy_cosmology` and should have the
+    :py:func:`~bilby.core.utils.io.encode_astropy_cosmology` and should have the
     key :code:`__cosmology__`.
 
     .. versionchange:: 2.5.0
@@ -270,6 +329,16 @@ def decode_numpy_random_generator(dct):
     return generator
 
 
+def decode_numpy_seed_sequence(dct):
+    """Decode a numpy SeedSequence from a dictionary.
+
+    .. versionadded:: 3.0.0
+    """
+    state = dict(dct["state"])
+    state["spawn_key"] = tuple(int(idx) for idx in state["spawn_key"])
+    return np.random.SeedSequence(**state)
+
+
 def load_json(filename, gzip):
     if gzip or os.path.splitext(filename)[1].lstrip(".") == "gz":
         import gzip
@@ -291,30 +360,42 @@ def decode_bilby_json(dct):
     if dct.get("__prior__", False):
         try:
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
-        except AttributeError:
-            logger.warning(
-                "Unknown prior class for parameter {}, defaulting to base Prior object".format(
+            obj = cls(**dct["kwargs"])
+        except (AttributeError, ValueError) as e:
+            if type(e).__name__ == 'AttributeError':
+                warning_message = "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
-            )
+            elif type(e).__name__ == 'ValueError':
+                warning_message = (
+                    f"Unable to load prior {cls} with arguments {dct['kwargs']}, "
+                    "defaulting to base Prior object"
+                )
+            logger.warning(warning_message)
             from ..prior import Prior
 
             for key in list(dct["kwargs"].keys()):
                 if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
                     dct["kwargs"].pop(key)
             cls = Prior
-        obj = cls(**dct["kwargs"])
+            obj = cls(**dct["kwargs"])
         return obj
     if dct.get("__numpy_random_generator__", False):
         return decode_numpy_random_generator(dct)
+    if dct.get("__numpy_seed_sequence__", False):
+        return decode_numpy_seed_sequence(dct)
     if dct.get("__cosmology__", False):
         return decode_astropy_cosmology(dct)
     if dct.get("__astropy_quantity__", False):
         return decode_astropy_quantity(dct)
     if dct.get("__astropy_unit__", False):
         return decode_astropy_unit(dct)
+    if dct.get("__lal_dict__", False):
+        return decode_lal_dict(dct)
     if dct.get("__array__", False):
-        return np.asarray(dct["content"])
+        namespace = dct.get("__array_namespace__", "numpy")
+        xp = import_module(namespace)
+        return xp.asarray(dct["content"])
     if dct.get("__complex__", False):
         return complex(dct["real"], dct["imag"])
     if dct.get("__dataframe__", False):
@@ -323,7 +404,14 @@ def decode_bilby_json(dct):
         return pd.Series(dct["content"])
     if dct.get("__function__", False) or dct.get("__class__", False):
         default = ".".join([dct["__module__"], dct["__name__"]])
-        return getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        try:
+            cls = getattr(import_module(dct["__module__"]), dct["__name__"], default)
+        except ModuleNotFoundError:
+            logger.warning(
+                f"Cannot load module {dct['__module__']}, returning function name as string"
+            )
+            cls = default
+        return cls
     if dct.get("__timedelta__", False):
         return timedelta(seconds=dct["__total_seconds__"])
     return dct
@@ -414,6 +502,12 @@ def encode_for_hdf5(key, item):
         cosmo = None
         units = None
 
+    try:
+        import lal
+    except ImportError:
+        logger.debug("Cannot import lal, cannot write LAL dictionaries")
+        lal = None
+
     if isinstance(item, np.int_):
         item = int(item)
     elif isinstance(item, np.float64):
@@ -425,10 +519,16 @@ def encode_for_hdf5(key, item):
         if item.dtype.kind == 'U':
             logger.debug(f'converting dtype {item.dtype} for hdf5')
             item = np.array(item, dtype='S')
+    elif aac.is_array_api_obj(item):
+        # temporarily dump all arrays as numpy arrays, we should figure ou
+        # how to properly deserialize them
+        item = np.asarray(item)
     if isinstance(item, (np.ndarray, int, float, complex, str, bytes)):
         output = item
     elif isinstance(item, np.random.Generator):
         output = encode_numpy_random_generator(item)
+    elif isinstance(item, np.random.SeedSequence):
+        output = encode_numpy_seed_sequence(item)
     elif item is None:
         output = "__none__"
     elif isinstance(item, list):
@@ -460,6 +560,8 @@ def encode_for_hdf5(key, item):
         output = encode_astropy_quantity(item)
     elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
         output = encode_astropy_unit(item)
+    elif lal is not None and isinstance(item, lal.Dict):
+        output = encode_lal_dict(item)
     elif inspect.isfunction(item) or inspect.isclass(item):
         output = dict(
             __module__=item.__module__, __name__=item.__name__, __class__=True
@@ -495,6 +597,10 @@ def decode_hdf5_dict(output):
         output = decode_astropy_unit(output)
     elif "__numpy_random_generator__" in output:
         output = decode_numpy_random_generator(output)
+    elif "__numpy_seed_sequence__" in output:
+        output = decode_numpy_seed_sequence(output)
+    elif "__lal_dict__" in output:
+        output = decode_lal_dict(output)
     return output
 
 

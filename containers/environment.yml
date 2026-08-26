@@ -1,0 +1,71 @@
+# This is a template yaml file for the test image
+# The python version should be added before creating the env
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - setuptools
+  - setuptools_scm
+  - matplotlib
+  - numpy
+  - scipy
+  - pandas
+  - astropy
+  - flake8
+  - coverage
+  - configargparse
+  - future
+  - dill
+  - black
+  - pytest-cov
+  - pytest-requires
+  - pytest-rerunfailures
+  - arviz
+  - parameterized
+  - scikit-image
+  - celerite
+  - george
+  - corner
+  - healpy
+  - cython
+  - pytorch
+  - python-lalsimulation
+  - bilby.cython
+  - pyseobnr
+  - ligo-gracedb
+  - gwpy>=4.0.0
+  - ligo.skymap
+  - sphinx<9 # needed for sphinx_rtd_theme<3.1
+  - numpydoc
+  - nbsphinx
+  - sphinx_rtd_theme
+  - sphinx-design
+  - dynesty>=3.0.0
+  - emcee
+  - pytorch
+  - pytorch-cpu
+  - numba>0.53.1
+  - make
+  - pre-commit
+  - pandoc
+  - ipython
+  - jupyter
+  - nbconvert
+  - twine
+  - glasflow
+  - nessai-bilby
+  - myst-parser
+  - array-api-compat
+  - array-api-extra
+  - plum-dispatch
+  - pip:
+    - autodoc
+    - ipykernel
+    - build
+    - nestle-bilby    # Plugins should be moved to conda once they are available there
+    - cpnest-bilby
+    - zeus-bilby
+    # JAX's conda-forge build has had issues and
+    # lags behind pypi, hence install from pypi
+    - jax>=0.4
+    - jaxlib>=0.4

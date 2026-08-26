@@ -15,6 +15,9 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Physics"
 ]
 description = "A user-friendly Bayesian inference library"
@@ -29,26 +32,14 @@ maintainers = [
 ]
 name = "bilby"
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.entry-points."bilby.samplers"]
 "bilby.bilby_mcmc" = "bilby.bilby_mcmc.sampler:Bilby_MCMC"
-"bilby.cpnest" = "bilby.core.sampler.cpnest:Cpnest"
-"bilby.dnest4" = "bilby.core.sampler.dnest4:DNest4"
 "bilby.dynamic_dynesty" = "bilby.core.sampler.dynamic_dynesty:DynamicDynesty"
 "bilby.dynesty" = "bilby.core.sampler.dynesty:Dynesty"
 "bilby.emcee" = "bilby.core.sampler.emcee:Emcee"
 "bilby.fake_sampler" = "bilby.core.sampler.fake_sampler:FakeSampler"
-"bilby.kombine" = "bilby.core.sampler.kombine:Kombine"
-"bilby.nessai" = "bilby.core.sampler.nessai:Nessai"
-"bilby.nestle" = "bilby.core.sampler.nestle:Nestle"
-"bilby.ptemcee" = "bilby.core.sampler.ptemcee:Ptemcee"
-"bilby.ptmcmcsampler" = "bilby.core.sampler.ptmcmc:PTMCMCSampler"
-"bilby.pymc" = "bilby.core.sampler.pymc:Pymc"
-"bilby.pymultinest" = "bilby.core.sampler.pymultinest:Pymultinest"
-"bilby.pypolychord" = "bilby.core.sampler.polychord:PyPolyChord"
-"bilby.ultranest" = "bilby.core.sampler.ultranest:Ultranest"
-"bilby.zeus" = "bilby.core.sampler.zeus:Zeus"
 
 [project.scripts]
 bilby_plot = "cli_bilby.plot_multiple_posteriors:main"
@@ -114,11 +105,13 @@ addopts = [
 packages = [
   "bilby",
   "bilby.bilby_mcmc",
+  "bilby.compat",
   "bilby.core",
   "bilby.core.prior",
   "bilby.core.sampler",
   "bilby.core.utils",
   "bilby.gw",
+  "bilby.gw.compat",
   "bilby.gw.detector",
   "bilby.gw.eos",
   "bilby.gw.likelihood",
@@ -133,11 +126,12 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.dynamic.optional-dependencies]
 all = {file = [
   "gw_requirements.txt",
+  "jax_requirements.txt",
   "mcmc_requirements.txt",
-  "sampler_requirements.txt",
   "optional_requirements.txt"
 ]}
 gw = {file = ["gw_requirements.txt"]}
+jax = {file = ["jax_requirements.txt"]}
 mcmc = {file = ["mcmc_requirements.txt"]}
 
 [tool.setuptools.package-data]

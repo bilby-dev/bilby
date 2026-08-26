@@ -16,9 +16,11 @@ Welcome to bilby's documentation!
    prior
    likelihood
    samplers
+   array_api
    dynesty-guide
    bilby-mcmc-guide
    rng
+   parameters
    plugins
    bilby-output
    compact-binary-coalescence-parameter-estimation
@@ -54,6 +56,7 @@ API:
    :caption: API:
    :recursive:
 
+    compat
     core
     gw
     hyper

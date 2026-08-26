@@ -1,9 +1,12 @@
+import numpy as np
+
 from .base import Prior, PriorException
 from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
     SymmetricLogUniform, Cosine, Sine, Gaussian, TruncatedGaussian, HalfGaussian, \
     LogNormal, Exponential, StudentT, Beta, Logistic, Cauchy, Gamma, ChiSquared, FermiDirac
 from ..utils import infer_args_from_method, infer_parameters_from_function
+from ...compat.utils import xp_wrap
 
 
 def conditional_prior_factory(prior_class):
@@ -59,7 +62,7 @@ def conditional_prior_factory(prior_class):
             self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
             self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
 
-        def sample(self, size=None, **required_variables):
+        def sample(self, size=None, *, random_state=None, **required_variables):
             """Draw a sample from the prior
 
             Parameters
@@ -75,11 +78,18 @@ def conditional_prior_factory(prior_class):
 
             """
             from ..utils import random
+            rng = random.resolve_random_state(random_state)
 
-            self.least_recently_sampled = self.rescale(random.rng.uniform(0, 1, size), **required_variables)
+            if isinstance(size, int | np.integer):
+                size = (size,)
+
+            self.least_recently_sampled = self.rescale(
+                rng.uniform(0, 1, size), **required_variables
+            )
             return self.least_recently_sampled
 
-        def rescale(self, val, **required_variables):
+        @xp_wrap
+        def rescale(self, val, *, xp=None, **required_variables):
             """
             'Rescale' a sample from the unit line element to the prior.
 
@@ -93,9 +103,10 @@ def conditional_prior_factory(prior_class):
 
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).rescale(val)
+            return super(ConditionalPrior, self).rescale(val, xp=xp)
 
-        def prob(self, val, **required_variables):
+        @xp_wrap
+        def prob(self, val, *, xp=None, **required_variables):
             """Return the prior probability of val.
 
             Parameters
@@ -111,9 +122,10 @@ def conditional_prior_factory(prior_class):
             float: Prior probability of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).prob(val)
+            return super(ConditionalPrior, self).prob(val, xp=xp)
 
-        def ln_prob(self, val, **required_variables):
+        @xp_wrap
+        def ln_prob(self, val, *, xp=None, **required_variables):
             """Return the natural log prior probability of val.
 
             Parameters
@@ -129,9 +141,10 @@ def conditional_prior_factory(prior_class):
             float: Natural log prior probability of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).ln_prob(val)
+            return super(ConditionalPrior, self).ln_prob(val, xp=xp)
 
-        def cdf(self, val, **required_variables):
+        @xp_wrap
+        def cdf(self, val, *, xp=None, **required_variables):
             """Return the cdf of val.
 
             Parameters
@@ -147,7 +160,7 @@ def conditional_prior_factory(prior_class):
             float: CDF of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).cdf(val)
+            return super(ConditionalPrior, self).cdf(val, xp=xp)
 
         def update_conditions(self, **required_variables):
             """
@@ -164,6 +177,7 @@ def conditional_prior_factory(prior_class):
                 self.reference_params will be used.
 
             """
+            required_variables.pop("xp", None)
             if sorted(list(required_variables)) == sorted(self.required_variables):
                 parameters = self.condition_func(self.reference_params.copy(), **required_variables)
                 for key, value in parameters.items():
@@ -324,38 +338,47 @@ class ConditionalInterped(conditional_prior_factory(Interped)):
 
 class DirichletElement(ConditionalBeta):
     r"""
-    Single element in a dirichlet distribution
-
-    The probability scales as
+    Single element in a dirichlet distribution. The probability defined as,
 
     .. math::
-        p(x_n) \propto (x_\max - x_n)^{(N - n - 2)}
+        p(x_n\mid S_n) := \begin{cases}
+            1 & N = 1 \\
+            \displaystyle\frac{(N - n - 1)(1 - S_n - x_n)^{N - n - 2}}{(1-S_n)^{N-n-1}}
+            & n < N - 1 \\
+            \displaystyle\delta(1-S_{N-1}-x_{N-1}) & n = N - 1
+        \end{cases}, \qquad 0 \leq x_n \leq 1 - S_n
 
-    for :math:`x_n < x_\max`, where :math:`x_\max` is the sum of :math:`x_i`
-    for :math:`i < n`
+    where, :math:`\delta` is the Dirac delta function, :math:`N` is the total number of
+    dimensions and :math:`S_n` is the sum of all previous dimensions,
+
+    .. math::
+        S_n := \sum_{i=0}^{n-1}x_i \qquad n < N
 
     Examples
     ========
-    n_dimensions = 1:
 
-        .. math::
-            p(x_0) \propto 1 ; 0 < x_0 < 1
+        :code:`n_dimensions` = :math:`N = 1`:
 
-    n_dimensions = 2:
-        .. math::
-            p(x_0) &\propto (1 - x_0) ; 0 < x_0 < 1
-            p(x_1) &\propto 1 ; 0 < x_1 < 1
+            .. math::
+                p(x_0) = 1 ; 0 \leq x_0 \leq 1
+
+        :code:`n_dimensions` = :math:`N = 2`:
+
+            .. math::
+                    p(x_0)         = 1                ; \qquad 0 \leq x_0 \leq 1
+
+            .. math::
+                    p(x_1\mid x_0) = \delta(1-x_0-x_1); \qquad 0 \leq x_1 \leq 1 - x_0
 
     Parameters
     ==========
     order: int
-        Order of this element of the dirichlet distribution.
+        Order of this element of the dirichlet distribution. Equivalent to :math:`n`.
     n_dimensions: int
-        Total number of elements of the dirichlet distribution
+        Total number of elements of the dirichlet distribution. Equivalent to :math:`N`.
     label: str
         Label for the dirichlet distribution.
         This should be the same for all elements.
-
     """
 
     def __init__(self, order, n_dimensions, label):

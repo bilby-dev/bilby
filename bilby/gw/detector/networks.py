@@ -5,6 +5,7 @@ import math
 
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 
@@ -37,6 +38,16 @@ class InterferometerList(list):
             else:
                 self.append(ifo)
         self._check_interferometers()
+
+    @property
+    def reference_time(self):
+        return self._reference_time
+
+    @reference_time.setter
+    def reference_time(self, time):
+        self._reference_time = time
+        for ifo in self:
+            ifo.reference_time = time
 
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
@@ -74,7 +85,7 @@ class InterferometerList(list):
                     logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(
-        self, sampling_frequency, duration, start_time=0
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
     ):
         """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
@@ -97,6 +108,7 @@ class InterferometerList(list):
                 sampling_frequency=sampling_frequency,
                 duration=duration,
                 start_time=start_time,
+                random_state=random_state,
             )
 
     def set_strain_data_from_zero_noise(
@@ -331,6 +343,14 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
+    def set_array_backend(self, xp):
+        for ifo in self:
+            ifo.set_array_backend(xp)
+
+    @property
+    def array_backend(self):
+        return self[0].array_backend
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
@@ -358,6 +378,8 @@ class TriangularInterferometer(InterferometerList):
         if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
             maximum_frequency = [maximum_frequency] * 3
 
+        brng = 90 - xarm_azimuth
+
         for ii in range(3):
             self.append(
                 Interferometer(
@@ -376,29 +398,23 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
+            phi1 = np.radians(latitude)
+            phi2 = np.arcsin(
+                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth) +
+                np.cos(phi1) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(np.radians(brng))
+            )
+            latitude = np.degrees(phi2)
+
+            lam1 = np.radians(longitude)
+            lam2 = lam1 + np.arctan2(
+                np.sin(np.radians(brng)) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(phi1),
+                np.cos(length * 1e3 / utils.radius_of_earth) - np.sin(phi1) * np.sin(phi2)
+            )
+            longitude = np.degrees(lam2)
+
+            brng += 240
             xarm_azimuth += 240
             yarm_azimuth += 240
-
-            latitude += (
-                np.arctan(
-                    length
-                    * np.sin(xarm_azimuth * np.pi / 180)
-                    * 1e3
-                    / utils.radius_of_earth
-                )
-                * 180
-                / np.pi
-            )
-            longitude += (
-                np.arctan(
-                    length
-                    * np.cos(xarm_azimuth * np.pi / 180)
-                    * 1e3
-                    / utils.radius_of_earth
-                )
-                * 180
-                / np.pi
-            )
 
 
 def get_empty_interferometer(name):
@@ -466,3 +482,9 @@ def load_interferometer(filename):
             "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
         )
     return ifo
+
+
+@zenith_azimuth_to_theta_phi.dispatch
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)

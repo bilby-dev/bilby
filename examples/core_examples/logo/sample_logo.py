@@ -4,14 +4,19 @@ import numpy as np
 import scipy.interpolate as si
 from skimage import io
 
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
 
-class Likelihood(bilby.Likelihood):
+
+class Likelihood(bilby.core.likelihood.Likelihood):
     def __init__(self, interp):
+        super().__init__()
         self.interp = interp
-        super().__init__(parameters=dict(x=None, y=None))
 
-    def log_likelihood(self):
-        return -1 / (self.interp(self.parameters["x"], self.parameters["y"])[0])
+    def log_likelihood(self, parameters):
+        return -1 / (self.interp(parameters["x"], parameters["y"])[0])
 
 
 for letter in ["B", "I", "L", "Y"]:

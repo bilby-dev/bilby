@@ -8,7 +8,7 @@ we demonstrate how to generate simulated data for a binary black hole
 coalescence observed by the two LIGO interferometers at Hanford and Livingston
 for all parameters in the `IMRPhenomPv2` waveform model.
 
-The code will take around 15 hours to run.
+The code will take around 8 hours to run.
 
 For testing, you may prefer to run the `4-parameter CBC tutorial
 <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/fast_tutorial.py>`__.
@@ -23,7 +23,7 @@ detector (saved to the log-file). Moreover, it generates a plot for each
 detector showing the data, amplitude spectral density (ASD) and the signal;
 here is an example for the Hanford detector:
 
-.. image:: images/H1_frequency_domain_data.png
+.. image:: images/full_15_parameters_H1_waveform.png
 
 Finally, after running the parameter estimation. It generates a corner plot:
 

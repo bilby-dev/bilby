@@ -45,8 +45,7 @@ class FisherMatrixPosteriorEstimator(object):
             self.prior_width_dict[key] = width
 
     def log_likelihood(self, sample):
-        self.likelihood.parameters.update(sample)
-        return self.likelihood.log_likelihood()
+        return self.likelihood.log_likelihood(sample)
 
     def calculate_iFIM(self, sample):
         FIM = self.calculate_FIM(sample)

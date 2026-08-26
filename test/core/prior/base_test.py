@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import Mock
 
+import array_api_compat as aac
 import numpy as np
+import pytest
 
 import bilby
 
@@ -52,11 +54,30 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         )
         self.assertTrue(sorted(expected_string) == sorted(self.prior.__repr__()))
 
+    def test_repr_round_trips_with_numpy_scalar_parameters(self):
+        """repr() must remain re-parseable when parameters are NumPy scalars.
+
+        Under NumPy >= 2.0, repr() of any NumPy scalar carries the "np." prefix,
+        e.g. repr(np.float64(0.0)) == "np.float64(0.0)". If that goes into the
+        prior repr, PriorDict's parser tries to import a module "np" and fails.
+        """
+        for minimum, maximum in [
+            (np.float64(0.0), np.float64(1.0)),
+            (np.float32(0.0), np.float32(1.0)),
+            (np.int64(0), np.int64(10)),
+        ]:
+            prior = bilby.core.prior.Uniform(
+                minimum=minimum, maximum=maximum, name="x"
+            )
+            self.assertNotIn("np.", repr(prior))
+            reconstructed = bilby.core.prior.PriorDict({"x": repr(prior)})["x"]
+            self.assertEqual(prior, reconstructed)
+
     def test_base_prob(self):
         self.assertTrue(np.isnan(self.prior.prob(5)))
 
     def test_base_ln_prob(self):
-        self.prior.prob = lambda val: val
+        self.prior.prob = lambda val, *, xp=None: val
         self.assertEqual(np.log(5), self.prior.ln_prob(5))
 
     def test_is_in_prior(self):
@@ -139,6 +160,8 @@ class TestConstraint(unittest.TestCase):
         self.assertEqual(1, self.prior.prob(0.5))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestConstraintPriorNormalisation(unittest.TestCase):
     def setUp(self):
         self.priors = dict(
@@ -154,8 +177,10 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
     def test_prob_integrate_to_one(self):
         keys = ["a", "b", "c"]
         n_samples = 1000000
-        samples = self.priors.sample_subset(keys=keys, size=n_samples)
+        samples = self.priors.sample_subset(keys=keys, size=n_samples, random_state=self.rng)
         prob = self.priors.prob(samples, axis=0)
+        self.assertEqual(aac.get_namespace(prob), self.xp)
+        prob = np.asarray(prob)
         dm1 = self.priors["a"].maximum - self.priors["a"].minimum
         dm2 = self.priors["b"].maximum - self.priors["b"].minimum
         prior_volume = (dm1 * dm2)
@@ -167,6 +192,25 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
         sigma_integral = prior_volume * sigma / n_samples
         # Test will only fail every 390682215445 executions for 7 sigma tolerance
         self.assertAlmostEqual(1, integral, delta=7 * sigma_integral)
+
+
+class TestPriorSubclassWithoutXpWarning(unittest.TestCase):
+    def test_custom_subclass_without_xp_issues_warning(self):
+        """Test that a custom prior subclass without xp parameter in rescale method issues a warning."""
+        with pytest.warns(
+            DeprecationWarning,
+            match=r"rescale.*CustomPriorWithoutXp.*xp.*keyword argument",
+        ):
+            # Define a custom prior subclass that doesn't include xp in rescale method
+            class CustomPriorWithoutXp(bilby.core.prior.Prior):
+                def rescale(self, val):
+                    """Custom rescale without xp parameter"""
+                    return val * 2
+
+            prior = CustomPriorWithoutXp(name="custom_prior")
+            import jax.numpy as jnp
+            rescaled = prior.rescale(jnp.array([0.1, 0.2, 3]))
+            self.assertEqual(aac.get_namespace(rescaled), jnp)
 
 
 if __name__ == "__main__":

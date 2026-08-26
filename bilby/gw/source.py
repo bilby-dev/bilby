@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..compat.utils import array_module
 from ..core import utils
 from ..core.utils import logger
 from .conversion import bilby_to_lalsimulation_spins
@@ -9,8 +10,8 @@ from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralChooseFDWaveformSequence,
                     safe_cast_mode_to_int)
 
-UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs. This is deprecated behavior and will
-result in an error in future releases. Make sure all of the waveform kwargs are correctly
+UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs.
+Make sure all of the waveform kwargs are correctly
 spelled.
 
 Unused waveform_kwargs: {waveform_kwargs}
@@ -87,6 +88,11 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
     This version is only intended to be used with `SEOBNRv5HM` and `SEOBNRv5PHM` and
     does not have full functionality for other waveform models.
     """
+    logger.warning(
+        "bilby.gw.source.gwsignal_binary_black_hole is deprecated and will be removed "
+        "in a future release, use bilby.gw.waveform_generator.GWSignalWaveformGenerator"
+        " instead."
+    )
 
     from lalsimulation.gwsignal import GenerateFDWaveform
     from lalsimulation.gwsignal.models import gwsignal_get_waveform_generator
@@ -512,9 +518,10 @@ def set_waveform_dictionary(waveform_kwargs, lambda_1=0, lambda_2=0):
         The lal waveform dictionary. This is either taken from the waveform_kwargs or created
         internally.
     """
+    import lal
     import lalsimulation as lalsim
-    from lal import CreateDict
-    waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', CreateDict())
+    waveform_dictionary = waveform_kwargs.pop('lal_waveform_dictionary', lal.CreateDict())
+
     waveform_kwargs["TidalLambda1"] = lambda_1
     waveform_kwargs["TidalLambda2"] = lambda_2
     waveform_kwargs["NumRelData"] = waveform_kwargs.pop("numerical_relativity_file", None)
@@ -678,7 +685,7 @@ def _base_lal_cbc_fd_waveform(
         h_cross[frequency_bounds] *= time_shift
 
     if len(waveform_kwargs) > 0:
-        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus, cross=h_cross)
 
@@ -716,7 +723,7 @@ def binary_neutron_star_roq(
 
 def lal_binary_black_hole_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, fiducial, **kwargs):
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
     """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
 
     All parameters are the same as in the usual source models, except `fiducial`
@@ -726,6 +733,7 @@ def lal_binary_black_hole_relative_binning(
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
     """
+    fiducial = kwargs.pop("fiducial", 0)
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2', reference_frequency=50.0,
@@ -755,8 +763,7 @@ def lal_binary_black_hole_relative_binning(
 
 def lal_binary_neutron_star_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase,
-        fiducial, **kwargs):
+        phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase, **kwargs):
     """ Source model to go with RelativeBinningGravitationalWaveTransient likelihood.
 
     All parameters are the same as in the usual source models, except `fiducial`
@@ -766,6 +773,7 @@ def lal_binary_neutron_star_relative_binning(
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
     """
+    fiducial = kwargs.pop("fiducial", 0)
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
@@ -775,6 +783,7 @@ def lal_binary_neutron_star_relative_binning(
     waveform_kwargs.update(kwargs)
 
     if fiducial == 1:
+        _ = waveform_kwargs.pop("frequency_bin_edges", None)
         return _base_lal_cbc_fd_waveform(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
             luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
@@ -1137,7 +1146,7 @@ def _base_waveform_frequency_sequence(
                 raise
 
     if len(waveform_kwargs) > 0:
-        logger.warning(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus.data.data, cross=h_cross.data.data)
 
@@ -1181,20 +1190,22 @@ def sinegaussian(frequency_array, hrss, Q, frequency, **kwargs):
     dict:
         Dictionary containing the plus and cross components of the strain.
     """
-    tau = Q / (np.sqrt(2.0) * np.pi * frequency)
-    temp = Q / (4.0 * np.sqrt(np.pi) * frequency)
+    xp = array_module(frequency_array)
+    tau = Q / (2.0**0.5 * np.pi * frequency)
+    temp = Q / (4.0 * np.pi**0.5 * frequency)
     fm = frequency_array - frequency
     fp = frequency_array + frequency
 
-    h_plus = ((hrss / np.sqrt(temp * (1 + np.exp(-Q**2)))) *
-              ((np.sqrt(np.pi) * tau) / 2.0) *
-              (np.exp(-fm**2 * np.pi**2 * tau**2) +
-              np.exp(-fp**2 * np.pi**2 * tau**2)))
+    negative_term = xp.exp(-fm**2 * np.pi**2 * tau**2)
+    positive_term = xp.exp(-fp**2 * np.pi**2 * tau**2)
 
-    h_cross = (-1j * (hrss / np.sqrt(temp * (1 - np.exp(-Q**2)))) *
-               ((np.sqrt(np.pi) * tau) / 2.0) *
-               (np.exp(-fm**2 * np.pi**2 * tau**2) -
-               np.exp(-fp**2 * np.pi**2 * tau**2)))
+    h_plus = hrss * np.pi**0.5 * tau / 2 * (
+        negative_term + positive_term
+    ) / (temp * (1 + xp.exp(-Q**2)))**0.5
+
+    h_cross = -1j * hrss * np.pi**0.5 * tau / 2 * (
+        negative_term - positive_term
+    ) / (temp * (1 - xp.exp(-Q**2)))**0.5
 
     return {'plus': h_plus, 'cross': h_cross}
 
@@ -1277,12 +1288,13 @@ def supernova_pca_model(
     dict:
         The plus and cross polarizations of the signal
     """
+    xp = array_module(frequency_array)
 
     principal_components = kwargs["realPCs"] + 1j * kwargs["imagPCs"]
     coefficients = [pc_coeff1, pc_coeff2, pc_coeff3, pc_coeff4, pc_coeff5]
 
-    strain = np.sum(
-        [coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)],
+    strain = xp.sum(
+        xp.asarray([coeff * principal_components[:, ii] for ii, coeff in enumerate(coefficients)]),
         axis=0
     )
 

@@ -35,6 +35,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bilby.core.utils import random
 
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
+
+
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
 
@@ -74,7 +80,7 @@ class Polynomial(bilby.Likelihood):
             The degree of the polynomial to fit.
         """
         self.keys = ["c{}".format(k) for k in range(n)]
-        super().__init__(parameters={k: None for k in self.keys})
+        super().__init__()
         self.x = x
         self.y = y
         self.sigma = sigma
@@ -85,8 +91,8 @@ class Polynomial(bilby.Likelihood):
         coeffs = [parameters[k] for k in self.keys]
         return np.polyval(coeffs, x)
 
-    def log_likelihood(self):
-        res = self.y - self.polynomial(self.x, self.parameters)
+    def log_likelihood(self, parameters):
+        res = self.y - self.polynomial(self.x, parameters)
         return -0.5 * (
             np.sum((res / self.sigma) ** 2)
             + self.N * np.log(2 * np.pi * self.sigma**2)

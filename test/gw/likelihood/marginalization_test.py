@@ -3,6 +3,7 @@ import os
 import pytest
 import unittest
 from copy import deepcopy
+from functools import cached_property
 from itertools import product
 from parameterized import parameterized
 
@@ -230,34 +231,6 @@ class TestMarginalizations(unittest.TestCase):
             maximum=self.parameters["geocent_time"] + 0.1
         )
 
-        trial_roq_paths = [
-            "/roq_basis",
-            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
-            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
-        ]
-        roq_dir = None
-        for path in trial_roq_paths:
-            if os.path.isdir(path):
-                roq_dir = path
-                break
-        if roq_dir is None:
-            raise Exception("Unable to load ROQ basis: cannot proceed with tests")
-
-        self.roq_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
-            duration=self.duration,
-            sampling_frequency=self.sampling_frequency,
-            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
-            start_time=1126259640,
-            waveform_arguments=dict(
-                reference_frequency=20.0,
-                waveform_approximant="IMRPhenomPv2",
-                frequency_nodes_linear=np.load(f"{roq_dir}/fnodes_linear.npy"),
-                frequency_nodes_quadratic=np.load(f"{roq_dir}/fnodes_quadratic.npy"),
-            )
-        )
-        self.roq_linear_matrix_file = f"{roq_dir}/B_linear.npy"
-        self.roq_quadratic_matrix_file = f"{roq_dir}/B_quadratic.npy"
-
         self.relbin_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
@@ -281,13 +254,49 @@ class TestMarginalizations(unittest.TestCase):
             )
         )
 
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
+
+    @property
+    def roq_linear_matrix_file(self):
+        return f"{self.roq_dir}/B_linear.npy"
+
+    @property
+    def roq_quadratic_matrix_file(self):
+        return f"{self.roq_dir}/B_quadratic.npy"
+
+    @cached_property
+    def roq_waveform_generator(self):
+        return bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.binary_black_hole_roq,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                waveform_approximant="IMRPhenomPv2",
+                frequency_nodes_linear=np.load(f"{self.roq_dir}/fnodes_linear.npy"),
+                frequency_nodes_quadratic=np.load(f"{self.roq_dir}/fnodes_quadratic.npy"),
+            )
+        )
+
     def tearDown(self):
         del self.duration
         del self.sampling_frequency
         del self.parameters
         del self.interferometers
         del self.waveform_generator
-        del self.roq_waveform_generator
         del self.priors
 
     @classmethod
@@ -360,14 +369,16 @@ class TestMarginalizations(unittest.TestCase):
         like = cls_(**kwargs)
         if kind == "roq" and not os.path.exists(self.__class__.path_to_roq_weights):
             like.save_weights(self.__class__.path_to_roq_weights)
-        like.parameters = self.parameters.copy()
+
+        parameters = self.parameters.copy()
         if time_marginalization:
-            like.parameters["geocent_time"] = self.interferometers.start_time
+            parameters["geocent_time"] = self.interferometers.start_time
         if distance_marginalization:
-            like.parameters["luminosity_distance"] = like._ref_dist
+            parameters["luminosity_distance"] = like._ref_dist
         if phase_marginalization:
-            like.parameters["phase"] = 0.0
-        return like
+            parameters["phase"] = 0.0
+
+        return like, parameters
 
     def _template(self, marginalized, non_marginalized, key, prior=None, values=None):
         if prior is None:
@@ -376,15 +387,18 @@ class TestMarginalizations(unittest.TestCase):
             values = np.linspace(prior.minimum, prior.maximum, 1000)
         prior_values = prior.prob(values)
         ln_likes = np.empty(values.shape)
+
+        non_marginalized, parameters = non_marginalized
         for ii, value in enumerate(values):
-            non_marginalized.parameters[key] = value
-            ln_likes[ii] = non_marginalized.log_likelihood_ratio()
+            parameters[key] = value
+            ln_likes[ii] = non_marginalized.log_likelihood_ratio(parameters)
         like = np.exp(ln_likes - max(ln_likes))
 
+        marginalized, parameters = marginalized
+        ln_like = marginalized.log_likelihood_ratio(parameters)
+
         marg_like = np.log(trapezoid(like * prior_values, values)) + max(ln_likes)
-        self.assertAlmostEqual(
-            marg_like, marginalized.log_likelihood_ratio(), delta=0.5
-        )
+        self.assertAlmostEqual(marg_like, ln_like, delta=0.5)
 
     @parameterized.expand(
         _parameters,
@@ -449,23 +463,18 @@ class TestMarginalizations(unittest.TestCase):
             luminosity_distance=distance,
             phase=phase,
         )
-        like = self.get_likelihood(
+        like, params = self.get_likelihood(
             kind=kind,
             distance_marginalization=distance,
             time_marginalization=time,
             phase_marginalization=phase,
         )
-        params = self.parameters.copy()
         reference_values = dict(
             luminosity_distance=self.priors["luminosity_distance"].rescale(0.5),
             geocent_time=self.interferometers.start_time,
             phase=0.0,
         )
-        for key in marginalizations:
-            if marginalizations[key]:
-                params[key] = reference_values[key]
-        like.parameters.update(params)
-        output = like.generate_posterior_sample_from_marginalized_likelihood()
+        output = like.generate_posterior_sample_from_marginalized_likelihood(params)
         for key in marginalizations:
             self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
 
@@ -532,15 +541,13 @@ class CalibrationMarginalization(unittest.TestCase):
             jitter_time=False,
         )
         parameters = self.priors.sample()
-        marginalized.parameters.update(parameters)
-        non_marginalized.parameters.update(parameters)
-        marg_ln_l = marginalized.log_likelihood_ratio()
+        marg_ln_l = marginalized.log_likelihood_ratio(parameters)
         non_marg_ln_ls = list()
         draws = marginalized.calibration_parameter_draws
         for ii in range(100):
             for name, value in draws["H1"].items():
-                non_marginalized.parameters[name] = value[ii]
-            non_marginalized.parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
-            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio())
+                parameters[name] = value[ii]
+            parameters["recalib_index_L1"] = draws["L1"]["recalib_index_L1"][ii]
+            non_marg_ln_ls.append(non_marginalized.log_likelihood_ratio(parameters))
         non_marg_ln_l = logsumexp(non_marg_ln_ls, b=1 / 100)
         self.assertAlmostEqual(marg_ln_l, non_marg_ln_l)

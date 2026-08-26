@@ -95,7 +95,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
     @property
     def waveform_generator_class(self):
-        """ Dict of waveform arguments """
+        """ Waveform generator class """
         return self.__get_from_nested_meta_data(
             'likelihood', 'waveform_generator_class')
 
@@ -104,6 +104,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ Dict of waveform arguments """
         return self.__get_from_nested_meta_data(
             'likelihood', 'waveform_arguments')
+
+    @property
+    def waveform_generator_meta_data(self):
+        """ Dict of metadata for reconstructing the waveform generator. """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'waveform_generator_meta_data')
 
     @property
     def reference_frequency(self):
@@ -134,8 +140,6 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """The global cosmology used in the analysis.
 
         Will return None if the result does not include global meta data.
-        Inclusion of the the global meta is controlled by the
-        :code:`BILBY_INCLUDE_GLOBAL_META_DATA` environment variable.
 
         .. versionadded:: 2.5.0
         """
@@ -423,7 +427,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
             frequency_domain_source_model=self.frequency_domain_source_model,
             time_domain_source_model=self.time_domain_source_model,
             parameter_conversion=self.parameter_conversion,
-            waveform_arguments=self.waveform_arguments)
+            waveform_arguments=self.waveform_arguments,
+            **self.waveform_generator_meta_data)
 
         if format == "html":
             fig = make_subplots(

@@ -1,13 +1,14 @@
 import datetime
+import importlib.metadata
 import inspect
 import json
 import os
+import packaging
 from collections import namedtuple
 from copy import copy
 from importlib import import_module
 from itertools import product
 import multiprocessing
-from functools import partial
 import numpy as np
 import pandas as pd
 import scipy.stats
@@ -25,17 +26,11 @@ from .utils import (
     recursively_decode_bilby_json,
     safe_file_dump,
     random,
-    string_to_boolean,
 )
 from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
 
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
-
-
-def __eval_l(likelihood, params):
-    likelihood.parameters.update(params)
-    return likelihood.log_likelihood()
 
 
 def result_file_name(outdir, label, extension='json', gzip=False):
@@ -222,6 +217,13 @@ def get_weights_for_reweighting(
 
     nposterior = len(result.posterior)
 
+    old_log_likelihood_array = np.zeros(nposterior)
+    old_log_prior_array = np.zeros(nposterior)
+    new_log_likelihood_array = np.zeros(nposterior)
+    new_log_prior_array = np.zeros(nposterior)
+
+    starting_index = 0
+
     if (resume_file is not None) and os.path.exists(resume_file):
         old_log_likelihood_array, old_log_prior_array, new_log_likelihood_array, new_log_prior_array = \
             np.genfromtxt(resume_file)
@@ -231,13 +233,6 @@ def get_weights_for_reweighting(
     elif resume_file is not None:
         basedir = os.path.split(resume_file)[0]
         check_directory_exists_and_if_not_mkdir(basedir)
-    else:
-        old_log_likelihood_array = np.zeros(nposterior)
-        old_log_prior_array = np.zeros(nposterior)
-        new_log_likelihood_array = np.zeros(nposterior)
-        new_log_prior_array = np.zeros(nposterior)
-
-        starting_index = 0
 
     dict_samples = [{key: sample[key] for key in result.posterior}
                     for _, sample in result.posterior.iterrows()]
@@ -248,8 +243,11 @@ def get_weights_for_reweighting(
         with multiprocessing.Pool(processes=npool) as pool:
             chunksize = max(100, n // (2 * npool))
             return list(tqdm(
-                pool.imap(partial(__eval_l, this_logl),
-                        dict_samples[starting_index:], chunksize=chunksize),
+                pool.imap(
+                    this_logl.log_likelihood,
+                    dict_samples[starting_index:],
+                    chunksize=chunksize,
+                ),
                 desc='Computing likelihoods',
                 total=n)
             )
@@ -275,6 +273,9 @@ def get_weights_for_reweighting(
         ln_prior = sample.pop("log_prior", np.nan)
         if "log_likelihood" in sample:
             del sample["log_likelihood"]
+
+        if "weights" in sample:
+            del sample["weights"]
 
         if old_prior is not None:
             old_log_prior_array[ii] = old_prior.ln_prob(sample)
@@ -538,18 +539,6 @@ class Result(object):
 
         self.prior_values = None
         self._kde = None
-
-        if not string_to_boolean(os.getenv("BILBY_INCLUDE_GLOBAL_META_DATA", "False")):
-            gmd = self.meta_data.pop("global_meta_data", None)
-            if gmd is not None:
-                logger.info(
-                    "Global meta data was removed from the result object for compatibility. "
-                    "Use the `BILBY_INCLUDE_GLOBAL_METADATA` environment variable to include it. "
-                    "This behaviour will be removed in a future release. "
-                    "For more details see: https://bilby-dev.github.io/bilby/faq.html#global-meta-data"
-                )
-        else:
-            logger.debug("Including global meta data in the result object.")
 
     _load_doctstring = """ Read in a saved .{format} data file
 
@@ -1781,23 +1770,25 @@ class Result(object):
         return weights
 
     def to_arviz(self, prior=None):
-        """ Convert the Result object to an ArviZ InferenceData object.
+        """
+        Convert the Result object to an ArviZ object.
+        For :code:`arviz < 1` this is an `arviz.InferenceData` and for
+        :code:`arviz >= 1` this is an `xarray.DataTree`.
 
-            Parameters
-            ==========
-            prior: int
-                If a positive integer is given then that number of prior
-                samples will be drawn and stored in the ArviZ InferenceData
-                object.
+        Parameters
+        ==========
+        prior: int
+            If a positive integer is given then that number of prior
+            samples will be drawn and stored in the ArviZ object.
 
-            Returns
-            =======
-            azdata: InferenceData
-                The ArviZ InferenceData object.
+        Returns
+        =======
+        azdata: arviz.InferenceData | xarray.DataTree
+            The ArviZ result object.
 
-            Raises
-            ======
-            RuntimeError: If ArviZ is not installed.
+        Raises
+        ======
+        RuntimeError: If ArviZ is not installed.
         """
 
         try:
@@ -1833,23 +1824,30 @@ class Result(object):
             else:
                 priorsamples = self.priors.sample(size=prior)
 
-        azdata = az.from_dict(
-            posterior=posdict,
-            log_likelihood=loglikedict,
-            prior=priorsamples,
-        )
-
-        # add attributes
+        az_data_dict = dict(posterior=posdict)
+        if loglikedict is not None:
+            az_data_dict["log_likelihood"] = loglikedict
+        if priorsamples is not None:
+            az_data_dict["prior"] = priorsamples
+        az_version = packaging.version.parse(importlib.metadata.version("arviz"))
         version = {
             "inference_library": "bilby: {}".format(self.sampler),
             "inference_library_version": get_version_information()
         }
-
-        azdata.posterior.attrs.update(version)
-        if "log_likelihood" in azdata._groups:
-            azdata.log_likelihood.attrs.update(version)
-        if "prior" in azdata._groups:
-            azdata.prior.attrs.update(version)
+        if az_version < packaging.version.parse("1"):
+            azdata = az.from_dict(**az_data_dict)
+            azdata.posterior.attrs.update(version)
+            if "log_likelihood" in azdata._groups:
+                azdata.log_likelihood.attrs.update(version)
+            if "prior" in azdata._groups:
+                azdata.prior.attrs.update(version)
+        else:
+            azdata = az.from_dict(az_data_dict, sample_dims=["sample"])
+            azdata.posterior.attrs.update(version)
+            if "log_likelihood" in azdata.children:
+                azdata.log_likelihood.attrs.update(version)
+            if "prior" in azdata.children:
+                azdata.prior.attrs.update(version)
 
         return azdata
 
@@ -2074,7 +2072,7 @@ class ResultList(list):
         if not np.allclose(
             [res.log_noise_evidence for res in self],
             self[0].log_noise_evidence,
-            atol=1e-8,
+            atol=1e-7,
             rtol=0.0,
             equal_nan=True,
         ):
@@ -2091,7 +2089,7 @@ class ResultList(list):
 def plot_multiple(results, filename=None, labels=None, colours=None,
                   save=True, evidences=False, corner_labels=None, linestyles=None,
                   fig=None, **kwargs):
-    """ Generate a corner plot overlaying two sets of results
+    """Generate a corner plot overlaying two sets of results
 
     Parameters
     ==========
@@ -2114,7 +2112,10 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
         for the keyword `labels` for which you should use the dedicated
         `corner_labels` input).
         However, `show_titles` and `truths` are ignored since they would be
-        ambiguous on such a plot.
+        ambiguous on such a plot. The keyword arguments `contour_kwargs["linestyles"]`,
+        `contour_kwargs['colors']`, `hist_kwargs["linestyle"]`, `color` and
+        `hist_kwargs["color"]` are overwritten with the values provided in the
+        `colours` and `linestyles` inputs or by the default styles.
     evidences: bool, optional
         Add the log-evidence calculations to the legend. If available, the
         Bayes factor will be used instead.
@@ -2138,8 +2139,6 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
     kwargs['truths'] = None
     if corner_labels is not None:
         kwargs['labels'] = corner_labels
-
-    fig = results[0].plot_corner(fig=fig, save=False, **kwargs)
     default_filename = '{}/{}'.format(results[0].outdir, 'combined')
     lines = []
     default_labels = []
@@ -2152,11 +2151,15 @@ def plot_multiple(results, filename=None, labels=None, colours=None,
             linestyle = linestyles[i]
         else:
             linestyle = 'solid'
-        hist_kwargs = kwargs.get('hist_kwargs', dict())
-        hist_kwargs['color'] = c
+        hist_kwargs = kwargs.get("hist_kwargs", dict())
+        contour_kwargs = kwargs.get("contour_kwargs", dict())
+        hist_kwargs["color"] = c
         hist_kwargs["linestyle"] = linestyle
+        contour_kwargs["colors"] = c
+        contour_kwargs["linestyles"] = linestyle
         kwargs["hist_kwargs"] = hist_kwargs
-        fig = result.plot_corner(fig=fig, save=False, color=c, contour_kwargs={"linestyles": linestyle}, **kwargs)
+        kwargs["contour_kwargs"] = contour_kwargs
+        fig = result.plot_corner(fig=fig, save=False, color=c, **kwargs)
         default_filename += '_{}'.format(result.label)
         lines.append(mpllines.Line2D([0], [0], color=c, linestyle=linestyle))
         default_labels.append(result.label)

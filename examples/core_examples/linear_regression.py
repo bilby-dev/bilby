@@ -66,6 +66,7 @@ result = bilby.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
+    rstate=random.rng,
 )
 
 # Finally plot a corner plot: all outputs are stored in outdir

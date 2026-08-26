@@ -61,6 +61,19 @@ class ImplementedSamplers:
         keys = set(self._samplers.keys())
         return iter(keys.union({k.replace("bilby.", "") for k in keys}))
 
+    def native_keys(self):
+        """Iterator of native sampler names (without the `bilby.` prefix).
+
+        This excludes any samplers that are only available through plugins.
+        """
+        return iter(
+            {
+                k.replace("bilby.", "")
+                for k in self._samplers.keys()
+                if k.startswith("bilby.")
+            }
+        )
+
     def __getitem__(self, key):
         if key in self._samplers:
             return self._samplers[key]
@@ -249,7 +262,7 @@ def run_sampler(
     else:
         raise ValueError("Input priors not understood should be dict or PriorDict")
 
-    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
+    priors.fill_priors()
 
     # Generate the meta-data if not given and append the likelihood meta_data
     if meta_data is None:
