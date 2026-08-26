@@ -900,6 +900,7 @@ class Dynesty(NestedSampler):
                             "Cannot create Dynesty stats plot with dynamic sampler."
                         )
                     except Exception as e:
+                        self._raise_if_interrupted(e)
                         logger.warning(
                             f"Unexpected error {e} in dynesty plotting. "
                             "Please report at github.com/bilby-dev/bilby/issues"
