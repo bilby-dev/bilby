@@ -849,6 +849,7 @@ class Dynesty(NestedSampler):
             import matplotlib.pyplot as plt
 
             labels = [label.replace("_", " ") for label in self.search_parameter_keys]
+            figures_before = set(plt.get_fignums())
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_trace.png"
                 fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
@@ -868,7 +869,9 @@ class Dynesty(NestedSampler):
                     "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
-                plt.close("all")
+                for figure_number in set(plt.get_fignums()) - figures_before:
+                    plt.close(figure_number)
+            figures_before = set(plt.get_fignums())
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_trace_unit.png"
                 from copy import deepcopy
@@ -894,14 +897,16 @@ class Dynesty(NestedSampler):
                     "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
-                plt.close("all")
+                for figure_number in set(plt.get_fignums()) - figures_before:
+                    plt.close(figure_number)
+            figures_before = set(plt.get_fignums())
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_run.png"
                 fig, _ = dyplot.runplot(
                     self.sampler.results, logplot=False, use_math_text=False
                 )
                 fig.tight_layout()
-                plt.savefig(filename)
+                fig.savefig(filename)
             except (
                 RuntimeError,
                 np.linalg.LinAlgError,
@@ -916,12 +921,14 @@ class Dynesty(NestedSampler):
                     "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
-                plt.close("all")
+                for figure_number in set(plt.get_fignums()) - figures_before:
+                    plt.close(figure_number)
+            figures_before = set(plt.get_fignums())
             try:
                 filename = f"{self.outdir}/{self.label}_checkpoint_stats.png"
                 fig, _ = dynesty_stats_plot(self.sampler)
                 fig.tight_layout()
-                plt.savefig(filename)
+                fig.savefig(filename)
             except (RuntimeError, ValueError, OverflowError) as e:
                 logger.warning(e)
                 logger.warning("Failed to create dynesty stats plot at checkpoint")
@@ -933,7 +940,8 @@ class Dynesty(NestedSampler):
                     "Please report at github.com/bilby-dev/bilby/issues"
                 )
             finally:
-                plt.close("all")
+                for figure_number in set(plt.get_fignums()) - figures_before:
+                    plt.close(figure_number)
 
     def _run_test(self):
         """Run the sampler very briefly as a sanity test that it works."""
