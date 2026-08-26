@@ -423,6 +423,31 @@ class Emcee(MCMCSampler):
         self.result.walkers = self.sampler.chain
         return self.result
 
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names produced by the sampler.
+        list
+            List of directory names produced by the sampler.
+        """
+        run_dir = os.path.join(outdir, f"emcee_{label}")
+        filenames = [
+            os.path.join(run_dir, "chain.dat"),
+            os.path.join(run_dir, "sampler.pickle"),
+        ]
+        return filenames, [run_dir]
+
     def _generate_result(self):
         self.result.nburn = self.nburn
         self.calc_likelihood_count()
