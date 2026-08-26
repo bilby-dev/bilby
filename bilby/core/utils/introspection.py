@@ -31,12 +31,11 @@ def infer_parameters_from_function(func):
     This allows the reference to the instance (conventionally named `self`)
     to be removed.
     """
-    if isinstance(func, (types.MethodType, types.BuiltinMethodType)):
-        return infer_args_from_function_except_n_args(func=func, n=2)
-    elif isinstance(func, (types.FunctionType, types.BuiltinFunctionType)):
-        return _infer_args_from_function_except_for_first_arg(func=func)
-    else:
+
+    if not callable(func):
         raise ValueError("This doesn't look like a function.")
+
+    return _infer_args_from_function_except_for_first_arg(func=func)
 
 
 def infer_args_from_method(method):
@@ -50,13 +49,16 @@ def infer_args_from_method(method):
     =======
     list: A list of strings with the parameters
     """
-    return infer_args_from_function_except_n_args(func=method, n=1)
+
+    return infer_args_from_function_except_n_args(func=method)
 
 
 def infer_args_from_function_except_n_args(func, n=1):
     """ Inspects a function to find its arguments, and ignoring the
     first n of these, returns a list of arguments from the function's
     signature.
+
+    Throws out `*args` and `**kwargs` type arguments.
 
     Parameters
     ==========
@@ -94,7 +96,15 @@ def infer_args_from_function_except_n_args(func, n=1):
         ['c', 'd']
 
     """
-    parameters = inspect.getfullargspec(func).args
+
+    parameters = [
+        parameter.name for parameter in inspect.signature(func).values()
+        if not parameter.kind in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWROD
+        )
+    ]
+
     del parameters[:n]
     return parameters
 
