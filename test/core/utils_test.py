@@ -112,6 +112,19 @@ class TestInferParameters(unittest.TestCase):
         del self.source1
         del self.source2
 
+    def test_builtin_function(self):
+        expected = [
+            "mode",
+            "buffering",
+            "encoding",
+            "errors",
+            "newline",
+            "closefd",
+            "opener"
+        ]
+        actual = utils.infer_parameters_from_function(open)
+        self.assertListEqual(expected, actual)
+
     def test_args_kwargs_handling(self):
         expected = ["a", "b"]
         actual = utils.infer_parameters_from_function(self.source1)
