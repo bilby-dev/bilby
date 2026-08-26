@@ -541,6 +541,18 @@ class TestFindAndReadData(unittest.TestCase):
 
         self.assertEqual(data.sample_rate.value, self.sampling_frequency / 2)
 
+    @mock.patch("gwdatafind.find_urls")
+    @mock.patch("gwpy.timeseries.TimeSeries.read")
+    def test_find_and_read_data_no_sampling_frequency_skips_resampling(self, mock_read, mock_find_urls):
+        mock_find_urls.return_value = ["file://fake/H-H1_HOFT_C00_AR-0-4.gwf"]
+        mock_read.return_value = self.data
+
+        data = find_and_read_data(
+            self.start, self.end, self.ifo, self.frametype, self.channel,
+        )
+
+        self.assertEqual(data.sample_rate.value, self.sampling_frequency)
+
 
 if __name__ == "__main__":
     unittest.main()

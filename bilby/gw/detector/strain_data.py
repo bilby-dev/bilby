@@ -914,8 +914,11 @@ def resample_with_lal(data, sampling_frequency, **kwargs):
     """
     if kwargs:
         raise ValueError(f"resample_with_lal does not support additional kwargs: {kwargs}")
-    import lal
-    from gwpy.timeseries import TimeSeries
+    try:
+        import lal
+        from gwpy.timeseries import TimeSeries
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Cannot resample with lal: lal and gwpy are required")
     lal_timeseries = data.to_lal()
     lal.ResampleREAL8TimeSeries(
         lal_timeseries, float(1 / sampling_frequency)
@@ -992,6 +995,9 @@ def find_and_read_data(start, end, ifo, frametype, channel, find_url_kwargs=None
         A dictionary of kwargs to pass to `gwdatafind.find_urls()`
     read_kwargs: dict
         A dictionary of kwargs to pass to `gwpy.timeseries.TimeSeries.read()`
+    sampling_frequency: float, optional
+        The target sampling frequency (Hz) to resample the data to. If not
+        given (default), no resampling is performed.
     resample_kwargs: dict
         A dictionary of kwargs to pass to the resampling function, see
         `bilby.gw.detector.strain_data.resample_timeseries`.
@@ -1002,8 +1008,11 @@ def find_and_read_data(start, end, ifo, frametype, channel, find_url_kwargs=None
         The gwpy timeseries of the data
 
     """
-    from gwpy.timeseries import TimeSeries
-    from gwdatafind import find_urls
+    try:
+        from gwpy.timeseries import TimeSeries
+        from gwdatafind import find_urls
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Cannot find and read data: gwpy and gwdatafind are required")
 
     find_url_kwargs = find_url_kwargs or dict()
     read_kwargs = read_kwargs or dict()
@@ -1020,5 +1029,6 @@ def find_and_read_data(start, end, ifo, frametype, channel, find_url_kwargs=None
 
     type_kwargs = dict(dtype=dtype, subok=True, copy=False)
     data = TimeSeries.read(urls, channel_with_ifo, start=start, end=end, **read_kwargs).astype(**type_kwargs)
-    data = resample_timeseries(data, sampling_frequency, resampling_method, **resample_kwargs)
+    if sampling_frequency is not None:
+        data = resample_timeseries(data, sampling_frequency, resampling_method, **resample_kwargs)
     return data
