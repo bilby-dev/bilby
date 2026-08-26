@@ -102,7 +102,7 @@ def infer_args_from_function_except_n_args(func, n=1):
         inspect.signature(func).parameters.values()
         if not parameter.kind in (
             inspect.Parameter.VAR_POSITIONAL,
-            inspect.Parameter.VAR_KEYWROD
+            inspect.Parameter.VAR_KEYWORD
         )
     ]
 
