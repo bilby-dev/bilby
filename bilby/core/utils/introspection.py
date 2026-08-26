@@ -57,8 +57,6 @@ def infer_args_from_function_except_n_args(func, n=1):
     first n of these, returns a list of arguments from the function's
     signature.
 
-    Throws out `*args` and `**kwargs` type arguments.
-
     Parameters
     ==========
     func : function or method
@@ -75,7 +73,8 @@ def infer_args_from_function_except_n_args(func, n=1):
     ================
     This function is intended to allow the handling of named arguments
     in both functions and methods; this is important, since the first
-    argument of an instance method will be the instance.
+    argument of an instance method will be the instance. It throws out *args
+    and **kwargs style arguments.
 
     See Also
     ========
