@@ -123,6 +123,14 @@ class TestFFT(unittest.TestCase):
 
 For more information on how to write effective tests, see [this guide](https://docs.python-guide.org/writing/tests/), and many others.
 
+### Doc-string tests
+
+Doc-string tests are also integrated into the CI/CD pipeline. These can be run locally using:
+
+```
+pytest --doctest-modules bilby
+```
+
 ## Code relevance
 
 The bilby code base is intended to be highly modular and flexible. We encourage

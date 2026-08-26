@@ -22,7 +22,7 @@ env:
   SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER: 1
 
 jobs:
-  build:
+  unit-tests:
 
     name: ${{ matrix.python.name }} unit tests
     runs-on: ubuntu-latest
@@ -80,6 +80,33 @@ jobs:
       with:
         name: pytest-${{ matrix.python.short-version }}
         path: pytest.xml
+
+  doc-tests:
+
+    name: Python 3.13 docstring tests
+    runs-on: ubuntu-latest
+    container: ghcr.io/bilby-dev/bilby-python313:latest
+    env:
+      BILBY_ARRAY_API: 1
+      SCIPY_ARRAY_API: 1
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    - name: Install package
+      run: |
+        apt-get update
+        apt-get install -y gnupg curl
+        source $CONDA_PATH/bin/activate python313
+        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0 orng pytest-doctestplus
+        python -m pip install ".[jax]"
+        conda list --show-channel-urls
+      shell: bash
+    - name: Run docstring tests
+      run: |
+        python -m pytest --doctest-plus --doctest-modules bilby -v
 
   array-backend:
 

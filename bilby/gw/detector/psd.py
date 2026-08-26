@@ -24,6 +24,7 @@ class PowerSpectralDensity(object):
 
         .. code-block:: python
 
+            >>> psd_file = "aLIGO_ZERO_DET_high_P_psd.txt"
             >>> power_spectral_density = PowerSpectralDensity.from_power_spectral_density_file(psd_file)
 
         Alternatively (and equivalently) setting the psd_file directly:
