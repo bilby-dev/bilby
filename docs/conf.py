@@ -68,7 +68,6 @@ extensions = [
     "sphinx.ext.linkcode",
     'myst_parser',
     "sphinx_sitemap",
-    "pytest_doctestplus.sphinx.doctestplus",
 ]
 autosummary_generate = True
 

@@ -4,4 +4,3 @@ parameterized
 plotly
 pytest-requires
 pytest-rerunfailures
-pytest-docstestplus
