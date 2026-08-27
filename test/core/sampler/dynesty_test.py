@@ -1,3 +1,4 @@
+import datetime
 import os
 import shutil
 import unittest
@@ -6,6 +7,7 @@ from unittest import mock
 
 import bilby
 import bilby.core.sampler.dynesty
+import dynesty
 import numpy as np
 import parameterized
 from attr import define
@@ -80,6 +82,66 @@ class TestDynesty(unittest.TestCase):
         del self.priors
         del self.sampler
         del self.dysampler
+
+    def read_mock_checkpoint(self, metadata):
+        checkpoint = mock.MagicMock(added_live=False)
+        versions = dict(bilby=bilby.__version__, dynesty=dynesty.__version__)
+        self.sampler.pool = None
+        with (
+            mock.patch("os.path.isfile", return_value=True),
+            mock.patch("os.stat", return_value=mock.MagicMock(st_size=1)),
+            mock.patch("builtins.open", mock.mock_open()),
+            mock.patch(
+                "dill.load", return_value=(checkpoint, versions, metadata.copy())
+            ),
+        ):
+            return self.sampler.read_saved_state(continuing=True)
+
+    def test_write_current_state_stores_search_parameter_keys(self):
+        self.sampler.sampler = self.dysampler
+        self.sampler.pool = None
+        with (
+            mock.patch("dill.pickles", return_value=True),
+            mock.patch.object(
+                bilby.core.sampler.dynesty, "safe_file_dump"
+            ) as safe_file_dump,
+        ):
+            self.sampler.write_current_state()
+
+        checkpoint = safe_file_dump.call_args.args[0]
+        assert checkpoint[2]["search_parameter_keys"] == ["a", "b"]
+
+    def test_read_saved_state_accepts_matching_search_parameter_keys(self):
+        metadata = dict(
+            search_parameter_keys=["a", "b"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        assert self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_rejects_changed_search_parameter_order(self):
+        metadata = dict(
+            search_parameter_keys=["b", "a"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with self.assertRaisesRegex(
+            bilby.core.sampler.base_sampler.ResumeError,
+            "search parameter order differs",
+        ):
+            self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_allows_legacy_checkpoint(self):
+        metadata = dict(
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with mock.patch.object(bilby.core.sampler.dynesty.logger, "warning") as warning:
+            assert self.read_mock_checkpoint(metadata)
+        assert (
+            "does not contain search parameter order metadata"
+            in warning.call_args_list[0].args[0]
+        )
 
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
