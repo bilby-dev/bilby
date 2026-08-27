@@ -11,8 +11,8 @@ def infer_parameters_from_function(func):
 
     Parameters
     ==========
-    func: function or method
-       The function or method for which the parameters should be inferred.
+    func: Callable
+       The callable object for which the parameters should be inferred.
 
     Returns
     =======
@@ -21,14 +21,12 @@ def infer_parameters_from_function(func):
     Raises
     ======
     ValueError
-       If the object passed to the function is neither a function nor a method.
+       If the object passed to the function is not callable.
 
     Notes
     =====
-    In order to handle methods the `type` of the function is checked, and
-    if a method has been passed the first *two* arguments are removed rather than just the first one.
-    This allows the reference to the instance (conventionally named `self`)
-    to be removed.
+    If a class method is passed, this function will additionally strip the
+    reference to the instance (conventionally named `self`).
     """
 
     if not callable(func):
