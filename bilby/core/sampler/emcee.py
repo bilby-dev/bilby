@@ -458,7 +458,10 @@ class Emcee(MCMCSampler):
                 " Try increasing the number of steps."
             )
         blobs = np.array(self.sampler.blobs)
-        blobs_trimmed = blobs[self.nburn :, :, :].reshape((-1, 2))
+        # Blobs are stored (nsteps, nwalkers, 2)
+        # Transpose to match the shape of the chain (nwalkers, nsteps, 2)
+        # and then flatten
+        blobs_trimmed = blobs[self.nburn :, :, :].transpose(1, 0, 2).reshape((-1, 2))
         log_likelihoods, log_priors = blobs_trimmed.T
         self.result.log_likelihood_evaluations = log_likelihoods
         self.result.log_prior_evaluations = log_priors
