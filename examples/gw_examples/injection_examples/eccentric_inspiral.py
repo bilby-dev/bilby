@@ -38,8 +38,8 @@ injection_parameters = dict(
     psi=0.1,
     phase=1.2,
     geocent_time=1180002601.0,
-    ra=45,
-    dec=5.73,
+    ra=0.7854,
+    dec=0.1,
 )
 
 waveform_arguments = dict(
