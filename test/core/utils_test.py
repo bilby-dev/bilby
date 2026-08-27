@@ -20,6 +20,7 @@ import warnings
 import bilby
 from bilby.core import utils
 from bilby.core.utils import global_meta_data
+from bilby.core.utils.plotting import _close_new_figures
 
 
 class TestConstants(unittest.TestCase):
@@ -280,6 +281,30 @@ class TestReflect(unittest.TestCase):
         xprime = self.xp.asarray([-1.9, -1.5, -1.1])
         x = self.xp.asarray([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
+
+
+class TestCloseNewFigures(unittest.TestCase):
+    def setUp(self):
+        self.existing_figure = plt.figure()
+
+    def tearDown(self):
+        plt.close(self.existing_figure)
+
+    def test_closes_only_new_figures(self):
+        with _close_new_figures():
+            new_figure = plt.figure()
+
+        self.assertTrue(plt.fignum_exists(self.existing_figure.number))
+        self.assertFalse(plt.fignum_exists(new_figure.number))
+
+    def test_closes_new_figures_after_error(self):
+        with self.assertRaises(RuntimeError):
+            with _close_new_figures():
+                new_figure = plt.figure()
+                raise RuntimeError
+
+        self.assertTrue(plt.fignum_exists(self.existing_figure.number))
+        self.assertFalse(plt.fignum_exists(new_figure.number))
 
 
 class TestLatexPlotFormat(unittest.TestCase):

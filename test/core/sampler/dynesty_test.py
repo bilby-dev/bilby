@@ -2,6 +2,7 @@ import os
 import shutil
 import unittest
 from copy import deepcopy
+from unittest import mock
 
 import bilby
 import bilby.core.sampler.dynesty
@@ -145,6 +146,54 @@ class TestDynesty(unittest.TestCase):
 
     def test_run_test_runs(self):
         self.sampler._run_test()
+
+    def test_plot_current_state_only_closes_figures_it_creates(self):
+        import matplotlib.pyplot as plt
+
+        user_figure = plt.figure()
+        self.addCleanup(plt.close, user_figure)
+        user_figure_number = user_figure.number
+        created_figures = []
+
+        def make_plot(*args, **kwargs):
+            self.assertEqual(set(plt.get_fignums()), {user_figure_number})
+            figure = plt.figure()
+            created_figures.append(figure)
+            return figure, None
+
+        trace_plot_calls = 0
+
+        def make_trace_plot(*args, **kwargs):
+            nonlocal trace_plot_calls
+            trace_plot_calls += 1
+            plot = make_plot()
+            if trace_plot_calls == 1:
+                raise ValueError("Failed after creating a figure")
+            return plot
+
+        self.sampler.sampler = mock.Mock(
+            results={"samples_u": np.zeros((1, self.sampler.ndim))}
+        )
+        with (
+            mock.patch("dynesty.plotting.traceplot", side_effect=make_trace_plot),
+            mock.patch("dynesty.plotting.runplot", side_effect=make_plot),
+            mock.patch(
+                "dynesty.utils.results_substitute",
+                side_effect=lambda results, substitutions: results,
+            ),
+            mock.patch.object(
+                bilby.core.sampler.dynesty,
+                "dynesty_stats_plot",
+                side_effect=make_plot,
+            ),
+            mock.patch("matplotlib.figure.Figure.savefig"),
+        ):
+            self.sampler.plot_current_state()
+
+        self.assertTrue(plt.fignum_exists(user_figure_number))
+        self.assertTrue(
+            all(not plt.fignum_exists(figure.number) for figure in created_figures)
+        )
 
     @parameterized.parameterized.expand((
         ("unif", "single"),
