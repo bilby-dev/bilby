@@ -15,9 +15,6 @@ https://bilby-dev.github.io/bilby/installation.html.
 
 """
 
-
-import sys
-
 from . import core, gw, hyper
 
 from .core import utils, likelihood, prior, result, sampler
