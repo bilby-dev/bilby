@@ -14,6 +14,10 @@ For installation instructions see
 https://bilby-dev.github.io/bilby/installation.html.
 
 """
+import logging
+
+# Avoid configuring logging for applications that import bilby.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 from . import core, gw, hyper
 
