@@ -15,10 +15,10 @@ def setup_logger(outdir='.', label=None, log_level='INFO', print_version=False):
     ==========
     outdir, label: str
         If supplied, write the logging output to outdir/label.log
-    log_level: str, optional
+    log_level: str or int, optional
         ['debug', 'info', 'warning']
         Either a string from the list above, or an integer as specified
-        in https://docs.python.org/2/library/logging.html#logging-levels
+        in https://docs.python.org/3/library/logging.html#logging-levels
     print_version: bool
         If true, print version information
     """
