@@ -1,5 +1,4 @@
 import inspect
-import types
 
 
 def infer_parameters_from_function(func):
@@ -12,8 +11,8 @@ def infer_parameters_from_function(func):
 
     Parameters
     ==========
-    func: function or method
-       The function or method for which the parameters should be inferred.
+    func: Callable
+       The callable object for which the parameters should be inferred.
 
     Returns
     =======
@@ -22,21 +21,18 @@ def infer_parameters_from_function(func):
     Raises
     ======
     ValueError
-       If the object passed to the function is neither a function nor a method.
+       If the object passed to the function is not callable.
 
     Notes
     =====
-    In order to handle methods the `type` of the function is checked, and
-    if a method has been passed the first *two* arguments are removed rather than just the first one.
-    This allows the reference to the instance (conventionally named `self`)
-    to be removed.
+    If a class method is passed, this function will additionally strip the
+    reference to the instance (conventionally named `self`).
     """
-    if isinstance(func, types.MethodType):
-        return infer_args_from_function_except_n_args(func=func, n=2)
-    elif isinstance(func, types.FunctionType):
-        return _infer_args_from_function_except_for_first_arg(func=func)
-    else:
+
+    if not callable(func):
         raise ValueError("This doesn't look like a function.")
+
+    return _infer_args_from_function_except_for_first_arg(func=func)
 
 
 def infer_args_from_method(method):
@@ -50,7 +46,8 @@ def infer_args_from_method(method):
     =======
     list: A list of strings with the parameters
     """
-    return infer_args_from_function_except_n_args(func=method, n=1)
+
+    return infer_args_from_function_except_n_args(func=method, n=0)
 
 
 def infer_args_from_function_except_n_args(func, n=1):
@@ -74,7 +71,8 @@ def infer_args_from_function_except_n_args(func, n=1):
     ================
     This function is intended to allow the handling of named arguments
     in both functions and methods; this is important, since the first
-    argument of an instance method will be the instance.
+    argument of an instance method will be the instance. It throws out *args
+    and **kwargs style arguments.
 
     See Also
     ========
@@ -94,7 +92,16 @@ def infer_args_from_function_except_n_args(func, n=1):
         ['c', 'd']
 
     """
-    parameters = inspect.getfullargspec(func).args
+
+    parameters = [
+        parameter.name for parameter in
+        inspect.signature(func).parameters.values()
+        if parameter.kind not in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD
+        )
+    ]
+
     del parameters[:n]
     return parameters
 
