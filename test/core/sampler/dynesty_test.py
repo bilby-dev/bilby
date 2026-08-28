@@ -150,7 +150,7 @@ class TestDynesty(unittest.TestCase):
             facc=0.2,
             save_bounds=False,
             dlogz=0.1,
-            bound="live",
+            bound="none",
             update_interval=600,
         )
         for key in expected:
@@ -269,6 +269,13 @@ class TestDynesty(unittest.TestCase):
         This is not an exhaustive test.
         """
         self.init_sampler(sample=sample, bound=bound)
+
+    def test_proposals_set_on_init(self):
+        self.init_sampler(proposals=["diff", "volumetric"])
+        self.assertEqual(
+            self.dysampler.internal_sampler_next.sampler_kwargs["proposals"],
+            ["diff", "volumetric"]
+        )
 
 
 def test_get_expected_outputs():
