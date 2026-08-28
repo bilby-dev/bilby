@@ -18,7 +18,13 @@ from ..utils import (
 )
 from ..utils.plotting import _close_new_figures
 from . import dynesty_utils
-from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
+from .base_sampler import (
+    NestedSampler,
+    ResumeError,
+    Sampler,
+    _SamplingContainer,
+    signal_wrapper,
+)
 
 
 def _set_sampling_kwargs(args):
@@ -728,6 +734,23 @@ class Dynesty(NestedSampler):
                     )
                     return False
 
+                stored_parameter_keys = extras.get("search_parameter_keys")
+                if stored_parameter_keys is None:
+                    logger.warning(
+                        "The resume file does not contain search parameter order "
+                        "metadata. The order cannot be verified; this is expected "
+                        "for checkpoints created by older versions of Bilby."
+                    )
+                elif list(stored_parameter_keys) != self.search_parameter_keys:
+                    raise ResumeError(
+                        "Cannot resume the Dynesty run because the search parameter "
+                        "order differs from the checkpoint.\n"
+                        f"Checkpoint order: {list(stored_parameter_keys)}\n"
+                        f"Current order: {self.search_parameter_keys}\n"
+                        "Reconstruct the priors in the checkpoint order, or remove "
+                        "the checkpoint to start a new run."
+                    )
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
@@ -787,14 +810,13 @@ class Dynesty(NestedSampler):
             return
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        metadata = dict(search_parameter_keys=list(self.search_parameter_keys))
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            metadata = dict(
+            metadata.update(
                 sampling_time=self.sampling_time,
                 start_time=self.start_time,
             )
-        else:
-            metadata = dict()
         versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         self.sampler.mapper = map
