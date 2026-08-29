@@ -12,6 +12,7 @@ import numpy as np
 import parameterized
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+from unittest.mock import Mock, patch
 
 from bilby.core.sampler import dynesty_utils
 
@@ -269,6 +270,22 @@ class TestDynesty(unittest.TestCase):
         This is not an exhaustive test.
         """
         self.init_sampler(sample=sample, bound=bound)
+
+    def test_plotting_exception_does_not_swallow_interruption(self):
+        # Emulate error reported in https://github.com/bilby-dev/bilby/issues/758
+        error = SystemError(
+            "numpy.ndarray.__deepcopy__ returned a result with an error set"
+        )
+
+        self.sampler.sampler = Mock()
+        self.sampler._interrupted = True
+
+        with patch("dynesty.plotting.traceplot", side_effect=error):
+            with self.assertRaises(SystemExit) as context:
+                self.sampler.plot_current_state()
+
+        self.assertEqual(context.exception.code, self.sampler.exit_code)
+        self.assertIs(context.exception.__cause__, error)
 
 
 def test_get_expected_outputs():
