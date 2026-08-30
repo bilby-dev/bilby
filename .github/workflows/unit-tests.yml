@@ -124,14 +124,14 @@ jobs:
 
     - uses: prefix-dev/setup-pixi@v0.10.0
       with:
-        environments: py313
+        environments: jax
         cache: true
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
         locked: true
 
     - name: Run docstring tests
       run: |
-        pixi run -e py313 \
+        pixi run -e jax \
           python -m pytest --doctest-plus --doctest-modules bilby -v
 
   sampler-run:
