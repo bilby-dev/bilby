@@ -93,8 +93,8 @@ profile = "black"
 
 [tool.pytest.ini_options]
 addopts = [
-  "-m=not integration",
   "--ignore=test/import_test.py",
+  "--ignore=test/integration",
   "--ignore=test/gw/plot_test.py"
 ]
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
