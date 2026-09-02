@@ -1,7 +1,9 @@
 import unittest
+from types import SimpleNamespace
 
 import bilby
 import bilby.core.sampler.emcee
+import numpy as np
 
 
 class TestEmcee(unittest.TestCase):
@@ -75,12 +77,32 @@ class TestEmcee(unittest.TestCase):
             "outdir/emcee_output_test/chain.dat",
             "outdir/emcee_output_test/sampler.pickle",
         ]
-        expected_dirs = [
-            "outdir/emcee_output_test"
-        ]
-        filenames, dirs = self.sampler.get_expected_outputs(outdir="outdir", label="output_test")
+        expected_dirs = ["outdir/emcee_output_test"]
+        filenames, dirs = self.sampler.get_expected_outputs(
+            outdir="outdir", label="output_test"
+        )
         self.assertListEqual(expected_filenames, filenames)
         self.assertListEqual(expected_dirs, dirs)
+
+    def test_generate_result_flattens_blobs_in_sample_order(self):
+        chain = np.arange(12).reshape(2, 3, 2)
+        blobs = np.empty((3, 2, 2))
+        blobs[:, :, 0] = chain[:, :, 0].T
+        blobs[:, :, 1] = chain[:, :, 1].T
+        self.sampler._sampler = SimpleNamespace(chain=chain, blobs=blobs)
+        self.sampler.nburn = 1
+        self.sampler.result.samples = chain[:, self.sampler.nburn :, :].reshape(-1, 2)
+
+        self.sampler._generate_result()
+
+        np.testing.assert_array_equal(
+            self.sampler.result.log_likelihood_evaluations,
+            self.sampler.result.samples[:, 0],
+        )
+        np.testing.assert_array_equal(
+            self.sampler.result.log_prior_evaluations,
+            self.sampler.result.samples[:, 1],
+        )
 
 
 if __name__ == "__main__":
