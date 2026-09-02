@@ -276,6 +276,5 @@ def test_powerlaw_small_values(xp, alpha):
     assert xp.all(xp.isfinite(ln_prob[val >= prior.minimum]))
 
 
-
 if __name__ == "__main__":
     unittest.main()
