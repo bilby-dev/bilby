@@ -1,6 +1,6 @@
 from jax.tree_util import register_pytree_node
 
-from ...compat.pytrees import likelihood_flatten, likelihood_unflatten
+from ...compat.pytrees.likelihood import likelihood_flatten, likelihood_unflatten
 from ..likelihood import HyperparameterLikelihood
 from ..model import Model
 
