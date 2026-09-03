@@ -81,7 +81,7 @@ jobs:
     - name: Run tests
       run: |
         pixi run -e ${{ matrix.python.environment }} \
-          pytest -m "not gw" . --cov=bilby --cov-branch \
+          pytest -m "not gw" . --ignore=test/gw --cov=bilby --cov-branch \
           --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
 
     - name: Publish coverage to Codecov
@@ -112,13 +112,13 @@ jobs:
         python:
           - name: Python 3.11
             short-version: 311
-            environment: py311
+            environment: py311-gw
           - name: Python 3.12
             short-version: 312
-            environment: py312
+            environment: py312-gw
           - name: Python 3.13
             short-version: 313
-            environment: py313
+            environment: py313-gw
 
     steps:
     - uses: actions/checkout@v4
