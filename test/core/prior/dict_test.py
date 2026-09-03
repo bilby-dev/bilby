@@ -79,6 +79,11 @@ class TestPriorDict(unittest.TestCase):
     def test_prior_set_has_expected_priors(self):
         self.assertDictEqual(self.priors, dict(self.prior_set_from_dict))
 
+    def test_assignment_rejects_invalid_prior_value(self):
+        expected_error = "Unable to parse prior, bad entry"
+        with self.assertRaisesRegex(TypeError, expected_error):
+            self.prior_set_from_dict["Om0"] = np.array(0.30966)
+
     def test_read_from_file(self):
         expected = dict(
             mass_1=bilby.core.prior.Constraint(
