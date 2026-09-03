@@ -21,6 +21,7 @@ env:
   CONDA_PATH: /opt/conda/
   SETUPTOOLS_SCM_IGNORE_DUBIOUS_OWNER: 1
   BILBY_TESTING_ROQ_DIR: ${{ github.workspace }}/.roq-data
+  OMP_NUM_THREADS: 1
 
 jobs:
   prepare-data:
