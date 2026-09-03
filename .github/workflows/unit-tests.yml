@@ -50,6 +50,60 @@ jobs:
   unit-tests:
     name: ${{ matrix.python.name }} unit tests
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python:
+          - name: Python 3.11
+            short-version: 311
+            environment: py311
+          - name: Python 3.12
+            short-version: 312
+            environment: py312
+          - name: Python 3.13
+            short-version: 313
+            environment: py313
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: ${{ matrix.python.environment }}
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+
+    - name: Run tests
+      run: |
+        pixi run -e ${{ matrix.python.environment }} \
+          pytest -m "not gw" . --cov=bilby --cov-branch \
+          --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
+
+    - name: Publish coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.xml
+        flags: python${{ matrix.python.short-version }}
+        slug: bilby-dev/bilby
+    - name: Coverage report
+      run: |
+        pixi run -e ${{ matrix.python.environment }} \
+          python -m coverage report --show-missing
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-${{ matrix.python.short-version }}
+        path: pytest.xml
+
+  gw-tests:
+    name: ${{ matrix.python.name }} GW unit tests
+    runs-on: ubuntu-latest
     needs: prepare-data
     strategy:
       fail-fast: false
@@ -88,7 +142,7 @@ jobs:
     - name: Run tests
       run: |
         pixi run -e ${{ matrix.python.environment }} \
-          pytest . --cov=bilby --cov-branch \
+          pytest -m gw . --cov=bilby --cov-branch \
           --durations 10 -ra --color yes --cov-report=xml --junitxml=pytest.xml
 
     - name: Publish coverage to Codecov
@@ -96,7 +150,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: coverage.xml
-        flags: python${{ matrix.python.short-version }}
+        flags: python${{ matrix.python.short-version }}-gw
         slug: bilby-dev/bilby
     - name: Coverage report
       run: |
@@ -106,7 +160,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: pytest-${{ matrix.python.short-version }}
+        name: pytest-gw-${{ matrix.python.short-version }}
         path: pytest.xml
 
   doc-tests:
