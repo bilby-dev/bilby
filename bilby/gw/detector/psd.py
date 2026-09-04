@@ -110,7 +110,7 @@ class PowerSpectralDensity(object):
     def from_frame_file(frame_file, psd_start_time, psd_duration,
                         fft_length=4, sampling_frequency=4096, roll_off=0.2,
                         overlap=0, channel=None, name=None, outdir=None,
-                        analysis_segment_start_time=None):
+                        analysis_segment_start_time=None, method='median'):
         """ Generate power spectral density from a frame file
 
         Parameters
@@ -138,6 +138,9 @@ class PowerSpectralDensity(object):
         analysis_segment_start_time: float, optional
             The start time of the analysis segment, if given, this data will
             be removed before creating the PSD.
+        method: str, optional
+            FFT averaging method passed to gwpy e.g. 'welch', 'median', 'bartlett'.
+            Defaults to 'median'.
 
         """
         strain = InterferometerStrainData(roll_off=roll_off)
@@ -146,14 +149,14 @@ class PowerSpectralDensity(object):
             channel=channel, sampling_frequency=sampling_frequency)
         frequency_array, psd_array = strain.create_power_spectral_density(
             fft_length=fft_length, name=name, outdir=outdir, overlap=overlap,
-            analysis_segment_start_time=analysis_segment_start_time)
+            analysis_segment_start_time=analysis_segment_start_time, method=method)
         return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
     @staticmethod
     def from_channel_name(channel, psd_start_time, psd_duration,
                           fft_length=4, sampling_frequency=4096, roll_off=0.2,
                           overlap=0, name=None, outdir=None,
-                          analysis_segment_start_time=None):
+                          analysis_segment_start_time=None, method='median'):
         """ Generate power spectral density from a given channel name
         by loading data using `strain_data.set_from_channel_name`
 
@@ -181,6 +184,9 @@ class PowerSpectralDensity(object):
         analysis_segment_start_time: float, optional
             The start time of the analysis segment, if given, this data will
             be removed before creating the PSD.
+        method: str, optional
+            FFT averaging method passed to gwpy e.g. 'welch', 'median', 'bartlett'.
+            Defaults to 'median'.
 
         """
         strain = InterferometerStrainData(roll_off=roll_off)
@@ -189,7 +195,7 @@ class PowerSpectralDensity(object):
             sampling_frequency=sampling_frequency)
         frequency_array, psd_array = strain.create_power_spectral_density(
             fft_length=fft_length, name=name, outdir=outdir, overlap=overlap,
-            analysis_segment_start_time=analysis_segment_start_time)
+            analysis_segment_start_time=analysis_segment_start_time, method=method)
         return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
     @staticmethod

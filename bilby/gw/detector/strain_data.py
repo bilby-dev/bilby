@@ -365,7 +365,7 @@ class InterferometerStrainData(object):
 
     def create_power_spectral_density(
             self, fft_length, overlap=0, name='unknown', outdir=None,
-            analysis_segment_start_time=None):
+            analysis_segment_start_time=None, method='median'):
         """ Use the time domain strain to generate a power spectral density
 
         This create a Tukey-windowed power spectral density and writes it to a
@@ -386,6 +386,9 @@ class InterferometerStrainData(object):
         analysis_segment_start_time: float
             The start time of the analysis segment, if given, this data will
             be removed before creating the PSD.
+        method: str
+            FFT averaging method passed to gwpy e.g. 'welch', 'median', 'bartlett'.
+            Defaults to 'median'.
 
         Returns
         =======
@@ -414,8 +417,11 @@ class InterferometerStrainData(object):
         logger.info(
             "Tukey window PSD data with alpha={}, roll off={}".format(
                 psd_alpha, self.roll_off))
+        if method == 'bartlett' and overlap != 0:
+            logger.warning(
+                "Bartlett method does not support overlap. Overlap will be ignored.")
         psd = strain.psd(
-            fftlength=fft_length, overlap=overlap, window=('tukey', psd_alpha))
+            method=method, fftlength=fft_length, overlap=overlap, window=('tukey', psd_alpha))
 
         if outdir:
             psd_file = '{}/{}_PSD_{}_{}.txt'.format(outdir, name, self.start_time, self.duration)
