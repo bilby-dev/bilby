@@ -325,13 +325,23 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
         added_keys = added_keys + ['lambda_1', 'lambda_2']
         return converted_parameters, added_keys
 
-    if 'delta_lambda_tilde' in converted_parameters.keys():
+    have_component_lambdas = all(
+        converted_parameters.get(key) is not None
+        for key in ['lambda_1', 'lambda_2']
+    )
+    if (
+        'delta_lambda_tilde' in converted_parameters.keys()
+        and not have_component_lambdas
+    ):
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
             lambda_tilde_delta_lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
                 parameters['delta_lambda_tilde'], converted_parameters['mass_1'],
                 converted_parameters['mass_2'])
-    elif 'lambda_tilde' in converted_parameters.keys():
+    elif (
+        'lambda_tilde' in converted_parameters.keys()
+        and not have_component_lambdas
+    ):
         converted_parameters['lambda_1'], converted_parameters['lambda_2'] =\
             lambda_tilde_to_lambda_1_lambda_2(
                 converted_parameters['lambda_tilde'],
