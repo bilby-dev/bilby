@@ -71,7 +71,7 @@ class PriorDict(dict):
         super().__setitem__(key, value)
 
     @xp_wrap
-    def evaluate_constraints(self, sample, *, strict=True, xp=None):
+    def evaluate_constraints(self, sample, *, strict=None, xp=None):
         """Evaluate the constraints for a given sample.
 
         Applies the conversion function to the sample and evaluates the
@@ -81,10 +81,11 @@ class PriorDict(dict):
         ==========
         sample: dict
             Dictionary of parameters used to evaluate the constraints.
-        strict: bool, optional
+        strict: bool or None, optional
             When True, raise if a constraint cannot be evaluated from the
             provided sample. When False, skip constraints that cannot be
-            derived from a partial sample.
+            derived from a partial sample. By default, complete samples are
+            evaluated strictly while partial samples are evaluated non-strictly.
 
         Raises
         ======
@@ -92,6 +93,9 @@ class PriorDict(dict):
             If a constraint parameter is not present in the sample after
             conversion and ``strict`` is True.
         """
+        if strict is None:
+            strict = self._is_complete_sample(sample)
+
         try:
             out_sample = self.conversion_function(sample)
         except KeyError:
@@ -488,8 +492,12 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
-    def _sample_has_all_constrained_keys(self, sample):
-        sampled_prior_keys = set(self.non_fixed_keys + self.fixed_keys)
+    def _is_complete_sample(self, sample):
+        sampled_prior_keys = {
+            key
+            for key, prior in self.items()
+            if isinstance(prior, Prior) and not isinstance(prior, Constraint)
+        }
         return sampled_prior_keys.issubset(set(sample.keys()))
 
     def sample_subset_constrained(self, keys=iter([]), size=None, *, random_state=None):
@@ -531,7 +539,7 @@ class PriorDict(dict):
                 sample = self.sample_subset(keys=keys, size=size, random_state=rng)
                 is_valid = self.evaluate_constraints(
                     sample,
-                    strict=self._sample_has_all_constrained_keys(sample),
+                    strict=self._is_complete_sample(sample),
                 )
                 n_tested_samples += 1
                 n_valid_samples += int(is_valid.item())
@@ -546,7 +554,7 @@ class PriorDict(dict):
             xp = random_array_module(random_state)
             all_samples = {key: xp.asarray([]) for key in keys}
             _first_key = list(all_samples.keys())[0]
-            strict = self._sample_has_all_constrained_keys(all_samples)
+            strict = self._is_complete_sample(all_samples)
             while len(all_samples[_first_key]) < needed:
                 samples = self.sample_subset(keys=keys, size=needed, random_state=rng)
                 keep = self.evaluate_constraints(samples, strict=strict)
