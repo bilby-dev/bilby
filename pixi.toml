@@ -85,6 +85,7 @@ python = "3.13.*"
 
 [feature.test.dependencies]
 arviz = "*"
+astropy = "*"
 celerite = "*"
 coverage = "*"
 george = "*"
