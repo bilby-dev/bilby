@@ -383,7 +383,7 @@ class TestPriorDict(unittest.TestCase):
                 keys=list(priors.keys()), size=1, random_state=self.rng
             )
 
-    def test_prob_on_partial_subset_requires_constraints(self):
+    def test_prob_and_ln_prob_on_partial_subset_skip_unavailable_constraints(self):
 
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
@@ -397,8 +397,14 @@ class TestPriorDict(unittest.TestCase):
         priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
         priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
 
-        with self.assertRaises(KeyError):
-            priors.prob({"mass_1": 1.5})
+        sample = {"mass_1": 1.5}
+        normalization = priors.normalize_constraint_factor(
+            tuple(sample), min_accept=10, sampling_chunk=20, nrepeats=1
+        )
+
+        self.assertEqual(1, normalization)
+        self.assertEqual(priors["mass_1"].prob(1.5), priors.prob(sample))
+        self.assertEqual(priors["mass_1"].ln_prob(1.5), priors.ln_prob(sample))
 
     def test_sample_with_random_seed(self):
         """
@@ -532,6 +538,26 @@ class TestPriorDict(unittest.TestCase):
             msg="Constraint delta_mass is not present in the sample. Cannot evaluate constraints."
         ):
             priors.evaluate_constraints(theta)
+
+    def test_evaluate_constraints_partial_sample_is_not_strict(self):
+
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.5}
+
+        self.assertTrue(priors.evaluate_constraints(theta))
+        with self.assertRaises(KeyError):
+            priors.evaluate_constraints(theta, strict=True)
 
     def test_normalize_constraint_keys(self):
 
