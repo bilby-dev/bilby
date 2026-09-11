@@ -186,25 +186,6 @@ class TestPriorDict(unittest.TestCase):
         from_dict = bilby.core.prior.PriorDict(dictionary=self.priors)
         self.assertDictEqual(self.prior_set_from_dict, from_dict)
 
-    def test_convert_floats_to_delta_functions(self):
-        self.prior_set_from_dict["d"] = 5
-        self.prior_set_from_dict["e"] = 7.3
-        self.prior_set_from_dict["f"] = "unconvertable"
-        self.prior_set_from_dict.convert_floats_to_delta_functions()
-        expected = dict(
-            mass=bilby.core.prior.Uniform(
-                name="a", minimum=0, maximum=1, unit="kg", boundary=None
-            ),
-            speed=bilby.core.prior.PowerLaw(
-                name="b", alpha=3, minimum=1, maximum=2, unit="m/s", boundary=None
-            ),
-            length=bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m"),
-            d=bilby.core.prior.DeltaFunction(peak=5),
-            e=bilby.core.prior.DeltaFunction(peak=7.3),
-            f="unconvertable",
-        )
-        self.assertDictEqual(expected, self.prior_set_from_dict)
-
     def test_prior_set_from_dict_but_using_a_string(self):
         prior_set = bilby.core.prior.PriorDict(dictionary=self.default_prior_file)
         expected = bilby.core.prior.PriorDict(
@@ -284,17 +265,6 @@ class TestPriorDict(unittest.TestCase):
         for key in samples:
             self.assertEqual(size, len(samples[key]))
             self.assertEqual(aac.get_namespace(samples[key]), self.xp)
-
-    def test_sample_subset_correct_size_when_non_priors_in_dict(self):
-        self.prior_set_from_dict["asdf"] = "not_a_prior"
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(),
-            random_state=self.rng,
-        )
-        self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
-        for key in samples:
-            if not isinstance(samples[key], (int, float)):
-                self.assertIsNotNone(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_with_actual_subset(self):
         size = 3

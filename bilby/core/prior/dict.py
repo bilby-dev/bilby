@@ -61,7 +61,7 @@ class PriorDict(dict):
         return hash(str(self))
 
     def __setitem__(self, key, value):
-        if not isinstance(value, (Prior, int, float, str, dict)):
+        if not isinstance(value, (Prior, int, float, dict)):
             raise TypeError(
                 "Unable to parse prior, bad entry: {} "
                 "= {} of type {}".format(key, value, type(value))
