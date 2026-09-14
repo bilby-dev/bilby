@@ -26,7 +26,7 @@ class TestLalBBH(unittest.TestCase):
             phase=0.0,
         )
         self.waveform_kwargs = dict(
-            waveform_approximant="IMRPhenomPv2",
+            waveform_approximant="IMRPhenomXPHM",
             reference_frequency=50.0,
             minimum_frequency=20.0,
             catch_waveform_errors=True,
@@ -208,7 +208,7 @@ class TestLalBNS(unittest.TestCase):
             lambda_2=100.0,
         )
         self.waveform_kwargs = dict(
-            waveform_approximant="IMRPhenomPv2_NRTidal",
+            waveform_approximant="IMRPhenomPv2_NRTidalv2",
             reference_frequency=50.0,
             minimum_frequency=20.0,
         )
@@ -487,7 +487,7 @@ class TestBNSfreqseq(unittest.TestCase):
         self.full_frequencies_to_sequence = self.frequency_array >= self.minimum_frequency
         self.frequencies = self.frequency_array[self.full_frequencies_to_sequence]
         self.waveform_kwargs = dict(
-            waveform_approximant="IMRPhenomPv2_NRTidal",
+            waveform_approximant="IMRPhenomPv2_NRTidalv2",
             reference_frequency=50.0,
         )
 
@@ -546,14 +546,14 @@ class TestRelbinBBH(unittest.TestCase):
             phase=0.0,
         )
         self.waveform_kwargs_fiducial = dict(
-            waveform_approximant="IMRPhenomPv2",
+            waveform_approximant="IMRPhenomXPHM",
             reference_frequency=50.0,
             minimum_frequency=20.0,
             catch_waveform_errors=True,
             fiducial=True,
         )
         self.waveform_kwargs_binned = dict(
-            waveform_approximant="IMRPhenomPv2",
+            waveform_approximant="IMRPhenomXPHM",
             reference_frequency=50.0,
             minimum_frequency=20.0,
             catch_waveform_errors=True,
@@ -682,13 +682,13 @@ class TestRelbinBNS(unittest.TestCase):
             lambda_2=100.0,
         )
         self.waveform_kwargs_fiducial = dict(
-            waveform_approximant="IMRPhenomPv2_NRTidal",
+            waveform_approximant="IMRPhenomPv2_NRTidalv2",
             reference_frequency=50.0,
             minimum_frequency=20.0,
             fiducial=True,
         )
         self.waveform_kwargs_binned = dict(
-            waveform_approximant="IMRPhenomPv2_NRTidal",
+            waveform_approximant="IMRPhenomPv2_NRTidalv2",
             reference_frequency=50.0,
             minimum_frequency=20.0,
             fiducial=False,
