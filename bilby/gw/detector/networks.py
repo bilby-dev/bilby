@@ -312,7 +312,6 @@ class TriangularInterferometer(InterferometerList):
         yarm_azimuth,
         xarm_tilt=0.0,
         yarm_tilt=0.0,
-        clockwise=True,
     ):
         super(TriangularInterferometer, self).__init__([])
         self.name = name
@@ -349,7 +348,7 @@ class TriangularInterferometer(InterferometerList):
             vertex_geocentric = get_vertex_position_geocentric(self[ii].latitude_radians,
                                                                self[ii].longitude_radians,
                                                                self[ii].elevation)
-            next_vertex_geocentric = vertex_geocentric + length * 1000 * (unit_vector_y if clockwise else unit_vector_x)
+            next_vertex_geocentric = vertex_geocentric + length * 1000 * unit_vector_x
             next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric[0],
                                                                   next_vertex_geocentric[1],
                                                                   next_vertex_geocentric[2])
@@ -357,7 +356,7 @@ class TriangularInterferometer(InterferometerList):
 
             rotation_vector = np.cross(unit_vector_x, unit_vector_y)
             rotation_vector /= np.linalg.norm(rotation_vector)
-            rotation_angle = - 2 / 3 * np.pi if clockwise else 2 / 3 * np.pi
+            rotation_angle = 2 / 3 * np.pi
             rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
             next_unit_vector_x = rotation.apply(unit_vector_x)
             next_unit_vector_y = rotation.apply(unit_vector_y)

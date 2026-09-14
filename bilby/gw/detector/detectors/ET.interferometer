@@ -13,4 +13,3 @@ elevation = 51.884
 xarm_azimuth = 70.5674
 yarm_azimuth = 130.5674
 shape = 'Triangle'
-clockwise = False
