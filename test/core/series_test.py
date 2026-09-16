@@ -125,5 +125,57 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
             _ = self.series.frequency_array
 
 
+@pytest.mark.array_backend
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("domain", ["time", "frequency"])
+def test_torch_series_without_numpy_conversion(monkeypatch, device, domain):
+    """Infer metadata without converting the tensor to a NumPy array."""
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    monkeypatch.setattr("bilby.compat.utils.BILBY_ARRAY_API", True)
+
+    def reject_numpy(*args, **kwargs):
+        raise AssertionError("Tensor must not be converted to NumPy")
+
+    monkeypatch.setattr(torch.Tensor, "__array__", reject_numpy)
+    if domain == "frequency":
+        array = torch.arange(513, dtype=torch.float64, device=device) / 2
+    else:
+        array = torch.arange(1024, dtype=torch.float64, device=device) / 512
+    original = array.clone()
+    series = CoupledTimeAndFrequencySeries()
+    setattr(series, f"{domain}_array", array)
+    assert series.sampling_frequency == 512.0
+    assert series.duration == 2.0
+    assert series.sampling_frequency.device == array.device
+    assert series.duration.dtype == array.dtype
+    with torch.device(device):
+        regenerated = create_frequency_series(
+            series.sampling_frequency, series.duration
+        )
+    assert regenerated.device == array.device
+    assert getattr(series, f"{domain}_array") is array
+    torch.testing.assert_close(array, original)
+
+    if domain == "frequency":
+        from bilby.gw.detector.strain_data import InterferometerStrainData
+
+        strain = InterferometerStrainData()
+        strain.set_from_frequency_domain_strain(
+            torch.zeros_like(array, dtype=torch.complex128),
+            frequency_array=array,
+            start_time=1126259640.0,
+        )
+        assert strain.frequency_array is array
+        assert strain.sampling_frequency == 512.0
+        assert strain.duration == 2.0
+
+    uneven = array.clone()
+    uneven[-1] += 1e-4
+    with pytest.raises(ValueError, match="not evenly sampled"):
+        setattr(series, f"{domain}_array", uneven)
+
+
 if __name__ == "__main__":
     unittest.main()
