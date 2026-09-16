@@ -5,6 +5,10 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Changed
+
+- Rename the `GEO600` detector identifier to `G1` so that channel names of the form `G1:...` in GEO frame files are recognised; `GEO600` is kept working as a deprecated alias for `get_empty_interferometer`/`InterferometerList` (https://github.com/bilby-dev/bilby/pull/935)
+
 ## [2.4.0]
 
 Note: this release contains changes made on both GitHub and LIGO GitLab.
