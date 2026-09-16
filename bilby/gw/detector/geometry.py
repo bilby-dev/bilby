@@ -208,8 +208,8 @@ class InterferometerGeometry(object):
         array_like: A 3D array representation of the vertex
         """
         if not self._vertex_updated:
-            self._vertex = gwutils.get_vertex_position_geocentric(self._latitude, self._longitude,
-                                                                  self.elevation)
+            self._vertex = gwutils.get_vertex_position_geocentric(np.array([self._latitude, self._longitude,
+                                                                  self.elevation]))
             self._vertex_updated = True
         return self._vertex
 

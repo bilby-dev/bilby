@@ -345,13 +345,11 @@ class TriangularInterferometer(InterferometerList):
             unit_vector_x = self[ii].geometry.unit_vector_along_arm("x")
             unit_vector_y = self[ii].geometry.unit_vector_along_arm("y")
 
-            vertex_geocentric = get_vertex_position_geocentric(self[ii].latitude_radians,
-                                                               self[ii].longitude_radians,
-                                                               self[ii].elevation)
+            vertex_geocentric = get_vertex_position_geocentric(np.array([self[ii].latitude_radians,
+                                                                         self[ii].longitude_radians,
+                                                                         self[ii].elevation]))
             next_vertex_geocentric = vertex_geocentric + length * 1000 * unit_vector_x
-            next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric[0],
-                                                                  next_vertex_geocentric[1],
-                                                                  next_vertex_geocentric[2])
+            next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
             next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
 
             rotation_vector = np.cross(unit_vector_x, unit_vector_y)

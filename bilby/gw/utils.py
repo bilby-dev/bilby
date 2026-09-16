@@ -55,7 +55,7 @@ def psd_from_freq_series(freq_data, df):
     return np.power(asd_from_freq_series(freq_data, df), 2)
 
 
-def get_vertex_position_geocentric(latitude, longitude, elevation):
+def get_vertex_position_geocentric(position, _longitude=None, _elevation=None):
     """
     Calculate the position of the IFO vertex in geocentric coordinates in meters.
 
@@ -64,18 +64,25 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
 
     Parameters
     ==========
-    latitude: float
-        Latitude in radians
-    longitude:
-        Longitude in radians
-    elevation:
-        Elevation in meters
+    position: array_like
+        3D representation of the ellipsoidal vertex position (latitude [rad], longitude [rad], elevation [m]) 
 
     Returns
     =======
     array_like: A 3D representation of the geocentric vertex position
 
     """
+
+    if _longitude is not None and _elevation is not None:
+        logger.warning("Syntax of get_vertex_position_geocentric changed in Bilby 3.0.0. Please pass latitude, longitude and elevation as the single array-like argument.")
+        latitude = position
+        longitude = _longitude
+        elevation = _elevation
+    elif  len(position) == 3:
+        latitude, longitude, elevation = position
+    else:
+        raise ValueError("Position must be an array-like of length 3 containing latitude, longitude, and elevation.")
+
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
     radius = semi_major_axis**2 * (semi_major_axis**2 * np.cos(latitude)**2 +
@@ -86,7 +93,7 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     return np.array([x_comp, y_comp, z_comp])
 
 
-def get_vertex_position_ellipsoid(x_comp, y_comp, z_comp):
+def get_vertex_position_ellipsoid(position):
     """
     Calculate the position of the IFO vertex in ellipsoidal coordinates.
 
@@ -97,12 +104,8 @@ def get_vertex_position_ellipsoid(x_comp, y_comp, z_comp):
 
     Parameters
     ==========
-    x_comp: float
-        Geocentric x-coordinate in meters
-    y_comp: float
-        Geocentric y-coordinate in meters
-    z_comp: float
-        Geocentric z-coordinate in meters
+    position: array_like
+        3D representation of the geocentric vertex position in meters (x, y, z)
 
     Returns
     =======
@@ -111,9 +114,9 @@ def get_vertex_position_ellipsoid(x_comp, y_comp, z_comp):
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
 
-    r = np.sqrt(x_comp ** 2 + y_comp ** 2)
-    E = (semi_minor_axis * z_comp - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
-    F = (semi_minor_axis * z_comp + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
+    r = np.sqrt(position[0] ** 2 + position[1] ** 2)
+    E = (semi_minor_axis * position[2] - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
+    F = (semi_minor_axis * position[2] + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
     P = 4 / 3 * (E * F + 1)
     Q = 2 * (E ** 2 - F ** 2)
     D = P ** 3 + Q ** 2
@@ -122,9 +125,9 @@ def get_vertex_position_ellipsoid(x_comp, y_comp, z_comp):
     # Calculate solution in first quadrant and then adjust based on the sign of the original z_comp
     G = 1 / 2 * (np.sqrt(E ** 2 + v) + E)
     t = np.sqrt(G ** 2 + (F - v * G) / (2 * G - E)) - G
-    latitude = np.sign(z_comp) * np.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
-    longitude = np.arctan2(y_comp, x_comp)
-    elevation = (r - semi_major_axis * t) * np.cos(latitude) + (z_comp - semi_minor_axis) * np.sin(latitude)
+    latitude = np.sign(position[2]) * np.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
+    longitude = np.arctan2(position[1], position[0])
+    elevation = (r - semi_major_axis * t) * np.cos(latitude) + (position[2] - semi_minor_axis) * np.sin(latitude)
 
     return np.array([latitude, longitude, elevation])
 
