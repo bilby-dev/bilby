@@ -43,7 +43,7 @@ class BaseCBCResultTest(unittest.TestCase):
         self.result = bilby.gw.result.CBCResult(
             label="label",
             outdir=self.outdir,
-            sampler="nestle",
+            sampler="emcee",
             search_parameter_keys=list(priors.keys()),
             fixed_parameter_keys=list(),
             priors=priors,
@@ -61,6 +61,10 @@ class BaseCBCResultTest(unittest.TestCase):
 
 
 class TestCBCResult(BaseCBCResultTest):
+
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
 
     def test_phase_marginalization(self):
         self.assertEqual(
@@ -206,7 +210,18 @@ class TestCBCResult(BaseCBCResultTest):
             self.result.detector_injection_properties("not_a_detector"), None
         )
 
+
+class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
+
+    @pytest.fixture(autouse=True)
+    def set_caplog(self, caplog):
+        self._caplog = caplog
+
+    def test_global_meta_data(self):
+        assert "global_meta_data" in self.result.meta_data
+
     def test_cosmology(self):
+        bilby.core.utils.meta_data.logger.propagate = True
         self.assertEqual(
             self.result.cosmology,
             self.meta_data["global_meta_data"]["cosmology"],

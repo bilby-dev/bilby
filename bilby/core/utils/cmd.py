@@ -33,15 +33,18 @@ def set_up_command_line_arguments():
 
         # Here we import bilby, which initialises and parses the default command-line args
         >>> import bilby
-        # The command line arguments can then be accessed via
+        >>> # The command line arguments can then be accessed via
         >>> bilby.core.utils.command_line_args
-        Namespace(clean=False, log_level=20, quite=False)
-        # Next, we import argparse and define a new argparse object
+        Namespace(verbose=True, quiet=False, clean=False, use_cached=False,
+                  sampler_help=False, bilby_test_mode=False,
+                  bilby_zero_likelihood_mode=False, log_level=10)
+        >>> # Next, we import argparse and define a new argparse object
         >>> import argparse
         >>> parser = argparse.ArgumentParser(parents=[bilby.core.utils.command_line_parser])
-        >>> parser.add_argument('--argument', type=int, default=1)
-        >>> args = parser.parse_args()
-        Namespace(clean=False, log_level=20, quite=False, argument=1)
+        >>> _ = parser.add_argument('--argument', type=int, default=1)
+        >>> args = parser.parse_args([])
+        >>> args.argument
+        1
 
     Placing these lines into a script, you'll be able to pass in the usual bilby default
     arguments, in addition to `--argument`. To see a list of all options, call the script

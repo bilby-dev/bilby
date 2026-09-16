@@ -33,10 +33,16 @@ improved by increasing this to say 500 or 1000.
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
-from bilby.core.utils.random import rng, seed
+from bilby.core.utils import random
+
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
+
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # A few simple setup steps
 label = "occam_factor"
@@ -48,7 +54,7 @@ sigma = 1
 N = 100
 time = np.linspace(0, 1, N)
 coeffs = [1, 2, 3]
-data = np.polyval(coeffs, time) + rng.normal(0, sigma, N)
+data = np.polyval(coeffs, time) + random.rng.normal(0, sigma, N)
 
 fig, ax = plt.subplots()
 ax.plot(time, data, "o", label="data", color="C0")
@@ -74,7 +80,7 @@ class Polynomial(bilby.Likelihood):
             The degree of the polynomial to fit.
         """
         self.keys = ["c{}".format(k) for k in range(n)]
-        super().__init__(parameters={k: None for k in self.keys})
+        super().__init__()
         self.x = x
         self.y = y
         self.sigma = sigma
@@ -85,8 +91,8 @@ class Polynomial(bilby.Likelihood):
         coeffs = [parameters[k] for k in self.keys]
         return np.polyval(coeffs, x)
 
-    def log_likelihood(self):
-        res = self.y - self.polynomial(self.x, self.parameters)
+    def log_likelihood(self, parameters):
+        res = self.y - self.polynomial(self.x, parameters)
         return -0.5 * (
             np.sum((res / self.sigma) ** 2)
             + self.N * np.log(2 * np.pi * self.sigma**2)

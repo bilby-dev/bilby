@@ -825,8 +825,10 @@ class FisherMatrixProposal(AdaptiveGaussianProposal):
             fmp = FisherMatrixPosteriorEstimator(
                 likelihood, priors, parameters=self.parameters, fd_eps=self.fd_eps
             )
+            parameters = {key: priors[key].peak for key in priors.fixed_keys}
+            parameters.update(sample.dict)
             try:
-                self.iFIM = fmp.calculate_iFIM(sample.dict)
+                self.iFIM = fmp.calculate_iFIM(parameters)
             except (RuntimeError, ValueError, np.linalg.LinAlgError) as e:
                 logger.warning(f"FisherMatrixProposal failed with {e}")
                 if hasattr(self, "iFIM") is False:

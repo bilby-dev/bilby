@@ -136,14 +136,14 @@ class Chain(object):
 
     @property
     def _random_idx(self):
-        from ..core.utils.random import rng
+        from ..core.utils import random
 
         mindex = self._last_minimum_index[1]
         # Check if mindex exceeds current position by 10 ACT: if so use a random sample
         # otherwise we draw only from the chain past the minimum_index
         if np.isinf(self.tau_last) or self.position - mindex < 10 * self.tau_last:
             mindex = 0
-        return rng.integers(mindex, self.position + 1)
+        return random.rng.integers(mindex, self.position + 1)
 
     @property
     def random_sample(self):

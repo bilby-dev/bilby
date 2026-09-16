@@ -61,6 +61,19 @@ class ImplementedSamplers:
         keys = set(self._samplers.keys())
         return iter(keys.union({k.replace("bilby.", "") for k in keys}))
 
+    def native_keys(self):
+        """Iterator of native sampler names (without the `bilby.` prefix).
+
+        This excludes any samplers that are only available through plugins.
+        """
+        return iter(
+            {
+                k.replace("bilby.", "")
+                for k in self._samplers.keys()
+                if k.startswith("bilby.")
+            }
+        )
+
     def __getitem__(self, key):
         if key in self._samplers:
             return self._samplers[key]
@@ -179,9 +192,13 @@ def run_sampler(
         `bilby.sampler.get_implemented_samplers()` for a list of available
         samplers.
         Alternatively a Sampler object can be passed
-    use_ratio: bool (False)
-        If True, use the likelihood's log_likelihood_ratio, rather than just
-        the log_likelihood.
+    use_ratio: bool (None)
+        If True, use the likelihood's `log_likelihood_ratio`, rather than just
+        the `log_likelihood`. If left as the default value of `None`, and the
+        likelihood has a valid `log_likelihood_ratio` method, then that method
+        will also be used, i.e., the likelihood ratio will be calculated. To
+        ensure that the `log_likelihood` method is used for the calculation,
+        rather than the likelihood ratio, this argument should be set to False.
     injection_parameters: dict
         A dictionary of injection parameters used in creating the data (if
         using simulated data). Appended to the result object and saved.
@@ -189,6 +206,9 @@ def run_sampler(
         If true, generate a corner plot and, if applicable diagnostic plots
     conversion_function: function, optional
         Function to apply to posterior to generate additional parameters.
+        This function should take one positional argument, a dictionary or
+        pandas dataframe and three optional arguments: the likelihood, prior
+        dict, and an integer :code:`npool` to allow parallelisation.
     default_priors_file: str
         If given, a file containing the default priors; otherwise defaults to
         the bilby defaults for a binary black hole.
@@ -242,7 +262,7 @@ def run_sampler(
     else:
         raise ValueError("Input priors not understood should be dict or PriorDict")
 
-    priors.fill_priors(likelihood, default_priors_file=default_priors_file)
+    priors.fill_priors()
 
     # Generate the meta-data if not given and append the likelihood meta_data
     if meta_data is None:
@@ -335,7 +355,10 @@ def run_sampler(
             result.save_to_file(extension=save, gzip=gzip, outdir=outdir)
 
     if None not in [result.injection_parameters, conversion_function]:
-        result.injection_parameters = conversion_function(result.injection_parameters)
+        result.injection_parameters = conversion_function(
+            result.injection_parameters,
+            likelihood=likelihood,
+        )
 
     # Check if the posterior has already been created
     if getattr(result, "_posterior", None) is None:

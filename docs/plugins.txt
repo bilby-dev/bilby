@@ -27,6 +27,7 @@ Currently :code:`bilby` allows for the following plugin groups:
 
 - :code:`"bilby.samplers"`: group for adding samplers to :code:`bilby`. See :ref:`Sampler plugins` for more details.
 
+.. _sampler-plugins:
 
 ---------------
 Sampler plugins
@@ -49,17 +50,6 @@ for creating sampler plugins on GitHub.
 .. note::
     When implementing a new sampler plugin, please avoid using a generic name for
     the plugin (e.g. 'nest', 'mcmc') as this may lead to naming conflicts.
-
-
-Sampler plugin library
-----------------------
-
-This is a list of known sampler plugins. if you don't see your plugin listed
-here, we encourage you to open a
-`pull request <https://github.com/bilby-dev/bilby/compare>`_ to add it.
-
-- :code:`nessai-bilby`: https://github.com/bilby-dev/nessai-bilby
-- :code:`pypolychord-bilby`: https://github.com/bilby-dev/pypolychord-bilby
 
 
 Bilby-native samplers

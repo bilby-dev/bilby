@@ -91,14 +91,14 @@ a likelihood and prior, and running nested sampling using `bilby`.
 
 Running the script above will make a few images. Firstly, the plot of the data:
 
-.. image:: images/linear-regression_data.png
+.. image:: images/linear_regression_data.png
 
 The dashed red line here shows the simulated signal.
 
 Secondly, because we used the `plot=True` argument in `run_sampler` we generate
 a corner plot
 
-.. image:: images/linear-regression_corner.png
+.. image:: images/linear_regression_corner.png
 
 The solid lines indicate the simulated values which are recovered quite
 easily. Note, you can also make a corner plot with `result.plot_corner()`.

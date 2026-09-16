@@ -1,6 +1,5 @@
 astropy>=5
 lalsuite
 gwpy
-tables
 pyfftw
 scikit-learn
