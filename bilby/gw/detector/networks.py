@@ -417,6 +417,14 @@ class TriangularInterferometer(InterferometerList):
             yarm_azimuth += 240
 
 
+_LEGACY_DETECTOR_NAMES = {
+    # GEO600 was renamed to its LAL/channel-name prefix, G1, so that
+    # InterferometerList(["G1"]) matches the "G1:..." channel names found
+    # in GEO frame files. This alias keeps the old identifier working.
+    "GEO600": "G1",
+}
+
+
 def get_empty_interferometer(name):
     """
     Get an interferometer with standard parameters for known detectors.
@@ -424,16 +432,18 @@ def get_empty_interferometer(name):
     These objects do not have any noise instantiated.
 
     The available instruments are:
-        H1, L1, V1, GEO600, CE
+        H1, L1, V1, G1, CE
+
+    ``GEO600`` is accepted as a deprecated alias for ``G1``.
 
     Detector positions taken from:
         L1/H1: LIGO-T980044-10
-        V1/GEO600: arXiv:gr-qc/0008066 [45]
+        V1/G1: arXiv:gr-qc/0008066 [45]
         CE: located at the site of H1
 
     Detector sensitivities:
         H1/L1/V1: https://dcc.ligo.org/LIGO-P1200087-v42/public
-        GEO600: http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
+        G1: http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
         CE: https://dcc.ligo.org/LIGO-P1600143/public
 
 
@@ -447,6 +457,14 @@ def get_empty_interferometer(name):
     interferometer: Interferometer
         Interferometer instance
     """
+    if name in _LEGACY_DETECTOR_NAMES:
+        new_name = _LEGACY_DETECTOR_NAMES[name]
+        logger.warning(
+            "Interferometer name '{}' is deprecated, use '{}' instead.".format(
+                name, new_name
+            )
+        )
+        name = new_name
     filename = os.path.join(
         os.path.dirname(__file__), "detectors", "{}.interferometer".format(name)
     )
