@@ -10,6 +10,11 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
+if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "nestle is required to run this example. Install with `pip install nestle-bilby`"
+    )
+
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 seed(123)
 
@@ -96,6 +101,7 @@ vector_tensor_result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label="vector_tensor",
+    result_class=bilby.gw.result.CBCResult,
 )
 
 vector_tensor_result.plot_corner()
@@ -115,6 +121,7 @@ tensor_result = bilby.core.sampler.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label="tensor",
+    result_class=bilby.gw.result.CBCResult,
 )
 
 # make some plots of the outputs

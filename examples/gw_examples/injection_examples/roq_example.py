@@ -172,6 +172,7 @@ result = bilby.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 # Resample the result using the full waveform model with the FakeSampler.
@@ -185,6 +186,7 @@ resampled_result = bilby.run_sampler(
     sampler="fake_sampler",
     label="roq_resampled",
     outdir=outdir,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 # Make a comparison corner plot with the two likelihoods.

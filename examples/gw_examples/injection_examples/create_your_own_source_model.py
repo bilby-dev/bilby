@@ -102,5 +102,6 @@ result = bilby.core.sampler.run_sampler(
     resume=False,
     sample="unif",
     injection_parameters=injection_parameters,
+    result_class=bilby.gw.result.CBCResult,
 )
 result.plot_corner()

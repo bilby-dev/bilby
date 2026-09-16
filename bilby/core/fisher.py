@@ -45,8 +45,7 @@ class FisherMatrixPosteriorEstimator(object):
             self.prior_width_dict[key] = width
 
     def log_likelihood(self, sample):
-        self.likelihood.parameters.update(sample)
-        return self.likelihood.log_likelihood()
+        return self.likelihood.log_likelihood(sample)
 
     def calculate_iFIM(self, sample):
         FIM = self.calculate_FIM(sample)
@@ -60,14 +59,14 @@ class FisherMatrixPosteriorEstimator(object):
         return iFIM
 
     def sample_array(self, sample, n=1):
-        from .utils.random import rng
+        from .utils import random
 
         if sample == "maxL":
             sample = self.get_maximum_likelihood_sample()
 
         self.mean = np.array(list(sample.values()))
         self.iFIM = self.calculate_iFIM(sample)
-        return rng.multivariate_normal(self.mean, self.iFIM, n)
+        return random.rng.multivariate_normal(self.mean, self.iFIM, n)
 
     def sample_dataframe(self, sample, n=1):
         samples = self.sample_array(sample, n)

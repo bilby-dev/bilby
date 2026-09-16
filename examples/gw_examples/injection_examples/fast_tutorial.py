@@ -19,7 +19,7 @@ minimum_frequency = 20
 # Specify the output directory and the name of the simulation.
 outdir = "outdir"
 label = "fast_tutorial"
-bilby.core.utils.setup_logger(outdir=outdir, label=label)
+bilby.core.utils.setup_logger(outdir=outdir, label=label, log_level="DEBUG")
 
 # Set up a random seed for result reproducibility.  This is optional!
 bilby.core.utils.random.seed(88170235)
@@ -119,6 +119,7 @@ result = bilby.run_sampler(
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
+    result_class=bilby.gw.result.CBCResult,
 )
 
 # Make a corner plot.

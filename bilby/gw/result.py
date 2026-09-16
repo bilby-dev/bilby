@@ -19,6 +19,18 @@ class CompactBinaryCoalescenceResult(CoreResult):
     of compact binaries.
     """
     def __init__(self, **kwargs):
+
+        if "meta_data" not in kwargs:
+            kwargs["meta_data"] = dict()
+        if "global_meta_data" not in kwargs:
+            from ..core.utils.meta_data import global_meta_data
+
+            kwargs["meta_data"]["global_meta_data"] = global_meta_data
+        # Ensure cosmology is always stored in the meta_data
+        if "cosmology" not in kwargs["meta_data"]["global_meta_data"]:
+            from .cosmology import get_cosmology
+            kwargs["meta_data"]["global_meta_data"]["cosmology"] = get_cosmology()
+
         super(CompactBinaryCoalescenceResult, self).__init__(**kwargs)
 
     def __get_from_nested_meta_data(self, *keys):
@@ -83,7 +95,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
     @property
     def waveform_generator_class(self):
-        """ Dict of waveform arguments """
+        """ Waveform generator class """
         return self.__get_from_nested_meta_data(
             'likelihood', 'waveform_generator_class')
 
@@ -92,6 +104,12 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ Dict of waveform arguments """
         return self.__get_from_nested_meta_data(
             'likelihood', 'waveform_arguments')
+
+    @property
+    def waveform_generator_meta_data(self):
+        """ Dict of metadata for reconstructing the waveform generator. """
+        return self.__get_from_nested_meta_data(
+            'likelihood', 'waveform_generator_meta_data')
 
     @property
     def reference_frequency(self):
@@ -116,6 +134,26 @@ class CompactBinaryCoalescenceResult(CoreResult):
         """ The frequency domain source model (function)"""
         return self.__get_from_nested_meta_data(
             'likelihood', 'parameter_conversion')
+
+    @property
+    def cosmology(self):
+        """The global cosmology used in the analysis.
+
+        Will return None if the result does not include global meta data.
+
+        .. versionadded:: 2.5.0
+        """
+        try:
+            return self.__get_from_nested_meta_data(
+                'global_meta_data', 'cosmology'
+            )
+        except AttributeError as e:
+            logger.warning(
+                "No cosmology found in result. "
+                "This is likely due to the result not containing "
+                f"global meta data. Error: {e}."
+            )
+            return None
 
     def detector_injection_properties(self, detector):
         """ Returns a dictionary of the injection properties for each detector
@@ -389,7 +427,8 @@ class CompactBinaryCoalescenceResult(CoreResult):
             frequency_domain_source_model=self.frequency_domain_source_model,
             time_domain_source_model=self.time_domain_source_model,
             parameter_conversion=self.parameter_conversion,
-            waveform_arguments=self.waveform_arguments)
+            waveform_arguments=self.waveform_arguments,
+            **self.waveform_generator_meta_data)
 
         if format == "html":
             fig = make_subplots(
@@ -476,8 +515,7 @@ class CompactBinaryCoalescenceResult(CoreResult):
 
         fd_waveforms = list()
         td_waveforms = list()
-        for _, params in samples.iterrows():
-            params = dict(params)
+        for params in samples.to_dict(orient="records"):
             wf_pols = waveform_generator.frequency_domain_strain(params)
             fd_waveform = interferometer.get_detector_response(wf_pols, params)
             fd_waveforms.append(fd_waveform[frequency_idxs])

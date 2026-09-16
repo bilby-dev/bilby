@@ -2,7 +2,8 @@
 Acknowledging/Citing Bilby
 =======================================
 
-If you have used Bilby in your scientific work, please acknowledge us in your papers/proposals. 
+If you have used Bilby in your scientific work, please acknowledge us in your papers/proposals by citing the Bilby paper and `Zenodo DOI <https://doi.org/10.5281/zenodo.14025463>`__. We recommend citing
+the DOI for the specific version used. For example:
 
  .. code:: bibtex
 
@@ -20,7 +21,59 @@ If you have used Bilby in your scientific work, please acknowledge us in your pa
         year = "2019"
     }
 
-Additionally, if you used `bilby_pipe` or `parallel_bilby`, please cite appropriate papers mentioned below"
+    @software{bilby_doi,
+        author       = {Colm Talbot and
+                        Gregory Ashton and
+                        Moritz Hübner and
+                        Matt Pitkin and
+                        plasky and
+                        Michael J. Williams and
+                        asb5468 and
+                        Aditya Vijaykumar and
+                        Rory Smith and
+                        SMorisaki and
+                        John Veitch and
+                        Nikhil Sarin and
+                        Duncan Macleod and
+                        Daniel Williams and
+                        JasperMartins and
+                        MarcArene and
+                        C P L Berry and
+                        Vivien Raymond and
+                        Ceciliogq and
+                        Ivan Markin and
+                        David Keitel and
+                        AlexandreGoettel and
+                        Lorenzo Pompili and
+                        Mick Wright and
+                        oliviawilk and
+                        noahewolfe and
+                        jacobgolomb and
+                        Shichao Wu and
+                        Rhiannon Udall and
+                        Michael Pürrer},
+        title        = {bilby-dev/bilby: v.2.7.1},
+        month        = nov,
+        year         = 2025,
+        publisher    = {Zenodo},
+        version      = {v2.7.1},
+        doi          = {10.5281/zenodo.17533961},
+        url          = {https://doi.org/10.5281/zenodo.17533961},
+        swhid        = {swh:1:dir:3840032346ac7f56582e6c74cc48dccc33747418
+                        ;origin=https://doi.org/10.5281/zenodo.14025463;vi
+                        sit=swh:1:snp:b4b0318c71303094707fd61e3305dd2addf1
+                        a743;anchor=swh:1:rel:7b67a76d1e7e224899d337492665
+                        5fa8e0e7074c;path=bilby-dev-bilby-710e180
+                        },
+        }
+
+Please also consider citing other papers and packages listed below when relevant.
+
+-----------------------------
+Bilby pipe and parallel bilby
+-----------------------------
+
+Additionally, if you used :code:`bilby_pipe` or :code:`parallel_bilby`, please cite appropriate papers mentioned below
 
  .. code:: bibtex
 
@@ -53,9 +106,14 @@ Additionally, if you used `bilby_pipe` or `parallel_bilby`, please cite appropri
         year = "2020"
     }
 
-If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransient`, `MBGravitationalWaveTransient`, `RelativeBinningGravitationalWaveTransient` etc., please cite the following papers in addition to the above.
 
-- `ROQGravitationalWaveTransient`
+-----------------------
+Accelerated likelihoods
+-----------------------
+
+If you use any of the accelerated likelihoods like :code:`ROQGravitationalWaveTransient`, :code:`MBGravitationalWaveTransient`, :code:`RelativeBinningGravitationalWaveTransient` etc., please cite the following papers in addition to the above.
+
+- :code:`ROQGravitationalWaveTransient`
  .. code:: bibtex
 
      @article{roq_paper_1,
@@ -88,7 +146,7 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
     }
 
 
-- `MBGravitationalWaveTransient`
+- :code:`MBGravitationalWaveTransient`
  .. code:: bibtex
 
     @article{mb_paper,
@@ -106,7 +164,7 @@ If you use any of the accelerated likelihoods like `ROQGravitationalWaveTransien
     }
 
 
-- `RelativeBinningGravitationalWaveTransient`
+- :code:`RelativeBinningGravitationalWaveTransient`
  .. code:: bibtex
     
     @article{relbin_bilby,
@@ -157,11 +215,24 @@ If you use the :code:`bilby_mcmc` sampler, please additionally cite the followin
         year = "2021"
     }
 
+--------------
+Other packages
+--------------
+
 Additionally, :code:`bilby` builds on a number of open-source packages. If you
 make use of this functionality in your publications, we recommend you cite them
 as requested in their associated documentation.
 
-**Samplers**
+General
+-------
+
+* `numpy <https://numpy.org/citing-numpy/>`__
+* `scipy <https://scipy.org/citing-scipy/>`__
+* `pandas <https://pandas.pydata.org/about/citing.html>`__
+
+Samplers
+--------
+
 * `cpnest <https://github.com/johnveitch/cpnest>`__
 * `dnest4 <https://github.com/eggplantbren/DNest4>`__
 * `dynesty <https://github.com/joshspeagle/dynesty>`__
@@ -178,13 +249,20 @@ as requested in their associated documentation.
 * `zeus <https://github.com/minaskar/zeus>`_
 
 
-**Gravitational-wave tools**
+Gravitational-wave tools
+------------------------
 
-* `gwpy <https://github.com/gwpy/gwpy>`__
+If using Bilby for gravitational-wave inference, please also considering citing
+
+* `gwpy <https://gitlab.com/gwpy/gwpy/>`__
 * `lalsuite <https://git.ligo.org/lscsoft/lalsuite>`__
 * `astropy <https://github.com/astropy/astropy>`__
 
-**Plotting**
+and the paper(s) for any waveforms used.
+
+
+Plotting
+--------
 
 * `corner <https://github.com/dfm/corner.py>`__ for generating corner plot
 * `matplotlib <https://github.com/matplotlib/matplotlib>`__ for general plotting routines

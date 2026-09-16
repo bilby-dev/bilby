@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from pandas import DataFrame
@@ -15,7 +16,15 @@ from ..utils import (
     logger,
     safe_file_dump,
 )
-from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
+from ..utils.plotting import _close_new_figures
+from . import dynesty_utils
+from .base_sampler import (
+    NestedSampler,
+    ResumeError,
+    Sampler,
+    _SamplingContainer,
+    signal_wrapper,
+)
 
 
 def _set_sampling_kwargs(args):
@@ -39,23 +48,16 @@ def _log_likelihood_wrapper(theta):
     """Wrapper to the log likelihood. Needed for multiprocessing."""
     from .base_sampler import _sampling_convenience_dump
 
-    if _sampling_convenience_dump.priors.evaluate_constraints(
-        {
-            key: theta[ii]
-            for ii, key in enumerate(_sampling_convenience_dump.search_parameter_keys)
-        }
-    ):
-        params = {
-            key: t
-            for key, t in zip(_sampling_convenience_dump.search_parameter_keys, theta)
-        }
-        _sampling_convenience_dump.likelihood.parameters.update(params)
-        if _sampling_convenience_dump.use_ratio:
-            return _sampling_convenience_dump.likelihood.log_likelihood_ratio()
-        else:
-            return _sampling_convenience_dump.likelihood.log_likelihood()
-    else:
+    keys = _sampling_convenience_dump.search_parameter_keys
+    sampling_params = {key: t for key, t in zip(keys, theta)}
+    params = deepcopy(_sampling_convenience_dump.parameters)
+    params.update(sampling_params)
+    if not _sampling_convenience_dump.priors.evaluate_constraints(sampling_params):
         return np.nan_to_num(-np.inf)
+    elif _sampling_convenience_dump.use_ratio:
+        return _sampling_convenience_dump.likelihood.log_likelihood_ratio(params)
+    else:
+        return _sampling_convenience_dump.likelihood.log_likelihood(params)
 
 
 class Dynesty(NestedSampler):
@@ -261,7 +263,59 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init_kwargs(self):
-        return {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        kwargs = {key: self.kwargs[key] for key in self._dynesty_init_kwargs}
+        # if we're using a Bilby implemented sampling method we need to register the
+        # method. If we aren't we need to make sure the default "live" isn't set as
+        # the bounding method
+        internal_kwargs = dict(
+            ndim=self.ndim,
+            nonbounded=self.kwargs.get("nonbounded", None),
+            periodic=self.kwargs.get("periodic", None),
+            reflective=self.kwargs.get("reflective", None),
+            maxmcmc=self.maxmcmc,
+        )
+
+        if kwargs["sample"] == "act-walk":
+            internal_kwargs["nact"] = self.nact
+            internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(**internal_kwargs)
+            bound = "none"
+            logger.info(
+                f"Using the bilby-implemented ensemble rwalk sampling tracking the "
+                f"autocorrelation function and thinning by {internal_sampler.thin} with "
+                f"maximum length {internal_sampler.thin * internal_sampler.maxmcmc}."
+            )
+        elif kwargs["sample"] == "acceptance-walk":
+            internal_kwargs["naccept"] = self.naccept
+            internal_kwargs["walks"] = self.kwargs["walks"]
+            internal_sampler = dynesty_utils.EnsembleWalkSampler(**internal_kwargs)
+            bound = "none"
+            logger.info(
+                f"Using the bilby-implemented ensemble rwalk sampling method with an "
+                f"average of {internal_sampler.naccept} accepted steps up to chain "
+                f"length {internal_sampler.maxmcmc}."
+            )
+        elif kwargs["sample"] == "rwalk":
+            internal_kwargs["nact"] = self.nact
+            internal_sampler = dynesty_utils.AcceptanceTrackingRWalk(**internal_kwargs)
+            bound = "none"
+            logger.info(
+                f"Using the bilby-implemented ensemble rwalk sampling method with ACT "
+                f"estimated chain length. An average of {2 * internal_sampler.nact} "
+                f"steps will be accepted up to chain length {internal_sampler.maxmcmc}."
+            )
+        elif kwargs["bound"] == "live":
+            logger.info(
+                "Live-point based bound method requested with dynesty sample "
+                f"'{kwargs['sample']}', overwriting to 'multi'"
+            )
+            internal_sampler = kwargs["sample"]
+            bound = "multi"
+        else:
+            internal_sampler = kwargs["sample"]
+            bound = kwargs["bound"]
+        kwargs["sample"] = internal_sampler
+        kwargs["bound"] = bound
+        return kwargs
 
     def _translate_kwargs(self, kwargs):
         kwargs = super()._translate_kwargs(kwargs)
@@ -392,7 +446,7 @@ class Dynesty(NestedSampler):
         if logl_min > -np.inf:
             string.append(f"logl:{logl_min:.1f} < {loglstar:.1f} < {logl_max:.1f}")
         if dlogz is not None:
-            string.append(f"dlogz:{delta_logz:0.3f}>{dlogz:0.2g}")
+            string.append(f"dlogz:{delta_logz:0.3g}>{dlogz:0.2g}")
         else:
             string.append(f"stop:{stop_val:6.3f}")
         string = " ".join(string)
@@ -429,7 +483,7 @@ class Dynesty(NestedSampler):
 
     @property
     def sampler_init(self):
-        from dynesty import NestedSampler
+        from dynesty.dynesty import NestedSampler
 
         return NestedSampler
 
@@ -439,104 +493,12 @@ class Dynesty(NestedSampler):
 
         return Sampler
 
-    def _set_sampling_method(self):
-        """
-        Resolve the sampling method and sampler to use from the provided
-        :code:`bound` and :code:`sample` arguments.
-
-        This requires registering the :code:`bilby` specific methods in the
-        appropriate locations within :code:`dynesty`.
-
-        Additionally, some combinations of bound/sample/proposals are not
-        compatible and so we either warn the user or raise an error.
-        """
-        import dynesty
-
-        _set_sampling_kwargs((self.nact, self.maxmcmc, self.proposals, self.naccept))
-
-        sample = self.kwargs["sample"]
-        bound = self.kwargs["bound"]
-
-        if sample not in ["rwalk", "act-walk", "acceptance-walk"] and bound in [
-            "live",
-            "live-multi",
-        ]:
-            logger.info(
-                "Live-point based bound method requested with dynesty sample "
-                f"'{sample}', overwriting to 'multi'"
-            )
-            self.kwargs["bound"] = "multi"
-        elif bound == "live":
-            from .dynesty_utils import LivePointSampler
-
-            dynesty.dynamicsampler._SAMPLERS["live"] = LivePointSampler
-        elif bound == "live-multi":
-            from .dynesty_utils import MultiEllipsoidLivePointSampler
-
-            dynesty.dynamicsampler._SAMPLERS[
-                "live-multi"
-            ] = MultiEllipsoidLivePointSampler
-        elif sample == "acceptance-walk":
-            raise DynestySetupError(
-                "bound must be set to live or live-multi for sample=acceptance-walk"
-            )
-        elif self.proposals is None:
-            logger.warning(
-                "No proposals specified using dynesty sampling, defaulting "
-                "to 'volumetric'."
-            )
-            self.proposals = ["volumetric"]
-            _SamplingContainer.proposals = self.proposals
-        elif "diff" in self.proposals:
-            raise DynestySetupError(
-                "bound must be set to live or live-multi to use differential "
-                "evolution proposals"
-            )
-
-        if sample == "rwalk":
-            logger.info(
-                f"Using the bilby-implemented {sample} sample method with ACT estimated walks. "
-                f"An average of {2 * self.nact} steps will be accepted up to chain length "
-                f"{self.maxmcmc}."
-            )
-            from .dynesty_utils import AcceptanceTrackingRWalk
-
-            if self.kwargs["walks"] > self.maxmcmc:
-                raise DynestySetupError("You have maxmcmc < walks (minimum mcmc)")
-            if self.nact < 1:
-                raise DynestySetupError("Unable to run with nact < 1")
-            AcceptanceTrackingRWalk.old_act = None
-            dynesty.nestedsamplers._SAMPLING["rwalk"] = AcceptanceTrackingRWalk()
-        elif sample == "acceptance-walk":
-            logger.info(
-                f"Using the bilby-implemented {sample} sampling with an average of "
-                f"{self.naccept} accepted steps per MCMC and maximum length {self.maxmcmc}"
-            )
-            from .dynesty_utils import FixedRWalk
-
-            dynesty.nestedsamplers._SAMPLING["acceptance-walk"] = FixedRWalk()
-        elif sample == "act-walk":
-            logger.info(
-                f"Using the bilby-implemented {sample} sampling tracking the "
-                f"autocorrelation function and thinning by "
-                f"{self.nact} with maximum length {self.nact * self.maxmcmc}"
-            )
-            from .dynesty_utils import ACTTrackingRWalk
-
-            ACTTrackingRWalk._cache = list()
-            dynesty.nestedsamplers._SAMPLING["act-walk"] = ACTTrackingRWalk()
-        elif sample == "rwalk_dynesty":
-            sample = sample.strip("_dynesty")
-            self.kwargs["sample"] = sample
-            logger.info(f"Using the dynesty-implemented {sample} sample method")
-
     @signal_wrapper
     def run_sampler(self):
         import dynesty
 
         logger.info(f"Using dynesty version {dynesty.__version__}")
 
-        self._set_sampling_method()
         self._setup_pool()
 
         if self.resume:
@@ -588,21 +550,6 @@ class Dynesty(NestedSampler):
 
         return self.result
 
-    def _setup_pool(self):
-        """
-        In addition to the usual steps, we need to set the sampling kwargs on
-        every process. To make sure we get every process, run the kwarg setting
-        more times than we have processes.
-        """
-        super(Dynesty, self)._setup_pool()
-        if self.pool is not None:
-            args = (
-                [(self.nact, self.maxmcmc, self.proposals, self.naccept)]
-                * self.npool
-                * 10
-            )
-            self.pool.map(_set_sampling_kwargs, args)
-
     def _generate_result(self, out):
         """
         Extract the information we need from the dynesty output. This includes
@@ -617,7 +564,7 @@ class Dynesty(NestedSampler):
         import dynesty
         from scipy.special import logsumexp
 
-        from ..utils.random import rng
+        from ..utils import random
 
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
@@ -626,7 +573,7 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > rng.uniform(0, max(weights), len(weights))
+            keep = weights > random.rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(
@@ -764,43 +711,73 @@ class Dynesty(NestedSampler):
             with open(self.resume_file, "rb") as file:
                 try:
                     sampler = dill.load(file)
+                    if isinstance(sampler, tuple):
+                        sampler, stored_versions, extras = sampler
+                    elif not hasattr(sampler, "versions"):
+                        logger.warning(
+                            f"The resume file {self.resume_file} is corrupted or "
+                            "the version of bilby has changed between runs. This "
+                            "resume file will be ignored."
+                        )
+                        return False
+                    else:
+                        stored_versions = sampler.versions
+                        extras = sampler.kwargs
+                        del sampler.versions
                 except EOFError:
                     sampler = None
-
-                if not hasattr(sampler, "versions"):
+                except ModuleNotFoundError as e:
                     logger.warning(
-                        f"The resume file {self.resume_file} is corrupted or "
-                        "the version of bilby has changed between runs. This "
-                        "resume file will be ignored."
+                        f"The resume file cannot be loaded with message: {e}. "
+                        "This is likely due to a change in the version of Bilby "
+                        "and/or dynesty. The resume file will be ignored."
                     )
                     return False
+
+                stored_parameter_keys = extras.get("search_parameter_keys")
+                if stored_parameter_keys is None:
+                    logger.warning(
+                        "The resume file does not contain search parameter order "
+                        "metadata. The order cannot be verified; this is expected "
+                        "for checkpoints created by older versions of Bilby."
+                    )
+                elif list(stored_parameter_keys) != self.search_parameter_keys:
+                    raise ResumeError(
+                        "Cannot resume the Dynesty run because the search parameter "
+                        "order differs from the checkpoint.\n"
+                        f"Checkpoint order: {list(stored_parameter_keys)}\n"
+                        f"Current order: {self.search_parameter_keys}\n"
+                        "Reconstruct the priors in the checkpoint order, or remove "
+                        "the checkpoint to start a new run."
+                    )
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
                     "Old version = {old}, new version = {new}."
                 )
                 for code in versions:
-                    if not versions[code] == sampler.versions.get(code, None):
+                    if not versions[code] == stored_versions.get(code, None):
                         logger.warning(
                             version_warning.format(
                                 code=code,
-                                old=sampler.versions.get(code, "None"),
+                                old=stored_versions.get(code, "None"),
                                 new=versions[code],
                             )
                         )
-                del sampler.versions
                 self.sampler = sampler
                 if continuing:
                     self._remove_live()
                 self.sampler.nqueue = -1
-                self.start_time = self.sampler.kwargs.pop("start_time")
-                self.sampling_time = self.sampler.kwargs.pop("sampling_time")
+                self.start_time = extras.pop("start_time")
+                self.sampling_time = extras.pop("sampling_time")
                 self.sampler.queue_size = self.kwargs["queue_size"]
                 self.sampler.pool = self.pool
                 if self.pool is not None:
-                    self.sampler.M = self.pool.map
+                    mapper = self.pool.map
                 else:
-                    self.sampler.M = map
+                    mapper = map
+                self.sampler.mapper = mapper
             return True
         else:
             logger.info(f"Resume file {self.resume_file} does not exist.")
@@ -833,15 +810,18 @@ class Dynesty(NestedSampler):
             return
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        metadata = dict(search_parameter_keys=list(self.search_parameter_keys))
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            self.sampler.kwargs["sampling_time"] = self.sampling_time
-            self.sampler.kwargs["start_time"] = self.start_time
-        self.sampler.versions = dict(bilby=bilby_version, dynesty=dynesty_version)
+            metadata.update(
+                sampling_time=self.sampling_time,
+                start_time=self.start_time,
+            )
+        versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
-        self.sampler.M = map
+        self.sampler.mapper = map
         if dill.pickles(self.sampler):
-            safe_file_dump(self.sampler, self.resume_file, dill)
+            safe_file_dump((self.sampler, versions, metadata), self.resume_file, dill)
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
@@ -850,7 +830,7 @@ class Dynesty(NestedSampler):
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
-            self.sampler.M = self.sampler.pool.map
+            self.sampler.mapper = self.sampler.pool.map
 
     def dump_samples_to_dat(self):
         """
@@ -889,100 +869,79 @@ class Dynesty(NestedSampler):
         """
         if self.check_point_plot:
             import dynesty.plotting as dyplot
-            import matplotlib.pyplot as plt
 
             labels = [label.replace("_", " ") for label in self.search_parameter_keys]
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_trace.png"
-                fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
-                fig.tight_layout()
-                fig.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty state plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_trace_unit.png"
+
+            def _generate_checkpoint_plot(plot_func, suffix, description):
+                """Generate, save, and handle errors for a checkpoint plot."""
+                with _close_new_figures():
+                    try:
+                        filename = f"{self.outdir}/{self.label}_checkpoint_{suffix}.png"
+
+                        # All dynesty plotters return (fig, axes).
+                        fig = plot_func()[0]
+
+                        fig.tight_layout()
+                        fig.savefig(filename)
+
+                    except (
+                        RuntimeError,
+                        np.linalg.LinAlgError,
+                        ValueError,
+                        OverflowError,
+                    ) as e:
+                        logger.warning(e)
+                        logger.warning(
+                            f"Failed to create dynesty {description} plot at checkpoint"
+                        )
+                    except DynestySetupError:
+                        # specifically for dynesty_stats_plot
+                        logger.debug(
+                            "Cannot create Dynesty stats plot with dynamic sampler."
+                        )
+                    except Exception as e:
+                        self._raise_if_interrupted(e)
+                        logger.warning(
+                            f"Unexpected error {e} in dynesty plotting. "
+                            "Please report at github.com/bilby-dev/bilby/issues"
+                        )
+
+            def _get_unit_trace_plot():
                 from copy import deepcopy
 
                 from dynesty.utils import results_substitute
 
                 temp = deepcopy(self.sampler.results)
                 temp = results_substitute(temp, dict(samples=temp["samples_u"]))
-                fig = dyplot.traceplot(temp, labels=labels)[0]
-                fig.tight_layout()
-                fig.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty unit state plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_run.png"
-                fig, _ = dyplot.runplot(
+                return dyplot.traceplot(temp, labels=labels)
+
+            _generate_checkpoint_plot(
+                lambda: dyplot.traceplot(self.sampler.results, labels=labels),
+                suffix="trace",
+                description="state",
+            )
+            _generate_checkpoint_plot(
+                _get_unit_trace_plot,
+                suffix="trace_unit",
+                description="unit state",
+            )
+            _generate_checkpoint_plot(
+                lambda: dyplot.runplot(
                     self.sampler.results, logplot=False, use_math_text=False
-                )
-                fig.tight_layout()
-                plt.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty run plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_stats.png"
-                fig, _ = dynesty_stats_plot(self.sampler)
-                fig.tight_layout()
-                plt.savefig(filename)
-            except (RuntimeError, ValueError, OverflowError) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty stats plot at checkpoint")
-            except DynestySetupError:
-                logger.debug("Cannot create Dynesty stats plot with dynamic sampler.")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
+                ),
+                suffix="run",
+                description="run",
+            )
+            _generate_checkpoint_plot(
+                lambda: dynesty_stats_plot(self.sampler),
+                suffix="stats",
+                description="stats",
+            )
 
     def _run_test(self):
         """Run the sampler very briefly as a sanity test that it works."""
         import pandas as pd
 
-        self._set_sampling_method()
         self._setup_pool()
         self.sampler = self.sampler_init(
             loglikelihood=_log_likelihood_wrapper,

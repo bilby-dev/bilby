@@ -7,8 +7,7 @@ from packaging import version
 from pandas import DataFrame
 
 from ..utils import check_directory_exists_and_if_not_mkdir, logger, safe_file_dump
-from .base_sampler import MCMCSampler, SamplerError, signal_wrapper
-from .ptemcee import LikePriorEvaluator
+from .base_sampler import LikePriorEvaluator, MCMCSampler, SamplerError, signal_wrapper
 
 _evaluator = LikePriorEvaluator()
 
@@ -424,6 +423,31 @@ class Emcee(MCMCSampler):
         self.result.walkers = self.sampler.chain
         return self.result
 
+    @classmethod
+    def get_expected_outputs(cls, outdir=None, label=None):
+        """Get lists of the expected outputs directories and files.
+
+        Parameters
+        ----------
+        outdir : str
+            The output directory.
+        label : str
+            The label for the run.
+
+        Returns
+        -------
+        list
+            List of file names produced by the sampler.
+        list
+            List of directory names produced by the sampler.
+        """
+        run_dir = os.path.join(outdir, f"emcee_{label}")
+        filenames = [
+            os.path.join(run_dir, "chain.dat"),
+            os.path.join(run_dir, "sampler.pickle"),
+        ]
+        return filenames, [run_dir]
+
     def _generate_result(self):
         self.result.nburn = self.nburn
         self.calc_likelihood_count()
@@ -434,7 +458,10 @@ class Emcee(MCMCSampler):
                 " Try increasing the number of steps."
             )
         blobs = np.array(self.sampler.blobs)
-        blobs_trimmed = blobs[self.nburn :, :, :].reshape((-1, 2))
+        # Blobs are stored (nsteps, nwalkers, 2)
+        # Transpose to match the shape of the chain (nwalkers, nsteps, 2)
+        # and then flatten
+        blobs_trimmed = blobs[self.nburn :, :, :].transpose(1, 0, 2).reshape((-1, 2))
         log_likelihoods, log_priors = blobs_trimmed.T
         self.result.log_likelihood_evaluations = log_likelihoods
         self.result.log_prior_evaluations = log_priors

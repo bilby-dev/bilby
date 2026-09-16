@@ -9,10 +9,16 @@ import bilby
 import matplotlib.pyplot as plt
 import numpy as np
 from bilby.core.likelihood import GaussianLikelihood
-from bilby.core.utils.random import rng, seed
+from bilby.core.utils import random
+
+if "pymc" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "pymc is required to run this example. Install with `pip install pymc-bilby`"
+    )
+
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
-seed(123)
+random.seed(123)
 
 # A few simple setup steps
 label = "linear_regression_pymc"
@@ -37,7 +43,7 @@ sampling_frequency = 10
 time_duration = 10
 time = np.arange(0, time_duration, 1 / sampling_frequency)
 N = len(time)
-data = model(time, **injection_parameters) + rng.normal(0, sigma, N)
+data = model(time, **injection_parameters) + random.rng.normal(0, sigma, N)
 
 # We quickly plot the data to check it looks sensible
 fig, ax = plt.subplots()

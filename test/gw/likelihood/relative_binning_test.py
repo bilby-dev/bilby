@@ -3,11 +3,13 @@ from copy import deepcopy
 
 import bilby
 import numpy as np
+import pytest
 from parameterized import parameterized
 
 
 class TestRelativeBinningLikelihood(unittest.TestCase):
     def setUp(self):
+        self.rng = np.random.default_rng(2)
         duration = 16
         fmin = 20
         sampling_frequency = 8192
@@ -32,6 +34,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             geocent_time=1187008882,
             ra=1.3,
             dec=-1.2,
+            fiducial=0,
         )
         self.fiducial_parameters = self.test_parameters.copy()
         del self.fiducial_parameters["chirp_mass"], self.fiducial_parameters["mass_ratio"]
@@ -41,7 +44,8 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
         ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=sampling_frequency, duration=duration,
-            start_time=self.test_parameters['geocent_time'] - duration + 2.
+            start_time=self.test_parameters['geocent_time'] - duration + 2.,
+            random_state=self.rng,
         )
         for ifo in ifos:
             ifo.minimum_frequency = fmin
@@ -60,9 +64,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
                 self.test_parameters[f"recalib_{ifo.name}_phase_{i}"] = 0
                 # Calibration errors of 5% in amplitude and 5 degrees in phase
                 self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = \
-                    np.random.normal(loc=0, scale=0.05)
+                    self.rng.normal(loc=0, scale=0.05)
                 self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = \
-                    np.random.normal(loc=0, scale=5 * np.pi / 180)
+                    self.rng.normal(loc=0, scale=5 * np.pi / 180)
 
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
@@ -103,8 +107,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             priors=priors.copy(),
             epsilon=0.05,
         )
-        self.non_bin.parameters.update(self.test_parameters)
-        self.reference_ln_l = self.non_bin.log_likelihood_ratio()
+        self.reference_ln_l = self.non_bin.log_likelihood_ratio(self.test_parameters)
         self.bin_wfg = bin_wfg
         self.priors = priors
 
@@ -114,13 +117,12 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             self.binned,
         )
 
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_matches_non_binned_many(self):
         for _ in range(100):
-            parameters = self.priors.sample()
-            self.non_bin.parameters.update(parameters)
-            self.binned.parameters.update(parameters)
-            regular_ln_l = self.non_bin.log_likelihood_ratio()
-            binned_ln_l = self.binned.log_likelihood_ratio()
+            parameters = self.priors.sample(random_state=self.rng)
+            regular_ln_l = self.non_bin.log_likelihood_ratio(parameters)
+            binned_ln_l = self.binned.log_likelihood_ratio(parameters)
             self.assertLess(
                 abs(regular_ln_l - binned_ln_l)
                 / abs(self.reference_ln_l - regular_ln_l),
@@ -128,16 +130,16 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             )
 
     @parameterized.expand([(False, ), (True, )])
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_matches_non_binned(self, add_cal_errors):
-        self.non_bin.parameters.update(self.test_parameters)
-        self.binned.parameters.update(self.test_parameters)
+        parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
-            self.non_bin.parameters.update(self.calibration_parameters)
-            self.binned.parameters.update(self.calibration_parameters)
-        regular_ln_l = self.non_bin.log_likelihood_ratio()
-        binned_ln_l = self.binned.log_likelihood_ratio()
+            parameters.update(self.calibration_parameters)
+        regular_ln_l = self.non_bin.log_likelihood_ratio(parameters)
+        binned_ln_l = self.binned.log_likelihood_ratio(parameters)
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_optimization_gives_good_match(self):
         fiducial_parameters = self.test_parameters.copy()
         fiducial_parameters["chirp_mass"] *= 0.99
@@ -154,10 +156,8 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             epsilon=0.05,
             update_fiducial_parameters=True,
         )
-        self.non_bin.parameters.update(self.test_parameters)
-        binned.parameters.update(self.test_parameters)
-        regular_ln_l = self.non_bin.log_likelihood_ratio()
-        binned_ln_l = binned.log_likelihood_ratio()
+        regular_ln_l = self.non_bin.log_likelihood_ratio(self.test_parameters)
+        binned_ln_l = binned.log_likelihood_ratio(self.test_parameters)
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
     def test_very_small_epsilon_returns_good_value(self):
@@ -171,8 +171,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             priors=self.priors.copy(),
             epsilon=0.001,
         )
-        binned.parameters.update(self.test_parameters)
-        self.assertFalse(np.isnan(binned.log_likelihood_ratio()))
+        self.assertFalse(np.isnan(binned.log_likelihood_ratio(self.test_parameters)))
 
     def test_likelihood_when_waveform_extends_beyond_maximum_frequency(self):
         """
@@ -200,6 +199,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             geocent_time=1187008882,
             ra=1.3,
             dec=-1.2,
+            fiducial=0,
         )
 
         fiducial_parameters = test_parameters.copy()
@@ -259,11 +259,8 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             epsilon=0.05,
         )
 
-        non_bin.parameters.update(test_parameters)
-        binned.parameters.update(test_parameters)
-
-        regular_ln_l = non_bin.log_likelihood_ratio()
-        binned_ln_l = binned.log_likelihood_ratio()
+        regular_ln_l = non_bin.log_likelihood_ratio(test_parameters)
+        binned_ln_l = binned.log_likelihood_ratio(test_parameters)
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
 

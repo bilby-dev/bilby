@@ -6,6 +6,7 @@ from scipy.spatial.transform import Rotation
 
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 from ..utils import get_vertex_position_geocentric, get_vertex_position_ellipsoid
@@ -39,6 +40,16 @@ class InterferometerList(list):
             else:
                 self.append(ifo)
         self._check_interferometers()
+
+    @property
+    def reference_time(self):
+        return self._reference_time
+
+    @reference_time.setter
+    def reference_time(self, time):
+        self._reference_time = time
+        for ifo in self:
+            ifo.reference_time = time
 
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
@@ -76,7 +87,7 @@ class InterferometerList(list):
                     logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(
-        self, sampling_frequency, duration, start_time=0
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
     ):
         """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
@@ -99,6 +110,7 @@ class InterferometerList(list):
                 sampling_frequency=sampling_frequency,
                 duration=duration,
                 start_time=start_time,
+                random_state=random_state,
             )
 
     def set_strain_data_from_zero_noise(
@@ -205,6 +217,43 @@ class InterferometerList(list):
         for interferometer in self:
             interferometer.plot_data(signal=signal, outdir=outdir, label=label)
 
+    def plot_time_domain_data(
+        self, outdir=".", label=None, bandpass_frequencies=(50, 250),
+        notches=None, start_end=None, t0=None
+    ):
+        """Plots the strain data in the time domain for each of the
+        interfeormeters
+
+        Parameters
+        ==========
+        outdir: str
+            The output directory in which the plots should be saved.
+        label: str
+            The string labelling the data.
+        bandpass_frequencies: tuple, optional
+            A tuple of the (low, high) frequencies to use when bandpassing
+            data, if None no bandpass is applied.
+        notches: list, optional
+            A list of frequencies specifying any lines to notch.
+        start_end: tuple, optional
+            A tuple of the (start, end) range of GPS times to plot.
+        t0: float, optional
+            If given, the reference time to subtract from the time series
+            plotting.
+        """
+        if utils.command_line_args.bilby_test_mode:
+            return
+
+        for interferometer in self:
+            interferometer.plot_time_domain_data(
+                outdir=outdir,
+                label=label,
+                bandpass_frequencies=bandpass_frequencies,
+                notches=notches,
+                start_end=start_end,
+                t0=t0
+            )
+
     @property
     def number_of_interferometers(self):
         return len(self)
@@ -296,6 +345,14 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
+    def set_array_backend(self, xp):
+        for ifo in self:
+            ifo.set_array_backend(xp)
+
+    @property
+    def array_backend(self):
+        return self[0].array_backend
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
@@ -383,7 +440,6 @@ class TriangularInterferometer(InterferometerList):
             xarm_tilt = next_xarm_tilt_rad
             yarm_tilt = next_yarm_tilt_rad
 
-
 def get_empty_interferometer(name):
     """
     Get an interferometer with standard parameters for known detectors.
@@ -449,3 +505,9 @@ def load_interferometer(filename):
             "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
         )
     return ifo
+
+
+@zenith_azimuth_to_theta_phi.dispatch
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)

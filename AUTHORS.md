@@ -1,8 +1,11 @@
 # Authors
 
 This file lists all the authors in first-name alphabetical order who have
-contributed (either by code contribution or indirectly). If your name is not
-listed here, please contact anyone on this list and raise your concern.
+contributed (either by code contribution or indirectly) to Bilby while development
+happened on git.ligo.org. On GitHub, all contributors are tracked at
+https://github.com/bilby-dev/bilby/graphs/contributors and so this is no longer
+actively maintained. If your name is not listed here and you contributed at
+https://git.ligo.org/lscsoft/bilby, please open an issue.
 
 Abhirup Ghosh
 Aditya Vijaykumar
@@ -16,6 +19,7 @@ Bruce Edelman
 Carl-Johan Haster
 Cecilio Garcia-Quiros
 Charlie Hoy
+Cheng Foo
 Chentao Yang
 Christopher Philip Luke Berry
 Christos Karathanasis
@@ -103,4 +107,5 @@ Martin White
 Peter Tsun-Ho Pang
 Alexandre Sebastien Goettel
 Ann-Kristin Malz
+Lorenzo Pompili
 Sean Hibbitt
