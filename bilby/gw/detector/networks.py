@@ -399,8 +399,8 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            latitude, longitude, elevation, xarm_azimuth,
-            yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
+            latitude, longitude, elevation, xarm_azimuth, \
+                yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
 
     def _get_next_vertex_parameters(self, current_index):
         """
