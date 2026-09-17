@@ -399,22 +399,24 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
+            latitude, longitude, elevation, xarm_azimuth,
+            yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
 
-            latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
-            
     def _get_next_vertex_parameters(self, current_index):
         """
         Get the parameters for the next vertex (counterclockwise) in the triangular interferometer.
-        The location of the next vertex is calculated by moving along the x-arm of the current interferometer in geocentric coordinates.
-        The new latitude, longitude, and elevation are calculated through a coordinate transformation from geocentric to ellipsoidal coordinates.
-        The new unit vectors for the x and y arms are calculated by rotating the current unit vectors by 120 degrees around the normal vector.
-        The new azimuths and tilts are calculated by projecting the new unit vectors onto the local normal, north, and east vectors.
+        The location of the next vertex is calculated by moving along the x-arm of the current
+        interferometer in geocentric coordinates. The new latitude, longitude, and elevation are
+        calculated through a coordinate transformation from geocentric to ellipsoidal coordinates.
+        The new unit vectors for the x and y arms are calculated by rotating the current unit vectors
+        by 120 degrees around the normal vector. The new azimuths and tilts are calculated by projecting
+        the new unit vectors onto the local normal, north, and east vectors.
 
         Parameters
         ==========
         current_index: int
             The index of the current interferometer in the list.
-        
+
         Returns
         =======
         latitude: float
@@ -468,12 +470,13 @@ class TriangularInterferometer(InterferometerList):
                                            np.dot(next_unit_vector_y, next_local_east_vector))
 
         return (np.rad2deg(next_latitude_rad),
-               np.rad2deg(next_longitude_rad),
-               next_elevation,
-               np.rad2deg(next_xarm_azimuth_rad),
-               np.rad2deg(next_yarm_azimuth_rad),
-               next_xarm_tilt_rad,
-               next_yarm_tilt_rad)
+                np.rad2deg(next_longitude_rad),
+                next_elevation,
+                np.rad2deg(next_xarm_azimuth_rad),
+                np.rad2deg(next_yarm_azimuth_rad),
+                next_xarm_tilt_rad,
+                next_yarm_tilt_rad)
+
 
 def get_empty_interferometer(name):
     """

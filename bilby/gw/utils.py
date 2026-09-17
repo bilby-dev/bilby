@@ -8,7 +8,7 @@ from scipy.special import i0e
 
 from .geometry import zenith_azimuth_to_theta_phi
 from .time import greenwich_mean_sidereal_time
-from ..compat.utils import array_module, xp_wrap
+from ..compat.utils import xp_wrap
 from ..core.utils import (logger, run_commandline,
                           check_directory_exists_and_if_not_mkdir,
                           SamplesSummary, theta_phi_to_ra_dec)
@@ -55,6 +55,7 @@ def psd_from_freq_series(freq_data, df, *, xp=None):
     """
     return asd_from_freq_series(freq_data, df, xp=xp) ** 2
 
+
 @xp_wrap
 def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *, xp=None):
     """
@@ -66,7 +67,7 @@ def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *
     Parameters
     ==========
     position: array_like
-        3D representation of the ellipsoidal vertex position (latitude [rad], longitude [rad], elevation [m]) 
+        3D representation of the ellipsoidal vertex position (latitude [rad], longitude [rad], elevation [m])
 
     Returns
     =======
@@ -75,11 +76,12 @@ def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *
     """
 
     if _longitude is not None and _elevation is not None:
-        logger.warning("Syntax of get_vertex_position_geocentric changed in Bilby 3.0.0. Please pass latitude, longitude and elevation as the single array-like argument.")
+        logger.warning("Syntax of get_vertex_position_geocentric changed in Bilby 3.0.0."
+                       "Please pass latitude, longitude and elevation as the single array-like argument.")
         latitude = position
         longitude = _longitude
         elevation = _elevation
-    elif  len(position) == 3:
+    elif len(position) == 3:
         latitude, longitude, elevation = position
     else:
         raise ValueError("Position must be an array-like of length 3 containing latitude, longitude, and elevation.")
@@ -92,6 +94,7 @@ def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *
     y_comp = (radius + elevation) * xp.cos(latitude) * xp.sin(longitude)
     z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * xp.sin(latitude)
     return xp.asarray([x_comp, y_comp, z_comp])
+
 
 @xp_wrap
 def get_vertex_position_ellipsoid(position, *, xp=None):
