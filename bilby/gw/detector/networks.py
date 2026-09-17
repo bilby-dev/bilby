@@ -399,46 +399,81 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            unit_vector_x = self[ii].geometry.unit_vector_along_arm("x")
-            unit_vector_y = self[ii].geometry.unit_vector_along_arm("y")
 
-            vertex_geocentric = get_vertex_position_geocentric(np.array([self[ii].latitude_radians,
-                                                                         self[ii].longitude_radians,
-                                                                         self[ii].elevation]))
-            next_vertex_geocentric = vertex_geocentric + length * 1000 * unit_vector_x
-            next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
-            next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
+            latitude, longitude, elevation, xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
+            
+    def _get_next_vertex_parameters(self, current_index):
+        """
+        Get the parameters for the next vertex (counterclockwise) in the triangular interferometer.
+        The location of the next vertex is calculated by moving along the x-arm of the current interferometer in geocentric coordinates.
+        The new latitude, longitude, and elevation are calculated through a coordinate transformation from geocentric to ellipsoidal coordinates.
+        The new unit vectors for the x and y arms are calculated by rotating the current unit vectors by 120 degrees around the normal vector.
+        The new azimuths and tilts are calculated by projecting the new unit vectors onto the local normal, north, and east vectors.
 
-            rotation_vector = np.cross(unit_vector_x, unit_vector_y)
-            rotation_vector /= np.linalg.norm(rotation_vector)
-            rotation_angle = 2 / 3 * np.pi
-            rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
-            next_unit_vector_x = rotation.apply(unit_vector_x)
-            next_unit_vector_y = rotation.apply(unit_vector_y)
+        Parameters
+        ==========
+        current_index: int
+            The index of the current interferometer in the list.
+        
+        Returns
+        =======
+        latitude: float
+            The latitude of the next vertex in degrees.
+        longitude: float
+            The longitude of the next vertex in degrees.
+        elevation: float
+            The elevation of the next vertex in meters.
+        xarm_azimuth: float
+            The azimuth of the x-arm of the next interferometer in degrees.
+        yarm_azimuth: float
+            The azimuth of the y-arm of the next interferometer in degrees.
+        xarm_tilt: float
+            The tilt of the x-arm of the next interferometer in radians.
+        yarm_tilt: float
+            The tilt of the y-arm of the next interferometer in radians.
 
-            next_local_normal_vector = np.array([np.cos(next_latitude_rad) * np.cos(next_longitude_rad),
-                                                 np.cos(next_latitude_rad) * np.sin(next_longitude_rad),
-                                                 np.sin(next_latitude_rad)])
-            next_local_north_vector = np.array([-np.sin(next_latitude_rad) * np.cos(next_longitude_rad),
-                                                -np.sin(next_latitude_rad) * np.sin(next_longitude_rad),
-                                                np.cos(next_latitude_rad)])
-            next_local_east_vector = np.array([-np.sin(next_longitude_rad),
-                                               np.cos(next_longitude_rad), 0])
+        """
+        current_ifo = self[current_index]
+        unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
+        unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
 
-            next_xarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_x, next_local_normal_vector))
-            next_yarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_y, next_local_normal_vector))
-            next_xarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_x, next_local_north_vector),
-                                               np.dot(next_unit_vector_x, next_local_east_vector))
-            next_yarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_y, next_local_north_vector),
-                                               np.dot(next_unit_vector_y, next_local_east_vector))
+        vertex_geocentric = get_vertex_position_geocentric(np.array([current_ifo.latitude_radians,
+                                                                     current_ifo.longitude_radians,
+                                                                     current_ifo.elevation]))
+        next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
+        next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
+        next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
 
-            latitude = np.rad2deg(next_latitude_rad)
-            longitude = np.rad2deg(next_longitude_rad)
-            elevation = next_elevation
-            xarm_azimuth = np.rad2deg(next_xarm_azimuth_rad)
-            yarm_azimuth = np.rad2deg(next_yarm_azimuth_rad)
-            xarm_tilt = next_xarm_tilt_rad
-            yarm_tilt = next_yarm_tilt_rad
+        rotation_vector = np.cross(unit_vector_x, unit_vector_y)
+        rotation_vector /= np.linalg.norm(rotation_vector)
+        rotation_angle = 2 / 3 * np.pi
+        rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
+        next_unit_vector_x = rotation.apply(unit_vector_x)
+        next_unit_vector_y = rotation.apply(unit_vector_y)
+
+        next_local_normal_vector = np.array([np.cos(next_latitude_rad) * np.cos(next_longitude_rad),
+                                             np.cos(next_latitude_rad) * np.sin(next_longitude_rad),
+                                             np.sin(next_latitude_rad)])
+        next_local_north_vector = np.array([-np.sin(next_latitude_rad) * np.cos(next_longitude_rad),
+                                            -np.sin(next_latitude_rad) * np.sin(next_longitude_rad),
+                                            np.cos(next_latitude_rad)])
+        next_local_east_vector = np.array([-np.sin(next_longitude_rad),
+                                           np.cos(next_longitude_rad), 0])
+
+        next_xarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_x, next_local_normal_vector))
+        next_yarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_y, next_local_normal_vector))
+        next_xarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_x, next_local_north_vector),
+                                           np.dot(next_unit_vector_x, next_local_east_vector))
+        next_yarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_y, next_local_north_vector),
+                                           np.dot(next_unit_vector_y, next_local_east_vector))
+
+        return (np.rad2deg(next_latitude_rad),
+               np.rad2deg(next_longitude_rad),
+               next_elevation,
+               np.rad2deg(next_xarm_azimuth_rad),
+               np.rad2deg(next_yarm_azimuth_rad),
+               next_xarm_tilt_rad,
+               next_yarm_tilt_rad)
 
 def get_empty_interferometer(name):
     """
