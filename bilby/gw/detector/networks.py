@@ -189,6 +189,7 @@ class InterferometerList(list):
                 interferometer.inject_signal(
                     parameters=parameters,
                     injection_polarizations=injection_polarizations,
+                    waveform_generator=waveform_generator,
                     raise_error=raise_error,
                 )
             )
