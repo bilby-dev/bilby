@@ -2,7 +2,6 @@ import datetime
 import os
 import shutil
 import signal
-import sys
 import tempfile
 import time
 from copy import deepcopy
@@ -752,13 +751,21 @@ class Sampler(object):
         can be caught as a :code:`SystemExit`.
         """
         if self.npool in (1, None) or getattr(self, "pool", None) is not None:
+
+            self._interrupted = True
+            self._interruption_signum = signum
+
             self._log_interruption(signum=signum)
             self.write_current_state()
             self._close_pool()
+
             if self.hard_exit:
                 os._exit(self.exit_code)
-            else:
-                sys.exit(self.exit_code)
+            raise SystemExit(self.exit_code)
+
+    def _raise_if_interrupted(self, cause):
+        if getattr(self, "_interrupted", False):
+            raise SystemExit(self.exit_code) from cause
 
     def _close_pool(self):
         if getattr(self, "pool", None) is not None:

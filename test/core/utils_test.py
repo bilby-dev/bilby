@@ -20,6 +20,7 @@ import warnings
 import bilby
 from bilby.core import utils
 from bilby.core.utils import global_meta_data
+from bilby.core.utils.plotting import _close_new_figures
 
 
 class TestConstants(unittest.TestCase):
@@ -111,6 +112,19 @@ class TestInferParameters(unittest.TestCase):
     def tearDown(self):
         del self.source1
         del self.source2
+
+    def test_builtin_function(self):
+        expected = [
+            "mode",
+            "buffering",
+            "encoding",
+            "errors",
+            "newline",
+            "closefd",
+            "opener"
+        ]
+        actual = utils.infer_parameters_from_function(open)
+        self.assertListEqual(expected, actual)
 
     def test_args_kwargs_handling(self):
         expected = ["a", "b"]
@@ -280,6 +294,30 @@ class TestReflect(unittest.TestCase):
         xprime = self.xp.asarray([-1.9, -1.5, -1.1])
         x = self.xp.asarray([0.1, 0.5, 0.9])
         self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
+
+
+class TestCloseNewFigures(unittest.TestCase):
+    def setUp(self):
+        self.existing_figure = plt.figure()
+
+    def tearDown(self):
+        plt.close(self.existing_figure)
+
+    def test_closes_only_new_figures(self):
+        with _close_new_figures():
+            new_figure = plt.figure()
+
+        self.assertTrue(plt.fignum_exists(self.existing_figure.number))
+        self.assertFalse(plt.fignum_exists(new_figure.number))
+
+    def test_closes_new_figures_after_error(self):
+        with self.assertRaises(RuntimeError):
+            with _close_new_figures():
+                new_figure = plt.figure()
+                raise RuntimeError
+
+        self.assertTrue(plt.fignum_exists(self.existing_figure.number))
+        self.assertFalse(plt.fignum_exists(new_figure.number))
 
 
 class TestLatexPlotFormat(unittest.TestCase):
@@ -531,6 +569,62 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
             data = dill.load(file)
         b = data["rng"].random()
         self.assertEqual(a, b)
+
+
+class TestSavingLalDict(unittest.TestCase):
+
+    @pytest.fixture(autouse=True)
+    def init_outdir(self, tmp_path):
+        # Use pytest's tmp_path fixture to create a temporary directory
+        self.outdir = tmp_path / "test"
+        self.outdir.mkdir()
+
+    def setUp(self):
+        lal_dict = lal.CreateDict()
+        lal.DictInsertREAL8Value(lal_dict, "test_value", 1.23)
+        lal.DictInsertINT4Value(lal_dict, "test_int", 4)
+        self.data = {"lal_dict": lal_dict}
+
+    def _assert_lal_dicts_equal(self, a, b):
+        self.assertIsInstance(b, lal.Dict)
+        self.assertEqual(
+            lal.DictLookupREAL8Value(a, "test_value"),
+            lal.DictLookupREAL8Value(b, "test_value"),
+        )
+        self.assertEqual(
+            lal.DictLookupINT4Value(a, "test_int"),
+            lal.DictLookupINT4Value(b, "test_int"),
+        )
+
+    def test_hdf5(self):
+        with h5py.File(self.outdir / "test.h5", "w") as f:
+            bilby.core.utils.recursively_save_dict_contents_to_group(
+                f, "/", self.data
+            )
+
+        with h5py.File(self.outdir / "test.h5", "r") as f:
+            data = bilby.core.utils.recursively_load_dict_contents_from_group(f, "/")
+
+        self._assert_lal_dicts_equal(self.data["lal_dict"], data["lal_dict"])
+
+    def test_json(self):
+        with open(self.outdir / "test.json", 'w') as file:
+            json.dump(self.data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
+
+        with open(self.outdir / "test.json", 'r') as file:
+            data = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
+
+        self._assert_lal_dicts_equal(self.data["lal_dict"], data["lal_dict"])
+
+    def test_encode_lal_dict(self):
+        encoded = bilby.core.utils.io.encode_lal_dict(self.data["lal_dict"])
+        self.assertTrue(encoded["__lal_dict__"])
+        self.assertIn("content", encoded)
+
+    def test_decode_lal_dict(self):
+        encoded = bilby.core.utils.io.encode_lal_dict(self.data["lal_dict"])
+        decoded = bilby.core.utils.io.decode_lal_dict(encoded)
+        self._assert_lal_dicts_equal(self.data["lal_dict"], decoded)
 
 
 class TestGlobalMetaData(unittest.TestCase):

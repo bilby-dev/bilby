@@ -533,12 +533,15 @@ class TestGenerateAllParameters(unittest.TestCase):
         )
         self.parameters["zenith"] = 0.0
         self.parameters["azimuth"] = 0.0
-        self.parameters["time_jitter"] = 0.0
         del self.parameters["ra"], self.parameters["dec"]
-        self.parameters = pd.DataFrame(self.parameters, index=range(1))
         initial_likelihood_parameters = dict(mass_1=-1.0)
         converted = bilby.gw.conversion.generate_all_bbh_parameters(
             sample=self.parameters, likelihood=likelihood, priors=priors
+        )
+        converted_with_time_jitter = bilby.gw.conversion.generate_all_bbh_parameters(
+            sample={**self.parameters, "time_jitter": 0.0},
+            likelihood=likelihood,
+            priors=priors,
         )
         extra_expected = [
             "geocent_time",
@@ -552,7 +555,13 @@ class TestGenerateAllParameters(unittest.TestCase):
         ]
         for key in extra_expected:
             self.assertIn(key, converted)
-        self.assertNotEqual(converted["mass_1"].values[0], initial_likelihood_parameters["mass_1"])
+        self.assertNotIn("time_jitter", converted)
+        for ifo in ifos:
+            np.testing.assert_allclose(
+                converted[f"{ifo.name}_log_likelihood"],
+                converted_with_time_jitter[f"{ifo.name}_log_likelihood"],
+            )
+        self.assertNotEqual(converted["mass_1"], initial_likelihood_parameters["mass_1"])
 
     def test_identity_generation_no_likelihood(self):
         test_fixed_prior = bilby.core.prior.PriorDict({

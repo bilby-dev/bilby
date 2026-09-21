@@ -2,7 +2,7 @@ import copy
 import os
 import shutil
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from parameterized import parameterized
 
 import numpy as np
@@ -148,6 +148,35 @@ class TestSampler(unittest.TestCase):
         self.sampler._check_bad_value(
             val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None
         )
+
+    def test_raise_if_interrupted(self):
+        error = RuntimeError("plotting failed")
+        self.sampler._interrupted = True
+
+        with self.assertRaises(SystemExit) as context:
+            self.sampler._raise_if_interrupted(error)
+
+        self.assertEqual(context.exception.code, self.sampler.exit_code)
+        self.assertIs(context.exception.__cause__, error)
+
+    def test_write_current_state_and_exit_records_interruption(self):
+        self.sampler.pool = None
+
+        with (
+            patch.object(self.sampler, "write_current_state"),
+            patch.object(self.sampler, "_close_pool"),
+            self.assertRaises(SystemExit),
+        ):
+            self.sampler.write_current_state_and_exit(signum=14)
+
+        self.assertTrue(self.sampler._interrupted)
+        self.assertEqual(self.sampler._interruption_signum, 14)
+
+    def test_raise_if_interrupted_not_interrupted(self):
+        self.sampler._interrupted = False
+
+        # This should return normally.
+        self.sampler._raise_if_interrupted(RuntimeError("plotting failed"))
 
 
 def test_get_expected_outputs():

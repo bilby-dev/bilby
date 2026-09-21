@@ -603,7 +603,7 @@ class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
             minimum=0.1, maximum=priors["chi_1"].maximum, name="a_1"
         )
         samples = priors.sample(100000, random_state=self.rng)["a_1"]
-        ks = ks_2samp(samples, np.random.uniform(0, priors["chi_1"].maximum, 100000))
+        ks = ks_2samp(samples, self.rng.uniform(0, priors["chi_1"].maximum, 100000))
         self.assertTrue(ks.pvalue > 0.001)
         self.assertEqual(aac.get_namespace(samples), self.xp)
 

@@ -23,34 +23,28 @@ env:
 jobs:
   build:
 
-    name: ${{ matrix.python.name }} latest dynesty
+    name: Latest dynesty
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python${{ matrix.python.short-version }}:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python:
-          - name: Python 3.12
-            version: 3.12
-            short-version: 312
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         fetch-tags: true
-    - name: Install package
-      run: |
-        # activate env so that conda list shows the correct environment
-        source $CONDA_PATH/bin/activate python${{ matrix.python.short-version }}
-        conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
-        python -m pip install .
-        python -m pip install git+https://github.com/joshspeagle/dynesty@master
-        conda list --show-channel-urls
-      shell: bash
+
+    - uses: prefix-dev/setup-pixi@v0.10.0
+      with:
+        environments: latest-dynesty
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        locked: true
+
     - name: Run unit tests
       run: |
-        python -m pytest --durations 10 -k dynesty
+        pixi run -e latest-dynesty python -m pytest \
+          --durations 10 -k dynesty
     - name: Run sampler tests
       run: |
-        python -m pytest test/integration/sampler_run_test.py --durations 10 -v -k dynesty
+        pixi run -e latest-dynesty python -m pytest \
+          test/integration/sampler_run_test.py \
+          --durations 10 -v -k dynesty

@@ -11,9 +11,9 @@ attribute to generate random numbers. For example:
 .. code:: python
 
     >>> from bilby.core.utils import random
-    # Seed the random number generator
+    >>> # Seed the random number generator
     >>> random.seed(1234)
-    # Generate a random number between 0 and 1
+    >>> # Generate a random number between 0 and 1
     >>> x = random.rng.random()
 
 The :code:`rng` attribute is a :code:`numpy.random.Generator` object, for

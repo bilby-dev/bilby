@@ -54,6 +54,25 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
         )
         self.assertTrue(sorted(expected_string) == sorted(self.prior.__repr__()))
 
+    def test_repr_round_trips_with_numpy_scalar_parameters(self):
+        """repr() must remain re-parseable when parameters are NumPy scalars.
+
+        Under NumPy >= 2.0, repr() of any NumPy scalar carries the "np." prefix,
+        e.g. repr(np.float64(0.0)) == "np.float64(0.0)". If that goes into the
+        prior repr, PriorDict's parser tries to import a module "np" and fails.
+        """
+        for minimum, maximum in [
+            (np.float64(0.0), np.float64(1.0)),
+            (np.float32(0.0), np.float32(1.0)),
+            (np.int64(0), np.int64(10)),
+        ]:
+            prior = bilby.core.prior.Uniform(
+                minimum=minimum, maximum=maximum, name="x"
+            )
+            self.assertNotIn("np.", repr(prior))
+            reconstructed = bilby.core.prior.PriorDict({"x": repr(prior)})["x"]
+            self.assertEqual(prior, reconstructed)
+
     def test_base_prob(self):
         self.assertTrue(np.isnan(self.prior.prob(5)))
 
@@ -189,9 +208,8 @@ class TestPriorSubclassWithoutXpWarning(unittest.TestCase):
                     return val * 2
 
             prior = CustomPriorWithoutXp(name="custom_prior")
-            import jax.numpy as jnp
-            rescaled = prior.rescale(jnp.array([0.1, 0.2, 3]))
-            self.assertEqual(aac.get_namespace(rescaled), jnp)
+            rescaled = prior.rescale(np.array([0.1, 0.2, 3]))
+            self.assertEqual(aac.get_namespace(rescaled), aac.numpy)
 
 
 if __name__ == "__main__":

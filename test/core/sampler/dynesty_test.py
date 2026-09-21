@@ -1,14 +1,18 @@
+import datetime
 import os
 import shutil
 import unittest
 from copy import deepcopy
+from unittest import mock
 
 import bilby
 import bilby.core.sampler.dynesty
+import dynesty
 import numpy as np
 import parameterized
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+from unittest.mock import Mock, patch
 
 from bilby.core.sampler import dynesty_utils
 
@@ -80,6 +84,66 @@ class TestDynesty(unittest.TestCase):
         del self.sampler
         del self.dysampler
 
+    def read_mock_checkpoint(self, metadata):
+        checkpoint = mock.MagicMock(added_live=False)
+        versions = dict(bilby=bilby.__version__, dynesty=dynesty.__version__)
+        self.sampler.pool = None
+        with (
+            mock.patch("os.path.isfile", return_value=True),
+            mock.patch("os.stat", return_value=mock.MagicMock(st_size=1)),
+            mock.patch("builtins.open", mock.mock_open()),
+            mock.patch(
+                "dill.load", return_value=(checkpoint, versions, metadata.copy())
+            ),
+        ):
+            return self.sampler.read_saved_state(continuing=True)
+
+    def test_write_current_state_stores_search_parameter_keys(self):
+        self.sampler.sampler = self.dysampler
+        self.sampler.pool = None
+        with (
+            mock.patch("dill.pickles", return_value=True),
+            mock.patch.object(
+                bilby.core.sampler.dynesty, "safe_file_dump"
+            ) as safe_file_dump,
+        ):
+            self.sampler.write_current_state()
+
+        checkpoint = safe_file_dump.call_args.args[0]
+        assert checkpoint[2]["search_parameter_keys"] == ["a", "b"]
+
+    def test_read_saved_state_accepts_matching_search_parameter_keys(self):
+        metadata = dict(
+            search_parameter_keys=["a", "b"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        assert self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_rejects_changed_search_parameter_order(self):
+        metadata = dict(
+            search_parameter_keys=["b", "a"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with self.assertRaisesRegex(
+            bilby.core.sampler.base_sampler.ResumeError,
+            "search parameter order differs",
+        ):
+            self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_allows_legacy_checkpoint(self):
+        metadata = dict(
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with mock.patch.object(bilby.core.sampler.dynesty.logger, "warning") as warning:
+            assert self.read_mock_checkpoint(metadata)
+        assert (
+            "does not contain search parameter order metadata"
+            in warning.call_args_list[0].args[0]
+        )
+
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
         expected = dict(
@@ -146,6 +210,54 @@ class TestDynesty(unittest.TestCase):
     def test_run_test_runs(self):
         self.sampler._run_test()
 
+    def test_plot_current_state_only_closes_figures_it_creates(self):
+        import matplotlib.pyplot as plt
+
+        user_figure = plt.figure()
+        self.addCleanup(plt.close, user_figure)
+        user_figure_number = user_figure.number
+        created_figures = []
+
+        def make_plot(*args, **kwargs):
+            self.assertEqual(set(plt.get_fignums()), {user_figure_number})
+            figure = plt.figure()
+            created_figures.append(figure)
+            return figure, None
+
+        trace_plot_calls = 0
+
+        def make_trace_plot(*args, **kwargs):
+            nonlocal trace_plot_calls
+            trace_plot_calls += 1
+            plot = make_plot()
+            if trace_plot_calls == 1:
+                raise ValueError("Failed after creating a figure")
+            return plot
+
+        self.sampler.sampler = mock.Mock(
+            results={"samples_u": np.zeros((1, self.sampler.ndim))}
+        )
+        with (
+            mock.patch("dynesty.plotting.traceplot", side_effect=make_trace_plot),
+            mock.patch("dynesty.plotting.runplot", side_effect=make_plot),
+            mock.patch(
+                "dynesty.utils.results_substitute",
+                side_effect=lambda results, substitutions: results,
+            ),
+            mock.patch.object(
+                bilby.core.sampler.dynesty,
+                "dynesty_stats_plot",
+                side_effect=make_plot,
+            ),
+            mock.patch("matplotlib.figure.Figure.savefig"),
+        ):
+            self.sampler.plot_current_state()
+
+        self.assertTrue(plt.fignum_exists(user_figure_number))
+        self.assertTrue(
+            all(not plt.fignum_exists(figure.number) for figure in created_figures)
+        )
+
     @parameterized.parameterized.expand((
         ("unif", "single"),
         ("unif", "multi"),
@@ -158,6 +270,22 @@ class TestDynesty(unittest.TestCase):
         This is not an exhaustive test.
         """
         self.init_sampler(sample=sample, bound=bound)
+
+    def test_plotting_exception_does_not_swallow_interruption(self):
+        # Emulate error reported in https://github.com/bilby-dev/bilby/issues/758
+        error = SystemError(
+            "numpy.ndarray.__deepcopy__ returned a result with an error set"
+        )
+
+        self.sampler.sampler = Mock()
+        self.sampler._interrupted = True
+
+        with patch("dynesty.plotting.traceplot", side_effect=error):
+            with self.assertRaises(SystemExit) as context:
+                self.sampler.plot_current_state()
+
+        self.assertEqual(context.exception.code, self.sampler.exit_code)
+        self.assertIs(context.exception.__cause__, error)
 
 
 def test_get_expected_outputs():

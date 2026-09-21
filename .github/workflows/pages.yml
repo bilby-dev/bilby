@@ -26,26 +26,27 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/bilby-dev/bilby-python312:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: install
-        run: |
-          source $CONDA_PATH/bin/activate python312
-          conda install -c conda-forge -y liblal!=7.7.0 python-lal!=7.7.0
-          python -m pip install -r docs/requirements.txt
-          python -m pip install .
-        shell: bash
+
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: documentation
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+          locked: true
+
       - name: Run jupyter notebooks
         run: |
-          python -m ipykernel install
-          cd examples/tutorials
-          jupyter nbconvert --to notebook --execute *.ipynb --output-dir ../../docs
-          cd -
+          pixi run -e documentation python -m ipykernel install --user
+          pixi run -e documentation jupyter nbconvert \
+            --to notebook \
+            --execute examples/tutorials/*.ipynb \
+            --output-dir ./docs
       - name: Build docs
         run: |
           cd docs

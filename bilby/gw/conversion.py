@@ -1650,6 +1650,18 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
+        added_time_jitter = (
+            getattr(likelihood, "time_marginalization", False)
+            and getattr(likelihood, "jitter_time", False)
+            and "time_jitter" not in output_sample
+        )
+        if added_time_jitter:
+            # Injection parameters do not include time jitter.
+            # Use the centre of the jitter grid while calculating
+            # post-processing diagnostics.
+            logger.debug("Adding time jitter to sample for post-processing")
+            output_sample["time_jitter"] = 0.0
+
         compute_per_detector_log_likelihoods(
             samples=output_sample, likelihood=likelihood, npool=npool)
 
@@ -1692,6 +1704,9 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
                     .format(type(output_sample))
                 )
         compute_snrs(output_sample, likelihood, npool=npool)
+        # Remove the time jitter if it was added
+        if added_time_jitter:
+            output_sample.pop("time_jitter")
     for key, func in zip(["mass", "spin", "source frame"], [
             generate_mass_parameters, generate_spin_parameters,
             generate_source_frame_parameters]):

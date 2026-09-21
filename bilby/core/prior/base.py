@@ -253,7 +253,19 @@ class Prior(object):
         prior_name = self.__class__.__name__
         prior_module = self.__class__.__module__
         instantiation_dict = self.get_instantiation_dict()
-        args = ', '.join([f'{key}={repr(instantiation_dict[key])}' for key in instantiation_dict])
+
+        def _native(value):
+            # Convert NumPy scalars to native Python types so that repr() is
+            # round-trippable by _parse_argument_string. Under NumPy 2.0,
+            # repr(np.float64(0.0)) is "np.float64(0.0)", which the parser would
+            # try to import as the module "np" and fail.
+            if isinstance(value, np.generic):
+                return value.item()
+            return value
+
+        args = ', '.join(
+            [f'{key}={repr(_native(instantiation_dict[key]))}' for key in instantiation_dict]
+        )
         if "bilby.core.prior" in prior_module:
             return f"{prior_name}({args})"
         else:

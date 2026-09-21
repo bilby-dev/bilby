@@ -783,6 +783,7 @@ def lal_binary_neutron_star_relative_binning(
     waveform_kwargs.update(kwargs)
 
     if fiducial == 1:
+        _ = waveform_kwargs.pop("frequency_bin_edges", None)
         return _base_lal_cbc_fd_waveform(
             frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
             luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,

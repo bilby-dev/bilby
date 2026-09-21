@@ -16,8 +16,15 @@ from ..utils import (
     logger,
     safe_file_dump,
 )
+from ..utils.plotting import _close_new_figures
 from . import dynesty_utils
-from .base_sampler import NestedSampler, Sampler, _SamplingContainer, signal_wrapper
+from .base_sampler import (
+    NestedSampler,
+    ResumeError,
+    Sampler,
+    _SamplingContainer,
+    signal_wrapper,
+)
 
 
 def _set_sampling_kwargs(args):
@@ -727,6 +734,23 @@ class Dynesty(NestedSampler):
                     )
                     return False
 
+                stored_parameter_keys = extras.get("search_parameter_keys")
+                if stored_parameter_keys is None:
+                    logger.warning(
+                        "The resume file does not contain search parameter order "
+                        "metadata. The order cannot be verified; this is expected "
+                        "for checkpoints created by older versions of Bilby."
+                    )
+                elif list(stored_parameter_keys) != self.search_parameter_keys:
+                    raise ResumeError(
+                        "Cannot resume the Dynesty run because the search parameter "
+                        "order differs from the checkpoint.\n"
+                        f"Checkpoint order: {list(stored_parameter_keys)}\n"
+                        f"Current order: {self.search_parameter_keys}\n"
+                        "Reconstruct the priors in the checkpoint order, or remove "
+                        "the checkpoint to start a new run."
+                    )
+
                 version_warning = (
                     "The {code} version has changed between runs. "
                     "This may cause unpredictable behaviour and/or failure. "
@@ -786,14 +810,13 @@ class Dynesty(NestedSampler):
             return
 
         check_directory_exists_and_if_not_mkdir(self.outdir)
+        metadata = dict(search_parameter_keys=list(self.search_parameter_keys))
         if hasattr(self, "start_time"):
             self._update_sampling_time()
-            metadata = dict(
+            metadata.update(
                 sampling_time=self.sampling_time,
                 start_time=self.start_time,
             )
-        else:
-            metadata = dict()
         versions = dict(bilby=bilby_version, dynesty=dynesty_version)
         self.sampler.pool = None
         self.sampler.mapper = map
@@ -846,94 +869,74 @@ class Dynesty(NestedSampler):
         """
         if self.check_point_plot:
             import dynesty.plotting as dyplot
-            import matplotlib.pyplot as plt
 
             labels = [label.replace("_", " ") for label in self.search_parameter_keys]
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_trace.png"
-                fig = dyplot.traceplot(self.sampler.results, labels=labels)[0]
-                fig.tight_layout()
-                fig.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty state plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_trace_unit.png"
+
+            def _generate_checkpoint_plot(plot_func, suffix, description):
+                """Generate, save, and handle errors for a checkpoint plot."""
+                with _close_new_figures():
+                    try:
+                        filename = f"{self.outdir}/{self.label}_checkpoint_{suffix}.png"
+
+                        # All dynesty plotters return (fig, axes).
+                        fig = plot_func()[0]
+
+                        fig.tight_layout()
+                        fig.savefig(filename)
+
+                    except (
+                        RuntimeError,
+                        np.linalg.LinAlgError,
+                        ValueError,
+                        OverflowError,
+                    ) as e:
+                        logger.warning(e)
+                        logger.warning(
+                            f"Failed to create dynesty {description} plot at checkpoint"
+                        )
+                    except DynestySetupError:
+                        # specifically for dynesty_stats_plot
+                        logger.debug(
+                            "Cannot create Dynesty stats plot with dynamic sampler."
+                        )
+                    except Exception as e:
+                        self._raise_if_interrupted(e)
+                        logger.warning(
+                            f"Unexpected error {e} in dynesty plotting. "
+                            "Please report at github.com/bilby-dev/bilby/issues"
+                        )
+
+            def _get_unit_trace_plot():
                 from copy import deepcopy
 
                 from dynesty.utils import results_substitute
 
                 temp = deepcopy(self.sampler.results)
                 temp = results_substitute(temp, dict(samples=temp["samples_u"]))
-                fig = dyplot.traceplot(temp, labels=labels)[0]
-                fig.tight_layout()
-                fig.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty unit state plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_run.png"
-                fig, _ = dyplot.runplot(
+                return dyplot.traceplot(temp, labels=labels)
+
+            _generate_checkpoint_plot(
+                lambda: dyplot.traceplot(self.sampler.results, labels=labels),
+                suffix="trace",
+                description="state",
+            )
+            _generate_checkpoint_plot(
+                _get_unit_trace_plot,
+                suffix="trace_unit",
+                description="unit state",
+            )
+            _generate_checkpoint_plot(
+                lambda: dyplot.runplot(
                     self.sampler.results, logplot=False, use_math_text=False
-                )
-                fig.tight_layout()
-                plt.savefig(filename)
-            except (
-                RuntimeError,
-                np.linalg.LinAlgError,
-                ValueError,
-                OverflowError,
-            ) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty run plot at checkpoint")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
-            try:
-                filename = f"{self.outdir}/{self.label}_checkpoint_stats.png"
-                fig, _ = dynesty_stats_plot(self.sampler)
-                fig.tight_layout()
-                plt.savefig(filename)
-            except (RuntimeError, ValueError, OverflowError) as e:
-                logger.warning(e)
-                logger.warning("Failed to create dynesty stats plot at checkpoint")
-            except DynestySetupError:
-                logger.debug("Cannot create Dynesty stats plot with dynamic sampler.")
-            except Exception as e:
-                logger.warning(
-                    f"Unexpected error {e} in dynesty plotting. "
-                    "Please report at github.com/bilby-dev/bilby/issues"
-                )
-            finally:
-                plt.close("all")
+                ),
+                suffix="run",
+                description="run",
+            )
+            _generate_checkpoint_plot(
+                lambda: dynesty_stats_plot(self.sampler),
+                suffix="stats",
+                description="stats",
+            )
 
     def _run_test(self):
         """Run the sampler very briefly as a sanity test that it works."""

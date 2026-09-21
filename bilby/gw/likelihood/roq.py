@@ -11,6 +11,31 @@ from ..prior import CBCPriorDict
 from ..utils import ln_i0
 
 
+class _WaveformGeneratorWrapper:
+    """
+    Thin proxy around a WaveformGenerator that calls _update_basis before
+    every frequency_domain_strain call, keeping the basis selection in sync
+    with the parameters without requiring manual call-sites.
+
+    This should be used like the underlying WaveformGenerator except it has
+    a side effect of updating the likelihood through `update_basis`.
+    """
+
+    def __init__(self, waveform_generator, update_basis):
+        object.__setattr__(self, '_wrapped', waveform_generator)
+        object.__setattr__(self, '_update_basis', update_basis)
+
+    def frequency_domain_strain(self, parameters=None, **kwargs):
+        self._update_basis(parameters)
+        return self._wrapped.frequency_domain_strain(parameters, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+    def __setattr__(self, name, value):
+        setattr(self._wrapped, name, value)
+
+
 class ROQGravitationalWaveTransient(GravitationalWaveTransient):
     """A reduced order quadrature likelihood object
 
@@ -84,6 +109,31 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         - e.g., "H1": sample in the time of arrival at H1
 
     """
+    @property
+    def roq_params(self):
+        return self._roq_params
+
+    @roq_params.setter
+    def roq_params(self, roq_params):
+        if roq_params is not None:
+            if not isinstance(roq_params, np.ndarray) or roq_params.dtype.names is None:
+                raise TypeError(
+                    "roq_params must be None or a scalar structured numpy array"
+                )
+            if roq_params.ndim != 0:
+                raise ValueError(
+                    "roq_params must be a scalar structured array; "
+                    f"received shape {roq_params.shape}"
+                )
+            required_fields = {"flow", "fhigh", "seglen"}
+            missing_fields = required_fields.difference(roq_params.dtype.names)
+            if missing_fields:
+                raise ValueError(
+                    "roq_params is missing required fields: "
+                    + ", ".join(sorted(missing_fields))
+                )
+        self._roq_params = roq_params
+
     def __init__(
             self, interferometers, waveform_generator, priors,
             weights=None, linear_matrix=None, quadratic_matrix=None,
@@ -96,6 +146,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     ):
         self._delta_tc = delta_tc
+        self._roq_params = None
         super(ROQGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator, priors=priors,
@@ -130,17 +181,17 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
             if self.roq_params is None:
                 if is_hdf5_linear:
                     self.roq_params = np.array(
-                        [(linear_matrix['minimum_frequency_hz'][()],
-                          linear_matrix['maximum_frequency_hz'][()],
-                          linear_matrix['duration_s'][()])],
+                        (linear_matrix['minimum_frequency_hz'][()],
+                         linear_matrix['maximum_frequency_hz'][()],
+                         linear_matrix['duration_s'][()]),
                         dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
                     )
                 if is_hdf5_quadratic:
                     if self.roq_params is None:
                         self.roq_params = np.array(
-                            [(quadratic_matrix['minimum_frequency_hz'][()],
-                              quadratic_matrix['maximum_frequency_hz'][()],
-                              quadratic_matrix['duration_s'][()])],
+                            (quadratic_matrix['minimum_frequency_hz'][()],
+                             quadratic_matrix['maximum_frequency_hz'][()],
+                             quadratic_matrix['duration_s'][()]),
                             dtype=[('flow', float), ('fhigh', float), ('seglen', float)]
                         )
                     else:
@@ -432,11 +483,7 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
 
     @waveform_generator.setter
     def waveform_generator(self, waveform_generator):
-        self._waveform_generator = waveform_generator
-
-    def log_likelihood_ratio(self, parameters):
-        self._update_basis(parameters)
-        return super().log_likelihood_ratio(parameters=parameters)
+        self._waveform_generator = _WaveformGeneratorWrapper(waveform_generator, self._update_basis)
 
     def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
         """
@@ -448,7 +495,6 @@ class ROQGravitationalWaveTransient(GravitationalWaveTransient):
         interferometer: bilby.gw.detector.Interferometer
 
         """
-        self._update_basis(parameters)
         if self.time_marginalization:
             time_ref = self._beam_pattern_reference_time
         else:

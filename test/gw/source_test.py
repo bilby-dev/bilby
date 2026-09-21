@@ -1,3 +1,4 @@
+import os
 import unittest
 import pytest
 
@@ -296,11 +297,9 @@ class TestEccentricLalBBH(unittest.TestCase):
 @pytest.mark.requires_roqs
 class TestROQBBH(unittest.TestCase):
     def setUp(self):
-        roq_dir = "/roq_basis"
-
-        fnodes_linear_file = "{}/fnodes_linear.npy".format(roq_dir)
+        fnodes_linear_file = f"{self.roq_dir}/fnodes_linear.npy"
         fnodes_linear = np.load(fnodes_linear_file).T
-        fnodes_quadratic_file = "{}/fnodes_quadratic.npy".format(roq_dir)
+        fnodes_quadratic_file = f"{self.roq_dir}/fnodes_quadratic.npy"
         fnodes_quadratic = np.load(fnodes_quadratic_file).T
 
         self.parameters = dict(
@@ -328,6 +327,20 @@ class TestROQBBH(unittest.TestCase):
         del self.parameters
         del self.waveform_kwargs
         del self.frequency_array
+
+    @property
+    def roq_dir(self):
+        trial_roq_paths = [
+            "/roq_basis",
+            os.path.join(os.path.expanduser("~"), "ROQ_data/IMRPhenomPv2/4s"),
+            "/home/cbc/ROQ_data/IMRPhenomPv2/4s",
+        ]
+        if "BILBY_TESTING_ROQ_DIR" in os.environ:
+            trial_roq_paths.insert(0, os.environ["BILBY_TESTING_ROQ_DIR"])
+        for path in trial_roq_paths:
+            if os.path.isdir(path):
+                return path
+        raise Exception("Unable to load ROQ basis: cannot proceed with tests")
 
     def test_roq_runs_valid_parameters(self):
         self.parameters.update(self.waveform_kwargs)
@@ -620,6 +633,23 @@ class TestRelbinBBH(unittest.TestCase):
             dict,
         )
 
+    def test_relbin_fiducial_bbh_ignores_frequency_bin_edges(self):
+        """
+        Once bins are set up, ``RelativeBinningGravitationalWaveTransient``
+        leaves ``frequency_bin_edges`` in the waveform generator's persistent
+        ``waveform_arguments``, so any later fiducial (full-resolution) call
+        is made with it still present. The fiducial branch must drop it
+        rather than pass it through as an unused kwarg.
+        """
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["frequency_bin_edges"] = np.arange(20, 1500, 50)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, **self.parameters
+            ),
+            dict,
+        )
+
     def test_relbin_bbh_xpprecession_version(self):
         self.parameters.update(self.waveform_kwargs_fiducial)
         self.parameters["waveform_approximant"] = "IMRPhenomXP"
@@ -696,6 +726,26 @@ class TestRelbinBNS(unittest.TestCase):
                 self.frequency_array,
                 **self.parameters,
                 **self.waveform_kwargs_binned,
+            ),
+            dict,
+        )
+
+    def test_relbin_fiducial_bns_ignores_frequency_bin_edges(self):
+        """
+        Regression test for the missing ``frequency_bin_edges`` pop in the
+        fiducial branch (unlike the BBH counterpart, which already drops it).
+        Once bins are set up, ``RelativeBinningGravitationalWaveTransient``
+        leaves ``frequency_bin_edges`` in the waveform generator's persistent
+        ``waveform_arguments``, so any later fiducial (full-resolution) call
+        -- e.g. from an iterative fiducial-parameter update, or an external
+        Fisher-matrix calculation -- is made with it still present. Before the
+        fix this raised the "unused waveform kwargs" ``ValueError``.
+        """
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["frequency_bin_edges"] = np.arange(20, 1500, 50)
+        self.assertIsInstance(
+            bilby.gw.source.lal_binary_neutron_star_relative_binning(
+                self.frequency_array, **self.parameters
             ),
             dict,
         )

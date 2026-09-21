@@ -80,16 +80,16 @@ def array_module(arr):
     >>> import numpy as np
     >>> import jax.numpy as jnp
     >>> array_module(np.array([1, 2, 3]))
-    <module 'numpy' ...>
+    <module 'array_api_compat.numpy' ...>
 
     >>> array_module(jnp.array([1, 2, 3]))
     <module 'jax.numpy' ...>
 
     >>> array_module({'data': np.array([1, 2, 3])})
-    <module 'numpy' ...>
+    <module 'array_api_compat.numpy' ...>
 
     >>> array_module([np.array([1]), np.array([2])])
-    <module 'numpy' ...>
+    <module 'array_api_compat.numpy' ...>
 
     >>> array_module([1, jnp.array([2])])
     <module 'jax.numpy' ...>
