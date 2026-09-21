@@ -1,3 +1,6 @@
+from functools import partial
+
+import array_api_compat as aac
 from plum import dispatch
 
 from .time import greenwich_mean_sidereal_time
@@ -431,6 +434,12 @@ def transform_precessing_spins(
         - spin_1x, spin_1y, spin_1z: Components of spin 1
         - spin_2x, spin_2y, spin_2z: Components of spin 2
     """
+    # np.asarray is much faster than stack here, but torch doesn't support
+    # this so we need to explicitly use stack
+    if aac.is_torch_namespace(xp):
+        stack = partial(xp.stack, axis=0)
+    else:
+        stack = xp.asarray
 
     # Helper rotation functions
     def rotate_z(angle, vec):
@@ -439,7 +448,7 @@ def transform_precessing_spins(
         sin_a = xp.sin(angle)
         x_new = cos_a * vec[0] - sin_a * vec[1]
         y_new = sin_a * vec[0] + cos_a * vec[1]
-        return xp.asarray([x_new, y_new, vec[2]])
+        return stack([x_new, y_new, vec[2]])
 
     def rotate_y(angle, vec):
         """Rotate vector about y-axis"""
@@ -447,19 +456,19 @@ def transform_precessing_spins(
         sin_a = xp.sin(angle)
         x_new = cos_a * vec[0] + sin_a * vec[2]
         z_new = -sin_a * vec[0] + cos_a * vec[2]
-        return xp.asarray([x_new, vec[1], z_new])
+        return stack([x_new, vec[1], z_new])
 
     # Starting frame: LNhat is along the z-axis
-    ln_hat = xp.asarray([theta_jn * 0, theta_jn * 0, theta_jn ** 0])
+    ln_hat = stack([theta_jn * 0, theta_jn * 0, theta_jn ** 0])
 
     # Initial spin unit vectors
-    s1_hat = xp.asarray([
+    s1_hat = stack([
         xp.sin(tilt_1) * xp.cos(phase),
         xp.sin(tilt_1) * xp.sin(phase),
         xp.cos(tilt_1),
     ])
 
-    s2_hat = xp.asarray([
+    s2_hat = stack([
         xp.sin(tilt_2) * xp.cos(phi_12 + phase),
         xp.sin(tilt_2) * xp.sin(phi_12 + phase),
         xp.cos(tilt_2),
@@ -483,8 +492,7 @@ def transform_precessing_spins(
     s2 = mass_2 * mass_2 * chi_2 * s2_hat
 
     # Total angular momentum J = L + S1 + S2
-    # l_vec = xp.asarray([xp.zeros_like(theta_jn), xp.zeros_like(theta_jn), l_mag])
-    l_vec = xp.asarray([l_mag * 0, l_mag * 0, l_mag])
+    l_vec = stack([l_mag * 0, l_mag * 0, l_mag])
     j = l_vec + s1 + s2
 
     # Normalize J to get Jhat and find its angles
@@ -512,7 +520,7 @@ def transform_precessing_spins(
     s2_hat = rotate_z(angle, s2_hat)
 
     # Compute inclination: angle between L and N
-    n = xp.asarray([theta_jn * 0, xp.sin(theta_jn), xp.cos(theta_jn)])
+    n = stack([theta_jn * 0, xp.sin(theta_jn), xp.cos(theta_jn)])
     iota = xp.arccos(xp.sum(n * ln_hat, axis=0))
 
     # Rotation 4-5: Bring L into the z-axis
