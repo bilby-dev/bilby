@@ -79,7 +79,7 @@ class TestInterferometerStrainData(unittest.TestCase):
 
     def test_time_mask(self):
         strain_data = bilby.gw.detector.InterferometerStrainData(
-            minimum_frequency=20, maximum_frequency=512, crop_duration=0.1)
+            minimum_frequency=20, maximum_frequency=512, crop_time=0.1)
         strain_data.set_from_time_domain_strain(
             time_domain_strain=np.random.normal(0, 1, 4096),
             time_array=np.arange(0, 4, 4 / 4096),
@@ -91,7 +91,7 @@ class TestInterferometerStrainData(unittest.TestCase):
         self.assertTrue(all(times <= 3.9))
 
         # Test from update
-        strain_data.crop_duration = (0.5, 1)
+        strain_data.crop_time = (0.5, 1)
         times = strain_data.time_array[strain_data.time_mask]
         self.assertTrue(all(times > 0.5))
         self.assertTrue(all(times <= 3))

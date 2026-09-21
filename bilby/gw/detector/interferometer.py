@@ -44,7 +44,7 @@ class Interferometer(object):
     maximum_frequency = PropertyAccessor('strain_data', 'maximum_frequency')
     frequency_mask = PropertyAccessor('strain_data', 'frequency_mask')
     time_mask = PropertyAccessor('strain_data', 'time_mask')
-    crop_duration = PropertyAccessor('strain_data', 'crop_duration')
+    crop_time = PropertyAccessor('strain_data', 'crop_time')
     cropped_duration = PropertyAccessor('strain_data', 'cropped_duration')
     cropped_frequency_mask = PropertyAccessor('strain_data', 'cropped_frequency_mask')
     frequency_domain_strain = PropertyAccessor('strain_data', 'frequency_domain_strain')
@@ -678,7 +678,7 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        if self.crop_duration == 0:
+        if self.crop_time == 0:
             return gwutils.frequency_domain_whiten(
                 frequency_series=frequency_series,
                 amplitude_spectral_density=self.amplitude_spectral_density_array,
@@ -700,11 +700,12 @@ class Interferometer(object):
     ) -> np.array:
         """Gets the whitened time series from a whitened frequency series.
 
-        This ifft's and also applies a windowing factor,
-        since when f_min and f_max are set bilby applies a mask to the series.
+        This ifft's and also applies a windowing factor in both the time and frequency
+        domains. Due to f_min and f_max being applied as a mask to the series.
+        There is also the generic time-domain window.
 
-        Per 6.2a-b in https://arxiv.org/pdf/gr-qc/0509116 since our window
-        is just a band pass,
+        For the frequency domain, per 6.2a-b in https://arxiv.org/pdf/gr-qc/0509116
+        since our window is just a band pass,
         this coefficient is :math:`w/W` where
 
         .. math::
@@ -722,6 +723,8 @@ class Interferometer(object):
         .. math::
             w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
 
+        For the time domain, we have a tukey window, so we need to use the regular expression.
+
         """
         xp = array_module(whitened_frequency_series)
 
@@ -731,7 +734,7 @@ class Interferometer(object):
             xp.fft.irfft(whitened_frequency_series)
             * self.frequency_mask.sum()**0.5
             / frequency_window_factor
-            * self.time_mask.mean()**0.5
+            * (self.time_mask**2).mean()**0.5
         )
 
         return whitened_time_series

@@ -564,7 +564,7 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
 
 
 @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
-@parameterized_class(("crop_duration",), [(0,), (4,), (16,)])
+@parameterized_class(("crop_time",), [(0,), (4,), (16,)])
 class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64
@@ -572,7 +572,7 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
         self.ifo.set_strain_data_from_power_spectral_density(
             sampling_frequency=self.sampling_frequency, duration=self.duration)
-        self.ifo.crop_duration = self.crop_duration
+        self.ifo.crop_time = self.crop_time
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
