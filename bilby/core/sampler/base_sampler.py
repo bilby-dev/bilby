@@ -759,8 +759,8 @@ class Sampler(object):
             )
             if self.pool is not None:
                 logger.warning(
-                    "Setting up parallel pool in sampler is deprecated. Use "
-                    "bilby.utils.parallel.bilby_pool context instead."
+                    "Setting up parallel pool in Sampler._setup_pool is deprecated. "
+                    "Use bilby.utils.parallel.bilby_pool context instead."
                 )
         initialize_global_variables(
             likelihood=self.likelihood,
