@@ -318,6 +318,10 @@ class TestConditionalPriorDict(unittest.TestCase):
             condition_func=condition_func, minimum=1, maximum=2, alpha=-2
         )
         print(priors.sample(2))
+        for prior in priors.values():
+            # verify the least recently sampled includes works for scalar
+            # only condition functions
+            self.assertEqual(prior.least_recently_sampled.shape, (2,))
 
     def test_rescale(self):
         self.conditional_priors = bilby.core.prior.ConditionalPriorDict(
