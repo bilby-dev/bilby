@@ -809,6 +809,7 @@ class ConditionalPriorDict(PriorDict):
                             key: value[i] for key, value in required_variables.items()
                         }
                         samples[key][i] = subset_dict[key].sample(**rvars, random_state=random_state)
+                    subset_dict[key].least_recently_sampled = samples[key]
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
