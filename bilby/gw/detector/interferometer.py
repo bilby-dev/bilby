@@ -366,7 +366,8 @@ class Interferometer(object):
 
         return signal_ifo
 
-    def check_signal_duration(self, parameters, raise_error=True):
+    def check_signal_duration(self, parameters, raise_error=True,
+                               waveform_generator=None):
         """ Check that the signal with the given parameters fits in the data
 
         Parameters
@@ -376,9 +377,13 @@ class Interferometer(object):
         raise_error: bool
             If True, raise an error in the signal does not fit. Otherwise, print
             a warning message.
+        waveform_generator: bilby.gw.waveform_generator.WaveformGenerator, optional
+            Waveform generator supplied to inject_signal; its waveform_arguments
+            are passed through generate_all_bbh_parameters.
         """
         try:
-            parameters = generate_all_bbh_parameters(parameters)
+            parameters = generate_all_bbh_parameters(
+                parameters, waveform_generator=waveform_generator)
         except AttributeError:
             logger.debug(
                 "generate_all_bbh_parameters parameters failed during check_signal_duration"
@@ -445,7 +450,8 @@ class Interferometer(object):
             if it was passed in. Otherwise it is the return value of waveform_generator.frequency_domain_strain().
 
         """
-        self.check_signal_duration(parameters, raise_error)
+        self.check_signal_duration(
+            parameters, raise_error, waveform_generator=waveform_generator)
 
         if injection_polarizations is None and waveform_generator is None:
             raise ValueError(

@@ -1633,15 +1633,22 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
 
 
 def _generate_all_cbc_parameters(sample, defaults, base_conversion,
-                                 likelihood=None, priors=None, npool=1):
+                                 likelihood=None, priors=None, npool=1,
+                                 waveform_generator=None):
     """Generate all cbc parameters, helper function for BBH/BNS"""
     output_sample = sample.copy()
 
     waveform_defaults = defaults
+    generator = waveform_generator
+    if generator is None:
+        try:
+            generator = likelihood.waveform_generator
+        except AttributeError:
+            generator = None
     for key in waveform_defaults:
         try:
             output_sample[key] = \
-                likelihood.waveform_generator.waveform_arguments[key]
+                generator.waveform_arguments[key]
         except (KeyError, AttributeError):
             default = waveform_defaults[key]
             output_sample[key] = default
@@ -1720,7 +1727,8 @@ def _generate_all_cbc_parameters(sample, defaults, base_conversion,
     return output_sample
 
 
-def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
+def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1,
+                                waveform_generator=None):
     """
     From either a single sample or a set of samples fill in all missing
     BBH parameters, in place.
@@ -1735,6 +1743,9 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+    waveform_generator: bilby.gw.waveform_generator.WaveformGenerator, optional
+        Waveform generator whose waveform_arguments occupy the conversion
+        when no likelihood is supplied.
     """
     waveform_defaults = {
         'reference_frequency': 50.0, 'waveform_approximant': 'IMRPhenomPv2',
@@ -1742,11 +1753,13 @@ def generate_all_bbh_parameters(sample, likelihood=None, priors=None, npool=1):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_black_hole_parameters,
-        likelihood=likelihood, priors=priors, npool=npool)
+        likelihood=likelihood, priors=priors, npool=npool,
+        waveform_generator=waveform_generator)
     return output_sample
 
 
-def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
+def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1,
+                                waveform_generator=None):
     """
     From either a single sample or a set of samples fill in all missing
     BNS parameters, in place.
@@ -1773,7 +1786,8 @@ def generate_all_bns_parameters(sample, likelihood=None, priors=None, npool=1):
     output_sample = _generate_all_cbc_parameters(
         sample, defaults=waveform_defaults,
         base_conversion=convert_to_lal_binary_neutron_star_parameters,
-        likelihood=likelihood, priors=priors, npool=npool)
+        likelihood=likelihood, priors=priors, npool=npool,
+        waveform_generator=waveform_generator)
     try:
         output_sample = generate_tidal_parameters(output_sample)
     except KeyError as e:
