@@ -22,18 +22,31 @@ class _WaveformGeneratorWrapper:
     """
 
     def __init__(self, waveform_generator, update_basis):
-        object.__setattr__(self, '_wrapped', waveform_generator)
-        object.__setattr__(self, '_update_basis', update_basis)
+        self._wrapped = waveform_generator
+        self._update_basis = update_basis
 
     def frequency_domain_strain(self, parameters=None, **kwargs):
         self._update_basis(parameters)
         return self._wrapped.frequency_domain_strain(parameters, **kwargs)
 
+    def __setstate__(self, d):
+        # since we overrode __setattr__ just doing self.__dict__ = d
+        # won't work
+        for k, v in d.items():
+            setattr(self, k, v)
+
     def __getattr__(self, name):
         return getattr(self._wrapped, name)
 
     def __setattr__(self, name, value):
-        setattr(self._wrapped, name, value)
+        if name in ["_wrapped", "_update_basis"]:
+            object.__setattr__(self, name, value)
+        elif not hasattr(self, "_wrapped"):
+            raise AttributeError(
+                "ROQ waveform generator wrapper not properly initialized"
+            )
+        else:
+            setattr(self._wrapped, name, value)
 
 
 class ROQGravitationalWaveTransient(GravitationalWaveTransient):
