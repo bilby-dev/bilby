@@ -586,9 +586,9 @@ class Interferometer(object):
         =======
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self.geometry.latitude_radians,
-                                                      self.geometry.longitude_radians,
-                                                      self.geometry.elevation)
+        return gwutils.get_vertex_position_geocentric(np.array([self.geometry.latitude_radians,
+                                                                self.geometry.longitude_radians,
+                                                                self.geometry.elevation]))
 
     def optimal_snr_squared(self, signal):
         """
