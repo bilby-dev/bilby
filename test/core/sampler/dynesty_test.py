@@ -444,6 +444,53 @@ class TestEstimateNMCMC(unittest.TestCase):
             self.assertAlmostEqual(estimated, expected)
 
 
+class TestACTTracking(TestDynesty):
+    def test_triggers_rebuild_when_all_processes_empty(self):
+        sampler = dynesty_utils.ACTTrackingEnsembleWalk(queue_size=4)
+        sampler.sampler_kwargs["rebuild"] = 0
+        for _ in range(sampler.queue_size):
+            sampler.tune(dict(remaining=0, accept=0.5, act=1))
+        args = sampler.prepare_sampler(
+            loglstar=0,
+            points=np.zeros((2, 4)),
+            axes=np.zeros((2, 2)),
+            seeds=np.zeros((2,)),
+            nested_sampler=self.dysampler,
+        )
+        for arg in args:
+            self.assertTrue(arg.kwargs["rebuild"])
+
+    def test_does_not_trigger_rebuild_when_not_all_processes_empty(self):
+        sampler = dynesty_utils.ACTTrackingEnsembleWalk(queue_size=4)
+        sampler.sampler_kwargs["rebuild"] = 0
+        for _ in range(sampler.queue_size - 1):
+            sampler.tune(dict(remaining=0, accept=0.5, act=1))
+        args = sampler.prepare_sampler(
+            loglstar=0,
+            points=np.zeros((2, 4)),
+            axes=np.zeros((2, 2)),
+            seeds=np.zeros((2,)),
+            nested_sampler=self.dysampler,
+        )
+        for arg in args:
+            self.assertFalse(arg.kwargs["rebuild"])
+
+    def test_does_not_rebuild_when_not_all_processes_empty(self):
+        dynesty_utils.ACTTrackingEnsembleWalk._enforce_no_rebuilds = True
+        sampler = dynesty_utils.ACTTrackingEnsembleWalk(queue_size=4)
+        args = sampler.prepare_sampler(
+            loglstar=0,
+            points=np.zeros((2, 4)),
+            axes=np.zeros((2, 2)),
+            seeds=np.zeros((2,)),
+            nested_sampler=self.dysampler,
+        )
+        dynesty_utils.ACTTrackingEnsembleWalk._cache.append(1)
+        args[0].kwargs["rebuild"] = True
+        with self.assertRaises(bilby.core.sampler.base_sampler.SamplerError):
+            sampler.sample(args[0])
+
+
 class TestReproducibility(unittest.TestCase):
 
     @staticmethod

@@ -260,6 +260,7 @@ class Dynesty(NestedSampler):
 
         if kwargs["sample"] == "act-walk":
             internal_kwargs["nact"] = self.nact
+            internal_kwargs["queue_size"] = self.kwargs["queue_size"]
             internal_sampler = dynesty_utils.ACTTrackingEnsembleWalk(**internal_kwargs)
             bound = "none"
             logger.info(
