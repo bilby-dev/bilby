@@ -365,9 +365,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
                     cache.clear()
             ACTTrackingEnsembleWalk.build_cache(args)
         elif len(cache) == 0:
-            logger.debug(
-                "Cache is empty, returning a random point"
-            )
+            logger.debug("Cache is empty, returning a random point")
             u = get_random_generator(args.rseed).uniform(size=len(args.u))
             v = args.prior_transform(u)
             logl = args.loglikelihood(v)
