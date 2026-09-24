@@ -260,7 +260,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     # when True, an exception is raised
     _enforce_no_rebuilds = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, queue_size, **kwargs):
         super().__init__(**kwargs)
         self.act = 1
         self.thin = kwargs.get("nact", 2)
@@ -269,7 +269,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["thin"] = self.thin
         self.sampler_kwargs["act"] = self.act
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
-        self.queue_size = kwargs["queue_size"]
+        self.queue_size = queue_size if queue_size is not None else 1
         # reset the cache at instantiation to avoid contamination from
         # previous analyses
         self.__class__._cache = list()

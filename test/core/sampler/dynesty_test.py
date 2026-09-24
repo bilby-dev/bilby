@@ -420,7 +420,7 @@ class ProposalsTest(unittest.TestCase):
             args.kwargs["proposals"] = proposals
             dynesty_utils.EnsembleWalkSampler().sample(args)
             dynesty_utils.AcceptanceTrackingRWalk().sample(args)
-            dynesty_utils.ACTTrackingEnsembleWalk().sample(args)
+            dynesty_utils.ACTTrackingEnsembleWalk(queue_size=None).sample(args)
 
 
 class TestEstimateNMCMC(unittest.TestCase):
