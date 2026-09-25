@@ -42,7 +42,7 @@ class Test(unittest.TestCase):
         bilby.core.utils.random.seed(8817021)
 
         waveform_arguments = dict(
-            waveform_approximant="IMRPhenomPv2",
+            waveform_approximant="IMRPhenomXPHM",
             reference_frequency=50.0,
             minimum_frequency=20.0,
         )
