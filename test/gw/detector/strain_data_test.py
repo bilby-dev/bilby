@@ -3,8 +3,15 @@ from unittest import mock
 
 import numpy as np
 import scipy.signal
+from gwpy.timeseries import TimeSeries
 
 import bilby
+from bilby.gw.detector.strain_data import (
+    find_and_read_data,
+    resample_timeseries,
+    resample_with_gwpy,
+    resample_with_lal,
+)
 
 
 class TestInterferometerStrainData(unittest.TestCase):
@@ -418,6 +425,133 @@ class TestNotchList(unittest.TestCase):
             bilby.gw.detector.strain_data.NotchList([(30, 20), (20)])
         with self.assertRaises(ValueError):
             bilby.gw.detector.strain_data.NotchList([(30, 20, 20)])
+
+
+class TestResampling(unittest.TestCase):
+    def setUp(self):
+        self.sampling_frequency = 512
+        self.data = TimeSeries(
+            np.random.normal(0, 1, self.sampling_frequency * 4),
+            sample_rate=self.sampling_frequency,
+            epoch=0,
+        )
+
+    def test_resample_with_gwpy(self):
+        new_data = resample_with_gwpy(self.data, self.sampling_frequency / 2)
+        self.assertIsInstance(new_data, TimeSeries)
+        self.assertEqual(new_data.sample_rate.value, self.sampling_frequency / 2)
+
+    def test_resample_with_lal(self):
+        new_data = resample_with_lal(self.data, self.sampling_frequency / 2)
+        self.assertIsInstance(new_data, TimeSeries)
+        self.assertEqual(new_data.sample_rate.value, self.sampling_frequency / 2)
+
+    def test_resample_with_lal_unsupported_kwargs(self):
+        with self.assertRaises(ValueError):
+            resample_with_lal(self.data, self.sampling_frequency / 2, window="hann")
+
+    def test_resample_timeseries_same_rate(self):
+        new_data = resample_timeseries(self.data, self.sampling_frequency)
+        self.assertIsNot(new_data, self.data)
+        self.assertTrue(np.array_equal(new_data.value, self.data.value))
+
+    def test_resample_timeseries_lal(self):
+        new_data = resample_timeseries(
+            self.data, self.sampling_frequency / 2, resampling_method="lal"
+        )
+        self.assertEqual(new_data.sample_rate.value, self.sampling_frequency / 2)
+
+    def test_resample_timeseries_gwpy(self):
+        new_data = resample_timeseries(
+            self.data, self.sampling_frequency / 2, resampling_method="gwpy"
+        )
+        self.assertEqual(new_data.sample_rate.value, self.sampling_frequency / 2)
+
+    def test_resample_timeseries_kwargs_passed_through(self):
+        new_data = resample_timeseries(
+            self.data,
+            self.sampling_frequency / 2,
+            resampling_method="gwpy",
+            window="hann",
+        )
+        self.assertEqual(new_data.sample_rate.value, self.sampling_frequency / 2)
+
+    def test_resample_timeseries_invalid_method(self):
+        with self.assertRaises(ValueError):
+            resample_timeseries(
+                self.data, self.sampling_frequency / 2, resampling_method="not-a-method"
+            )
+
+
+class TestFindAndReadData(unittest.TestCase):
+    def setUp(self):
+        self.start = 0
+        self.end = 4
+        self.ifo = "H1"
+        self.frametype = "HOFT_C00_AR"
+        self.channel = "GDS-CALIB_STRAIN_AR"
+        self.sampling_frequency = 512
+        self.data = TimeSeries(
+            np.random.normal(0, 1, self.sampling_frequency * 4),
+            sample_rate=self.sampling_frequency,
+            epoch=self.start,
+        )
+
+    @mock.patch("gwdatafind.find_urls")
+    @mock.patch("gwpy.timeseries.TimeSeries.read")
+    def test_find_and_read_data(self, mock_read, mock_find_urls):
+        mock_find_urls.return_value = ["file://fake/H-H1_HOFT_C00_AR-0-4.gwf"]
+        mock_read.return_value = self.data
+
+        data = find_and_read_data(
+            self.start, self.end, self.ifo, self.frametype, self.channel,
+            sampling_frequency=self.sampling_frequency,
+        )
+
+        mock_find_urls.assert_called_once_with(
+            "H", f"{self.ifo}_{self.frametype}", self.start, self.end
+        )
+        mock_read.assert_called_once_with(
+            mock_find_urls.return_value,
+            f"{self.ifo}:{self.channel}",
+            start=self.start,
+            end=self.end,
+        )
+        self.assertEqual(data.sample_rate.value, self.sampling_frequency)
+
+    @mock.patch("gwdatafind.find_urls")
+    def test_find_and_read_data_no_urls_raises(self, mock_find_urls):
+        mock_find_urls.return_value = []
+        with self.assertRaises(ValueError):
+            find_and_read_data(
+                self.start, self.end, self.ifo, self.frametype, self.channel,
+                sampling_frequency=self.sampling_frequency,
+            )
+
+    @mock.patch("gwdatafind.find_urls")
+    @mock.patch("gwpy.timeseries.TimeSeries.read")
+    def test_find_and_read_data_resamples(self, mock_read, mock_find_urls):
+        mock_find_urls.return_value = ["file://fake/H-H1_HOFT_C00_AR-0-4.gwf"]
+        mock_read.return_value = self.data
+
+        data = find_and_read_data(
+            self.start, self.end, self.ifo, self.frametype, self.channel,
+            sampling_frequency=self.sampling_frequency / 2,
+        )
+
+        self.assertEqual(data.sample_rate.value, self.sampling_frequency / 2)
+
+    @mock.patch("gwdatafind.find_urls")
+    @mock.patch("gwpy.timeseries.TimeSeries.read")
+    def test_find_and_read_data_no_sampling_frequency_skips_resampling(self, mock_read, mock_find_urls):
+        mock_find_urls.return_value = ["file://fake/H-H1_HOFT_C00_AR-0-4.gwf"]
+        mock_read.return_value = self.data
+
+        data = find_and_read_data(
+            self.start, self.end, self.ifo, self.frametype, self.channel,
+        )
+
+        self.assertEqual(data.sample_rate.value, self.sampling_frequency)
 
 
 if __name__ == "__main__":

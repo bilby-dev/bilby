@@ -869,3 +869,166 @@ class NotchList(list):
             if notch.check_frequency(freq):
                 return True
         return False
+
+
+def resample_with_gwpy(data, sampling_frequency, **kwargs):
+    """
+    Resample a GWPy TimeSeries to a new sampling frequency.
+
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+    **kwargs:
+        Additional keyword arguments passed to `gwpy.timeseries.TimeSeries.resample`.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    """
+    return data.resample(sampling_frequency, **kwargs)
+
+
+def resample_with_lal(data, sampling_frequency, **kwargs):
+    """
+    Resample a GWPy TimeSeries using LAL's ResampleREAL8TimeSeries function.
+
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+    **kwargs:
+        Not used, present for interface compatibility with `resample_with_gwpy`.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    """
+    if kwargs:
+        raise ValueError(f"resample_with_lal does not support additional kwargs: {kwargs}")
+    try:
+        import lal
+        from gwpy.timeseries import TimeSeries
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Cannot resample with lal: lal and gwpy are required")
+    lal_timeseries = data.to_lal()
+    lal.ResampleREAL8TimeSeries(
+        lal_timeseries, float(1 / sampling_frequency)
+    )
+    return TimeSeries(
+        lal_timeseries.data.data,
+        epoch=lal_timeseries.epoch,
+        dt=lal_timeseries.deltaT,
+    )
+
+
+RESAMPLING_FUNCTIONS = dict(
+    gwpy=resample_with_gwpy,
+    lal=resample_with_lal
+)
+
+
+def resample_timeseries(data, sampling_frequency, resampling_method="lal", **kwargs):
+    """
+    Resample a time series to a specified sampling frequency using a chosen method.
+
+    Parameters:
+    ----------
+    data : gwpy.timeseries.TimeSeries
+        The input time series data to be resampled.
+    sampling_frequency : float
+        The target sampling frequency (Hz) for resampling.
+    resampling_method : str, optional
+        The resampling method to use. Defaults to "lal".
+        Must be one of the methods defined in
+        `bilby.gw.detector.strain_data.RESAMPLING_FUNCTIONS`.
+    **kwargs:
+        Additional keyword arguments passed to the chosen resampling function.
+
+    Returns:
+    -------
+    gwpy.timeseries.TimeSeries
+        A new TimeSeries object resampled to the desired frequency.
+
+    Raises:
+    ------
+    ValueError
+        If the specified resampling method is not implemented.
+
+    """
+    if data.sample_rate.value == sampling_frequency:
+        logger.info("Sample rate matches data no resampling")
+        return data.copy()
+    elif resampling_method in RESAMPLING_FUNCTIONS:
+        logger.info(f"Resampling data to sampling_frequency {sampling_frequency} using {resampling_method}")
+        return RESAMPLING_FUNCTIONS[resampling_method](data, sampling_frequency, **kwargs)
+    else:
+        raise ValueError(f"Resampling method {resampling_method} not implemented")
+
+
+def find_and_read_data(start, end, ifo, frametype, channel, find_url_kwargs=None, read_kwargs=None,
+                       sampling_frequency=None, resampling_method="lal", resample_kwargs=None,
+                       dtype="float64"):
+    """
+    Find data using gw_data_find and then read it with gwpy. This assumes the data
+    exists on the provided host. Usually this is locally.
+
+    Parameters
+    ----------
+    start, end: float
+        The GPS start and end time
+    ifo: str
+        The detector to use, e.g. "H1", "L1", "V1", "K1", "A1"
+    frametype: str
+        The frametype to search for: not including the prepended detector name, e.g. "HOFT_C00_AR"
+    channel: str
+        The channel within the frame to read: not including the detector name, e.g. "GDS-CALIB_STRAIN_AR"
+    find_url_kwargs: dict
+        A dictionary of kwargs to pass to `gwdatafind.find_urls()`
+    read_kwargs: dict
+        A dictionary of kwargs to pass to `gwpy.timeseries.TimeSeries.read()`
+    sampling_frequency: float, optional
+        The target sampling frequency (Hz) to resample the data to. If not
+        given (default), no resampling is performed.
+    resample_kwargs: dict
+        A dictionary of kwargs to pass to the resampling function, see
+        `bilby.gw.detector.strain_data.resample_timeseries`.
+
+    Returns
+    -------
+    data: gwpy.timeseries.TimeSeries
+        The gwpy timeseries of the data
+
+    """
+    try:
+        from gwpy.timeseries import TimeSeries
+        from gwdatafind import find_urls
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Cannot find and read data: gwpy and gwdatafind are required")
+
+    find_url_kwargs = find_url_kwargs or dict()
+    read_kwargs = read_kwargs or dict()
+    resample_kwargs = resample_kwargs or dict()
+
+    frametype_with_ifo = f"{ifo}_{frametype}"
+    channel_with_ifo = f"{ifo}:{channel}"
+    single_letter_ifo = ifo[0]
+
+    urls = find_urls(single_letter_ifo, frametype_with_ifo, start, end, **find_url_kwargs)
+
+    if len(urls) == 0:
+        raise ValueError(f"No data found for {ifo} {frametype} {start} {end}")
+
+    type_kwargs = dict(dtype=dtype, subok=True, copy=False)
+    data = TimeSeries.read(urls, channel_with_ifo, start=start, end=end, **read_kwargs).astype(**type_kwargs)
+    if sampling_frequency is not None:
+        data = resample_timeseries(data, sampling_frequency, resampling_method, **resample_kwargs)
+    return data
