@@ -318,10 +318,10 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             List of `SamplerArgument` objects containing the parameters
             needed for sampling.
         """
-        logger.debug(f"Rebuild check: {self.sampler_kwargs["rebuild"]} {self.nparallel}")
-        self.sampler_kwargs["rebuild"] = (
-            self.sampler_kwargs["rebuild"] == self.nparallel
-        )
+        logger.debug("Rebuild check: {} {}".format(
+            self.sampler_kwargs["rebuild"], self.nparallel
+        ))
+        self.sampler_kwargs["rebuild"] = self.sampler_kwargs["rebuild"] == self.nparallel
         arg_list = super().prepare_sampler(
             loglstar=loglstar,
             points=points,
@@ -394,7 +394,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             current_u, current_v, logl, ncall, blob, evaluation_history = cache.pop(0)
 
         blob["remaining"] = len(cache)
-        logger.debug(f"Returning point from cache with {len(cache)} remaining")
+        logger.debug("Returning point from cache with {} remaining".format(len(cache)))
         return SamplerReturn(
             u=current_u,
             v=current_v,
