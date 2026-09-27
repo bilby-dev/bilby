@@ -260,7 +260,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     # when True, an exception is raised
     _enforce_no_rebuilds = False
 
-    def __init__(self, *, queue_size, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.act = 1
         self.thin = kwargs.get("nact", 2)
@@ -269,7 +269,8 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["thin"] = self.thin
         self.sampler_kwargs["act"] = self.act
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
-        self.queue_size = queue_size if queue_size is not None else 1
+        queue_size = kwargs.get("queue_size", None)
+        self.nparallel = queue_size if queue_size is not None else 1
         # reset the cache at instantiation to avoid contamination from
         # previous analyses
         self.__class__._cache = list()
@@ -317,8 +318,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             List of `SamplerArgument` objects containing the parameters
             needed for sampling.
         """
+        logger.debug(f"Rebuild check: {self.sampler_kwargs["rebuild"]} {self.nparallel}")
         self.sampler_kwargs["rebuild"] = (
-            self.sampler_kwargs["rebuild"] == self.queue_size
+            self.sampler_kwargs["rebuild"] == self.nparallel
         )
         arg_list = super().prepare_sampler(
             loglstar=loglstar,
@@ -364,6 +366,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
                     logger.warning(message)
                     cache.clear()
             ACTTrackingEnsembleWalk.build_cache(args)
+            logger.debug("Rebuilding cache")
         elif len(cache) == 0:
             logger.debug("Cache is empty, returning a random point")
             u = get_random_generator(args.rseed).uniform(size=len(args.u))
@@ -753,7 +756,7 @@ def _get_proposal_kwargs(args):
 
     The steps involved are:
 
-    - extract the requested proposal types from the kwargs passed through from dynesty.
+    - extract the requested proposal types from the :code:`_SamplingContainer`.
       If none are specified, only differential evolution will be used.
     - differential evolution requires the live points to be passed. If they are
       not present, raise an error.
