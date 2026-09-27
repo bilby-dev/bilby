@@ -318,10 +318,14 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             List of `SamplerArgument` objects containing the parameters
             needed for sampling.
         """
-        logger.debug("Rebuild check: {} {}".format(
-            self.sampler_kwargs["rebuild"], self.nparallel
-        ))
-        self.sampler_kwargs["rebuild"] = self.sampler_kwargs["rebuild"] == self.nparallel
+        logger.debug(
+            "Rebuild check: {} {}".format(
+                self.sampler_kwargs["rebuild"], self.nparallel
+            )
+        )
+        self.sampler_kwargs["rebuild"] = (
+            self.sampler_kwargs["rebuild"] == self.nparallel
+        )
         arg_list = super().prepare_sampler(
             loglstar=loglstar,
             points=points,

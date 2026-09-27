@@ -448,7 +448,7 @@ class TestACTTracking(TestDynesty):
     def test_triggers_rebuild_when_all_processes_empty(self):
         sampler = dynesty_utils.ACTTrackingEnsembleWalk(queue_size=4)
         sampler.sampler_kwargs["rebuild"] = 0
-        for _ in range(sampler.queue_size):
+        for _ in range(sampler.nparallel):
             sampler.tune(dict(remaining=0, accept=0.5, act=1))
         args = sampler.prepare_sampler(
             loglstar=0,
@@ -463,7 +463,7 @@ class TestACTTracking(TestDynesty):
     def test_does_not_trigger_rebuild_when_not_all_processes_empty(self):
         sampler = dynesty_utils.ACTTrackingEnsembleWalk(queue_size=4)
         sampler.sampler_kwargs["rebuild"] = 0
-        for _ in range(sampler.queue_size - 1):
+        for _ in range(sampler.nparallel - 1):
             sampler.tune(dict(remaining=0, accept=0.5, act=1))
         args = sampler.prepare_sampler(
             loglstar=0,
