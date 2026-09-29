@@ -410,6 +410,7 @@ class ProposalsTest(unittest.TestCase):
         args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
         args.live_points[0] += 1
         args.kwargs["ncdim"] = 2
+        args.kwargs["target"] = 1
         # args.kwargs["live"][0] += 1
         for proposals in [
             ["diff"],
