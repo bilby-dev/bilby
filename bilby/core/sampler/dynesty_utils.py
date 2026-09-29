@@ -4,6 +4,7 @@ from collections import namedtuple
 import numpy as np
 from dynesty.internal_samplers import InternalSampler, SamplerReturn
 from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generator
+from scipy.stats import binom
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
