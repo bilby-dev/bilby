@@ -2,6 +2,7 @@ import numpy as np
 from ..geometry import calculate_arm, detector_tensor
 
 from .. import utils as gwutils
+from ...compat.utils import array_module
 
 
 class InterferometerGeometry(object):
@@ -207,8 +208,11 @@ class InterferometerGeometry(object):
         =======
         array_like: A 3D array representation of the vertex
         """
+
+        xp = self.array_backend
+
         if not self._vertex_updated:
-            self._vertex = gwutils.get_vertex_position_geocentric(np.array([self._latitude, self._longitude,
+            self._vertex = gwutils.get_vertex_position_geocentric(xp.array([self._latitude, self._longitude,
                                                                   self.elevation]))
             self._vertex_updated = True
         return self._vertex
@@ -314,3 +318,7 @@ class InterferometerGeometry(object):
         self.yarm_azimuth = xp.asarray(self.yarm_azimuth)
         self.xarm_tilt = xp.asarray(self.xarm_tilt)
         self.yarm_tilt = xp.asarray(self.yarm_tilt)
+
+    @property
+    def array_backend(self):
+        return array_module(self.length)

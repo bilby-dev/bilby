@@ -1,9 +1,9 @@
 import os
 
-import numpy as np
 import math
 from scipy.spatial.transform import Rotation
 
+from ...compat.utils import xp_wrap
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
 from ..geometry import zenith_azimuth_to_theta_phi
@@ -402,7 +402,8 @@ class TriangularInterferometer(InterferometerList):
             latitude, longitude, elevation, xarm_azimuth, \
                 yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
 
-    def _get_next_vertex_parameters(self, current_index):
+    @xp_wrap
+    def _get_next_vertex_parameters(self, current_index, *, xp):
         """
         Get the parameters for the next vertex (counterclockwise) in the triangular interferometer.
         The location of the next vertex is calculated by moving along the x-arm of the current
@@ -439,41 +440,41 @@ class TriangularInterferometer(InterferometerList):
         unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
         unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
 
-        vertex_geocentric = get_vertex_position_geocentric(np.array([current_ifo.latitude_radians,
+        vertex_geocentric = get_vertex_position_geocentric(xp.array([current_ifo.latitude_radians,
                                                                      current_ifo.longitude_radians,
                                                                      current_ifo.elevation]))
         next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
         next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
         next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
 
-        rotation_vector = np.cross(unit_vector_x, unit_vector_y)
-        rotation_vector /= np.linalg.norm(rotation_vector)
-        rotation_angle = 2 / 3 * np.pi
+        rotation_vector = xp.cross(unit_vector_x, unit_vector_y)
+        rotation_vector /= xp.linalg.norm(rotation_vector)
+        rotation_angle = 2 / 3 * xp.pi
         rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
         next_unit_vector_x = rotation.apply(unit_vector_x)
         next_unit_vector_y = rotation.apply(unit_vector_y)
 
-        next_local_normal_vector = np.array([np.cos(next_latitude_rad) * np.cos(next_longitude_rad),
-                                             np.cos(next_latitude_rad) * np.sin(next_longitude_rad),
-                                             np.sin(next_latitude_rad)])
-        next_local_north_vector = np.array([-np.sin(next_latitude_rad) * np.cos(next_longitude_rad),
-                                            -np.sin(next_latitude_rad) * np.sin(next_longitude_rad),
-                                            np.cos(next_latitude_rad)])
-        next_local_east_vector = np.array([-np.sin(next_longitude_rad),
-                                           np.cos(next_longitude_rad), 0])
+        next_local_normal_vector = xp.array([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                             xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                             xp.sin(next_latitude_rad)])
+        next_local_north_vector = xp.array([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                            -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                            xp.cos(next_latitude_rad)])
+        next_local_east_vector = xp.array([-xp.sin(next_longitude_rad),
+                                           xp.cos(next_longitude_rad), 0])
 
-        next_xarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_x, next_local_normal_vector))
-        next_yarm_tilt_rad = np.arcsin(np.dot(next_unit_vector_y, next_local_normal_vector))
-        next_xarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_x, next_local_north_vector),
-                                           np.dot(next_unit_vector_x, next_local_east_vector))
-        next_yarm_azimuth_rad = np.arctan2(np.dot(next_unit_vector_y, next_local_north_vector),
-                                           np.dot(next_unit_vector_y, next_local_east_vector))
+        next_xarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_x, next_local_normal_vector))
+        next_yarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_y, next_local_normal_vector))
+        next_xarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_x, next_local_north_vector),
+                                           xp.dot(next_unit_vector_x, next_local_east_vector))
+        next_yarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_y, next_local_north_vector),
+                                           xp.dot(next_unit_vector_y, next_local_east_vector))
 
-        return (np.rad2deg(next_latitude_rad),
-                np.rad2deg(next_longitude_rad),
+        return (xp.rad2deg(next_latitude_rad),
+                xp.rad2deg(next_longitude_rad),
                 next_elevation,
-                np.rad2deg(next_xarm_azimuth_rad),
-                np.rad2deg(next_yarm_azimuth_rad),
+                xp.rad2deg(next_xarm_azimuth_rad),
+                xp.rad2deg(next_yarm_azimuth_rad),
                 next_xarm_tilt_rad,
                 next_yarm_tilt_rad)
 

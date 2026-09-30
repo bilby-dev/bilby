@@ -945,4 +945,4 @@ class Interferometer(object):
 
     @property
     def array_backend(self):
-        return array_module(self.geometry.length)
+        return self.geometry.array_backend

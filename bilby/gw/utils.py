@@ -118,20 +118,20 @@ def get_vertex_position_ellipsoid(position, *, xp=None):
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
 
-    r = np.sqrt(position[0] ** 2 + position[1] ** 2)
+    r = xp.sqrt(position[0] ** 2 + position[1] ** 2)
     E = (semi_minor_axis * position[2] - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
     F = (semi_minor_axis * position[2] + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
     P = 4 / 3 * (E * F + 1)
     Q = 2 * (E ** 2 - F ** 2)
     D = P ** 3 + Q ** 2
-    v = (np.sqrt(D) - Q) ** (1 / 3) - (np.sqrt(D) + Q) ** (1 / 3)
+    v = (xp.sqrt(D) - Q) ** (1 / 3) - (xp.sqrt(D) + Q) ** (1 / 3)
 
     # Calculate solution in first quadrant and then adjust based on the sign of the original z_comp
-    G = 1 / 2 * (np.sqrt(E ** 2 + v) + E)
-    t = np.sqrt(G ** 2 + (F - v * G) / (2 * G - E)) - G
-    latitude = np.sign(position[2]) * np.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
-    longitude = np.arctan2(position[1], position[0])
-    elevation = (r - semi_major_axis * t) * np.cos(latitude) + (position[2] - semi_minor_axis) * np.sin(latitude)
+    G = 1 / 2 * (xp.sqrt(E ** 2 + v) + E)
+    t = xp.sqrt(G ** 2 + (F - v * G) / (2 * G - E)) - G
+    latitude = xp.sign(position[2]) * xp.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
+    longitude = xp.arctan2(position[1], position[0])
+    elevation = (r - semi_major_axis * t) * xp.cos(latitude) + (position[2] - semi_minor_axis) * xp.sin(latitude)
 
     return xp.asarray([latitude, longitude, elevation])
 
