@@ -278,8 +278,8 @@ class TestGWUtils(unittest.TestCase):
             )
 
     def test_get_vertex_position_geocentric_ellipsoid_conversion(self):
-        latitude_true = np.deg2rad(46 + 27. / 60 + 18.528 / 3600)
-        longitude_true = np.deg2rad(-(119 + 24. / 60 + 27.5657 / 3600))
+        latitude_true = self.xp.deg2rad(46 + 27. / 60 + 18.528 / 3600)
+        longitude_true = self.xp.deg2rad(-(119 + 24. / 60 + 27.5657 / 3600))
         elevation_true = 142.554
         vertex = gwutils.get_vertex_position_geocentric(
             self.xp.asarray([latitude_true, longitude_true, elevation_true]))
