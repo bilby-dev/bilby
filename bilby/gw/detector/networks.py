@@ -345,13 +345,14 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
-    def set_array_backend(self, xp):
-        for ifo in self:
-            ifo.set_array_backend(xp)
-
     @property
     def array_backend(self):
         return self[0].array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        for ifo in self:
+            ifo.array_backend = xp
 
 
 class TriangularInterferometer(InterferometerList):

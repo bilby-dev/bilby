@@ -47,7 +47,7 @@ class TestMBLikelihood(unittest.TestCase):
         )
         for ifo in self.ifos:
             ifo.minimum_frequency = self.fmin
-        self.ifos.set_array_backend(self.xp)
+        self.ifos.array_backend = self.xp
 
         spline_calibration_nodes = 10
         self.calibration_parameters = {}

@@ -309,7 +309,12 @@ class InterferometerGeometry(object):
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")
 
-    def set_array_backend(self, xp):
+    @property
+    def array_backend(self):
+        return array_module(self.length)
+
+    @array_backend.setter
+    def array_backend(self, xp):
         self.length = xp.asarray(self.length)
         self.latitude = xp.asarray(self.latitude)
         self.longitude = xp.asarray(self.longitude)
@@ -318,7 +323,3 @@ class InterferometerGeometry(object):
         self.yarm_azimuth = xp.asarray(self.yarm_azimuth)
         self.xarm_tilt = xp.asarray(self.xarm_tilt)
         self.yarm_tilt = xp.asarray(self.yarm_tilt)
-
-    @property
-    def array_backend(self):
-        return array_module(self.length)

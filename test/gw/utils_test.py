@@ -333,7 +333,7 @@ class TestSkyFrameConversion(unittest.TestCase):
         zenith = self.xp.asarray(sample["zenith"])
         azimuth = self.xp.asarray(sample["azimuth"])
         time = self.xp.asarray(sample["time"])
-        self.ifos.set_array_backend(self.xp)
+        self.ifos.array_backend = self.xp
         ra, dec = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zenith, azimuth, time, self.ifos
         )
@@ -344,7 +344,7 @@ class TestSkyFrameConversion(unittest.TestCase):
         zeniths = self.xp.asarray(self.samples["zenith"])
         azimuths = self.xp.asarray(self.samples["azimuth"])
         times = self.xp.asarray(self.samples["time"])
-        self.ifos.set_array_backend(self.xp)
+        self.ifos.array_backend = self.xp
         ras, decs = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zeniths, azimuths, times, self.ifos
         )

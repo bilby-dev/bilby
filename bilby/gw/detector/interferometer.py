@@ -941,10 +941,11 @@ class Interferometer(object):
             raise TypeError('The loaded object is not an Interferometer')
         return res
 
-    def set_array_backend(self, xp):
-        self.geometry.set_array_backend(xp=xp)
-        self.power_spectral_density.set_array_backend(xp=xp)
-
     @property
     def array_backend(self):
         return self.geometry.array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        self.geometry.array_backend = xp
+        self.power_spectral_density.array_backend = xp

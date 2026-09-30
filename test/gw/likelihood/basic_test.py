@@ -34,7 +34,7 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.xp.asarray(2048.0), duration=self.xp.asarray(4.0)
         )
-        self.interferometers.set_array_backend(self.xp)
+        self.interferometers.array_backend = self.xp
         base_wfg = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
             duration=self.xp.asarray(4.0),
             sampling_frequency=self.xp.asarray(2048.0),
