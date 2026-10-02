@@ -987,6 +987,16 @@ class TestInterpedCumulativeDistribution(unittest.TestCase):
                 round_trip = prior.cdf(prior.rescale(quantiles))
                 self.assertLess(np.max(np.abs(round_trip - quantiles)), 1e-10)
 
+    def test_inverse_edge_cases(self):
+        """The ends of the unit interval, and quantiles that are not in it."""
+        # The last cell holds no probability, so the search for q = 1 lands in it.
+        prior = bilby.core.prior.Interped([0, 1, 2, 3], [0, 1, 0, 0], minimum=0, maximum=3)
+        self.assertEqual(prior.rescale(0), prior.minimum)
+        self.assertEqual(prior.rescale(1), prior.maximum)
+        self.assertTrue(np.isnan(prior.rescale(np.nan)))
+        with self.assertRaises(ValueError):
+            prior.rescale(1.1)
+
     def test_cdf_then_rescale_recovers_x(self):
         for n_grid, width in self.grids:
             with self.subTest(n_grid=n_grid, width=width):

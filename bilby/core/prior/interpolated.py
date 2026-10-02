@@ -1,10 +1,11 @@
+import array_api_compat as aac
 import numpy as np
 from scipy.integrate import trapezoid
 
 from .base import Prior
 from ..utils import logger
 from ..utils.calculus import interp1d
-from ...compat.utils import xp_wrap
+from ...compat.utils import array_module, xp_wrap
 
 
 class Interped(Prior):
@@ -193,9 +194,18 @@ class _PiecewiseLinearCDF:
         self.widths = np.diff(xx)
         self.slopes = np.diff(yy)  # the rise of the density across a cell, not per unit x
 
-    def _cell_index(self, val, grid):
+    def _grid(self, xp):
+        """
+        The grid in the namespace of the input, so that the methods below return the
+        kind of array they are given, as `interp1d` also converts it.
+        """
+        arrays = (self.xx, self.yy, self.YY, self.widths, self.slopes)
+        return tuple(xp.asarray(arr) for arr in arrays)
+
+    @staticmethod
+    def _cell_index(xp, grid, val):
         """The index of the cell of `grid` each value falls in, clipped to the end cells."""
-        return np.clip(np.searchsorted(grid, val, side="right") - 1, 0, len(self.xx) - 2)
+        return xp.clip(xp.searchsorted(grid, val, side="right") - 1, 0, grid.shape[0] - 2)
 
     def __call__(self, val):
         """
@@ -203,27 +213,40 @@ class _PiecewiseLinearCDF:
 
             F(x) = YY[i] + widths[i] (yy[i] u + slopes[i] u^2 / 2).
         """
-        val = np.asarray(val, dtype=float)
-        i = self._cell_index(val, self.xx)
-        u = np.clip((val - self.xx[i]) / self.widths[i], 0, 1)
-        out = self.YY[i] + self.widths[i] * u * (self.yy[i] + self.slopes[i] * u / 2)
+        xp = array_module(val)
+        val = xp.asarray(val)
+        xx, yy, YY, widths, slopes = self._grid(xp)
+        i = self._cell_index(xp, xx, val)
+        u = xp.clip((val - xx[i]) / widths[i], 0, 1)
+        out = YY[i] + widths[i] * u * (yy[i] + slopes[i] * u / 2)
         # Pin the ends: recomputing the last cell can land on 1 - eps.
-        out = np.where(val >= self.xx[-1], 1.0, out)
-        return np.where(val <= self.xx[0], 0.0, out)
+        out = xp.where(val >= xx[-1], 1.0, out)
+        return xp.where(val <= xx[0], 0.0, out)
 
     def inverse(self, val):
         """The x with F(x) = `val`, solving yy[i] u + slopes[i] u^2 / 2 = t for u."""
-        val = np.asarray(val, dtype=float)
-        i = self._cell_index(val, self.YY)  # the cell is found in the CDF, not in x
-        y_left = self.yy[i]
+        xp = array_module(val)
+        val = xp.asarray(val)
+        xx, yy, YY, widths, slopes = self._grid(xp)
+        # As the interpolation this replaces did, reject quantiles outside the unit
+        # interval, where comparing leaves any NaN to propagate instead.
+        if aac.is_numpy_namespace(xp) and xp.any((val < 0) | (val > 1)):
+            raise ValueError("A value in val is outside the unit interval [0, 1].")
+        i = self._cell_index(xp, YY, val)  # the cell is found in the CDF, not in x
+        y_left = yy[i]
         # The probability still to cover inside the cell, in units of its width.
-        t = (val - self.YY[i]) / self.widths[i]
+        t = (val - YY[i]) / widths[i]
         # Of the two roots, this one keeps its accuracy as a cell flattens (u -> t / y).
-        denominator = y_left + np.sqrt(np.maximum(y_left ** 2 + 2 * self.slopes[i] * t, 0))
-        # Zero density makes this 0 / 0: the quantile is then either exactly at the
-        # cell's left edge, or anywhere in a flat stretch of the CDF, so take u = 0.
-        u = np.divide(2 * t, denominator, out=np.zeros_like(t), where=denominator > 0)
-        return self.xx[i] + self.widths[i] * np.clip(u, 0, 1)
+        denominator = y_left + xp.sqrt(xp.maximum(y_left ** 2 + 2 * slopes[i] * t, 0))
+        # Zero density makes this 0 / 0: the CDF is flat across the cell, so every point
+        # in it has the same quantile and u = 0 will do. Dividing first, rather than
+        # masking the division, leaves a NaN quantile as NaN.
+        flat = denominator == 0
+        u = xp.where(flat, 0.0, 2 * t / xp.where(flat, 1.0, denominator))
+        out = xx[i] + widths[i] * xp.clip(u, 0, 1)
+        # A quantile of one sits at the top of the support, even if the last cells hold
+        # no probability and the search lands in one of them.
+        return xp.where(val >= 1, xx[-1], out)
 
 
 class FromFile(Interped):
