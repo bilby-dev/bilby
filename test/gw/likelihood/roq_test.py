@@ -8,6 +8,7 @@ from unittest import mock
 
 import array_api_compat as aac
 import bilby
+import dill
 import h5py
 import numpy as np
 import pytest
@@ -284,6 +285,14 @@ class TestROQLikelihood(ROQBasisMixin, unittest.TestCase):
                 quadratic_matrix=self.quadratic_matrix_file,
                 priors=self.priors,
             )
+
+    def test_roq_likelihood_pickles(self):
+        # the backend waveform generator is not pickleable...
+        self.roq.waveform_generator = self.roq.waveform_generator.wfg
+        dill.pickles(self.roq)
+        self.roq.waveform_generator = BackendWaveformGenerator(
+            self.roq.waveform_generator, self.xp
+        )
 
     def test_create_roq_weights_fails_due_to_duration(self):
         ifos = bilby.gw.detector.InterferometerList(["H1"])
