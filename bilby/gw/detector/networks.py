@@ -441,9 +441,9 @@ class TriangularInterferometer(InterferometerList):
         unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
         unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
 
-        vertex_geocentric = get_vertex_position_geocentric(xp.array([current_ifo.latitude_radians,
-                                                                     current_ifo.longitude_radians,
-                                                                     current_ifo.elevation]))
+        vertex_geocentric = get_vertex_position_geocentric(xp.asarray([current_ifo.latitude_radians,
+                                                                       current_ifo.longitude_radians,
+                                                                       current_ifo.elevation]))
         next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
         next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
         next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
@@ -455,14 +455,14 @@ class TriangularInterferometer(InterferometerList):
         next_unit_vector_x = rotation.apply(unit_vector_x)
         next_unit_vector_y = rotation.apply(unit_vector_y)
 
-        next_local_normal_vector = xp.array([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
-                                             xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
-                                             xp.sin(next_latitude_rad)])
-        next_local_north_vector = xp.array([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
-                                            -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
-                                            xp.cos(next_latitude_rad)])
-        next_local_east_vector = xp.array([-xp.sin(next_longitude_rad),
-                                           xp.cos(next_longitude_rad), 0])
+        next_local_normal_vector = xp.asarray([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                               xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                               xp.sin(next_latitude_rad)])
+        next_local_north_vector = xp.asarray([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                              -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                              xp.cos(next_latitude_rad)])
+        next_local_east_vector = xp.asarray([-xp.sin(next_longitude_rad),
+                                             xp.cos(next_longitude_rad), 0])
 
         next_xarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_x, next_local_normal_vector))
         next_yarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_y, next_local_normal_vector))

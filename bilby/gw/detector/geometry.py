@@ -212,7 +212,7 @@ class InterferometerGeometry(object):
         xp = self.array_backend
 
         if not self._vertex_updated:
-            self._vertex = gwutils.get_vertex_position_geocentric(xp.array([self._latitude, self._longitude,
+            self._vertex = gwutils.get_vertex_position_geocentric(xp.asarray([self._latitude, self._longitude,
                                                                   self.elevation]))
             self._vertex_updated = True
         return self._vertex

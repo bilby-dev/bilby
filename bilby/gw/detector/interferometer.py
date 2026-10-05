@@ -588,9 +588,9 @@ class Interferometer(object):
         """
         xp = self.array_backend
 
-        return gwutils.get_vertex_position_geocentric(xp.array([self.geometry.latitude_radians,
-                                                                self.geometry.longitude_radians,
-                                                                self.geometry.elevation]))
+        return gwutils.get_vertex_position_geocentric(xp.asarray([self.geometry.latitude_radians,
+                                                                  self.geometry.longitude_radians,
+                                                                  self.geometry.elevation]))
 
     def optimal_snr_squared(self, signal):
         """
