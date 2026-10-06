@@ -286,6 +286,31 @@ class TestConditionalPriorDict(unittest.TestCase):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.ln_prob(sample=self.test_sample)
 
+    def test_prob_dataframe(self):
+        """
+        Regression test: :code:`ConditionalPriorDict.prob` used to assume
+        :code:`sample.values()` was callable, which fails for a
+        :code:`pandas.DataFrame` because :code:`DataFrame.values` is a
+        property, not a method. :code:`PriorDict.prob`/:code:`ln_prob` handle
+        this by branching on :code:`isinstance(sample, dict)`; the
+        :code:`ConditionalPriorDict` overrides need the same branch.
+        """
+        sample = pd.DataFrame(
+            {key: [float(value), float(value)] for key, value in self.test_sample.items()}
+        )
+        # axis=0 is needed to get one probability per row rather than the
+        # fully-reduced scalar product over the whole (rows, keys) array.
+        prob = self.conditional_priors.prob(sample=sample, axis=0)
+        np.testing.assert_allclose(np.asarray(prob), [float(self.test_value)] * 2)
+
+    def test_ln_prob_dataframe(self):
+        """See :code:`test_prob_dataframe`; same issue affects :code:`ln_prob`."""
+        sample = pd.DataFrame(
+            {key: [float(value), float(value)] for key, value in self.test_sample.items()}
+        )
+        ln_prob = self.conditional_priors.ln_prob(sample=sample, axis=0)
+        np.testing.assert_allclose(np.asarray(ln_prob), [float(np.log(self.test_value))] * 2)
+
     def test_sample_subset_all_keys(self):
         bilby.core.utils.random.seed(5)
         self.assertDictEqual(
