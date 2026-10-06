@@ -7,6 +7,7 @@ from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generato
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
+from .base_sampler import SamplerError
 
 EnsembleSamplerArgument = namedtuple(
     "EnsembleSamplerArgument",
@@ -256,6 +257,9 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     # the _cache is a class level variable to avoid being forgotten at every
     # iteration when using multiprocessing
     _cache = list()
+    # private variable used for testing, when False a warning is logged
+    # when True, an exception is raised
+    _enforce_no_rebuilds = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -266,6 +270,8 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
         self.sampler_kwargs["thin"] = self.thin
         self.sampler_kwargs["act"] = self.act
         self.sampler_kwargs["maxmcmc"] = self.maxmcmc
+        queue_size = kwargs.get("queue_size", None)
+        self.nparallel = queue_size if queue_size is not None else 1
         # reset the cache at instantiation to avoid contamination from
         # previous analyses
         self.__class__._cache = list()
@@ -282,6 +288,11 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     ):
         """
         Prepare the list of arguments for sampling.
+
+        To maximize the average time between MCMC runs, we only trigger a
+        rebuild of the MCMC caches when all the processes have exhausted
+        their chain, so we check if the number requesting a rebuild matches
+        the queue size.
 
         Parameters
         ----------
@@ -308,6 +319,14 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             List of `SamplerArgument` objects containing the parameters
             needed for sampling.
         """
+        logger.debug(
+            "Rebuild check: {} {}".format(
+                self.sampler_kwargs["rebuild"], self.nparallel
+            )
+        )
+        self.sampler_kwargs["rebuild"] = (
+            self.sampler_kwargs["rebuild"] == self.nparallel
+        )
         arg_list = super().prepare_sampler(
             loglstar=loglstar,
             points=points,
@@ -317,7 +336,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             loglikelihood=loglikelihood,
             nested_sampler=nested_sampler,
         )
-        self.sampler_kwargs["rebuild"] = False
+        self.sampler_kwargs["rebuild"] = 0
         return arg_list
 
     def tune(self, tuning_info, update=True):
@@ -327,9 +346,12 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
 
         The :code:`walks` parameter to asymptotically approach the
         desired number of accepted steps.
+
+        Also, keep track of the number of processes that have empty chains
+        as we wait until they are all empty before rebuilding.
         """
         if tuning_info.get("remaining", 0) == 0:
-            self.sampler_kwargs["rebuild"] = True
+            self.sampler_kwargs["rebuild"] += 1
         self.scale = tuning_info["accept"]
         self.sampler_kwargs["act"] = tuning_info["act"]
 
@@ -337,10 +359,36 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     def sample(args):
         cache = ACTTrackingEnsembleWalk._cache
         if args.kwargs.get("rebuild", False):
-            logger.debug(f"Force rebuilding cache with {len(cache)}.")
-            cache.clear()
-        if len(cache) == 0:
+            if len(cache) > 0:
+                message = (
+                    "Rebuild requested but cache is not empty. "
+                    "This is likely a bug in the sampler. "
+                    f"Cache length: {len(cache)}"
+                )
+                if ACTTrackingEnsembleWalk._enforce_no_rebuilds:
+                    raise SamplerError(message)
+                else:
+                    logger.warning(message)
+                    cache.clear()
             ACTTrackingEnsembleWalk.build_cache(args)
+            logger.debug("Rebuilding cache")
+        elif len(cache) == 0:
+            logger.debug("Cache is empty, returning a random point")
+            u = get_random_generator(args.rseed).uniform(size=len(args.u))
+            v = args.prior_transform(u)
+            logl = args.loglikelihood(v)
+            accept = logl >= args.loglstar
+            evaluation_history = [SamplerHistoryItem(u=u, v=v, logl=logl)]
+            blob = dict(remaining=0, ncall=1, accept=int(accept), act=-1)
+            return SamplerReturn(
+                u=u,
+                v=v,
+                logl=logl,
+                tuning_info=blob,
+                ncalls=1,
+                proposal_stats=blob,
+                evaluation_history=evaluation_history,
+            )
 
         while len(cache) > 0 and cache[0][2] < args.loglstar:
             state = cache.pop(0)
@@ -351,7 +399,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             current_u, current_v, logl, ncall, blob, evaluation_history = cache.pop(0)
 
         blob["remaining"] = len(cache)
-        logger.debug(f"Returning point from cache with {len(cache)} remaining")
+        logger.debug("Returning point from cache with {} remaining".format(len(cache)))
         return SamplerReturn(
             u=current_u,
             v=current_v,
@@ -713,7 +761,7 @@ def _get_proposal_kwargs(args):
 
     The steps involved are:
 
-    - extract the requested proposal types from the kwargs passed through from dynesty.
+    - extract the requested proposal types from the :code:`_SamplingContainer`.
       If none are specified, only differential evolution will be used.
     - differential evolution requires the live points to be passed. If they are
       not present, raise an error.
