@@ -1,7 +1,8 @@
 import numpy as np
-from scipy.integrate import trapezoid
+from scipy.integrate import trapezoid, cumulative_trapezoid
 
 from .base import Prior
+from .dict import PriorDict
 from ..utils import logger
 from ..utils.calculus import interp1d
 from ...compat.utils import xp_wrap
@@ -62,9 +63,15 @@ class Interped(Prior):
     def __eq__(self, other):
         if self.__class__ != other.__class__:
             return False
-        if np.array_equal(self.xx, other.xx) and np.array_equal(self.yy, other.yy):
-            return True
-        return False
+        if self.xx.shape != other.xx.shape:
+            return False
+        if self.yy.shape != other.yy.shape:
+            return False
+        if not np.isclose(self.xx, other.xx, rtol=1e-10).all():
+            return False
+        if not np.isclose(self.yy, other.yy, rtol=1e-10).all():
+            return False
+        return True
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -82,6 +89,18 @@ class Interped(Prior):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
+        """
+        Return the cumulative distribution function of val.
+
+        Parameters
+        ==========
+        val : Union[float, int, array_like]
+
+        Returns
+        =======
+        Union[float, array_like]
+            CDF of val.
+        """
         return self.cumulative_distribution(val)[()]
 
     @xp_wrap
@@ -90,6 +109,10 @@ class Interped(Prior):
         'Rescale' a sample from the unit line element to the prior.
 
         This maps to the inverse CDF. This is done using interpolation.
+
+        Parameters
+        ==========
+        val : Union[float, int, array_like]
         """
         return self.inverse_cumulative_distribution(val)[()]
 
@@ -164,11 +187,10 @@ class Interped(Prior):
         self._initialize_attributes()
 
     def _initialize_attributes(self):
-        from scipy.integrate import cumulative_trapezoid
         if trapezoid(self._yy, self.xx) != 1:
             logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
         self._yy /= trapezoid(self._yy, self.xx)
-        self.YY = cumulative_trapezoid(self._yy, self.xx, initial=0)
+        self.YY = cumulative_trapezoid(y=self._yy, x=self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
         self.YY[-1] = 1
         self.probability_density = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
@@ -210,3 +232,135 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.file_name))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
+
+
+class Mixture(Interped):
+    def __init__(
+        self,
+        priors,
+        weights=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary=None,
+        minimum=None,
+        maximum=None,
+    ):
+        """
+        Creates a prior-mixture from a list of priors and optionally
+        corresponding weights. The individual priors are superposed as a
+        weighted sum.
+
+        Parameters
+        ==========
+        priors : Union[list, PriorDict, str]
+            The priors to be combined.
+        weights : array_like
+            The weights for each prior. If None, all priors are given equal
+            weight.
+        name : str
+            See superclass.
+        latex_label : str
+            See superclass.
+        unit : str
+            See superclass.
+        boundary : str
+            See superclass.
+        minimum : float
+            Set minimum for all priors. If None, the most restrictive
+            minimum of the priors is used.
+        maximum : float
+            Set maximum for all priors. If None, the most restrictive
+            maximum of the priors is used.
+        """
+        self.priors = priors
+        if minimum is None:
+            minimum = np.max([prior.minimum for prior in priors])
+        if maximum is None:
+            maximum = np.min([prior.maximum for prior in priors])
+
+        if np.any(np.isinf([minimum, maximum])):
+            raise ValueError(
+                "Unable to use Mixture prior with infinite bounds. "
+                "Please set identical and finite bounds for all priors."
+            )
+
+        Prior.__init__(
+            self,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            boundary=boundary,
+            minimum=minimum,
+            maximum=maximum,
+        )
+
+        if weights is None:
+            self.weights = np.ones_like(priors) / len(priors)
+        else:
+            if len(weights) != len(priors):
+                raise ValueError("Weights must have the same length as priors")
+            self.weights = np.array(weights) / np.sum(weights)
+        self._update_instance()
+
+    def _update_instance(self):
+        if not hasattr(self, "weights"):
+            # ignore when setup is not yet complete
+            return
+        self.xx = np.linspace(self.minimum, self.maximum, 1000)
+        self._yy = self.prob(self.xx)
+        self._initialize_attributes()
+
+    @xp_wrap
+    def prob(self, val, *, xp=None):
+        """
+        Return the prior probability of val, evaluating the underlying priors.
+
+        Parameters
+        ==========
+        val : Union[float, int, array_like]
+
+        Returns
+        =======
+        Union[float, array_like]
+            Prior probability of val.
+        """
+        prob = 0
+        for weight, prior in zip(self.weights, self._priors):
+            prob += weight * prior.prob(val, xp=xp)
+        return prob
+
+    @property
+    def priors(self):
+        return self._priors
+
+    @priors.setter
+    def priors(self, priors):
+        if isinstance(priors, str):
+            priors = PriorDict(priors)
+        if isinstance(priors, dict):
+            priors = list(priors.values())
+        self._priors = priors
+        self._update_instance()
+
+    @property
+    def minimum(self):
+        return self._minimum
+
+    @minimum.setter
+    def minimum(self, minimum):
+        self._minimum = minimum
+        for prior in self._priors:
+            prior.minimum = minimum
+        self._update_instance()
+
+    @property
+    def maximum(self):
+        return self._maximum
+
+    @maximum.setter
+    def maximum(self, maximum):
+        self._maximum = maximum
+        for prior in self._priors:
+            prior.maximum = maximum
+        self._update_instance()
