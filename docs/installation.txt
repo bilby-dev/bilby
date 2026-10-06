@@ -57,7 +57,7 @@ Clone the repository, install the requirements, and then install the software:
 
 .. code-block:: console
 
-   $ git clone git@git@github.com:bilby-dev/bilby.git
+   $ git clone git@github.com:bilby-dev/bilby.git
    $ cd bilby/
    $ pip install -r requirements.txt
    $ pip install .
