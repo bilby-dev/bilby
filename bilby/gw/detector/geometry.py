@@ -2,6 +2,7 @@ import numpy as np
 from ..geometry import calculate_arm, detector_tensor
 
 from .. import utils as gwutils
+from ...compat.utils import array_module
 
 
 class InterferometerGeometry(object):
@@ -207,9 +208,12 @@ class InterferometerGeometry(object):
         =======
         array_like: A 3D array representation of the vertex
         """
+
+        xp = self.array_backend
+
         if not self._vertex_updated:
-            self._vertex = gwutils.get_vertex_position_geocentric(self._latitude, self._longitude,
-                                                                  self.elevation)
+            self._vertex = gwutils.get_vertex_position_geocentric(xp.asarray([self._latitude, self._longitude,
+                                                                  self.elevation]))
             self._vertex_updated = True
         return self._vertex
 
@@ -305,7 +309,12 @@ class InterferometerGeometry(object):
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")
 
-    def set_array_backend(self, xp):
+    @property
+    def array_backend(self):
+        return array_module(self.length)
+
+    @array_backend.setter
+    def array_backend(self, xp):
         self.length = xp.asarray(self.length)
         self.latitude = xp.asarray(self.latitude)
         self.longitude = xp.asarray(self.longitude)

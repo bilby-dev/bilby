@@ -158,7 +158,7 @@ class GravitationalWaveTransient(Likelihood):
         self.waveform_generator = waveform_generator
         super(GravitationalWaveTransient, self).__init__()
         self.interferometers = InterferometerList(interferometers)
-        self.interferometers.set_array_backend(interferometers.array_backend)
+        self.interferometers.array_backend = interferometers.array_backend
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -171,7 +171,7 @@ class GravitationalWaveTransient(Likelihood):
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
-            self.reference_ifo.set_array_backend(self.interferometers.array_backend)
+            self.reference_ifo.array_backend = self.interferometers.array_backend
             if self.time_marginalization:
                 logger.info("Cannot marginalise over non-geocenter time.")
                 self.time_marginalization = False
@@ -1086,7 +1086,7 @@ class GravitationalWaveTransient(Likelihood):
         else:
             raise ValueError("Unable to parse reference frame {}".format(frame))
         if isinstance(self._reference_frame, InterferometerList):
-            self._reference_frame.set_array_backend(self.interferometers.array_backend)
+            self._reference_frame.array_backend = self.interferometers.array_backend
 
     def get_sky_frame_parameters(self, parameters):
         """

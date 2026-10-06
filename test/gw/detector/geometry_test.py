@@ -30,7 +30,7 @@ class TestInterferometerGeometry(unittest.TestCase):
             xarm_tilt=self.xarm_tilt,
             yarm_tilt=self.yarm_tilt,
         )
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
 
     def tearDown(self):
         del self.length
@@ -196,7 +196,7 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.geometry.xarm_tilt = 0
         self.geometry.xarm_azimuth = 0
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
         arm = self.geometry.unit_vector_along_arm("x")
         self.assertTrue(np.allclose(arm, np.array([0, 1, 0])))
         self.assertEqual(aac.get_namespace(arm), self.xp)
@@ -206,7 +206,7 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.geometry.yarm_tilt = 0
         self.geometry.yarm_azimuth = 90
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
         arm = self.geometry.unit_vector_along_arm("y")
         self.assertTrue(np.allclose(arm, np.array([0, 0, 1])))
         self.assertEqual(aac.get_namespace(arm), self.xp)
