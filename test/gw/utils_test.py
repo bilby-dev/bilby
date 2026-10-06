@@ -278,15 +278,15 @@ class TestGWUtils(unittest.TestCase):
             )
 
     def test_get_vertex_position_geocentric_ellipsoid_conversion(self):
-        latitude_true = self.xp.deg2rad(46 + 27. / 60 + 18.528 / 3600)
-        longitude_true = self.xp.deg2rad(-(119 + 24. / 60 + 27.5657 / 3600))
+        latitude_true = self.xp.deg2rad(self.xp.asarray(46 + 27. / 60 + 18.528 / 3600))
+        longitude_true = self.xp.deg2rad(self.xp.asarray(-(119 + 24. / 60 + 27.5657 / 3600)))
         elevation_true = 142.554
         vertex = gwutils.get_vertex_position_geocentric(
             self.xp.asarray([latitude_true, longitude_true, elevation_true]))
         latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(vertex)
-        self.assertAlmostEqual(latitude, latitude_true, 5)
-        self.assertAlmostEqual(longitude, longitude_true, 5)
-        self.assertAlmostEqual(elevation, elevation_true, 5)
+        self.assertAlmostEqual(float(latitude), float(latitude_true), 5)
+        self.assertAlmostEqual(float(longitude), float(longitude_true), 5)
+        self.assertAlmostEqual(float(elevation), float(elevation_true), 5)
 
     def test_safe_cast_mode_to_int(self):
         # Valid cases
