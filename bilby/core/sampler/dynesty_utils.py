@@ -4,6 +4,7 @@ from collections import namedtuple
 import numpy as np
 from dynesty.internal_samplers import InternalSampler, SamplerReturn
 from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generator
+from scipy.stats import binom
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
@@ -109,6 +110,8 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         self.sampler_kwargs["walks"] = self.walks
         self.naccept = kwargs.get("naccept", 10)
         self.maxmcmc = kwargs.get("maxmcmc", 5000)
+        self.sampler_kwargs["target"] = self.naccept
+        self.sampler_kwargs["maxmcmc"] = self.maxmcmc
 
     def tune(self, tuning_info, update=True):
         """
@@ -227,6 +230,31 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             "accept": naccept,
             "reject": walks - naccept,
         }
+
+        # check that the number of accepted steps is consistent with the target
+        # number of accepted steps, if it is much lower than the target, our
+        # mcmc chain is too short and we may be open to bias. If we're hitting
+        # maxmcmc, this is expected, but it also happens at the beginning of the
+        # run or around phase transitions, so we discard this point and so an
+        # equivalent longer mcmc will happen at the next iteration
+        dist = binom(n=walks, p=args.kwargs["target"] / walks)
+        minimum = dist.ppf(1e-4)
+        undersampled = naccept < minimum
+        if undersampled and walks >= args.kwargs["maxmcmc"]:
+            logger.warning(
+                f"Requested {args.kwargs['target']} accepted steps per MCMC chain, "
+                f"but only {naccept} were accepted out of the maximum allowed number "
+                f"of steps ({walks}). Increase 'maxmcmc' to improve convergence."
+            )
+        elif undersampled:
+            logger.info(
+                f"Only {naccept} accepted steps out of target {args.kwargs['target']}. "
+                "Discarding this point. "
+                "This is expected at the beginning of the run, increase 'walks'. "
+                "This can also happen when the geometry of the likelihood surface "
+                "changes drastically."
+            )
+            logl = args.loglstar - 1
 
         return SamplerReturn(
             u=current_u,
