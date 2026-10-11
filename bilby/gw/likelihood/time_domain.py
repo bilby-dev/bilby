@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 
+from ...core.utils import logger
 from ..time_domain_utils import gohberg_semencul_product
 from .base import GravitationalWaveTransient
 
@@ -60,7 +61,10 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         :code:`GravitationalWaveTransient`.
     placement: str, optional
         How the template is placed on the data samples: "nearest" (default)
-        or "fd_shift"; see :code:`bilby.gw.time_domain_utils.place_time_domain_signal`.
+        or "fd_shift" (see :code:`bilby.gw.time_domain_utils.place_time_domain_signal`),
+        or "model_time": the waveform is evaluated at each detector's data
+        samples, without a taper (needs a model-time source model, e.g.
+        :code:`bilby.gw.source.lal_binary_black_hole_model_time`).
         Use the same placement for injection and analysis.
     time_marginalization, phase_marginalization, calibration_marginalization: bool
         Not implemented for this likelihood; must be False.
@@ -91,8 +95,9 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             raise ValueError(
                 f"{self.__class__.__name__} needs a waveform generator with a "
                 "time_domain_source_model, e.g. bilby.gw.source.lal_binary_black_hole_time_domain")
-        if placement not in ("nearest", "fd_shift"):
-            raise ValueError(f"placement must be 'nearest' or 'fd_shift', not {placement!r}")
+        if placement not in ("nearest", "fd_shift", "model_time"):
+            raise ValueError(
+                f"placement must be 'nearest', 'fd_shift' or 'model_time', not {placement!r}")
 
         super(TimeDomainGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
@@ -108,6 +113,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             time_reference=time_reference,
         )
         self.placement = placement
+        self._check_minimum_frequency()
         self._setup_noise_model()
 
     def __repr__(self):
@@ -116,6 +122,19 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             'priors={}, placement={})'.format(
                 self.interferometers, self.waveform_generator, self.distance_marginalization,
                 self.priors, self.placement))
+
+    def _check_minimum_frequency(self):
+        """ Warn if the waveform's minimum_frequency differs from an
+        interferometer's minimum_frequency. """
+        waveform_minimum_frequency = getattr(
+            self.waveform_generator, "waveform_arguments", dict()).get("minimum_frequency")
+        if waveform_minimum_frequency is None:
+            return
+        for interferometer in self.interferometers:
+            if not np.isclose(waveform_minimum_frequency, interferometer.minimum_frequency):
+                logger.warning(
+                    f"{interferometer.name}: minimum_frequency {interferometer.minimum_frequency:g} Hz "
+                    f"differs from the waveform's minimum_frequency {waveform_minimum_frequency:g} Hz")
 
     def _setup_noise_model(self):
         """ d^T C^-1 and d^T C^-1 d for each interferometer. """
@@ -172,13 +191,15 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
         Returns
         -------
-        calculated_snrs: _CalculatedSNRs
+        calculated_snrs: _CalculatedSNRs, or None if a model-time waveform failed
         """
         signal = self._compute_full_waveform(
             signal_polarizations=waveform_polarizations,
             interferometer=interferometer,
             parameters=parameters,
         )
+        if signal is None:
+            return None
         d_inner_h = float(np.dot(self._data_times_inverse_covariance[interferometer.name], signal))
         optimal_snr_squared = float(np.dot(
             signal, gohberg_semencul_product(*interferometer.gohberg_semencul_vectors, signal)))
@@ -206,11 +227,14 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
         total_snrs = self._CalculatedSNRs()
         for interferometer in self.interferometers:
-            total_snrs += self.calculate_snrs(
+            snrs = self.calculate_snrs(
                 waveform_polarizations=waveform_polarizations,
                 interferometer=interferometer,
                 parameters=parameters,
             )
+            if snrs is None:
+                return np.nan_to_num(-np.inf)
+            total_snrs += snrs
         log_l = self.compute_log_likelihood_from_snrs(total_snrs, parameters=parameters)
         return float(np.real(log_l))
 
@@ -223,8 +247,9 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 interferometer=interferometer,
                 parameters=parameters,
             )
-            parameters['{}_log_likelihood'.format(interferometer.name)] = \
-                self.compute_log_likelihood_from_snrs(per_detector_snr, parameters=parameters)
+            parameters['{}_log_likelihood'.format(interferometer.name)] = (
+                np.nan_to_num(-np.inf) if per_detector_snr is None else
+                self.compute_log_likelihood_from_snrs(per_detector_snr, parameters=parameters))
         return parameters.copy()
 
     # ------------------------------------------------------------------
@@ -271,9 +296,21 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 signal_polarizations=signal_polarizations, parameters=parameters)
 
     def _rescale_signal(self, signal, new_distance):
+        factor = self._ref_dist / new_distance
+        if "polarizations_at" in signal:
+            polarizations_at = signal["polarizations_at"]
+
+            def rescaled(times):
+                polarizations = polarizations_at(times)
+                if polarizations is None:
+                    return None
+                return {mode: value * factor for mode, value in polarizations.items()}
+
+            signal["polarizations_at"] = rescaled
+            return
         for mode in signal:
             if mode != "epoch":
-                signal[mode] *= self._ref_dist / new_distance
+                signal[mode] *= factor
 
     @property
     def meta_data(self):

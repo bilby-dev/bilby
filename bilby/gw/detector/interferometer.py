@@ -14,7 +14,7 @@ from ..geometry import (
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
-from ..time_domain_utils import gohberg_semencul_product, place_time_domain_signal
+from ..time_domain_utils import gohberg_semencul_product, place_time_domain_signal, times_from_merger
 from ..conversion import generate_all_bbh_parameters
 
 
@@ -548,8 +548,11 @@ class Interferometer(object):
         parameters: dict
             Parameters describing position and time of arrival of the signal.
         placement: str
-            "nearest" (default) or "fd_shift"; see
-            :code:`bilby.gw.time_domain_utils.place_time_domain_signal`.
+            "nearest" (default) or "fd_shift" (see
+            :code:`bilby.gw.time_domain_utils.place_time_domain_signal`), or
+            "model_time": the polarizations are evaluated at this
+            detector's data samples (needs a model-time source model, e.g.
+            :code:`bilby.gw.source.lal_binary_black_hole_model_time`).
 
         Returns
         =======
@@ -569,16 +572,34 @@ class Interferometer(object):
     def _time_domain_detector_response(self, waveform_polarizations, parameters, start_time,
                                        number_of_samples, placement):
         """ Detector response on `number_of_samples` data samples starting
-        at `start_time`; see :code:`get_time_domain_detector_response`. """
+        at `start_time`; see :code:`get_time_domain_detector_response`.
+        Returns None if a model-time waveform failed (catch_waveform_errors). """
         sampling_frequency = self.strain_data.sampling_frequency
-        polarizations = {mode: value for mode, value in waveform_polarizations.items()
-                         if mode != "epoch"}
-        merger_index = -waveform_polarizations["epoch"] * sampling_frequency
+        model_time = "polarizations_at" in waveform_polarizations
+        if model_time != (placement == "model_time"):
+            raise ValueError(
+                'placement="model_time" needs a model-time source model (e.g. '
+                'bilby.gw.source.lal_binary_black_hole_model_time), and a model-time source '
+                f'model needs placement="model_time"; got placement={placement!r}')
 
         if self.reference_time is None:
             antenna_time = parameters["geocent_time"]
         else:
             antenna_time = self.reference_time
+
+        time_shift = self.time_delay_from_geocenter(
+            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+
+        if model_time:
+            times = times_from_merger(
+                start_time, number_of_samples, sampling_frequency,
+                parameters['geocent_time'], time_shift)
+            polarizations = waveform_polarizations["polarizations_at"](times)
+            if polarizations is None:
+                return None
+        else:
+            polarizations = {mode: value for mode, value in waveform_polarizations.items()
+                             if mode != "epoch"}
 
         signal_ifo = 0
         for mode, polarization in polarizations.items():
@@ -586,8 +607,10 @@ class Interferometer(object):
                 parameters['ra'], parameters['dec'], antenna_time, parameters['psi'], mode)
             signal_ifo = signal_ifo + polarization * det_response
 
-        time_shift = self.time_delay_from_geocenter(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+        if model_time:
+            return signal_ifo
+
+        merger_index = -waveform_polarizations["epoch"] * sampling_frequency
         # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
         dt_geocent = parameters['geocent_time'] - start_time
@@ -622,7 +645,7 @@ class Interferometer(object):
             A WaveformGenerator with a time-domain source model, e.g.
             :code:`bilby.gw.source.lal_binary_black_hole_time_domain`.
         placement: str
-            "nearest" (default) or "fd_shift"; see
+            "nearest" (default), "fd_shift" or "model_time"; see
             :code:`get_time_domain_detector_response`.
 
         Returns
@@ -654,7 +677,7 @@ class Interferometer(object):
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator with a time-domain source model.
         placement: str
-            "nearest" (default) or "fd_shift".
+            "nearest" (default), "fd_shift" or "model_time".
 
         Returns
         =======
@@ -681,21 +704,23 @@ class Interferometer(object):
         injection_polarizations: dict
             Output of a time-domain source model (polarizations and 'epoch').
         placement: str
-            "nearest" (default) or "fd_shift".
+            "nearest" (default), "fd_shift" or "model_time".
         """
         if not self.strain_data.time_within_data(parameters['geocent_time']):
             logger.warning(
                 'Injecting signal outside segment, start_time={}, merger time={}.'
                 .format(self.strain_data.start_time, parameters['geocent_time']))
-        if "epoch" not in injection_polarizations:
+        if "epoch" not in injection_polarizations and "polarizations_at" not in injection_polarizations:
             raise ValueError("injection_polarizations must come from a time-domain source model "
-                             "(with an 'epoch' entry)")
+                             "(with an 'epoch' or 'polarizations_at' entry)")
         if self.gohberg_semencul_vectors is None:
             raise ValueError(f"{self.name}: set the autocovariance function before injecting")
 
         signal_ifo = self._time_domain_detector_response(
             injection_polarizations, parameters, self.strain_data.start_time,
             len(self.strain_data.time_domain_strain), placement)
+        if signal_ifo is None:
+            raise ValueError(f"{self.name}: the injection waveform failed")
         self.strain_data._time_domain_strain = (
             np.array(self.strain_data.time_domain_strain, dtype=float) + signal_ifo)
         self.strain_data._frequency_domain_strain = None

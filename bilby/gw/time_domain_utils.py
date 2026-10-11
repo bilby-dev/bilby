@@ -115,6 +115,29 @@ def _copy_into_segment(signal, offset, number_of_samples):
     return segment
 
 
+def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent_time, time_delay):
+    """ Times of data samples relative to the arrival of the model's t=0 in a
+    detector, t_k - (geocent_time + time_delay), as for ringdown analyses.
+
+    Parameters
+    ==========
+    start_time: float
+        GPS time of the first data sample.
+    number_of_samples: int
+    sampling_frequency: float
+    geocent_time: float
+        GPS time at which the model's t=0 arrives at the geocenter.
+    time_delay: float
+        Time delay of the detector from the geocenter (s).
+
+    Returns
+    =======
+    array_like: times (s)
+    """
+    # subtract the two GPS times (~1e9 s) first, then add the small terms
+    return (start_time - geocent_time) - time_delay + np.arange(number_of_samples) / sampling_frequency
+
+
 def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samples,
                              placement="nearest"):
     """ Place a time-domain signal, generated on its own grid with the data's

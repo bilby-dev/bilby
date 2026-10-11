@@ -307,10 +307,11 @@ class InterferometerList(list):
            source model. If `waveform_generator` is also given, this is used.
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator with a time-domain source model. The waveform is
-            generated once and projected onto every detector.
+            generated once and projected onto every detector (for
+            placement="model_time", it is evaluated at each detector's samples).
         placement: str
-            "nearest" (default) or "fd_shift"; see
-            :code:`bilby.gw.time_domain_utils.place_time_domain_signal`.
+            "nearest" (default), "fd_shift" or "model_time"; see
+            :code:`bilby.gw.detector.Interferometer.get_time_domain_detector_response`.
 
         Returns
         =======

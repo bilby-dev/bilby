@@ -273,6 +273,113 @@ class TestTimeDomainLikelihood(unittest.TestCase):
             TimeDomainGravitationalWaveTransient(ifos, generator)
 
 
+def _has_model_time_waveforms():
+    try:
+        import lalsimulation
+    except ImportError:
+        return False
+    return hasattr(lalsimulation, "SimIMRPhenomTPHMModelTimesTruncated")
+
+
+def model_time_generator(approximant="IMRPhenomTPHM", **kwargs):
+    arguments = dict(waveform_approximant=approximant, reference_frequency=20.0, minimum_frequency=20.0)
+    arguments.update(kwargs)
+    return bilby.gw.WaveformGenerator(
+        duration=DURATION, sampling_frequency=SAMPLING_FREQUENCY, start_time=START_TIME,
+        time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
+        parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+        waveform_arguments=arguments)
+
+
+ALIGNED_INJECTION = dict(INJECTION, tilt_1=0.0, tilt_2=np.pi)
+
+
+@unittest.skipUnless(_has_model_time_waveforms(), "lalsimulation without the model-time IMRPhenomT functions")
+class TestModelTime(unittest.TestCase):
+    def test_matches_lalsimulation_on_its_samples(self):
+        # with geocent_time chosen so that LAL's own samples fall on the data samples,
+        # "nearest" is the standard waveform without interpolation, and the model-time
+        # waveform must agree (to the ~1e-4 sample left by the precision of GPS times;
+        # the first sample can fall just outside the waveform's span)
+        ifo = interferometers()[0]
+        start_time = ifo.strain_data.time_array[ifo._analysis_slice().start]
+        for approximant, injection in [("IMRPhenomT", ALIGNED_INJECTION), ("IMRPhenomTHM", ALIGNED_INJECTION),
+                                       ("IMRPhenomTP", INJECTION), ("IMRPhenomTPHM", INJECTION)]:
+            with self.subTest(approximant=approximant):
+                generator = waveform_generator()
+                generator.waveform_arguments.update(waveform_approximant=approximant, turn_on_window=0)
+                epoch = generator.time_domain_strain(injection)["epoch"]
+                parameters = dict(injection)
+                for _ in range(3):
+                    delay = ifo.time_delay_from_geocenter(
+                        parameters["ra"], parameters["dec"], parameters["geocent_time"])
+                    position = (parameters["geocent_time"] - start_time + delay + epoch) * SAMPLING_FREQUENCY
+                    parameters["geocent_time"] -= (position - round(position)) / SAMPLING_FREQUENCY
+                standard = ifo.get_time_domain_detector_response(
+                    generator.time_domain_strain(parameters), parameters, placement="nearest")
+                model_time = ifo.get_time_domain_detector_response(
+                    model_time_generator(approximant).time_domain_strain(parameters), parameters,
+                    placement="model_time")
+                first = np.argmax(standard != 0) + 1
+                self.assertTrue(np.all(model_time[:first - 1] == 0))
+                self.assertLess(np.max(abs(model_time - standard)[first:]) / np.max(abs(standard)), 1e-3)
+
+    def test_zero_noise_log_likelihood_ratio_is_half_snr_squared(self):
+        for approximant, injection in [("IMRPhenomT", ALIGNED_INJECTION), ("IMRPhenomTHM", ALIGNED_INJECTION),
+                                       ("IMRPhenomTP", INJECTION), ("IMRPhenomTPHM", INJECTION)]:
+            with self.subTest(approximant=approximant):
+                ifos = interferometers()
+                generator = model_time_generator(approximant)
+                ifos.inject_signal_time_domain(
+                    parameters=injection, waveform_generator=generator, placement="model_time")
+                likelihood = TimeDomainGravitationalWaveTransient(ifos, generator, placement="model_time")
+                optimal_snr_squared = sum(ifo.meta_data["optimal_SNR"] ** 2 for ifo in ifos)
+                self.assertGreater(optimal_snr_squared, 10)
+                self.assertAlmostEqual(
+                    likelihood.log_likelihood_ratio(injection) / (optimal_snr_squared / 2), 1, 8)
+
+    def test_distance_marginalization(self):
+        ifos = interferometers()
+        generator = model_time_generator()
+        ifos.inject_signal_time_domain(parameters=INJECTION, waveform_generator=generator, placement="model_time")
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors["luminosity_distance"] = bilby.gw.prior.UniformSourceFrame(
+            minimum=200, maximum=3000, name="luminosity_distance")
+        lookup = os.path.join(tempfile.mkdtemp(), "lookup.npz")
+        likelihood = TimeDomainGravitationalWaveTransient(
+            ifos, generator, placement="model_time", distance_marginalization=True, priors=priors,
+            distance_marginalization_lookup_table=lookup)
+        self.assertTrue(np.isfinite(likelihood.log_likelihood_ratio(INJECTION)))
+        sample = likelihood.generate_posterior_sample_from_marginalized_likelihood(dict(INJECTION))
+        self.assertTrue(200 <= sample["luminosity_distance"] <= 3000)
+        shutil.rmtree(os.path.dirname(lookup))
+
+    def test_errors(self):
+        ifos = interferometers()
+        with self.assertRaises(ValueError):  # model-time source, other placement
+            TimeDomainGravitationalWaveTransient(ifos, model_time_generator()).log_likelihood_ratio(INJECTION)
+        with self.assertRaises(ValueError):  # other source, model-time placement
+            TimeDomainGravitationalWaveTransient(
+                ifos, waveform_generator(), placement="model_time").log_likelihood_ratio(INJECTION)
+        with self.assertRaises(ValueError):  # in-plane spins, non-precessing approximant
+            model_time_generator("IMRPhenomT").time_domain_strain(INJECTION)
+        with self.assertRaises(ValueError):
+            model_time_generator("IMRPhenomXP").time_domain_strain(INJECTION)
+        with self.assertLogs("bilby", level="WARNING"):
+            TimeDomainGravitationalWaveTransient(ifos, model_time_generator(minimum_frequency=15.0),
+                                                 placement="model_time")
+
+    def test_modes(self):
+        from bilby.gw.model_time_waveforms import modes_at_model_times
+        import lal
+        model_times = np.linspace(-3000, 100, 50)
+        arguments = (36 * lal.MSUN_SI, 29 * lal.MSUN_SI, 0.3, 0.1, 0.2, -0.1, 0.2, 0.1,
+                     1e9 * lal.PC_SI, 0.3, 1 / SAMPLING_FREQUENCY, 20.0, 20.0, lal.CreateDict())
+        self.assertEqual(len(modes_at_model_times(model_times, "IMRPhenomTPHM", *arguments)), 32)
+        self.assertEqual(set(modes_at_model_times(model_times, "IMRPhenomTP", *arguments)),
+                         {(2, m) for m in range(-2, 3)})
+
+
 class TestTimeDomainData(unittest.TestCase):
     def test_noise_realisation(self):
         first, second = interferometers(noise="gaussian"), interferometers(noise="gaussian")

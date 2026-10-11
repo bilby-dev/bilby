@@ -886,6 +886,102 @@ def _base_lal_cbc_td_waveform(
     return dict(plus=window * hplus.data.data, cross=window * hcross.data.data, epoch=epoch)
 
 
+def lal_binary_black_hole_model_time(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ A time-domain Binary Black Hole waveform model evaluated directly at
+    the data samples of each detector (IMRPhenomT, IMRPhenomTHM, IMRPhenomTP,
+    IMRPhenomTPHM), for use with
+    :code:`bilby.gw.likelihood.TimeDomainGravitationalWaveTransient` with
+    :code:`placement="model_time"`.
+
+    No waveform is generated here. The returned function generates the
+    polarizations at given times relative to the model's t=0 (in seconds);
+    the detector response calls it with the times of its own data samples,
+    (t_k - geocent_time - time delay), so each detector gets its own call.
+    See :code:`bilby.gw.model_time_waveforms`.
+
+    Parameters
+    ==========
+    time_array: array_like
+        Times of the data (only the spacing is used: LAL's precession angles
+        are computed on the grid of the standard waveform with this spacing).
+    mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2, tilt_2,
+    phi_jl, theta_jn, phase: float
+        As in :code:`lal_binary_black_hole_time_domain`.
+    kwargs: dict
+        Optional keyword arguments
+        Supported arguments:
+
+        - waveform_approximant (default IMRPhenomTPHM): IMRPhenomT,
+          IMRPhenomTHM, IMRPhenomTP or IMRPhenomTPHM
+        - reference_frequency
+        - minimum_frequency
+        - catch_waveform_errors
+        - mode_array (see :code:`lal_binary_black_hole`)
+        - lal_waveform_dictionary
+
+    Returns
+    =======
+    dict: polarizations_at: function of times (s, relative to the model's
+    t=0) returning dict(plus=..., cross=...), or None if the waveform failed
+    and catch_waveform_errors is True.
+
+    Notes
+    =====
+    No taper is applied: the waveform switches on abruptly at LAL's start
+    time (set by minimum_frequency). A taper would need that start time,
+    which is computed inside the lalsimulation functions and is not
+    returned. To add one later, return the start time from those functions
+    (or compute it the way LAL does), then multiply by a one-sided Tukey
+    window in model time, as turn_on_window does for "nearest" and
+    "fd_shift".
+    """
+    from .model_time_waveforms import check_arguments, polarizations_at_model_times, total_mass_in_seconds
+
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomTPHM', reference_frequency=50.0,
+        minimum_frequency=20.0, catch_waveform_errors=False,
+        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
+        pn_amplitude_order=0)
+    waveform_kwargs.update(kwargs)
+    waveform_approximant = waveform_kwargs.pop('waveform_approximant')
+    reference_frequency = waveform_kwargs.pop('reference_frequency')
+    minimum_frequency = waveform_kwargs.pop('minimum_frequency')
+    catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
+    waveform_dictionary = set_waveform_dictionary(waveform_kwargs)
+    if len(waveform_kwargs) > 0:
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+
+    delta_time = float(time_array[1] - time_array[0])
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+    check_arguments(waveform_approximant, spin_1x, spin_1y, spin_2x, spin_2y)
+    total_mass = total_mass_in_seconds(mass_1, mass_2)
+
+    def polarizations_at(times):
+        try:
+            plus, cross = polarizations_at_model_times(
+                np.asarray(times) / total_mass, waveform_approximant, mass_1, mass_2,
+                spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+                luminosity_distance, iota, phase, delta_time, minimum_frequency,
+                reference_frequency, waveform_dictionary, truncate=True)
+        except Exception as e:
+            if not catch_waveform_errors or e.args[0] != 'Internal function call failed: Input domain error':
+                raise
+            logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                           "Likelihood will be set to -inf.")
+            return None
+        return dict(plus=plus, cross=cross)
+
+    return dict(polarizations_at=polarizations_at)
+
+
 def binary_black_hole_roq(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **waveform_arguments):
