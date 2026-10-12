@@ -937,7 +937,71 @@ def lal_binary_black_hole_model_time(
     window in model time, as turn_on_window does for "nearest" and
     "fd_shift".
     """
-    from .model_time_waveforms import check_arguments, polarizations_at_model_times, total_mass_in_seconds
+    from .model_time_waveforms import polarizations_at_model_times
+
+    evaluate = _model_time_function(
+        polarizations_at_model_times, time_array, mass_1, mass_2, luminosity_distance,
+        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs)
+
+    def polarizations_at(times):
+        polarizations = evaluate(times)
+        if polarizations is None:
+            return None
+        plus, cross = polarizations
+        return dict(plus=plus, cross=cross)
+
+    return dict(polarizations_at=polarizations_at)
+
+
+def lal_binary_black_hole_time_domain_heterodyning(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ Source model for
+    :code:`bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient`
+    (IMRPhenomT, IMRPhenomTHM, IMRPhenomTP, IMRPhenomTPHM).
+
+    No waveform is generated here. The returned function gives, at times
+    relative to the model's t=0 (in seconds), the modes and harmonic factors of
+    :code:`bilby.gw.model_time_waveforms.heterodyning_terms_at_model_times`:
+    the co-precessing modes for IMRPhenomTP/TPHM and the modes with m > 0 for
+    IMRPhenomT/THM.
+
+    Parameters and keyword arguments are those of
+    :code:`lal_binary_black_hole_model_time`, and (set by the likelihood):
+
+        - fiducial: if 1, the waveform starts at fiducial_minimum_frequency
+          (fiducial waveform); if 0 (default), at sampled_minimum_frequency
+          (waveforms at sampled parameters).
+        - fiducial_minimum_frequency (default: minimum_frequency)
+        - sampled_minimum_frequency (default: minimum_frequency - 2 Hz)
+
+    Returns
+    =======
+    dict: heterodyning_terms_at: function of times returning (modes,
+    harmonics), or None if the waveform failed and catch_waveform_errors is
+    True.
+    """
+    from .model_time_waveforms import heterodyning_terms_at_model_times
+
+    fiducial = kwargs.pop("fiducial", 0)
+    fiducial_minimum_frequency = kwargs.pop("fiducial_minimum_frequency", None)
+    sampled_minimum_frequency = kwargs.pop("sampled_minimum_frequency", kwargs.get("minimum_frequency", 20.0) - 2)
+    if not fiducial:
+        kwargs["minimum_frequency"] = sampled_minimum_frequency
+    elif fiducial_minimum_frequency is not None:
+        kwargs["minimum_frequency"] = fiducial_minimum_frequency
+    return dict(heterodyning_terms_at=_model_time_function(
+        heterodyning_terms_at_model_times, time_array, mass_1, mass_2, luminosity_distance,
+        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs))
+
+
+def _model_time_function(
+        function, time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ The function of times (s, relative to the model's t=0) that calls a
+    function of :code:`bilby.gw.model_time_waveforms` with these parameters
+    (returns None if the waveform failed and catch_waveform_errors is True). """
+    from .model_time_waveforms import check_arguments, total_mass_in_seconds
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomTPHM', reference_frequency=50.0,
@@ -964,9 +1028,9 @@ def lal_binary_black_hole_model_time(
     check_arguments(waveform_approximant, spin_1x, spin_1y, spin_2x, spin_2y)
     total_mass = total_mass_in_seconds(mass_1, mass_2)
 
-    def polarizations_at(times):
+    def evaluate(times):
         try:
-            plus, cross = polarizations_at_model_times(
+            return function(
                 np.asarray(times) / total_mass, waveform_approximant, mass_1, mass_2,
                 spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
                 luminosity_distance, iota, phase, delta_time, minimum_frequency,
@@ -977,9 +1041,8 @@ def lal_binary_black_hole_model_time(
             logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
                            "Likelihood will be set to -inf.")
             return None
-        return dict(plus=plus, cross=cross)
 
-    return dict(polarizations_at=polarizations_at)
+    return evaluate
 
 
 def binary_black_hole_roq(

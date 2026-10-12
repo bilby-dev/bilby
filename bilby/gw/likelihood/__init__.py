@@ -4,6 +4,7 @@ from .roq import BilbyROQParamsRangeError, ROQGravitationalWaveTransient
 from .multiband import MBGravitationalWaveTransient
 from .relative import RelativeBinningGravitationalWaveTransient
 from .time_domain import TimeDomainGravitationalWaveTransient
+from .time_domain_heterodyning import TimeDomainHeterodyningGravitationalWaveTransient
 
 from ..source import lal_binary_black_hole
 from ..waveform_generator import WaveformGenerator
