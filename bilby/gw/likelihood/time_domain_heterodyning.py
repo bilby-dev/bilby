@@ -210,6 +210,9 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         self.spacing_times = spacing_times
         self.chi = chi
         self.inner_product_method = inner_product_method
+        # this likelihood sets its own entries in waveform_arguments; copy the dictionary so that
+        # they do not reach other waveform generators that share it
+        self.waveform_generator.waveform_arguments = dict(self.waveform_generator.waveform_arguments)
         self._set_sampled_minimum_frequency(sampled_minimum_frequency)
         self.requested_fiducial_minimum_frequency = fiducial_minimum_frequency
         self._inverse_covariance = {

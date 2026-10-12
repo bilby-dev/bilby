@@ -258,6 +258,17 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
         self.assertAlmostEqual(given.log_likelihood_ratio(perturbed(INJECTION)),
                                likelihood.log_likelihood_ratio(perturbed(INJECTION)), 2)
 
+    def test_shared_waveform_arguments_are_not_changed(self):
+        ifos = interferometers()
+        arguments = dict(waveform_approximant="IMRPhenomTPHM", reference_frequency=20.0, minimum_frequency=20.0)
+        generator = bilby.gw.WaveformGenerator(
+            duration=DURATION, sampling_frequency=SAMPLING_FREQUENCY, start_time=START_TIME,
+            time_domain_source_model=bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning,
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+            waveform_arguments=arguments)
+        TimeDomainHeterodyningGravitationalWaveTransient(ifos, generator, fiducial_parameters=INJECTION)
+        self.assertEqual(set(arguments), {"waveform_approximant", "reference_frequency", "minimum_frequency"})
+
     def test_errors(self):
         ifos = interferometers()
         with self.assertRaises(ValueError):  # fiducial_minimum_frequency above the derived one
