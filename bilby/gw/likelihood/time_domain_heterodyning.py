@@ -15,25 +15,21 @@ from .time_domain import TimeDomainGravitationalWaveTransient
 SAMPLED_FREQUENCY_BUFFER = 2.0
 
 
-def _frequency_before_merger(chirp_mass, time_before_merger):
-    """ Leading-order (2, 2) frequency (Hz) a time (s) before the merger, from
-    t = (5/256) (G M_c / c^3)^(-5/3) (pi f)^(-8/3). """
+def newtonian_frequency(chirp_mass, time_to_merger):
+    """ Leading-order (2, 2) frequency (Hz) a time (s) before the merger. """
     chirp_mass_time = chirp_mass * solar_mass * gravitational_constant / speed_of_light ** 3
-    return (5 / 256 * chirp_mass_time ** (-5 / 3) / time_before_merger) ** (3 / 8) / np.pi
+    return (5 / 256 * chirp_mass_time ** (-5 / 3) / time_to_merger) ** (3 / 8) / np.pi
 
 
-def derive_fiducial_minimum_frequency(chirp_mass, window_start):
-    """ Minimum frequency (Hz) for a fiducial waveform that starts before an
-    analysis window starting window_start seconds before its merger: the
-    leading-order frequency 1.5 window_start + 0.1 s before the merger, minus
-    1 Hz, and at least 1 Hz. (The likelihood lowers it further, 1 Hz at a
-    time, if the waveform still starts inside the window.) """
-    time_before_merger = 1.5 * max(window_start, 0) + 0.1
-    return max(_frequency_before_merger(chirp_mass, time_before_merger) - 1, 1.0)
+def fiducial_start_frequency(chirp_mass, window_start):
+    """ Frequency (Hz) at which the fiducial waveform starts, for a window
+    starting window_start seconds before the merger. """
+    time_to_merger = 1.5 * max(window_start, 0) + 0.1
+    return max(newtonian_frequency(chirp_mass, time_to_merger) - 1, 1.0)
 
 
-def _hold_last_value(mode):
-    """ The mode, with the samples after its last non-zero one set to that value. """
+def hold_after_end(mode):
+    """ The mode with its samples after the last non-zero one set to that value. """
     nonzero = np.flatnonzero(mode)
     if len(nonzero) == 0:
         return mode
@@ -69,10 +65,12 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
 
     :math:`w_q` is evaluated at the edges of time bins and taken to be linear
     in each bin, :math:`w_q = w_{q,0}(b) + w_{q,1}(b) (t - t_b)`. Then
-    :math:`d^T C^{-1} s` and :math:`s^T C^{-1} s` are the exact inner products
-    of this piecewise-linear model, computed from summary data:
+    :math:`d^T C^{-1} s` and :math:`s^T C^{-1} s` are the inner products of
+    this piecewise-linear model, without the terms quadratic in the slopes
+    :math:`w_{q,1}` (as in Sharma et al.), computed from summary data:
     :math:`s = V v` with :math:`v = (\\Re w, \\Im w)`, so that
-    :math:`d^T C^{-1} s = a^T v` and :math:`s^T C^{-1} s = v^T S v`, with
+    :math:`d^T C^{-1} s = a^T v` and :math:`s^T C^{-1} s = v^T S v`
+    (from the eigen-decomposition of S, without its negligible eigenvalues), with
     :math:`a = V^T C^{-1} d` and :math:`S = V^T C^{-1} V`. For many modes and
     bins, :math:`S` is large, and :math:`s^T C^{-1} s` is faster to compute from
     the piecewise-linear :math:`s` itself (see :code:`inner_product_method`).
@@ -86,7 +84,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
 
     - the fiducial waveform starts before the window (its minimum frequency
       is derived from the chirp mass and the start of the window, see
-      :code:`derive_fiducial_minimum_frequency`, or given), and after its ringdown each of its
+      :code:`fiducial_start_frequency`, or given), and after its ringdown each of its
       modes is held at its last non-zero value, so it is non-zero everywhere
       in the window;
     - the waveforms at sampled parameters start at
@@ -162,7 +160,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         Frequency (Hz) at which the fiducial waveform starts. By default the
         lower of :code:`sampled_minimum_frequency` and the frequency derived
         from the fiducial chirp mass and the start of the analysis window
-        (:code:`derive_fiducial_minimum_frequency`); a given value must not
+        (:code:`fiducial_start_frequency`); a given value must not
         be above that.
     inner_product_method: str, optional
         How :math:`s^T C^{-1} s` is computed: "summary" (the matrix S),
@@ -184,7 +182,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                  distance_marginalization=False, priors=None,
                  distance_marginalization_lookup_table=None, reference_frame="sky",
                  time_reference="geocenter", epsilon=(0.5, 0.1), time_split=-0.02,
-                 spacing=(1, 10, 100), spacing_times=(0.02, 0.1), chi=1,
+                 spacing=(2, 10, 100), spacing_times=(0.02, 0.1), chi=1,
                  sampled_minimum_frequency=None, fiducial_minimum_frequency=None,
                  inner_product_method="auto", time_marginalization=False,
                  phase_marginalization=False, calibration_marginalization=False):
@@ -317,13 +315,15 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         coefficients = list()
         for interferometer, (modes, harmonics) in zip(interferometers, terms):
             name = interferometer.name
+            zeros = np.zeros(self._inverse_fiducial_at_edges[name].shape[1], dtype=complex)
             antenna = self._antenna_factor(interferometer, parameters)
-            ratio = np.zeros(self._inverse_fiducial_at_edges[name].shape, dtype=complex)
-            for i, key in enumerate(self.mode_keys):
-                if key in modes:
-                    harmonic, conjugate_harmonic = harmonics[key]
-                    ratio[i] = modes[key] * (antenna * harmonic + np.conj(antenna * conjugate_harmonic))
-            ratio *= self._inverse_fiducial_at_edges[name]
+            mode = np.array([modes.get(key, zeros) for key in self.mode_keys])
+            harmonic = np.array([np.broadcast_to(harmonics[key][0], zeros.shape) if key in modes else zeros
+                                 for key in self.mode_keys])
+            conjugate_harmonic = np.array([np.broadcast_to(harmonics[key][1], zeros.shape) if key in modes else zeros
+                                           for key in self.mode_keys])
+            ratio = mode * (antenna * harmonic + np.conj(antenna * conjugate_harmonic)) \
+                * self._inverse_fiducial_at_edges[name]
             coefficients.append(np.stack([
                 (ratio[:, 1:] + ratio[:, :-1]) / 2,
                 (ratio[:, 1:] - ratio[:, :-1]) / self.bin_widths[name]], axis=1))
@@ -344,7 +344,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 interferometer, np.arange(self._number_of_samples(interferometer)), parameters)
             for interferometer in self.interferometers}
         window_start = -min(times[0] for times in self._fiducial_times.values())
-        derived = min(derive_fiducial_minimum_frequency(self._chirp_mass(parameters), window_start),
+        derived = min(fiducial_start_frequency(self._chirp_mass(parameters), window_start),
                       self.sampled_minimum_frequency)
         requested = self.requested_fiducial_minimum_frequency
         if requested is not None and requested > derived:
@@ -363,8 +363,11 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                     f"before the analysis window for {parameters}")
             self.fiducial_minimum_frequency = max(self.fiducial_minimum_frequency - 1, 1)
         logger.info(f"Fiducial waveform from {self.fiducial_minimum_frequency:.2f} Hz")
+        self._fiducial_end = {
+            interferometer.name: max(np.flatnonzero(mode)[-1] for mode in modes.values() if np.any(mode))
+            for interferometer, (modes, _) in zip(self.interferometers, terms)}
         self.fiducial_modes = {
-            interferometer.name: {key: _hold_last_value(mode) for key, mode in modes.items()}
+            interferometer.name: {key: hold_after_end(mode) for key, mode in modes.items()}
             for interferometer, (modes, _) in zip(self.interferometers, terms)}
         self.mode_keys = sorted({key for modes in self.fiducial_modes.values()
                                  for key, mode in modes.items() if np.any(mode)})
@@ -400,7 +403,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     def setup_bins(self):
         """ Bin edges (indices of analysis-window samples) for each
         interferometer, from the times relative to the fiducial merger in that
-        interferometer (see :code:`time_domain_bin_edges`), over the whole
+        interferometer (see :code:`time_domain_bin_edges`), up to the end of
+        the fiducial ringdown, and one bin from there to the end of the
         analysis window. """
         self.bin_edges = dict()
         self.bin_widths = dict()
@@ -408,14 +412,16 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         for interferometer in self.interferometers:
             name = interferometer.name
             times = self._fiducial_times[name]
-            first, last = 0, len(times) - 1
-            edges = first + time_domain_bin_edges(
-                times[first:last + 1],
+            end = self._fiducial_end[name]
+            edges = time_domain_bin_edges(
+                times[:end + 1],
                 epsilon=self._per_detector(self.epsilon, name),
                 time_split=self._per_detector(self.time_split, name),
                 spacing=self._per_detector(self.spacing, name),
                 spacing_times=self._per_detector(self.spacing_times, name),
                 chi=self.chi)
+            if end < len(times) - 1:
+                edges = np.append(edges, len(times) - 1)
             self.bin_edges[name] = edges
             self.bin_widths[name] = np.diff(times[edges])
             self.number_of_bins[name] = len(edges) - 1
@@ -449,7 +455,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             self._inverse_fiducial_at_edges[name] = np.divide(
                 1, at_edges, out=np.zeros_like(at_edges), where=at_edges != 0)
             basis = np.stack([fiducial[:, samples], fiducial[:, samples] * tau], axis=1)  # (K, 2, n)
-            columns = np.concatenate([basis.real, -basis.imag]).reshape(-1, len(tau))  # (4K, n)
+            columns = np.concatenate([basis.real, -basis.imag]).reshape(-1, len(tau))  # (4K, n): (part, q, p)
             data_vector = np.add.reduceat(
                 columns * self._data_times_inverse_covariance[name][samples], bin_starts, axis=1)
 
@@ -465,15 +471,16 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             self.summary_data[name] = summary
 
     def _use_summary_matrix(self, interferometer, size):
-        """ Use S if v^T S v costs less than the FFTs of length 2N (rough
-        operation counts; see :code:`inner_product_method`). """
+        """ Use S if v^T S v costs less than the two quadratic forms with FFTs
+        of length 2N (rough operation counts; see :code:`inner_product_method`). """
         if self.inner_product_method != "auto":
             return self.inner_product_method == "summary"
         number_of_samples = self._number_of_samples(interferometer)
-        return size ** 2 < _FFT_COST_FACTOR * number_of_samples * np.log2(number_of_samples)
+        return size ** 2 < 2 * _FFT_COST_FACTOR * number_of_samples * np.log2(number_of_samples)
 
     def _summary_matrix(self, interferometer, columns, samples, bin_starts, bin_of_sample):
-        """ S = V^T C^-1 V, one column group of V at a time (symmetric). """
+        """ S = V^T C^-1 V, one column group of V at a time (symmetric), as its
+        eigenvalues and eigenvectors (rows). """
         number_of_groups, number_of_bins = len(columns), len(bin_starts)
         inverse_covariance = self._inverse_covariance[interferometer.name]
         rows = np.arange(samples.start, samples.stop)
@@ -486,8 +493,15 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 block = np.add.reduceat(columns[i][:, None] * group, bin_starts, axis=0)
                 matrix[i, :, j, :] = block
                 matrix[j, :, i, :] = block.T
+        # drop the terms quadratic in the slopes (p = 1 for both columns)
+        slope = np.arange(number_of_groups) % 2 == 1
+        matrix[np.ix_(slope, np.arange(number_of_bins), slope, np.arange(number_of_bins))] = 0
         size = number_of_groups * number_of_bins
-        return np.ascontiguousarray(matrix.reshape(size, size))
+        # v^T S v = sum_k lambda_k (e_k . v)^2, keeping the eigenvalues above _EIGENVALUE_TOLERANCE of the largest
+        eigenvalues, eigenvectors = np.linalg.eigh(matrix.reshape(size, size))
+        keep = np.abs(eigenvalues) > _EIGENVALUE_TOLERANCE * np.max(np.abs(eigenvalues))
+        logger.debug(f"{interferometer.name}: summary matrix of size {size} with rank {np.sum(keep)}")
+        return eigenvalues[keep], np.ascontiguousarray(eigenvectors[:, keep].T)
 
     # ------------------------------------------------------------------
     # Likelihood
@@ -497,10 +511,14 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         vector = np.concatenate([coefficients.real.ravel(), coefficients.imag.ravel()])
         d_inner_h = float(summary["data_vector"] @ vector)
         if summary["matrix"] is not None:
-            optimal_snr_squared = float(vector @ (summary["matrix"] @ vector))
+            eigenvalues, eigenvectors = summary["matrix"]
+            optimal_snr_squared = float(eigenvalues @ (eigenvectors @ vector) ** 2)
         else:
-            optimal_snr_squared = float(self._quadratic_form[name](
-                self._piecewise_linear_signal(name, coefficients)))
+            slopes_only = coefficients.copy()
+            slopes_only[:, 0] = 0
+            optimal_snr_squared = float(
+                self._quadratic_form[name](self._piecewise_linear_signal(name, coefficients))
+                - self._quadratic_form[name](self._piecewise_linear_signal(name, slopes_only)))
         matched_filter_snr = d_inner_h / optimal_snr_squared ** 0.5 if optimal_snr_squared > 0 else 0.0
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
@@ -641,13 +659,15 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         return meta_data
 
 
-# v^T S v takes ~0.3 ns per element of S and s^T C^-1 s from FFTs ~6 ns * N log2(N)
-_FFT_COST_FACTOR = 20
+# v^T S v takes ~0.3 ns per element of S and s^T C^-1 s from FFTs ~6 ns * N log2(N); S has a numerical
+# rank well below its size, which makes the matrix route a few times cheaper still
+_FFT_COST_FACTOR = 60
+_EIGENVALUE_TOLERANCE = 1e-12
 
 _PHASE_PROXY_POWERS = np.array([5 / 8, 3 / 8, 1 / 4, -3 / 8])
 
 
-def time_domain_bin_edges(times, epsilon=(0.5, 0.1), time_split=-0.02, spacing=(1, 10, 100),
+def time_domain_bin_edges(times, epsilon=(0.5, 0.1), time_split=-0.02, spacing=(2, 10, 100),
                           spacing_times=(0.02, 0.1), chi=1):
     """ Bin edges for the time-domain heterodyned likelihood (Sharma et al.
     arXiv:2601.11239).
