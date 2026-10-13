@@ -3,39 +3,11 @@ import copy
 import numpy as np
 from scipy.optimize import differential_evolution
 
-from ...core.prior import DeltaFunction
-from ...core.prior.base import Constraint
 from ...core.utils import gravitational_constant, logger, solar_mass, speed_of_light
-from ..time_domain_utils import gohberg_semencul_operator, gohberg_semencul_quadratic_form
+from ..conversion import component_masses_to_chirp_mass
+from ..time_domain_utils import gohberg_semencul_product, times_from_merger
 from .relative import RelativeBinningGravitationalWaveTransient
 from .time_domain import TimeDomainGravitationalWaveTransient
-
-
-# the waveforms at sampled parameters start this far (Hz) below the interferometers' minimum_frequency
-SAMPLED_FREQUENCY_BUFFER = 2.0
-
-
-def newtonian_frequency(chirp_mass, time_to_merger):
-    """ Leading-order (2, 2) frequency (Hz) a time (s) before the merger. """
-    chirp_mass_time = chirp_mass * solar_mass * gravitational_constant / speed_of_light ** 3
-    return (5 / 256 * chirp_mass_time ** (-5 / 3) / time_to_merger) ** (3 / 8) / np.pi
-
-
-def fiducial_start_frequency(chirp_mass, window_start):
-    """ Frequency (Hz) at which the fiducial waveform starts, for a window
-    starting window_start seconds before the merger. """
-    time_to_merger = 1.5 * max(window_start, 0) + 0.1
-    return max(newtonian_frequency(chirp_mass, time_to_merger) - 1, 1.0)
-
-
-def hold_after_end(mode):
-    """ The mode with its samples after the last non-zero one set to that value. """
-    nonzero = np.flatnonzero(mode)
-    if len(nonzero) == 0:
-        return mode
-    mode = np.array(mode)
-    mode[nonzero[-1] + 1:] = mode[nonzero[-1]]
-    return mode
 
 
 class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWaveTransient):
@@ -71,9 +43,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     :math:`s = V v` with :math:`v = (\\Re w, \\Im w)`, so that
     :math:`d^T C^{-1} s = a^T v` and :math:`s^T C^{-1} s = v^T S v`
     (from the eigen-decomposition of S, without its negligible eigenvalues), with
-    :math:`a = V^T C^{-1} d` and :math:`S = V^T C^{-1} V`. For many modes and
-    bins, :math:`S` is large, and :math:`s^T C^{-1} s` is faster to compute from
-    the piecewise-linear :math:`s` itself (see :code:`inner_product_method`).
+    :math:`a = V^T C^{-1} d` and :math:`S = V^T C^{-1} V`.
 
     The waveform is evaluated only at the bin edges, with one waveform call for
     all interferometers.
@@ -83,8 +53,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     analysis window, and here:
 
     - the fiducial waveform starts before the window (its minimum frequency
-      is derived from the chirp mass and the start of the window, see
-      :code:`fiducial_start_frequency`, or given), and after its ringdown each of its
+      is derived from the chirp mass and the start of the window, or
+      given), and after its ringdown each of its
       modes is held at its last non-zero value, so it is non-zero everywhere
       in the window;
     - the waveforms at sampled parameters start at
@@ -117,9 +87,10 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         Whether to try to update the fiducial parameters by finding the maximum
         likelihood point using scipy differential evolution. Default is
         :code:`False`.
-    parameter_bounds: dict, optional
-        Dictionary of bounds (lists) for the initial parameters when finding
-        the initial maximum likelihood (fiducial) waveform.
+    parameters_to_be_updated: list, optional
+        Parameters over which the likelihood is maximized when
+        :code:`update_fiducial_parameters` is True, within their prior bounds.
+        Default is :code:`["chirp_mass", "mass_ratio"]`.
     maximization_kwargs: dict, optional
         Keyword arguments for :code:`scipy.optimize.differential_evolution`.
     distance_marginalization: bool, optional
@@ -129,7 +100,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         distance allowed in the prior being marginalised over.
     priors: dict, optional
         If given, used in the distance marginalization and to find the
-        fiducial parameters.
+        fiducial parameters (the prior bounds are the bounds of the
+        optimization).
     distance_marginalization_lookup_table: (dict, str), optional
         As for :code:`TimeDomainGravitationalWaveTransient`.
     reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
@@ -160,13 +132,9 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         Frequency (Hz) at which the fiducial waveform starts. By default the
         lower of :code:`sampled_minimum_frequency` and the frequency derived
         from the fiducial chirp mass and the start of the analysis window
-        (:code:`fiducial_start_frequency`); a given value must not
+        (the leading-order frequency 1.5 x (time from the window start to the
+        merger) + 0.1 s before the merger, minus 1 Hz); a given value must not
         be above that.
-    inner_product_method: str, optional
-        How :math:`s^T C^{-1} s` is computed: "summary" (the matrix S),
-        "fft" (the piecewise-linear s and three FFTs of length 2N, see
-        :code:`bilby.gw.time_domain_utils.gohberg_semencul_quadratic_form`) or "auto" (default), which
-        chooses the cheaper one for each interferometer.
     time_marginalization, phase_marginalization, calibration_marginalization: bool
         Not implemented for this likelihood; must be False.
 
@@ -178,13 +146,14 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     """
 
     def __init__(self, interferometers, waveform_generator, fiducial_parameters=None,
-                 parameter_bounds=None, maximization_kwargs=None, update_fiducial_parameters=False,
+                 maximization_kwargs=None, update_fiducial_parameters=False,
+                 parameters_to_be_updated=("chirp_mass", "mass_ratio"),
                  distance_marginalization=False, priors=None,
                  distance_marginalization_lookup_table=None, reference_frame="sky",
                  time_reference="geocenter", epsilon=(0.5, 0.1), time_split=-0.02,
                  spacing=(2, 10, 100), spacing_times=(0.02, 0.1), chi=1,
                  sampled_minimum_frequency=None, fiducial_minimum_frequency=None,
-                 inner_product_method="auto", time_marginalization=False,
+                 time_marginalization=False,
                  phase_marginalization=False, calibration_marginalization=False):
         super(TimeDomainHeterodyningGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
@@ -199,26 +168,16 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             phase_marginalization=phase_marginalization,
             calibration_marginalization=calibration_marginalization,
         )
-        if inner_product_method not in ("auto", "summary", "fft"):
-            raise ValueError(
-                f"inner_product_method must be 'auto', 'summary' or 'fft', not {inner_product_method!r}")
         self.epsilon = epsilon
         self.time_split = time_split
         self.spacing = spacing
         self.spacing_times = spacing_times
         self.chi = chi
-        self.inner_product_method = inner_product_method
         # this likelihood sets its own entries in waveform_arguments; copy the dictionary so that
         # they do not reach other waveform generators that share it
         self.waveform_generator.waveform_arguments = dict(self.waveform_generator.waveform_arguments)
         self._set_sampled_minimum_frequency(sampled_minimum_frequency)
         self.requested_fiducial_minimum_frequency = fiducial_minimum_frequency
-        self._inverse_covariance = {
-            interferometer.name: gohberg_semencul_operator(*interferometer.gohberg_semencul_vectors)
-            for interferometer in self.interferometers}
-        self._quadratic_form = {
-            interferometer.name: gohberg_semencul_quadratic_form(*interferometer.gohberg_semencul_vectors)
-            for interferometer in self.interferometers}
 
         if fiducial_parameters is None:
             logger.info("Drawing fiducial parameters from prior.")
@@ -234,48 +193,39 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
 
         if update_fiducial_parameters:
             logger.info("Using scipy optimization to find maximum likelihood parameters.")
-            self.parameters_to_be_updated = [key for key in priors if not isinstance(
-                priors[key], (DeltaFunction, Constraint, float, int))]
+            self.parameters_to_be_updated = list(parameters_to_be_updated)
             logger.info(f"Parameters over which likelihood is maximized: {self.parameters_to_be_updated}")
-            if parameter_bounds is None:
-                logger.info("No parameter bounds were given. Using priors instead.")
-                self.parameter_bounds = self.get_bounds_from_priors(priors)
-            else:
-                self.parameter_bounds = self.get_parameter_list_from_dictionary(parameter_bounds)
+            self.parameter_bounds = self.get_bounds_from_priors(priors)
             self.fiducial_parameters = self.find_maximum_likelihood_parameters(
                 self.parameter_bounds, maximization_kwargs=maximization_kwargs)
         logger.info(f"Fiducial likelihood: {self.log_likelihood_ratio(self.fiducial_parameters):.2f}")
 
     def _set_sampled_minimum_frequency(self, sampled_minimum_frequency):
-        maximum = min(ifo.minimum_frequency for ifo in self.interferometers) - SAMPLED_FREQUENCY_BUFFER
+        maximum = min(ifo.minimum_frequency for ifo in self.interferometers) - 2
         if sampled_minimum_frequency is None:
             sampled_minimum_frequency = maximum
         if sampled_minimum_frequency > maximum:
             raise ValueError(
                 f"sampled_minimum_frequency ({sampled_minimum_frequency:g} Hz) must be at most {maximum:g} Hz "
-                f"({SAMPLED_FREQUENCY_BUFFER:g} Hz below the interferometers' minimum_frequency)")
+                "(2 Hz below the interferometers' minimum_frequency)")
         if sampled_minimum_frequency <= 0:
             raise ValueError("sampled_minimum_frequency must be positive")
         self.sampled_minimum_frequency = sampled_minimum_frequency
         self.waveform_generator.waveform_arguments["sampled_minimum_frequency"] = sampled_minimum_frequency
         self._unset_fiducial()
 
-    def __repr__(self):
-        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\tfiducial_parameters={},' \
-            .format(self.interferometers, self.waveform_generator, self.fiducial_parameters)
-
     # ------------------------------------------------------------------
     # Waveform at given samples
     # ------------------------------------------------------------------
     def _model_times(self, interferometer, indices, parameters):
         """ Times of the analysis-window samples `indices`, relative to the
-        arrival of the model's t=0 at the interferometer. """
-        start_time = interferometer.strain_data.time_array[interferometer._analysis_slice().start]
-        time_delay = interferometer.time_delay_from_geocenter(
-            parameters["ra"], parameters["dec"], parameters["geocent_time"])
-        # subtract the two GPS times (~1e9 s) first
-        return (start_time - parameters["geocent_time"]) - time_delay \
-            + np.asarray(indices) / interferometer.sampling_frequency
+        arrival of the model's t=0 at the interferometer (as for placement="model_time"). """
+        # the time of the first sample, plus the samples `indices` (not all N samples)
+        first = times_from_merger(
+            interferometer.strain_data.time_array[interferometer._analysis_slice().start], 1,
+            interferometer.sampling_frequency, parameters["geocent_time"],
+            interferometer.time_delay_from_geocenter(parameters["ra"], parameters["dec"], parameters["geocent_time"]))
+        return first[0] + np.asarray(indices) / interferometer.sampling_frequency
 
     @staticmethod
     def _antenna_factor(interferometer, parameters):
@@ -344,8 +294,11 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 interferometer, np.arange(self._number_of_samples(interferometer)), parameters)
             for interferometer in self.interferometers}
         window_start = -min(times[0] for times in self._fiducial_times.values())
-        derived = min(fiducial_start_frequency(self._chirp_mass(parameters), window_start),
-                      self.sampled_minimum_frequency)
+        # leading-order (2, 2) frequency 1.5 window_start + 0.1 s before the merger, minus 1 Hz
+        chirp_mass_time = self._chirp_mass(parameters) * solar_mass * gravitational_constant / speed_of_light ** 3
+        time_to_merger = 1.5 * max(window_start, 0) + 0.1
+        frequency = (5 / 256 * chirp_mass_time ** (-5 / 3) / time_to_merger) ** (3 / 8) / np.pi
+        derived = min(max(frequency - 1, 1.0), self.sampled_minimum_frequency)
         requested = self.requested_fiducial_minimum_frequency
         if requested is not None and requested > derived:
             raise ValueError(
@@ -366,9 +319,15 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         self._fiducial_end = {
             interferometer.name: max(np.flatnonzero(mode)[-1] for mode in modes.values() if np.any(mode))
             for interferometer, (modes, _) in zip(self.interferometers, terms)}
-        self.fiducial_modes = {
-            interferometer.name: {key: hold_after_end(mode) for key, mode in modes.items()}
-            for interferometer, (modes, _) in zip(self.interferometers, terms)}
+        self.fiducial_modes = dict()
+        for interferometer, (modes, _) in zip(self.interferometers, terms):
+            self.fiducial_modes[interferometer.name] = dict()
+            for key, mode in modes.items():
+                mode = np.array(mode)
+                nonzero = np.flatnonzero(mode)
+                if len(nonzero) > 0:  # hold the last non-zero value after the ringdown
+                    mode[nonzero[-1] + 1:] = mode[nonzero[-1]]
+                self.fiducial_modes[interferometer.name][key] = mode
         self.mode_keys = sorted({key for modes in self.fiducial_modes.values()
                                  for key, mode in modes.items() if np.any(mode)})
         logger.debug(f"Modes of the heterodyning basis: {self.mode_keys}")
@@ -389,8 +348,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     def _chirp_mass(self, parameters):
         """ Detector-frame chirp mass (solar masses). """
         converted = self.waveform_generator.parameter_conversion(dict(parameters))[0]
-        mass_1, mass_2 = converted["mass_1"], converted["mass_2"]
-        return (mass_1 * mass_2) ** 0.6 / (mass_1 + mass_2) ** 0.2
+        return component_masses_to_chirp_mass(converted["mass_1"], converted["mass_2"])
 
     @staticmethod
     def _number_of_samples(interferometer):
@@ -430,7 +388,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 f"and {times[edges[-1]]:.3f} s from the merger")
 
     def compute_summary_data(self):
-        """ For each interferometer: :math:`a = V^T C^{-1} d` and, if used,
+        """ For each interferometer: :math:`a = V^T C^{-1} d` and
         :math:`S = V^T C^{-1} V` (see the class docstring). The columns of V
         are :math:`\\Re(u_q \\tau^p)` and :math:`-\\Im(u_q \\tau^p)` in each bin
         b, where :math:`\\tau = t - t_b`. """
@@ -461,34 +419,22 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
 
             summary = dict(
                 data_vector=data_vector.ravel(), samples=samples, fiducial=fiducial[:, samples],
-                tau=tau, bin_sizes=bin_sizes, matrix=None)
-            if self._use_summary_matrix(interferometer, data_vector.size):
-                summary["matrix"] = self._summary_matrix(
-                    interferometer, columns, samples, bin_starts, bin_of_sample)
-            logger.info(
-                f"{name}: {len(self.mode_keys)} modes, {len(bin_sizes)} bins, s^T C^-1 s from "
-                + ("the summary matrix" if summary["matrix"] is not None else "FFTs"))
+                tau=tau, bin_sizes=bin_sizes,
+                matrix=self._summary_matrix(interferometer, columns, samples, bin_starts, bin_of_sample))
+            logger.info(f"{name}: {len(self.mode_keys)} modes, {len(bin_sizes)} bins")
             self.summary_data[name] = summary
-
-    def _use_summary_matrix(self, interferometer, size):
-        """ Use S if v^T S v costs less than the two quadratic forms with FFTs
-        of length 2N (rough operation counts; see :code:`inner_product_method`). """
-        if self.inner_product_method != "auto":
-            return self.inner_product_method == "summary"
-        number_of_samples = self._number_of_samples(interferometer)
-        return size ** 2 < 2 * _FFT_COST_FACTOR * number_of_samples * np.log2(number_of_samples)
 
     def _summary_matrix(self, interferometer, columns, samples, bin_starts, bin_of_sample):
         """ S = V^T C^-1 V, one column group of V at a time (symmetric), as its
         eigenvalues and eigenvectors (rows). """
         number_of_groups, number_of_bins = len(columns), len(bin_starts)
-        inverse_covariance = self._inverse_covariance[interferometer.name]
+        x, y = interferometer.gohberg_semencul_vectors
         rows = np.arange(samples.start, samples.stop)
         matrix = np.empty((number_of_groups, number_of_bins, number_of_groups, number_of_bins))
         for j in range(number_of_groups):
-            group = np.zeros((self._number_of_samples(interferometer), number_of_bins))
-            group[rows, bin_of_sample] = columns[j]
-            group = inverse_covariance(group)[samples]
+            group = np.zeros((number_of_bins, self._number_of_samples(interferometer)))
+            group[bin_of_sample, rows] = columns[j]
+            group = np.array([gohberg_semencul_product(x, y, column)[samples] for column in group]).T
             for i in range(j, number_of_groups):
                 block = np.add.reduceat(columns[i][:, None] * group, bin_starts, axis=0)
                 matrix[i, :, j, :] = block
@@ -510,15 +456,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         summary = self.summary_data[name]
         vector = np.concatenate([coefficients.real.ravel(), coefficients.imag.ravel()])
         d_inner_h = float(summary["data_vector"] @ vector)
-        if summary["matrix"] is not None:
-            eigenvalues, eigenvectors = summary["matrix"]
-            optimal_snr_squared = float(eigenvalues @ (eigenvectors @ vector) ** 2)
-        else:
-            slopes_only = coefficients.copy()
-            slopes_only[:, 0] = 0
-            optimal_snr_squared = float(
-                self._quadratic_form[name](self._piecewise_linear_signal(name, coefficients))
-                - self._quadratic_form[name](self._piecewise_linear_signal(name, slopes_only)))
+        eigenvalues, eigenvectors = summary["matrix"]
+        optimal_snr_squared = float(eigenvalues @ (eigenvectors @ vector) ** 2)
         matched_filter_snr = d_inner_h / optimal_snr_squared ** 0.5 if optimal_snr_squared > 0 else 0.0
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
@@ -659,9 +598,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         return meta_data
 
 
-# v^T S v takes ~0.3 ns per element of S and s^T C^-1 s from FFTs ~6 ns * N log2(N); S has a numerical
-# rank well below its size, which makes the matrix route a few times cheaper still
-_FFT_COST_FACTOR = 60
 _EIGENVALUE_TOLERANCE = 1e-12
 
 _PHASE_PROXY_POWERS = np.array([5 / 8, 3 / 8, 1 / 4, -3 / 8])

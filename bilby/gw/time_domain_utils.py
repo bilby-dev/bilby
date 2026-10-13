@@ -52,87 +52,27 @@ def gohberg_semencul_product(x, y, vector):
     x, y: array_like
         Gohberg-Semencul vectors from :code:`gohberg_semencul_vectors`.
     vector: array_like
-        The vector v, of the same length as x, or an (N, m) array of m
-        vectors (columns).
+        The vector v, of the same length as x.
 
     Returns
     =======
     array_like: :math:`C^{-1} v`
     """
-    return gohberg_semencul_operator(x, y)(vector)
-
-
-def gohberg_semencul_operator(x, y):
-    """ The function :math:`v \\mapsto C^{-1} v` (see
-    :code:`gohberg_semencul_product`), with the transforms of x and y computed
-    once. The function takes real arrays of shape (N,) or (N, m) (m columns).
-
-    Parameters
-    ==========
-    x, y: array_like
-        Gohberg-Semencul vectors from :code:`gohberg_semencul_vectors`.
-
-    Returns
-    =======
-    function
-    """
-    from scipy import fft
-
     x = np.asarray(x, dtype=float)
     number_of_samples = len(x)
     fft_length = next_fast_len(2 * number_of_samples - 1, real=True)
-    x_fft = fft.rfft(x, n=fft_length)
-    zy_fft = fft.rfft(np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length)
+    x_fft = np.fft.rfft(x, n=fft_length)
+    zy_fft = np.fft.rfft(np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length)
 
-    def inverse_covariance_product(vector):
-        vector = np.asarray(vector, dtype=float)
-        shape = (-1,) + (1,) * (vector.ndim - 1)
-        x_w, zy_w = x_fft.reshape(shape), zy_fft.reshape(shape)
-        options = dict(n=fft_length, axis=0, workers=-1 if vector.ndim > 1 else 1)
-        # L(w)^T v = reverse(L(w) reverse(v)); the two terms are summed before the last transform
-        reversed_fft = fft.rfft(vector[::-1], **options)
-        first = fft.irfft(x_w * reversed_fft, **options)[:number_of_samples][::-1]
-        second = fft.irfft(zy_w * reversed_fft, **options)[:number_of_samples][::-1]
-        total = x_w * fft.rfft(first, **options) - zy_w * fft.rfft(second, **options)
-        return fft.irfft(total, **options)[:number_of_samples] / x[0]
+    def lower(w_fft, vector_fft):
+        """ L(w) v from the transforms of w and v. """
+        return np.fft.irfft(w_fft * vector_fft, n=fft_length)[:number_of_samples]
 
-    return inverse_covariance_product
-
-
-def gohberg_semencul_quadratic_form(x, y):
-    """ The function :math:`v \\mapsto v^T C^{-1} v` for a real vector v,
-
-    .. math::
-
-        v^T C^{-1} v = \\frac{1}{x_0} \\left[ |L(x)^T v|^2 - |L(Z y)^T v|^2 \\right]
-
-    (see :code:`gohberg_semencul_product`): three FFTs of length
-    :code:`next_fast_len(2 N - 1)` instead of the six of :math:`C^{-1} v`.
-
-    Parameters
-    ==========
-    x, y: array_like
-        Gohberg-Semencul vectors from :code:`gohberg_semencul_vectors`.
-
-    Returns
-    =======
-    function
-    """
-    from scipy import fft
-
-    x = np.asarray(x, dtype=float)
-    number_of_samples = len(x)
-    fft_length = next_fast_len(2 * number_of_samples - 1, real=True)
-    x_fft = fft.rfft(x, n=fft_length)
-    zy_fft = fft.rfft(np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length)
-
-    def quadratic_form(vector):
-        reversed_fft = fft.rfft(np.asarray(vector, dtype=float)[::-1], n=fft_length)
-        first = fft.irfft(x_fft * reversed_fft, n=fft_length)[:number_of_samples]
-        second = fft.irfft(zy_fft * reversed_fft, n=fft_length)[:number_of_samples]
-        return (first @ first - second @ second) / x[0]
-
-    return quadratic_form
+    # L(w)^T v = reverse(L(w) reverse(v))
+    reversed_fft = np.fft.rfft(np.asarray(vector, dtype=float)[::-1], n=fft_length)
+    first = lower(x_fft, np.fft.rfft(lower(x_fft, reversed_fft)[::-1], n=fft_length))
+    second = lower(zy_fft, np.fft.rfft(lower(zy_fft, reversed_fft)[::-1], n=fft_length))
+    return (first - second) / x[0]
 
 
 def fractional_time_shift(signal, fraction, pad=32):
