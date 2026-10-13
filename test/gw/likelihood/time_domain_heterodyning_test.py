@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -148,14 +149,25 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
                 self.assertLess(abs(heterodyned.log_likelihood_ratio(parameters)
                                     - exact.log_likelihood_ratio(parameters)), 0.05 if aligned else 0.1)
 
-    def test_single_precision(self):
+    def test_use_float32(self):
         ifos = interferometers()
         values = list()
-        for single_precision in (False, True):
+        for use_float32 in (False, True):
             likelihood = TimeDomainHeterodyningGravitationalWaveTransient(
-                ifos, heterodyning_generator(), fiducial_parameters=INJECTION, single_precision=single_precision)
+                ifos, heterodyning_generator(), fiducial_parameters=INJECTION,
+                use_float32=use_float32)
             values.append(likelihood.log_likelihood_ratio(perturbed(INJECTION)))
         self.assertLess(abs(values[0] - values[1]), 1e-3)
+
+    def test_meta_data(self):
+        ifos = interferometers()
+        likelihood = TimeDomainHeterodyningGravitationalWaveTransient(
+            ifos, heterodyning_generator(), fiducial_parameters=INJECTION)
+        meta_data = likelihood.meta_data
+        for ifo in ifos:
+            np.testing.assert_array_equal(meta_data["bin_edges"][ifo.name], likelihood.bin_edges[ifo.name])
+            self.assertEqual(len(meta_data["bin_edge_times"][ifo.name]), meta_data["number_of_bins"][ifo.name] + 1)
+        json.dumps(meta_data, cls=bilby.core.utils.BilbyJsonEncoder)
 
     def test_full_waveform_is_piecewise_linear_model(self):
         ifos = interferometers()

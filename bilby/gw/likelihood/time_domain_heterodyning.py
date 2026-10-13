@@ -141,12 +141,13 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         (the leading-order frequency 1.5 x (time from the window start to the
         merger) + 0.1 s before the merger, minus 1 Hz); a given value must not
         be above that.
-    single_precision: bool, optional
-        If True, the eigenvectors of S are stored and multiplied in float32
-        instead of float64: :math:`v^T S v` is a few times faster for many modes
-        and bins, with relative errors of ~1e-7 in it. Default is False.
     time_marginalization, phase_marginalization, calibration_marginalization: bool
         Not implemented for this likelihood; must be False.
+    use_float32: bool, optional
+        If True, the eigenvectors of the summary matrix S are stored and
+        multiplied in float32 instead of float64: :math:`v^T S v` is a few times
+        faster for many modes and bins, with relative errors of ~1e-7 in it.
+        Default is False.
 
     Returns
     -------
@@ -163,8 +164,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                  time_reference="geocenter", epsilon=(0.5, 0.1), time_split=-0.02,
                  spacing=(2, 10, 100), spacing_times=(0.02, 0.1), chi=1,
                  sampled_minimum_frequency=None, fiducial_minimum_frequency=None,
-                 single_precision=False, time_marginalization=False,
-                 phase_marginalization=False, calibration_marginalization=False):
+                 time_marginalization=False, phase_marginalization=False,
+                 calibration_marginalization=False, use_float32=False):
         super(TimeDomainHeterodyningGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator,
@@ -183,7 +184,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         self.spacing = spacing
         self.spacing_times = spacing_times
         self.chi = chi
-        self.single_precision = single_precision
+        self.use_float32 = use_float32
         # this likelihood sets its own entries in waveform_arguments; copy the dictionary so that
         # they do not reach other waveform generators that share it
         self.waveform_generator.waveform_arguments = dict(self.waveform_generator.waveform_arguments)
@@ -488,7 +489,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             self.summary_data[name] = dict(
                 a=a.ravel(), S_eigenvalues=eigenvalues[keep],
                 S_eigenvectors=np.ascontiguousarray(
-                    eigenvectors[:, keep].T, dtype=np.float32 if self.single_precision else np.float64),
+                    eigenvectors[:, keep].T, dtype=np.float32 if self.use_float32 else np.float64),
                 bin_of_sample=bin_of_sample, time_from_bin_centre=time_from_bin_centre)
             logger.info(f"{name}: {len(self.mode_keys)} modes, {number_of_bins} bins, "
                         f"S of size {size} and rank {np.sum(keep)}")
@@ -527,7 +528,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         summary = self.summary_data[interferometer.name]
         v = np.concatenate([r_tilde.real.ravel(), r_tilde.imag.ravel()])
         d_inner_s = float(summary["a"] @ v)
-        # e_n . v in the precision of the stored eigenvectors (see single_precision)
+        # e_n . v in the precision of the stored eigenvectors (see use_float32)
         projections = summary["S_eigenvectors"] @ v.astype(summary["S_eigenvectors"].dtype, copy=False)
         s_inner_s = float(summary["S_eigenvalues"] @ projections.astype(np.float64) ** 2)
         return self._CalculatedSNRs(
@@ -645,6 +646,16 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         meta_data = super(TimeDomainHeterodyningGravitationalWaveTransient, self).meta_data
         meta_data.update(
             fiducial_parameters=self.fiducial_parameters,
+            parameters_to_be_updated=getattr(self, "parameters_to_be_updated", None),
+            fiducial_minimum_frequency=self.fiducial_minimum_frequency,
+            sampled_minimum_frequency=self.sampled_minimum_frequency,
+            mode_keys=self.mode_keys,
+            epsilon=self.epsilon,
+            time_split=self.time_split,
+            spacing=self.spacing,
+            spacing_times=self.spacing_times,
+            chi=self.chi,
             number_of_bins=self.number_of_bins,
-            mode_keys=self.mode_keys)
+            bin_edges=self.bin_edges,
+            bin_edge_times={name: self._fiducial_times[name][edges] for name, edges in self.bin_edges.items()})
         return meta_data
