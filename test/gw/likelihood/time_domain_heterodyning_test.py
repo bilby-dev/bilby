@@ -10,7 +10,6 @@ from bilby.gw.likelihood import (
     TimeDomainGravitationalWaveTransient,
     TimeDomainHeterodyningGravitationalWaveTransient,
 )
-from bilby.gw.likelihood.time_domain_heterodyning import time_domain_bin_edges
 from bilby.gw.time_domain_utils import (
     gohberg_semencul_product,
 )
@@ -85,8 +84,9 @@ def perturbed(parameters, scale=1.0):
 
 class TestBinEdges(unittest.TestCase):
     def test_edges(self):
+        bin_edges = TimeDomainHeterodyningGravitationalWaveTransient.time_domain_bin_edges
         times = np.arange(-0.5, 0.3, 1 / 1024)
-        edges = time_domain_bin_edges(times)
+        edges = bin_edges(times)
         self.assertEqual(edges[0], 0)
         self.assertEqual(edges[-1], len(times) - 1)
         self.assertTrue(np.all(np.diff(edges) > 0))
@@ -96,7 +96,7 @@ class TestBinEdges(unittest.TestCase):
         late = edges[(times[edges] > 0.03) & (times[edges] < 0.09)]
         self.assertTrue(np.all(np.diff(late) == 10))
         # smaller epsilon: more inspiral bins
-        self.assertGreater(np.sum(time_domain_bin_edges(times, epsilon=(0.1, 0.05)) < merger),
+        self.assertGreater(np.sum(bin_edges(times, epsilon=(0.1, 0.05)) < merger),
                            np.sum(edges < merger))
 
 
@@ -148,6 +148,15 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
                 self.assertLess(abs(heterodyned.log_likelihood_ratio(parameters)
                                     - exact.log_likelihood_ratio(parameters)), 0.05 if aligned else 0.1)
 
+    def test_single_precision(self):
+        ifos = interferometers()
+        values = list()
+        for single_precision in (False, True):
+            likelihood = TimeDomainHeterodyningGravitationalWaveTransient(
+                ifos, heterodyning_generator(), fiducial_parameters=INJECTION, single_precision=single_precision)
+            values.append(likelihood.log_likelihood_ratio(perturbed(INJECTION)))
+        self.assertLess(abs(values[0] - values[1]), 1e-3)
+
     def test_full_waveform_is_piecewise_linear_model(self):
         ifos = interferometers()
         likelihood = TimeDomainHeterodyningGravitationalWaveTransient(
@@ -159,9 +168,11 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
             snrs = likelihood.calculate_snrs(signal, ifo, parameters=parameters)
             x, y = ifo.gohberg_semencul_vectors
             # <s, s> without the terms quadratic in the slopes: <s, s> - <s1, s1>, s1 = slope part of s
-            coefficients = likelihood._heterodyning_coefficients(signal, [ifo], parameters)[0]
-            coefficients[:, 0] = 0
-            slopes = likelihood._piecewise_linear_signal(ifo.name, coefficients)
+            r_tilde_1 = likelihood._r_tilde_coefficients(signal, [ifo], parameters)[0][:, 1]
+            summary = likelihood.summary_data[ifo.name]
+            h0 = np.array([likelihood.fiducial_modes[ifo.name][mode] for mode in likelihood.mode_keys])
+            slopes = np.sum(
+                (r_tilde_1[:, summary["bin_of_sample"]] * summary["time_from_bin_centre"] * h0).real, axis=0)
             expected = (template @ gohberg_semencul_product(x, y, template)
                         - slopes @ gohberg_semencul_product(x, y, slopes))
             self.assertAlmostEqual(snrs.optimal_snr_squared / expected, 1, 10)
@@ -249,7 +260,7 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
         with self.assertRaises(ValueError):  # fiducial_minimum_frequency above the derived one
             TimeDomainHeterodyningGravitationalWaveTransient(
                 ifos, heterodyning_generator(), fiducial_parameters=INJECTION, fiducial_minimum_frequency=30.0)
-        with self.assertRaises(ValueError):  # above minimum_frequency - 2 Hz
+        with self.assertLogs("bilby", level="WARNING"):  # above minimum_frequency - 2 Hz
             TimeDomainHeterodyningGravitationalWaveTransient(
                 ifos, heterodyning_generator(), fiducial_parameters=INJECTION, sampled_minimum_frequency=19.0)
         with self.assertRaises(NotImplementedError):
