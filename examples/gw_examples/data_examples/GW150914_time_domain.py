@@ -23,6 +23,7 @@ the LIGO Data Grid instead.
 [1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
 """
 import bilby
+import h5py
 from gwpy.timeseries import TimeSeries
 
 logger = bilby.core.utils.logger
@@ -48,17 +49,19 @@ start_time = end_time - duration
 padding = duration / 2
 
 # File with the PSDs and their frequency arrays (psds/h1_psd/frequency,
-# psds/h1_psd/spectrum, ...). GWTC PESummary release files are also read, with
-# label= the analysis, e.g. "C01:IMRPhenomXPHM".
+# psds/h1_psd/spectrum, ...). For a GWTC PESummary release file, use instead
+# ff[label]["psds"][det][:, 0] and [:, 1], with label the analysis, e.g. "C01:IMRPhenomXPHM".
 psd_file = "GW150914_data.h5"
-psds = bilby.gw.detector.read_power_spectral_densities_from_hdf5(psd_file, detectors)
+with h5py.File(psd_file, "r") as ff:
+    psds = {det: (ff["psds"][f"{det.lower()}_psd"]["frequency"][:], ff["psds"][f"{det.lower()}_psd"]["spectrum"][:])
+            for det in detectors}
 
 # We now use gwpy to obtain the analysis data and create the ifo_list
 ifo_list = bilby.gw.detector.InterferometerList([])
 for det in detectors:
     logger.info("Downloading analysis data for ifo {}".format(det))
     ifo = bilby.gw.detector.get_empty_interferometer(det)
-    ifo.analysis_window = (start_time, duration)
+    ifo.set_analysis_window(start_time, duration)
     data = TimeSeries.fetch_open_data(det, start_time - padding, end_time + padding)
     ifo.strain_data.set_from_gwpy_timeseries(data)
     ifo.condition_strain_data(sampling_frequency)

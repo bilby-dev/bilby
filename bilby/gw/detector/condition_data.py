@@ -4,115 +4,78 @@ import numpy as np
 def condition_strain_data(strain_data, sampling_frequency, start_time, duration,
                           preserve_time=None, trim=0.25, taper_and_trim=True,
                           remove_mean=True):
-    """ Downsample time-domain strain data around an analysis window.
+    """ Downsample time-domain strain data around an analysis window
 
-    Steps (default, `taper_and_trim` = True):
-
-    1. Keep the window [`start_time`, `start_time` + `duration`) and a buffer
-       of `trim` / (1 - 2 `trim`) x `duration` on each side (`duration` / 2
-       for the default `trim` = 0.25). A ValueError is raised if the data do
-       not cover them.
-    2. Shift the data by fewer than `factor` samples (factor = current / new
-       sampling frequency) so that the sample nearest `preserve_time` is kept.
-    3. Multiply by a Tukey window with alpha = `trim`, set all frequencies
-       above the new Nyquist frequency to zero and keep every factor-th
-       sample.
-    4. Remove a fraction `trim` of the samples at each end; this removes the
-       buffer. Samples in the window are always kept.
-    5. Subtract the mean if `remove_mean`.
-
-    With `taper_and_trim` = False, steps 1, 3 and 4 are replaced by
-    :code:`scipy.signal.decimate` (order-8 Chebyshev low-pass filter, applied
-    forwards and backwards, then every factor-th sample) on all the data, and
-    the first samples are dropped instead of shifted in step 2. No buffer is
-    needed. The filter starts to cut at 0.8 x the new Nyquist frequency.
-
-    The result replaces the data in `strain_data`.
+    By default, the data in the window plus a buffer of
+    `trim` / (1 - 2 `trim`) x `duration` on each side are tapered with a Tukey
+    window (alpha = `trim`), low-passed below the new Nyquist frequency,
+    downsampled, and the buffer is removed. The samples are aligned so that the
+    sample nearest `preserve_time` is kept. With `taper_and_trim` = False,
+    :code:`scipy.signal.decimate` is used instead. The result replaces the
+    data in `strain_data`.
 
     Parameters
     ==========
     strain_data: bilby.gw.detector.InterferometerStrainData
-        The strain data; modified in place.
+        The strain data, modified in place
     sampling_frequency: float
-        New sampling frequency (Hz); must divide the current one.
+        The new sampling frequency (in Hz); must divide the current one
     start_time: float
-        GPS start time of the analysis window (s).
+        The GPS start time of the analysis window
     duration: float
-        Duration of the analysis window (s).
+        The duration of the analysis window (in s)
     preserve_time: float, optional
-        GPS time whose nearest sample is kept, e.g. the inspiral/post-inspiral
-        cut time (default: `start_time`).
+        GPS time whose nearest sample is kept (default: `start_time`)
     trim: float
-        Fraction of the data at each end that is removed (default 0.25).
+        The fraction of the data removed at each end
     taper_and_trim: bool
-        Use the Tukey window, buffer and trimming (default True); if False,
-        use :code:`scipy.signal.decimate`.
+        If True, taper, low-pass and trim; if False, use :code:`scipy.signal.decimate`
     remove_mean: bool
-        Subtract the mean of the result (default True).
+        If True, subtract the mean of the result
+
     """
     from scipy.signal import decimate
     from scipy.signal.windows import tukey
 
-    original_sampling_frequency = float(strain_data.sampling_frequency)
-    factor = int(round(original_sampling_frequency / sampling_frequency))
-    if preserve_time is None:
-        preserve_time = start_time
+    factor = int(round(strain_data.sampling_frequency / sampling_frequency))
+    strain = np.asarray(strain_data.time_domain_strain, dtype=float)
+    times = np.asarray(strain_data.time_array, dtype=float)
+    if taper_and_trim:
+        # step 1: the window and a buffer on each side
+        buffer = duration * trim / (1 - 2 * trim)
+        first, last = start_time - buffer, start_time + duration + buffer
+        data_end = strain_data.start_time + strain_data.duration
+        if (strain_data.start_time > first + 1 / strain_data.sampling_frequency
+                or data_end < last - 1 / strain_data.sampling_frequency):
+            raise ValueError(
+                f"The data ({strain_data.start_time:.6f} - {data_end:.6f}) must cover {first:.6f} - {last:.6f}: "
+                f"the analysis window plus {buffer:g} s on each side")
+        keep = slice(max(int(round((first - strain_data.start_time) * strain_data.sampling_frequency)), 0),
+                     int(round((last - strain_data.start_time) * strain_data.sampling_frequency)))
+        strain, times = strain[keep], times[keep]
 
-    if not taper_and_trim:
-        strain = np.array(strain_data.time_domain_strain, dtype=float)
-        times = np.array(strain_data.time_array, dtype=float)
-        shift = int(np.argmin(abs(times - preserve_time))) % factor
-        strain = decimate(strain[shift:], factor, zero_phase=True)
-        times = times[shift::factor]
-        if remove_mean:
-            strain = strain - np.mean(strain)
-        strain_data.set_from_time_domain_strain(
-            strain, sampling_frequency=sampling_frequency,
-            duration=len(strain) / sampling_frequency, start_time=times[0])
-        return
-
-    buffer_duration = duration * trim / (1 - 2 * trim)
-    tolerance = 1 / original_sampling_frequency
-    data_start_time = strain_data.start_time
-    data_end_time = data_start_time + strain_data.duration
-    buffer_start_time = start_time - buffer_duration
-    buffer_end_time = start_time + duration + buffer_duration
-    if data_start_time > buffer_start_time + tolerance or data_end_time < buffer_end_time - tolerance:
-        raise ValueError(
-            f"The data ({data_start_time:.6f} - {data_end_time:.6f}) must cover "
-            f"{buffer_start_time:.6f} - {buffer_end_time:.6f}: the analysis window plus "
-            f"{buffer_duration:g} s on each side")
-    buffer_start_index = max(
-        int(round((buffer_start_time - data_start_time) * original_sampling_frequency)), 0)
-    buffer_end_index = int(round((buffer_end_time - data_start_time) * original_sampling_frequency))
-    strain = np.array(strain_data.time_domain_strain[buffer_start_index:buffer_end_index], dtype=float)
-    times = np.array(strain_data.time_array[buffer_start_index:buffer_end_index], dtype=float)
-
-    shift = int(np.argmin(abs(times - preserve_time))) % factor
-    if trim > 0:
-        # the wrapped samples are at the end and are removed in step 4
-        times = np.roll(times, -shift)
-        strain = np.roll(strain, -shift)
+    # step 2: keep the sample nearest preserve_time
+    shift = int(np.argmin(abs(times - (start_time if preserve_time is None else preserve_time)))) % factor
+    if taper_and_trim and trim > 0:  # the wrapped samples are at the end and are removed in step 4
+        strain, times = np.roll(strain, -shift), np.roll(times, -shift)
     else:
-        times = times[shift:]
-        strain = strain[shift:]
+        strain, times = strain[shift:], times[shift:]
 
-    strain_fd = np.fft.rfft(strain * tukey(len(strain), trim))
-    frequencies = np.fft.rfftfreq(len(strain), 1 / original_sampling_frequency)
-    strain_fd[frequencies > sampling_frequency / 2] = 0
-    strain = np.fft.irfft(strain_fd, n=len(strain))[::factor]
-    times = times[::factor]
+    if taper_and_trim:
+        # step 3: taper, low-pass and downsample
+        strain_fd = np.fft.rfft(strain * tukey(len(strain), trim))
+        strain_fd[np.fft.rfftfreq(len(strain), 1 / strain_data.sampling_frequency) > sampling_frequency / 2] = 0
+        strain, times = np.fft.irfft(strain_fd, n=len(strain))[::factor], times[::factor]
+        # step 4: remove the fraction trim at each end, but always keep the analysis samples
+        window = int(np.argmin(abs(times - start_time)))  # first sample of the analysis window
+        keep = slice(min(int(round(trim * len(strain))), window),
+                     max(int(round((1 - trim) * len(strain))), window + int(round(duration * sampling_frequency))))
+        strain, times = strain[keep], times[keep]
+    else:
+        strain, times = decimate(strain, factor, zero_phase=True), times[::factor]
 
-    # remove the fraction trim at each end, but always keep the analysis samples
-    analysis_start_index = int(np.argmin(abs(times - start_time)))
-    analysis_end_index = analysis_start_index + int(round(duration * sampling_frequency))
-    keep_start_index = min(int(round(trim * len(strain))), analysis_start_index)
-    keep_end_index = max(int(round((1 - trim) * len(strain))), analysis_end_index)
-    strain = strain[keep_start_index:keep_end_index]
-    times = times[keep_start_index:keep_end_index]
     if remove_mean:
         strain = strain - np.mean(strain)
-
     strain_data.set_from_time_domain_strain(
         strain, sampling_frequency=sampling_frequency, duration=len(strain) / sampling_frequency,
         start_time=times[0])

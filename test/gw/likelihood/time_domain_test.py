@@ -46,7 +46,7 @@ def interferometers(noise="zero", acf=True, analysis_segment="imr", duration=DUR
         segment_cut_time=segment_cut_time, cut_reference_parameters=INJECTION)
     random_state = np.random.default_rng(3)
     for ifo in ifos:
-        window = (SAMPLING_FREQUENCY, ifo.analysis_window["duration"], ifo.analysis_window["start_time"])
+        window = (SAMPLING_FREQUENCY, ifo.analysis_duration, ifo.analysis_start_time)
         if noise == "zero":
             ifo.set_strain_data_from_zero_noise(*window)
         else:
@@ -119,7 +119,6 @@ class TestAutoCovarianceFunction(unittest.TestCase):
             self.frequencies, self.psd, 20, 400)
         self.assertEqual(acf.sampling_frequency, 1024)
         self.assertEqual(len(acf.acf_array), 8192)
-        self.assertAlmostEqual(acf.meta_data["duration"], 8)
 
     def test_sampling_frequency_mismatch_warns(self):
         with self.assertLogs("bilby", level="WARNING"):
@@ -302,7 +301,7 @@ class TestModelTime(unittest.TestCase):
         # waveform must agree (to the ~1e-4 sample left by the precision of GPS times;
         # the first sample can fall just outside the waveform's span)
         ifo = interferometers()[0]
-        start_time = ifo.strain_data.time_array[ifo._analysis_slice().start]
+        start_time = ifo.time_array[ifo.analysis_slice][0]
         for approximant, injection in [("IMRPhenomT", ALIGNED_INJECTION), ("IMRPhenomTHM", ALIGNED_INJECTION),
                                        ("IMRPhenomTP", INJECTION), ("IMRPhenomTPHM", INJECTION)]:
             with self.subTest(approximant=approximant):
@@ -406,10 +405,10 @@ class TestTimeDomainData(unittest.TestCase):
         post_inspiral = interferometers(**SEGMENTS["post_inspiral"])
         post_inspiral.inject_signal_time_domain(parameters=INJECTION, waveform_generator=waveform_generator())
         for ifo, reference in zip(full, post_inspiral):
-            ifo.analysis_window = (reference.analysis_window["start_time"], reference.analysis_window["duration"])
+            ifo.set_analysis_window(reference.analysis_start_time, reference.analysis_duration)
             self.assertEqual(len(ifo.time_domain_strain), DURATION * SAMPLING_FREQUENCY)
             np.testing.assert_allclose(
-                ifo.time_array[ifo._analysis_slice()], reference.time_array[reference._analysis_slice()],
+                ifo.time_array[ifo.analysis_slice], reference.time_array[reference.analysis_slice],
                 atol=1e-6)
             np.testing.assert_allclose(ifo.analysis_data, reference.analysis_data, atol=1e-30)
 
@@ -428,10 +427,10 @@ class TestTimeDomainData(unittest.TestCase):
 
     def test_downsample(self):
         ifo = self._sine_data(1000.0, 16)
-        ifo.analysis_window = (1006.0, 4)
+        ifo.set_analysis_window(1006.0, 4)
         ifo.condition_strain_data(1024)
         self.assertEqual(ifo.sampling_frequency, 1024)
-        self.assertAlmostEqual(ifo.time_array[ifo._analysis_slice()][0], 1006.0)
+        self.assertAlmostEqual(ifo.time_array[ifo.analysis_slice][0], 1006.0)
         self.assertEqual(len(ifo.analysis_data), 4096)
         # the 60 Hz line is kept and the 1500 Hz line (above the new Nyquist frequency) removed
         expected = np.sin(2 * np.pi * 60 * ifo.time_array)
@@ -439,45 +438,35 @@ class TestTimeDomainData(unittest.TestCase):
 
     def test_decimate(self):
         ifo = self._sine_data(1000.0001, 16)
-        ifo.analysis_window = (1006.0, 4)
+        ifo.set_analysis_window(1006.0, 4)
         ifo.condition_strain_data(1024, taper_and_trim=False, remove_mean=False)
         self.assertEqual(ifo.sampling_frequency, 1024)
         self.assertEqual(ifo.duration, 16)
-        self.assertAlmostEqual(ifo.time_array[ifo._analysis_slice()][0], 1006.0, 3)
+        self.assertAlmostEqual(ifo.time_array[ifo.analysis_slice][0], 1006.0, 3)
         self.assertEqual(len(ifo.analysis_data), 4096)
         # the 60 Hz line is kept (up to the filter ripple) and the 1500 Hz line removed
-        expected = np.sin(2 * np.pi * 60 * ifo.time_array[ifo._analysis_slice()])
+        expected = np.sin(2 * np.pi * 60 * ifo.time_array[ifo.analysis_slice])
         np.testing.assert_allclose(ifo.analysis_data, expected, atol=1e-2)
 
     def test_downsample_data_slightly_off_grid(self):
         ifo = self._sine_data(1004.0001, 8)
-        ifo.analysis_window = (1006.0, 4)
+        ifo.set_analysis_window(1006.0, 4)
         ifo.condition_strain_data(1024)
         self.assertEqual(len(ifo.analysis_data), 4096)
-        self.assertAlmostEqual(ifo.time_array[ifo._analysis_slice()][0], 1006.0, 3)
+        self.assertAlmostEqual(ifo.time_array[ifo.analysis_slice][0], 1006.0, 3)
 
     def test_downsample_needs_buffer(self):
         ifo = self._sine_data(1005.0, 6)
-        ifo.analysis_window = (1006.0, 4)
+        ifo.set_analysis_window(1006.0, 4)
         with self.assertRaises(ValueError):
             ifo.condition_strain_data(1024)
 
     def test_data_not_conditioned_by_default(self):
         ifo = self._sine_data(1000.0, 16)
-        ifo.analysis_window = (1006.0, 4)
+        ifo.set_analysis_window(1006.0, 4)
         self.assertEqual(len(ifo.time_domain_strain), 16 * 4096)
-        self.assertAlmostEqual(ifo.time_array[ifo._analysis_slice()][0], 1006.0)
+        self.assertAlmostEqual(ifo.time_array[ifo.analysis_slice][0], 1006.0)
         self.assertEqual(len(ifo.analysis_data), 4 * 4096)
-
-    def test_network_downsample(self):
-        ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        ifos.set_strain_data_from_power_spectral_densities(4096, 16, 1000, random_state=2)
-        ifos.set_analysis_windows(duration=4, start_time=1006)
-        ifos.condition_strain_data(2048)
-        for ifo in ifos:
-            self.assertEqual(ifo.sampling_frequency, 2048)
-            self.assertAlmostEqual(ifo.time_array[ifo._analysis_slice()][0], 1006.0)
-            self.assertEqual(len(ifo.analysis_data), 4 * 2048)
 
 
 class TestTimeDomainSourceModels(unittest.TestCase):
@@ -490,6 +479,21 @@ class TestTimeDomainSourceModels(unittest.TestCase):
         self.waveform_kwargs = dict(
             waveform_approximant="IMRPhenomXP", reference_frequency=20.0,
             minimum_frequency=20.0, turn_on_window=0)
+
+    def test_start_frequency(self):
+        from bilby.gw.time_domain_utils import time_domain_start_frequency
+        self.assertEqual(time_domain_start_frequency(20, "IMRPhenomT"), 20)
+        self.assertEqual(time_domain_start_frequency(20, "IMRPhenomTPHM"), 10)
+        self.assertAlmostEqual(time_domain_start_frequency(20, "IMRPhenomTHM", mode_array=[[2, 2], [3, 3]]), 40 / 3)
+        self.assertEqual(time_domain_start_frequency(20, "IMRPhenomTHM", mode_array=[[2, 2], [2, 1]]), 20)
+
+    def test_start_at_higher_mode_frequency(self):
+        # IMRPhenomTHM from 10 Hz by default: longer than from 20 Hz
+        lengths = [len(bilby.gw.source.lal_binary_black_hole_time_domain(
+            self.time_array, **dict(self.parameters, tilt_1=0, tilt_2=0),
+            **dict(self.waveform_kwargs, waveform_approximant="IMRPhenomTHM"), **option)["plus"])
+            for option in (dict(), dict(start_at_higher_mode_frequency=False))]
+        self.assertGreater(lengths[0], 3 * lengths[1])
 
     def test_output_on_own_grid(self):
         output = bilby.gw.source.lal_binary_black_hole_time_domain(
@@ -542,50 +546,6 @@ class TestTimeDomainSourceModels(unittest.TestCase):
         with self.assertRaises(ValueError):
             bilby.gw.source.lal_binary_black_hole_time_domain(
                 self.time_array, **self.parameters, **self.waveform_kwargs, not_an_argument=1)
-
-
-class TestNoiseInputs(unittest.TestCase):
-    def test_read_power_spectral_densities_from_hdf5(self):
-        import h5py
-        frequencies = np.arange(0, 1024.125, 0.125)
-        psd = 1e-46 * (1 + (50 / np.maximum(frequencies, 1)) ** 4)
-        directory = tempfile.mkdtemp()
-        try:
-            simple = os.path.join(directory, "simple.h5")
-            with h5py.File(simple, "w") as ff:
-                for ifo in ["h1", "l1"]:
-                    ff.create_dataset(f"psds/{ifo}_psd/frequency", data=frequencies)
-                    ff.create_dataset(f"psds/{ifo}_psd/spectrum", data=psd)
-            pesummary = os.path.join(directory, "pesummary.h5")
-            with h5py.File(pesummary, "w") as ff:
-                for label in ["C01:IMRPhenomXPHM", "C01:SEOBNRv4PHM"]:
-                    for ifo in ["H1", "L1"]:
-                        ff.create_dataset(f"{label}/psds/{ifo}", data=np.array([frequencies, psd]).T)
-            read = bilby.gw.detector.read_power_spectral_densities_from_hdf5
-            for output in [read(simple, ["H1", "L1"]),
-                           read(pesummary, ["H1", "L1"], label="C01:IMRPhenomXPHM")]:
-                self.assertEqual(set(output), {"H1", "L1"})
-                np.testing.assert_array_equal(output["L1"][0], frequencies)
-                np.testing.assert_array_equal(output["L1"][1], psd)
-            with self.assertRaises(ValueError):
-                read(pesummary, ["H1"])  # two analyses: label needed
-        finally:
-            shutil.rmtree(directory)
-
-    def test_welch_acf_agrees_with_psd_acf(self):
-        ifo = bilby.gw.detector.get_empty_interferometer("H1")
-        ifo.minimum_frequency, ifo.maximum_frequency = 20, 448
-        ifo.set_strain_data_from_power_spectral_density(SAMPLING_FREQUENCY, 256, 0, random_state=11)
-        noise = ifo.time_domain_strain.copy()
-        ifo.analysis_window = (0, 1)
-        ifo.set_autocovariance_function_from_power_spectral_density()
-        from_data = AutoCovarianceFunction.from_time_domain_strain(
-            noise, SAMPLING_FREQUENCY, analysis_duration=1, minimum_frequency=20, maximum_frequency=448)
-        times = np.arange(SAMPLING_FREQUENCY) / SAMPLING_FREQUENCY
-        signal = 1e-22 * np.exp(-0.5 * ((times - 0.5) / 0.05) ** 2) * np.sin(2 * np.pi * 120 * times)
-        snr_squared = [gohberg_semencul_product(*acf.gohberg_semencul_vectors(len(times)), signal) @ signal
-                       for acf in [ifo.autocovariance_function, from_data]]
-        self.assertAlmostEqual(snr_squared[1] / snr_squared[0], 1, delta=0.1)
 
 
 if __name__ == "__main__":

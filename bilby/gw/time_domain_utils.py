@@ -1,30 +1,63 @@
 """
-Utilities for time-domain gravitational-wave inference.
-
-* Gohberg-Semencul representation of the inverse of a symmetric Toeplitz
-  noise covariance matrix.
-* Placement of a time-domain waveform, generated on its own uniform grid, into
-  a segment of detector data.
+Utilities for time-domain gravitational-wave inference: products with the
+inverse of a Toeplitz noise covariance matrix, and placement of a time-domain
+waveform on the data samples.
 """
 import numpy as np
 from scipy.fft import next_fast_len
 from scipy.linalg import solve_toeplitz
 
+from .utils import safe_cast_mode_to_int
+
+# largest l of the default modes of time-domain approximants with higher modes
+HIGHER_MODE_L_MAX = dict(IMRPhenomTHM=5, IMRPhenomTPHM=5, SEOBNRv4HM=5, SEOBNRv4PHM=5,
+                         NRSur7dq4=4, NRHybSur3dq8=5)
+
+
+def time_domain_start_frequency(minimum_frequency, waveform_approximant, mode_array=None):
+    """ The frequency of the (2, 2) mode at which a time-domain waveform starts
+    so that its modes with l <= 4 are present from `minimum_frequency`
+
+    In the inspiral, the frequency of the (l, m) mode is m / 2 times that of the
+    (2, 2) mode, so the waveform starts at 2 / min(l_max, 4) x `minimum_frequency`,
+    where l_max is the largest l of the modes. See Ursell et al. arXiv:2510.15048.
+
+    Parameters
+    ==========
+    minimum_frequency: float
+        The frequency (in Hz) from which all modes should be present
+    waveform_approximant: str
+        The waveform approximant; approximants not in :code:`HIGHER_MODE_L_MAX`
+        are taken to contain only l = 2 modes
+    mode_array: list, optional
+        The modes used, as in :code:`bilby.gw.source.lal_binary_black_hole`;
+        default: all modes of the approximant
+
+    Returns
+    =======
+    float: The start frequency (in Hz)
+    """
+    if mode_array is None:
+        l_max = HIGHER_MODE_L_MAX.get(waveform_approximant, 2)
+    else:
+        l_max = max(safe_cast_mode_to_int(mode[0]) for mode in mode_array)
+    return minimum_frequency * 2 / min(max(l_max, 2), 4)
+
 
 def gohberg_semencul_vectors(acf):
-    """ Gohberg-Semencul generators of the inverse of the Toeplitz matrix
-    built from :code:`acf`.
+    """ The Gohberg-Semencul vectors of the inverse of the symmetric Toeplitz matrix
+    with first row `acf` (Gohberg & Semencul 1972), computed with the Levinson
+    recursion
 
     Parameters
     ==========
     acf: array_like
-        Autocovariance function at lags 0, 1, ..., N - 1 (first row of the
-        N x N covariance matrix).
+        The first row of the covariance matrix
 
     Returns
     =======
     x, y: array_like
-        x is the first column of C^-1 and y is x reversed.
+        The first column of the inverse matrix, and the same reversed
     """
     acf = np.asarray(acf, dtype=float)
     unit_vector = np.zeros(len(acf))
@@ -34,29 +67,20 @@ def gohberg_semencul_vectors(acf):
 
 
 def gohberg_semencul_product(x, y, vector):
-    """ Product :math:`C^{-1} v` of the inverse of a symmetric Toeplitz matrix
-    with a vector, from its Gohberg-Semencul vectors, without forming
-    :math:`C^{-1}`:
-
-    .. math::
-
-        C^{-1} v = \\frac{1}{x_0} \\left[ L(x) L(x)^T v - L(Z y) L(Z y)^T v \\right],
-
-    where :math:`L(w)` is the lower-triangular Toeplitz matrix with first
-    column :math:`w` and :math:`Z` shifts down by one sample. Each product
-    with a triangular Toeplitz matrix is computed with FFTs of length
-    :code:`next_fast_len(2 N - 1)`.
+    """ The product of the inverse of a symmetric Toeplitz matrix with a vector,
+    computed from its Gohberg-Semencul vectors with FFTs, without forming the
+    inverse matrix (Gohberg & Semencul 1972)
 
     Parameters
     ==========
     x, y: array_like
-        Gohberg-Semencul vectors from :code:`gohberg_semencul_vectors`.
+        The Gohberg-Semencul vectors, from :code:`gohberg_semencul_vectors`
     vector: array_like
-        The vector v, of the same length as x.
+        The vector, of the same length as `x`
 
     Returns
     =======
-    array_like: :math:`C^{-1} v`
+    array_like: The product of the inverse matrix with `vector`
     """
     x = np.asarray(x, dtype=float)
     number_of_samples = len(x)
@@ -65,7 +89,7 @@ def gohberg_semencul_product(x, y, vector):
     zy_fft = np.fft.rfft(np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length)
 
     def lower(w_fft, vector_fft):
-        """ L(w) v from the transforms of w and v. """
+        """ The product of the lower-triangular Toeplitz matrix with first column w and v, from their FFTs """
         return np.fft.irfft(w_fft * vector_fft, n=fft_length)[:number_of_samples]
 
     # L(w)^T v = reverse(L(w) reverse(v))
@@ -76,23 +100,20 @@ def gohberg_semencul_product(x, y, vector):
 
 
 def fractional_time_shift(signal, fraction, pad=32):
-    """ Delay a time series by a fraction of a sample with a Fourier phase
-    shift, on a zero-padded copy so that nothing wraps around.
+    """ Delay a time series by a fraction of a sample with a Fourier phase shift
 
     Parameters
     ==========
     signal: array_like
-        The time series.
+        The time series
     fraction: float
-        Delay in samples (positive values move the signal later).
+        The delay in samples (positive values delay the signal)
     pad: int
-        Number of zero samples added before and after the signal.
+        The number of zeros added before and after the signal, so that nothing wraps around
 
     Returns
     =======
-    shifted: array_like
-        The delayed series, of length len(signal) + 2 * pad (sample k
-        corresponds to sample k - pad of the input).
+    array_like: The delayed time series, of length len(signal) + 2 * pad
     """
     signal = np.asarray(signal, dtype=float)
     length = next_fast_len(len(signal) + 2 * pad)
@@ -105,8 +126,7 @@ def fractional_time_shift(signal, fraction, pad=32):
 
 
 def _copy_into_segment(signal, offset, number_of_samples):
-    """ Put signal sample k at data index offset + k and return data indices
-    [0, number_of_samples); zero elsewhere. """
+    """ Put `signal` at data indices `offset`, `offset` + 1, ... of a segment of `number_of_samples` zeros """
     segment = np.zeros(number_of_samples)
     first = max(0, -offset)
     last = min(len(signal), number_of_samples - offset)
@@ -116,23 +136,24 @@ def _copy_into_segment(signal, offset, number_of_samples):
 
 
 def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent_time, time_delay):
-    """ Times of data samples relative to the arrival of the model's t=0 in a
-    detector, t_k - (geocent_time + time_delay), as for ringdown analyses.
+    """ The times of data samples relative to the arrival of the merger at a detector
 
     Parameters
     ==========
     start_time: float
-        GPS time of the first data sample.
+        The GPS time of the first data sample
     number_of_samples: int
+        The number of data samples
     sampling_frequency: float
+        The sampling frequency (in Hz)
     geocent_time: float
-        GPS time at which the model's t=0 arrives at the geocenter.
+        The GPS time of the merger at the geocenter
     time_delay: float
-        Time delay of the detector from the geocenter (s).
+        The time delay of the detector from the geocenter (in s)
 
     Returns
     =======
-    array_like: times (s)
+    array_like: The times (in s)
     """
     # subtract the two GPS times (~1e9 s) first, then add the small terms
     return (start_time - geocent_time) - time_delay + np.arange(number_of_samples) / sampling_frequency
@@ -140,33 +161,30 @@ def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent
 
 def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samples,
                              placement="nearest"):
-    """ Place a time-domain signal, generated on its own grid with the data's
-    sample spacing, on the data samples.
+    """ Place a time-domain signal, sampled at the sampling frequency of the data,
+    on the data samples
 
-    Waveform sample k has time (k - merger_index) / f_s relative to the
-    model's t=0, which arrives at data index `arrival_index`. Waveform samples
-    outside the data are dropped and data samples the waveform does not reach
-    are zero.
+    Signal samples outside the data are dropped and data samples not covered by
+    the signal are zero.
 
     Parameters
     ==========
     signal: array_like
-        Detector signal on its own grid.
+        The signal on its own time grid
     merger_index: float
-        Index of the model's t=0 in `signal`.
+        The index of the merger in `signal`
     arrival_index: float
-        Index in the data at which the model's t=0 arrives.
+        The index in the data at which the merger arrives
     number_of_samples: int
-        Number of data samples.
+        The number of data samples
     placement: str
-        - "nearest" (default): `merger_index` and `arrival_index` are each
-          rounded to the nearest sample.
-        - "fd_shift": whole samples are shifted by index and the remaining
-          fraction with a Fourier phase shift of a zero-padded copy.
+        "nearest": shift by the nearest whole number of samples;
+        "fd_shift": shift by whole samples and the remaining fraction of a
+        sample with :code:`fractional_time_shift`
 
     Returns
     =======
-    array_like: The signal on the data samples.
+    array_like: The signal on the data samples
     """
     if placement == "nearest":
         offset = round(arrival_index) - round(merger_index)

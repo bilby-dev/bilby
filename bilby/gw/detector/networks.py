@@ -61,7 +61,7 @@ class InterferometerList(list):
         If both checks fail, then a ValueError is raised.
         """
         consistent_attributes = ["duration", "start_time", "sampling_frequency"]
-        if len(self) > 0 and all(getattr(ifo, "analysis_window", None) is not None for ifo in self):
+        if all(interferometer.analysis_duration is not None for interferometer in self):
             # time-domain analysis windows can start at different times in each detector
             consistent_attributes = ["duration", "sampling_frequency"]
         for attribute in consistent_attributes:
@@ -203,90 +203,52 @@ class InterferometerList(list):
 
     def set_analysis_windows(self, duration, start_time=None, analysis_segment="imr",
                              segment_cut_time=None, cut_reference_parameters=None):
-        """ Set the analysis window of each detector.
+        """ Set the analysis window of each interferometer
 
-        For "imr" every detector is given [`start_time`, `start_time` +
-        `duration`). For "inspiral" and "post_inspiral" the window of each
-        detector ends or starts at its cut time
-
-        .. math::
-
-            t_{\\\\rm cut} = t_c + \\\\Delta t_{\\\\rm ifo}(\\\\alpha, \\\\delta) + \\\\tau_{\\\\rm cut},
-
-        where :math:`t_c`, :math:`\\\\alpha` and :math:`\\\\delta` are the
-        geocent_time, ra and dec in `cut_reference_parameters`,
-        :math:`\\\\Delta t_{\\\\rm ifo}` is the time delay from the geocenter and
-        :math:`\\\\tau_{\\\\rm cut}` is `segment_cut_time`. All detectors have the
-        same `duration`.
+        For "imr", every interferometer gets the window [`start_time`,
+        `start_time` + `duration`). For "inspiral" ("post_inspiral"), the window of
+        each interferometer ends (starts) at its cut time: `segment_cut_time` after
+        the arrival of the merger, at the `geocent_time`, `ra` and `dec` in
+        `cut_reference_parameters`.
 
         Parameters
         ==========
         duration: float
-            Duration of the analysis window (s).
+            The duration of the windows (in s)
         start_time: float, optional
-            GPS start time of the window (s). Required for "imr".
+            The GPS start time of the windows; required for "imr"
         analysis_segment: str
-            "imr" (default), "inspiral" (the window ends at the cut) or
-            "post_inspiral" (the window starts at the cut).
+            "imr", "inspiral" or "post_inspiral"
         segment_cut_time: float, optional
-            Cut time relative to the arrival of the merger at each detector
-            (s). Required for "inspiral" and "post_inspiral".
+            The cut time relative to the merger (in s); required for "inspiral" and "post_inspiral"
         cut_reference_parameters: dict, optional
-            Dictionary with 'geocent_time', 'ra' and 'dec' fixing the cut
-            time. Required for "inspiral" and "post_inspiral".
+            Dictionary with `geocent_time`, `ra` and `dec`; required for "inspiral" and "post_inspiral"
         """
+        if analysis_segment not in ("imr", "inspiral", "post_inspiral"):
+            raise ValueError(
+                "analysis_segment must be 'imr', 'inspiral' or 'post_inspiral', "
+                f"not {analysis_segment!r}")
         for interferometer in self:
-            if analysis_segment == "imr":
-                window_start = start_time
-                cut_time = None
-            elif analysis_segment in ("inspiral", "post_inspiral"):
-                reference = cut_reference_parameters
-                delay = interferometer.time_delay_from_geocenter(
-                    reference["ra"], reference["dec"], reference["geocent_time"])
-                cut_time = reference["geocent_time"] + delay + segment_cut_time
+            window_start = start_time
+            cut_time = None
+            if analysis_segment != "imr":
+                cut_time = cut_reference_parameters["geocent_time"] + segment_cut_time + \
+                    interferometer.time_delay_from_geocenter(
+                        cut_reference_parameters["ra"], cut_reference_parameters["dec"],
+                        cut_reference_parameters["geocent_time"])
                 window_start = cut_time - duration if analysis_segment == "inspiral" else cut_time
-            else:
-                raise ValueError(
-                    "analysis_segment must be 'imr', 'inspiral' or 'post_inspiral', "
-                    f"not {analysis_segment!r}")
-            interferometer.analysis_window = (window_start, duration)
+            interferometer.set_analysis_window(window_start, duration, cut_time)
             interferometer.meta_data["analysis_window"].update(
-                analysis_segment=analysis_segment, segment_cut_time=segment_cut_time,
-                cut_time=cut_time)
+                analysis_segment=analysis_segment, segment_cut_time=segment_cut_time)
 
     def set_autocovariance_functions_from_power_spectral_densities(self, **kwargs):
-        """Set the autocovariance function of each detector from its power
-        spectral density.
+        """ Set the autocovariance function of each interferometer from its power spectral density
 
-        See :py:meth:`bilby.gw.detector.Interferometer.set_autocovariance_function_from_power_spectral_density`
+        See :code:`bilby.gw.detector.Interferometer.set_autocovariance_function_from_power_spectral_density`
         for the keyword arguments.
         """
         for interferometer in self:
             interferometer.set_autocovariance_function_from_power_spectral_density(**kwargs)
-
-    def condition_strain_data(self, sampling_frequency, trim=0.25, taper_and_trim=True,
-                              remove_mean=True):
-        """Downsample the time-domain strain data of each detector around its
-        analysis window.
-
-        See :py:meth:`bilby.gw.detector.Interferometer.condition_strain_data`.
-
-        Parameters
-        ==========
-        sampling_frequency: float
-            The new sampling frequency (Hz).
-        trim: float
-            Fraction of the data at each end that is removed (default 0.25).
-        taper_and_trim: bool
-            Use the Tukey window, buffer and trimming (default True); if
-            False, use :code:`scipy.signal.decimate`.
-        remove_mean: bool
-            Subtract the mean of the result (default True).
-        """
-        for interferometer in self:
-            interferometer.condition_strain_data(
-                sampling_frequency, trim=trim, taper_and_trim=taper_and_trim,
-                remove_mean=remove_mean)
 
     def inject_signal_time_domain(
         self,
@@ -295,35 +257,30 @@ class InterferometerList(list):
         waveform_generator=None,
         placement="nearest",
     ):
-        """ Inject a time-domain signal into the time-domain strain data of each
-        detector (no Fourier transform, frequency mask or window).
+        """ Inject a time-domain signal into the time-domain strain data of each interferometer.
 
         Parameters
         ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict
-           Output of `waveform_generator.time_domain_strain()` for a time-domain
-           source model. If `waveform_generator` is also given, this is used.
+           Polarizations of waveform to inject, output of
+           `waveform_generator.time_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
-            A WaveformGenerator with a time-domain source model. The waveform is
-            generated once and projected onto every detector (for
-            placement="model_time", it is evaluated at each detector's samples).
+            A WaveformGenerator instance using the time-domain source model to
+            inject. If `injection_polarizations` is given, this will be ignored.
         placement: str
-            "nearest" (default), "fd_shift" or "model_time"; see
-            :code:`bilby.gw.detector.Interferometer.get_time_domain_detector_response`.
+            "nearest", "fd_shift" or "model_time"; see
+            :code:`bilby.gw.detector.Interferometer.get_time_domain_detector_response`
 
         Returns
         =======
-        injection_polarizations: list
-            One dict per detector (the same polarizations for each).
+        injection_polarizations: dict
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                if waveform_generator.time_domain_source_model is None:
-                    raise ValueError(
-                        "inject_signal_time_domain needs a waveform generator with "
-                        "a time_domain_source_model")
                 injection_polarizations = waveform_generator.time_domain_strain(
                     parameters
                 )

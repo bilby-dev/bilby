@@ -3,77 +3,71 @@ import copy
 import numpy as np
 
 from ...core.utils import logger
-from ..time_domain_utils import gohberg_semencul_product
+from ..time_domain_utils import gohberg_semencul_product, time_domain_start_frequency
 from .base import GravitationalWaveTransient
 
 
 class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
-    """ A gravitational-wave transient likelihood evaluated in the time domain.
+    """ A gravitational-wave transient likelihood object evaluated in the time domain
 
-    The noise in each interferometer is a stationary Gaussian process with
-    covariance matrix :math:`C_{ij} = \\rho(|i - j|)`, where :math:`\\rho` is
-    the autocovariance function (ACF) of the interferometer. For the data in
-    the analysis window, :math:`d` (:code:`interferometer.analysis_data`), and
-    a template :math:`h` on the same samples
-
-    .. math::
-
-        \\ln \\mathcal{L} = \\sum_{\\rm ifo} \\left[ d^T C^{-1} h
-        - \\frac{1}{2} h^T C^{-1} h - \\frac{1}{2} d^T C^{-1} d \\right].
-
-    :code:`log_likelihood_ratio` returns the first two terms and
-    :code:`noise_log_likelihood` the last. Products with :math:`C^{-1}` are
-    computed from the Gohberg-Semencul vectors stored on each interferometer
-    (:code:`interferometer.gohberg_semencul_vectors`), without forming
-    :math:`C^{-1}`.
-
-    The template is projected onto each interferometer and placed so that the
-    model's t=0 arrives at geocent_time plus the time delay from the
-    geocenter. Template samples outside the analysis window are dropped.
+    It computes the log-likelihood of the data in the analysis window of each
+    interferometer, assuming stationary colored Gaussian noise described by an
+    autocovariance function, as in time-domain ringdown analyses (Carullo et al.
+    arXiv:1902.07527, Isi & Farr arXiv:2107.05609). Products with the inverse
+    noise covariance matrix use the Gohberg-Semencul formula. See Sharma et al.
+    arXiv:2601.11239.
 
     Parameters
     ==========
     interferometers: list, bilby.gw.detector.InterferometerList
-        A list of :code:`bilby.gw.detector.Interferometer` instances, each with
-        an analysis window, time-domain strain data covering it and an
-        autocovariance function.
-    waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
-        A WaveformGenerator with a time-domain source model, e.g.
-        :code:`bilby.gw.source.lal_binary_black_hole_time_domain`.
+        A list of `bilby.detector.Interferometer` instances - contains the
+        detector data, analysis windows and autocovariance functions
+    waveform_generator: `bilby.waveform_generator.WaveformGenerator`
+        An object which computes the time-domain strain of the signal,
+        given some set of parameters
     distance_marginalization: bool, optional
-        If true, marginalize over distance in the likelihood. This uses a
-        look up table calculated at run time. The distance prior is set to be a
-        delta function at the minimum distance allowed in the prior being
-        marginalised over.
+        If true, marginalize over distance in the likelihood.
+        This uses a look up table calculated at run time.
+        The distance prior is set to be a delta function at the minimum
+        distance allowed in the prior being marginalised over.
     priors: dict, optional
         If given, used in the distance marginalization.
     distance_marginalization_lookup_table: (dict, str), optional
         If a dict, dictionary containing the lookup_table, distance_array,
         (distance) prior_array, and reference_distance used to construct
-        the table. If a string the name of a file containing these quantities.
-        The lookup table is stored after construction in either the provided
-        string or a default location: '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+        the table.
+        If a string the name of a file containing these quantities.
+        The lookup table is stored after construction in either the
+        provided string or a default location:
+        '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
     reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
-        Definition of the reference frame for the sky location, as in
-        :code:`GravitationalWaveTransient`.
+        Definition of the reference frame for the sky location.
+
+        - :code:`sky`: sample in RA/dec, this is the default
+        - e.g., :code:`"H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"])`:
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the
+          frame where the z-axis is aligned the the vector connecting H1
+          and L1.
+
     time_reference: str, optional
-        Name of the reference for the sampled time parameter, as in
-        :code:`GravitationalWaveTransient`.
+        Name of the reference for the sampled time parameter.
+
+        - :code:`geocent`/:code:`geocenter`: sample in the time at the
+          Earth's center, this is the default
+        - e.g., :code:`H1`: sample in the time of arrival at H1
+
     placement: str, optional
-        How the template is placed on the data samples: "nearest" (default)
-        or "fd_shift" (see :code:`bilby.gw.time_domain_utils.place_time_domain_signal`),
-        or "model_time": the waveform is evaluated at each detector's data
-        samples, without a taper (needs a model-time source model, e.g.
-        :code:`bilby.gw.source.lal_binary_black_hole_model_time`).
-        Use the same placement for injection and analysis.
-    time_marginalization, phase_marginalization, calibration_marginalization: bool
-        Not implemented for this likelihood; must be False.
+        How the waveform is placed on the data samples: "nearest" (default),
+        "fd_shift" or "model_time"; see
+        :code:`bilby.gw.detector.Interferometer.get_time_domain_detector_response`
+    time_marginalization, phase_marginalization, calibration_marginalization: bool, optional
+        Not implemented for this likelihood; must be False
 
     Returns
     =======
     Likelihood: `bilby.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
-        some model parameters.
+        some model parameters
     """
 
     likelihood_domain = "time"
@@ -124,8 +118,8 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 self.priors, self.placement))
 
     def _check_minimum_frequency(self):
-        """ Warn if the waveform's minimum_frequency differs from an
-        interferometer's minimum_frequency. """
+        """ Warn if the minimum frequency of the waveform and of an interferometer differ,
+        and log the start frequency of the waveforms """
         waveform_minimum_frequency = getattr(
             self.waveform_generator, "waveform_arguments", dict()).get("minimum_frequency")
         if waveform_minimum_frequency is None:
@@ -135,9 +129,15 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 logger.warning(
                     f"{interferometer.name}: minimum_frequency {interferometer.minimum_frequency:g} Hz "
                     f"differs from the waveform's minimum_frequency {waveform_minimum_frequency:g} Hz")
+        arguments = self.waveform_generator.waveform_arguments
+        if arguments.get("start_at_higher_mode_frequency", True) and "waveform_approximant" in arguments:
+            start_frequency = time_domain_start_frequency(
+                waveform_minimum_frequency, arguments["waveform_approximant"], arguments.get("mode_array"))
+            logger.info(f"Waveforms start at {start_frequency:g} Hz, so that their modes with l <= 4 "
+                        f"are present from {waveform_minimum_frequency:g} Hz")
 
     def _setup_noise_model(self):
-        """ d^T C^-1 and d^T C^-1 d for each interferometer. """
+        """ Compute and store C^-1 d and d^T C^-1 d for each interferometer """
         self._data_times_inverse_covariance = dict()
         self._data_inverse_covariance_data = dict()
         for interferometer in self.interferometers:
@@ -158,40 +158,39 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 np.dot(data_times_inverse_covariance, data))
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
-        """ Project the time-domain polarizations onto the interferometer and
-        place them on the samples of its analysis window.
+        """ Project the waveform polarizations onto the interferometer and place them
+        on the samples of its analysis window.
 
         Parameters
         ==========
         signal_polarizations: dict
-            Output of the time-domain source model (polarizations and 'epoch').
+            Output of the time-domain source model
         interferometer: bilby.gw.detector.Interferometer
+            Interferometer to compute the response with respect to.
         parameters: dict
-
-        Returns
-        =======
-        array_like: The template on the samples of the analysis window.
+            The parameters of the signal
         """
         return interferometer.get_time_domain_detector_response(
             signal_polarizations, parameters, placement=self.placement)
 
     def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
-        """ Compute :math:`d^T C^{-1} h`, :math:`h^T C^{-1} h` and the matched
-        filter SNR in the analysis window of one interferometer.
+        """ Compute the snrs
 
         Parameters
-        ----------
+        ==========
         waveform_polarizations: dict
-            Output of the time-domain source model.
+            A dictionary of waveform polarizations and the corresponding array
         interferometer: bilby.gw.detector.Interferometer
+            The bilby interferometer object
         return_array: bool
-            Unused (no time or calibration marginalization); kept for the
-            :code:`GravitationalWaveTransient` interface.
+            Not used; kept for the :code:`GravitationalWaveTransient` interface
         parameters: dict
+            The parameters of the signal
 
         Returns
-        -------
-        calculated_snrs: _CalculatedSNRs, or None if a model-time waveform failed
+        =======
+        calculated_snrs: _CalculatedSNRs
+            An object containing the SNR quantities (None if a model-time waveform failed)
         """
         signal = self._compute_full_waveform(
             signal_polarizations=waveform_polarizations,
@@ -252,13 +251,11 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 self.compute_log_likelihood_from_snrs(per_detector_snr, parameters=parameters))
         return parameters.copy()
 
-    # ------------------------------------------------------------------
-    # Reconstruction of marginalized parameters
-    # ------------------------------------------------------------------
     def generate_posterior_sample_from_marginalized_likelihood(self, parameters):
-        """ Reconstruct the distance posterior from a run which used the
-        distance-marginalized likelihood (Eq. (C29-C32) of
-        https://arxiv.org/abs/1809.02293).
+        """ Reconstruct the distance posterior from a run which used a likelihood
+        which explicitly marginalised over distance.
+
+        See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
         Returns
         =======
@@ -273,14 +270,18 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
     def generate_distance_sample_from_marginalized_likelihood(
             self, signal_polarizations=None, *, parameters):
-        """ Generate a single sample from the posterior distribution for
-        luminosity distance when using the distance-marginalized likelihood.
+        """ Generate a single sample from the posterior distribution for luminosity
+        distance when using a likelihood which explicitly marginalises over
+        distance.
+
+        See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
 
         Parameters
         ==========
         signal_polarizations: dict, optional
-            Output of the time-domain source model. These are rescaled in place
-            after the distance sample is generated.
+            Polarizations modes of the template.
+            Note: These are rescaled in place after the distance sample is
+            generated to allow further parameter reconstruction to occur.
 
         Returns
         =======

@@ -54,16 +54,17 @@ def heterodyning_generator(approximant="IMRPhenomTPHM", **kwargs):
     return generator(bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning, approximant, **kwargs)
 
 
-def interferometers(approximant="IMRPhenomTPHM", injection=INJECTION, duration=DURATION, start_time=START_TIME):
+def interferometers(approximant="IMRPhenomTPHM", injection=INJECTION, duration=DURATION, start_time=START_TIME,
+                    analysis_segment="imr", segment_cut_time=None):
     ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
     for ifo in ifos:
         ifo.minimum_frequency, ifo.maximum_frequency = 20, 448
-    ifos.set_analysis_windows(duration=duration, start_time=start_time, analysis_segment="imr",
-                              cut_reference_parameters=injection)
+    ifos.set_analysis_windows(duration=duration, start_time=start_time, analysis_segment=analysis_segment,
+                              segment_cut_time=segment_cut_time, cut_reference_parameters=injection)
     random_state = np.random.default_rng(3)
     for ifo in ifos:
         ifo.set_strain_data_from_power_spectral_density(
-            SAMPLING_FREQUENCY, ifo.analysis_window["duration"], ifo.analysis_window["start_time"],
+            SAMPLING_FREQUENCY, ifo.analysis_duration, ifo.analysis_start_time,
             random_state=random_state)
     ifos.set_autocovariance_functions_from_power_spectral_densities()
     ifos.inject_signal_time_domain(
@@ -108,10 +109,9 @@ class TestHeterodyningTerms(unittest.TestCase):
         from bilby.gw.model_time_waveforms import (
             heterodyning_terms_at_model_times,
             polarizations_at_model_times,
-            total_mass_in_seconds,
         )
         mass_1, mass_2 = 36 * lal.MSUN_SI, 29 * lal.MSUN_SI
-        model_times = np.linspace(-0.7, 0.05, 300) / total_mass_in_seconds(mass_1, mass_2)
+        model_times = np.linspace(-0.7, 0.05, 300) / ((mass_1 / lal.MSUN_SI + mass_2 / lal.MSUN_SI) * lal.MTSUN_SI)
         for approximant, spins in [("IMRPhenomT", (0, 0, 0.3, 0, 0, -0.2)),
                                    ("IMRPhenomTHM", (0, 0, 0.3, 0, 0, -0.2)),
                                    ("IMRPhenomTP", (0.4, 0.2, 0.3, -0.1, 0.3, -0.2)),
@@ -119,12 +119,13 @@ class TestHeterodyningTerms(unittest.TestCase):
             with self.subTest(approximant=approximant):
                 arguments = (model_times, approximant, mass_1, mass_2, *spins, 1e9 * lal.PC_SI, 0.7, 1.3,
                              1 / SAMPLING_FREQUENCY, 20.0, 20.0, lal.CreateDict())
-                plus, cross = polarizations_at_model_times(*arguments)
+                polarizations = polarizations_at_model_times(*arguments)
                 modes, harmonics = heterodyning_terms_at_model_times(*arguments)
                 self.assertTrue(all(m >= 0 for _, m in modes))
                 waveform = sum(harmonics[key][0] * mode + harmonics[key][1] * np.conj(mode)
                                for key, mode in modes.items())
-                self.assertLess(np.max(abs(waveform - (plus - 1j * cross))) / np.max(abs(plus)), 1e-12)
+                expected = polarizations["plus"] - 1j * polarizations["cross"]
+                self.assertLess(np.max(abs(waveform - expected)) / np.max(abs(polarizations["plus"])), 1e-12)
 
 
 @unittest.skipUnless(_has_model_time_waveforms(), "lalsimulation without the model-time IMRPhenomT functions")
@@ -148,6 +149,27 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
                 self.assertGreater(exact.log_likelihood_ratio(injection) - exact.log_likelihood_ratio(parameters), 1)
                 self.assertLess(abs(heterodyned.log_likelihood_ratio(parameters)
                                     - exact.log_likelihood_ratio(parameters)), 0.05 if aligned else 0.1)
+
+    def test_matches_exact_likelihood_in_inspiral_and_post_inspiral_windows(self):
+        # windows ending / starting 30 ms before the merger
+        segments = dict(inspiral=dict(analysis_segment="inspiral", duration=0.5, segment_cut_time=-0.03),
+                        post_inspiral=dict(analysis_segment="post_inspiral", duration=0.25, segment_cut_time=-0.03))
+        for approximant, injection in [("IMRPhenomTHM", ALIGNED_INJECTION), ("IMRPhenomTPHM", INJECTION)]:
+            for segment, kwargs in segments.items():
+                with self.subTest(approximant=approximant, segment=segment):
+                    ifos = interferometers(approximant, injection, **kwargs)
+                    exact = TimeDomainGravitationalWaveTransient(
+                        ifos, exact_generator(approximant), placement="model_time")
+                    heterodyned = TimeDomainHeterodyningGravitationalWaveTransient(
+                        ifos, heterodyning_generator(approximant), fiducial_parameters=injection)
+                    aligned = approximant == "IMRPhenomTHM"
+                    self.assertLess(abs(heterodyned.log_likelihood_ratio(injection)
+                                        - exact.log_likelihood_ratio(injection)), 1e-6 if aligned else 0.05)
+                    parameters = perturbed(injection)
+                    self.assertGreater(
+                        exact.log_likelihood_ratio(injection) - exact.log_likelihood_ratio(parameters), 1)
+                    self.assertLess(abs(heterodyned.log_likelihood_ratio(parameters)
+                                        - exact.log_likelihood_ratio(parameters)), 0.05 if aligned else 0.1)
 
     def test_use_float32(self):
         ifos = interferometers()
@@ -217,8 +239,10 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
             INJECTION["ra"], INJECTION["dec"], INJECTION["geocent_time"])
         exact = TimeDomainGravitationalWaveTransient(
             ifos, exact_generator(), placement="model_time", time_reference="H1")
+        # the precessing waveforms depend on their start frequency: start both at 10 Hz
         heterodyned = TimeDomainHeterodyningGravitationalWaveTransient(
-            ifos, heterodyning_generator(), fiducial_parameters=parameters, time_reference="H1")
+            ifos, heterodyning_generator(), fiducial_parameters=parameters, time_reference="H1",
+            sampled_minimum_frequency=10.0)
         parameters["H1_time"] += 0.0002
         self.assertLess(abs(heterodyned.log_likelihood_ratio(parameters)
                             - exact.log_likelihood_ratio(parameters)), 0.05)
@@ -267,14 +291,24 @@ class TestTimeDomainHeterodyning(unittest.TestCase):
         TimeDomainHeterodyningGravitationalWaveTransient(ifos, generator, fiducial_parameters=INJECTION)
         self.assertEqual(set(arguments), {"waveform_approximant", "reference_frequency", "minimum_frequency"})
 
+    def test_sampled_minimum_frequency(self):
+        ifos = interferometers()
+        for option, expected in [(True, 8.0), (False, 18.0)]:
+            with self.subTest(start_at_higher_mode_frequency=option):
+                generator = heterodyning_generator()
+                generator.waveform_arguments["start_at_higher_mode_frequency"] = option
+                likelihood = TimeDomainHeterodyningGravitationalWaveTransient(
+                    ifos, generator, fiducial_parameters=INJECTION)
+                self.assertEqual(likelihood.sampled_minimum_frequency, expected)
+
     def test_errors(self):
         ifos = interferometers()
         with self.assertRaises(ValueError):  # fiducial_minimum_frequency above the derived one
             TimeDomainHeterodyningGravitationalWaveTransient(
                 ifos, heterodyning_generator(), fiducial_parameters=INJECTION, fiducial_minimum_frequency=30.0)
-        with self.assertLogs("bilby", level="WARNING"):  # above minimum_frequency - 2 Hz
+        with self.assertLogs("bilby", level="WARNING"):  # above the start frequency - 2 Hz
             TimeDomainHeterodyningGravitationalWaveTransient(
-                ifos, heterodyning_generator(), fiducial_parameters=INJECTION, sampled_minimum_frequency=19.0)
+                ifos, heterodyning_generator(), fiducial_parameters=INJECTION, sampled_minimum_frequency=9.0)
         with self.assertRaises(NotImplementedError):
             TimeDomainHeterodyningGravitationalWaveTransient(
                 ifos, heterodyning_generator(), fiducial_parameters=INJECTION, time_marginalization=True)

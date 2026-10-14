@@ -1,7 +1,6 @@
 import numpy as np
 
 from ...core.utils import logger
-from ..time_domain_utils import gohberg_semencul_vectors
 
 
 class AutoCovarianceFunction(object):
@@ -11,13 +10,13 @@ class AutoCovarianceFunction(object):
         """
         Instantiate a new AutoCovarianceFunction object.
 
-        The autocovariance function (ACF) of stationary Gaussian noise defines
-        the noise covariance matrix of a segment of N samples,
-        :math:`C_{ij} = \\rho(|i - j|)`, where :math:`\\rho` is the ACF.
+        The autocovariance function (ACF) of stationary Gaussian noise gives the
+        noise covariance matrix of N consecutive samples, which is a Toeplitz
+        matrix with first row equal to the first N lags of the ACF.
 
         Examples
         ========
-        From a one-sided power spectral density and its frequency array:
+        From a one-sided power spectral density:
 
         .. code-block:: python
 
@@ -32,21 +31,19 @@ class AutoCovarianceFunction(object):
 
         Parameters
         ==========
-        acf_array: array_like, optional
-            Autocovariance function at lags 0, 1/sampling_frequency,
-            2/sampling_frequency, ... (strain^2).
-        sampling_frequency: float, optional
-            Sampling frequency of the lags (Hz). Must equal the sampling
-            frequency of the data it is used with.
+        acf_array: array_like
+            The ACF at lags 0, 1 / sampling_frequency, 2 / sampling_frequency, ...
+        sampling_frequency: float
+            The sampling frequency (in Hz) of the lags; must equal that of the data
         minimum_frequency: float, optional
-            Lower edge of the frequency band used to compute the ACF (Hz).
+            The lower edge (in Hz) of the frequency band used to compute the ACF
         maximum_frequency: float, optional
-            Upper edge of the frequency band used to compute the ACF (Hz).
+            The upper edge (in Hz) of the frequency band used to compute the ACF
         fill_value: float, optional
-            PSD value used outside the band (strain^2 / Hz).
+            The PSD value used outside the band
         fill_multiplier: float, optional
-            Multiple of the maximum in-band PSD used outside the band, if
-            `fill_value` was computed from it.
+            The multiple of the maximum in-band PSD used outside the band
+
         """
         self.acf_array = None if acf_array is None else np.asarray(acf_array, dtype=float)
         self.sampling_frequency = None if sampling_frequency is None else float(sampling_frequency)
@@ -57,12 +54,8 @@ class AutoCovarianceFunction(object):
 
     @property
     def meta_data(self):
-        duration = None
-        if self.acf_array is not None and self.sampling_frequency is not None:
-            duration = len(self.acf_array) / self.sampling_frequency
         return dict(
             sampling_frequency=self.sampling_frequency,
-            duration=duration,
             minimum_frequency=self.minimum_frequency,
             maximum_frequency=self.maximum_frequency,
             fill_value=self.fill_value,
@@ -73,46 +66,34 @@ class AutoCovarianceFunction(object):
     def from_power_spectral_density_array(
             cls, frequency_array, psd_array, minimum_frequency, maximum_frequency,
             sampling_frequency=None, fill_value=None, fill_multiplier=1e4):
-        """ Compute the ACF from a one-sided power spectral density.
+        """ Compute the ACF from a one-sided power spectral density (PSD).
 
-        The PSD below `minimum_frequency` and above `maximum_frequency` is set
-        to `fill_value` or, if it is not given, to `fill_multiplier` times its
-        maximum value in [`minimum_frequency`, `maximum_frequency`]. If
-        `frequency_array` does not start at 0 Hz, bins down to 0 Hz are added
-        and set to the same value. The ACF is then
-
-        .. math::
-
-            \\rho = \\frac{f_s}{2} \\, \\mathrm{IRFFT}(S),
-
-        where :math:`f_s = 2 f_{\\max}` is twice the highest frequency in
-        `frequency_array`.
+        The PSD outside [`minimum_frequency`, `maximum_frequency`] is set to
+        `fill_value`, or to `fill_multiplier` times its maximum in the band, and
+        the ACF is its inverse Fourier transform (Wiener-Khinchin theorem).
 
         Parameters
         ==========
         frequency_array: array_like
-            Uniformly spaced frequencies (Hz), up to half the sampling
-            frequency. The first frequency must be a multiple of the spacing.
+            Uniformly spaced frequencies (in Hz) up to the Nyquist frequency
         psd_array: array_like
-            One-sided PSD at `frequency_array` (strain^2 / Hz).
+            The one-sided PSD at `frequency_array`
         minimum_frequency: float
-            Lower edge of the frequency band (Hz).
+            The lower edge of the frequency band (in Hz)
         maximum_frequency: float
-            Upper edge of the frequency band (Hz).
+            The upper edge of the frequency band (in Hz)
         sampling_frequency: float, optional
-            Sampling frequency of the data (Hz). If it differs from twice the
-            highest frequency in `frequency_array`, a warning is logged and
-            the latter is used.
+            The sampling frequency of the data (in Hz); a warning is logged if it
+            is not twice the highest frequency in `frequency_array`
         fill_value: float, optional
-            PSD value used outside the band (strain^2 / Hz). Overrides
-            `fill_multiplier`.
+            The PSD value used outside the band; overrides `fill_multiplier`
         fill_multiplier: float
-            Multiple of the maximum in-band PSD used outside the band if
-            `fill_value` is not given (default 1e4).
+            The multiple of the maximum in-band PSD used outside the band
 
         Returns
         =======
         AutoCovarianceFunction
+
         """
         frequency_array = np.asarray(frequency_array, dtype=float)
         psd_array = np.asarray(psd_array, dtype=float)
@@ -145,72 +126,18 @@ class AutoCovarianceFunction(object):
                    minimum_frequency=minimum_frequency, maximum_frequency=maximum_frequency,
                    fill_value=float(fill_value), fill_multiplier=fill_multiplier)
 
-    @classmethod
-    def from_time_domain_strain(
-            cls, time_domain_strain, sampling_frequency, analysis_duration, minimum_frequency,
-            maximum_frequency, segment_duration=None, duration_factor=16, fill_value=None,
-            fill_multiplier=1e4):
-        """ Estimate the ACF from noise data.
-
-        The PSD of the data is estimated with Welch's method (Hann window, 50%
-        overlap, median average) and passed to
-        :code:`from_power_spectral_density_array`.
-
-        Parameters
-        ==========
-        time_domain_strain: array_like
-            Noise time series (strain).
-        sampling_frequency: float
-            Sampling frequency of the time series (Hz).
-        analysis_duration: float
-            Duration of the longest segment the ACF will be used for (s).
-        minimum_frequency: float
-            Lower edge of the frequency band (Hz).
-        maximum_frequency: float
-            Upper edge of the frequency band (Hz).
-        segment_duration: float, optional
-            Duration of the Welch segments (s). Default: `duration_factor`
-            times `analysis_duration`, rounded up to a power-of-two number of
-            samples.
-        duration_factor: float
-            See `segment_duration` (default 16).
-        fill_value: float, optional
-            PSD value used outside the band (strain^2 / Hz). Overrides
-            `fill_multiplier`.
-        fill_multiplier: float
-            Multiple of the maximum in-band PSD used outside the band if
-            `fill_value` is not given (default 1e4).
-
-        Returns
-        =======
-        AutoCovarianceFunction
-        """
-        from scipy.signal import welch
-        if segment_duration is None:
-            nperseg = int(2 ** np.ceil(np.log2(duration_factor * analysis_duration * sampling_frequency)))
-        else:
-            nperseg = int(round(segment_duration * sampling_frequency))
-        frequency_array, psd_array = welch(
-            time_domain_strain, fs=sampling_frequency, nperseg=nperseg, window="hann",
-            average="median")
-        return cls.from_power_spectral_density_array(
-            frequency_array, psd_array, minimum_frequency, maximum_frequency,
-            sampling_frequency=sampling_frequency, fill_value=fill_value,
-            fill_multiplier=fill_multiplier)
-
     def get_acf_array(self, number_of_samples):
-        """ First `number_of_samples` lags of the ACF.
-
-        A ValueError is raised if the ACF is shorter than `number_of_samples`.
+        """ The first `number_of_samples` lags of the ACF
 
         Parameters
         ==========
         number_of_samples: int
-            Number of samples in the analysis segment.
+            The number of samples in the analysis window
 
         Returns
         =======
-        array_like: The first row of the segment's covariance matrix.
+        array_like: The first row of the noise covariance matrix
+
         """
         if number_of_samples > len(self.acf_array):
             raise ValueError(
@@ -218,63 +145,5 @@ class AutoCovarianceFunction(object):
                 f"({len(self.acf_array)} samples)")
         return self.acf_array[:number_of_samples]
 
-    def gohberg_semencul_vectors(self, number_of_samples):
-        """ Gohberg-Semencul vectors of the inverse covariance matrix of a
-        segment of `number_of_samples` samples.
 
-        Parameters
-        ==========
-        number_of_samples: int
-            Number of samples in the analysis segment.
-
-        Returns
-        =======
-        x, y: array_like
-            See :code:`bilby.gw.time_domain_utils.gohberg_semencul_vectors`.
-        """
-        return gohberg_semencul_vectors(self.get_acf_array(number_of_samples))
-
-
-def read_power_spectral_densities_from_hdf5(filename, interferometers, label=None):
-    """ Read power spectral densities and their frequency arrays from an HDF5
-    file.
-
-    Two layouts are supported: `psds/<ifo>_psd/frequency` and
-    `psds/<ifo>_psd/spectrum` (with lower-case detector names), and
-    `<label>/psds/<IFO>` holding an (N, 2) array of frequency and PSD (as in
-    GWTC data releases).
-
-    Parameters
-    ==========
-    filename: str
-        Name of the HDF5 file.
-    interferometers: list
-        Detector names, e.g. ["H1", "L1"].
-    label: str, optional
-        Analysis label in the second layout, e.g. "C01:IMRPhenomXPHM".
-        Required if the file contains more than one analysis.
-
-    Returns
-    =======
-    dict: {detector name: (frequency_array, psd_array)}
-    """
-    import h5py
-    output = dict()
-    with h5py.File(filename, "r") as ff:
-        if "psds" in ff:
-            for ifo in interferometers:
-                group = ff["psds"][f"{ifo.lower()}_psd"]
-                output[ifo] = (group["frequency"][:], group["spectrum"][:])
-            return output
-        if label is None:
-            labels = [key for key in ff.keys() if isinstance(ff[key], h5py.Group) and "psds" in ff[key]]
-            if len(labels) != 1:
-                raise ValueError(f"Give label, one of {labels}")
-            label = labels[0]
-        for ifo in interferometers:
-            array = ff[label]["psds"][ifo][:]
-            output[ifo] = (array[:, 0], array[:, 1])
-    return output
-
-
-__all__ = ["AutoCovarianceFunction", "read_power_spectral_densities_from_hdf5"]
+__all__ = ["AutoCovarianceFunction"]
