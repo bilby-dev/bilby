@@ -203,9 +203,12 @@ class TestGWUtils(unittest.TestCase):
             gwutils.lalsim_GetApproximantFromString(10)
 
     def test_lalsim_SimInspiralChooseFDWaveform(self):
+        # Masses are passed to LALSimulation in SI units, so use solar masses
+        # here. IMRPhenomXPHM (unlike IMRPhenomPv2) cannot handle unphysical
+        # sub-solar-mass values and aborts the process for them.
         a = gwutils.lalsim_SimInspiralChooseFDWaveform(
-            35.2,
-            20.4,
+            35.2 * lal.MSUN_SI,
+            20.4 * lal.MSUN_SI,
             0.1,
             0.2,
             0.2,
