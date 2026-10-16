@@ -57,12 +57,12 @@ injection_parameters = dict(
 )
 
 # The analysis window starts inside the waveform (0.6 s before the merger;
-# from 20 Hz the waveform starts ~0.8 s before it), so that the abrupt start
-# of the waveform is not in the data. The heterodyned likelihood generates its
-# fiducial waveform from a lower frequency derived from the window, and the
-# waveforms at sampled parameters from sampled_minimum_frequency (18 Hz, 2 Hz
-# below the interferometers' minimum_frequency), so
-# that all of them are non-zero in the whole window.
+# the waveforms start at 10 Hz, so that their modes with l <= 4 are present
+# from 20 Hz), so that the start of the waveform is not in the data. The
+# heterodyned likelihood generates its fiducial waveform from a lower frequency
+# derived from the window, and the waveforms at sampled parameters from
+# sampled_minimum_frequency (8 Hz, 2 Hz below the start frequency), so that
+# all of them are non-zero in the whole window.
 duration = 1.0
 sampling_frequency = 2048.0
 minimum_frequency = 20

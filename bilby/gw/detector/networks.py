@@ -281,6 +281,12 @@ class InterferometerList(list):
         """
         if injection_polarizations is None:
             if waveform_generator is not None:
+                if waveform_generator.sampling_frequency is not None and not np.isclose(
+                        waveform_generator.sampling_frequency, self.sampling_frequency, rtol=1e-9, atol=0):
+                    raise ValueError(
+                        f"The sampling frequency of the waveform generator "
+                        f"({waveform_generator.sampling_frequency:g} Hz) differs from that of the strain "
+                        f"data ({self.sampling_frequency:g} Hz)")
                 injection_polarizations = waveform_generator.time_domain_strain(
                     parameters
                 )

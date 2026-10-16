@@ -98,6 +98,13 @@ class TestPlacement(unittest.TestCase):
         expected = np.exp(-0.5 * ((times - 100) / 6.0) ** 2) * np.cos(0.4 * times)
         np.testing.assert_allclose(placed, expected, atol=1e-6)
 
+    def test_nearest_rounds_the_delay(self):
+        # merger at 100.6 and arrival at 150.4: a delay of 49.8 samples, rounded to 50
+        placed = place_time_domain_signal(
+            self.signal, merger_index=100.6, arrival_index=150.4,
+            number_of_samples=320, placement="nearest")
+        np.testing.assert_allclose(placed[50:50 + len(self.signal)], self.signal)
+
     def test_nothing_wraps(self):
         placed = place_time_domain_signal(
             self.signal, merger_index=100, arrival_index=10,
@@ -243,6 +250,11 @@ class TestTimeDomainLikelihood(unittest.TestCase):
         self.assertIn("autocovariance_function", meta_data["interferometers"]["H1"])
         self.assertEqual(meta_data["interferometers"]["H1"]["analysis_window"]["analysis_segment"], "inspiral")
 
+    def test_warns_if_data_sampled_above_twice_maximum_frequency(self):
+        with self.assertLogs("bilby", level="WARNING") as logs:
+            TimeDomainGravitationalWaveTransient(interferometers(), waveform_generator())
+        self.assertTrue(any("448 - 512 Hz is outside the band" in line for line in logs.output))
+
     def test_errors(self):
         generator = waveform_generator()
         with self.assertRaises(ValueError):
@@ -258,10 +270,9 @@ class TestTimeDomainLikelihood(unittest.TestCase):
         with self.assertRaises(ValueError):
             TimeDomainGravitationalWaveTransient(interferometers(), generator, placement="roll")
         ifos = interferometers()
-        ifos[0].autocovariance_function = AutoCovarianceFunction(
-            acf_array=ifos[0].autocovariance_function.acf_array, sampling_frequency=2048)
         with self.assertRaises(ValueError):
-            TimeDomainGravitationalWaveTransient(ifos, generator)
+            ifos[0].autocovariance_function = AutoCovarianceFunction(
+                acf_array=ifos[0].autocovariance_function.acf_array, sampling_frequency=2048)
         ifo = bilby.gw.detector.get_empty_interferometer("H1")
         with self.assertRaises(ValueError):
             ifo.autocovariance_function = AutoCovarianceFunction(np.ones(10), SAMPLING_FREQUENCY)
@@ -411,6 +422,15 @@ class TestTimeDomainData(unittest.TestCase):
                 ifo.time_array[ifo.analysis_slice], reference.time_array[reference.analysis_slice],
                 atol=1e-6)
             np.testing.assert_allclose(ifo.analysis_data, reference.analysis_data, atol=1e-30)
+
+    def test_injection_needs_generator_at_data_sampling_frequency(self):
+        generator = waveform_generator()
+        generator.sampling_frequency = 2 * SAMPLING_FREQUENCY
+        ifos = interferometers()
+        with self.assertRaises(ValueError):
+            ifos.inject_signal_time_domain(parameters=INJECTION, waveform_generator=generator)
+        with self.assertRaises(ValueError):
+            ifos[0].inject_signal_time_domain(parameters=INJECTION, waveform_generator=generator)
 
     def test_injection_needs_autocovariance_function(self):
         ifos = interferometers(acf=False)

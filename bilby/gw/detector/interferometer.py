@@ -353,6 +353,13 @@ class Interferometer(object):
             return
         if self.analysis_duration is None:
             raise ValueError(f"{self.name}: set the analysis window first (set_analysis_window)")
+        if self.strain_data.sampling_frequency is not None and not np.isclose(
+                autocovariance_function.sampling_frequency, self.strain_data.sampling_frequency,
+                rtol=1e-9, atol=0):
+            raise ValueError(
+                f"{self.name}: the sampling frequency of the autocovariance function "
+                f"({autocovariance_function.sampling_frequency:g} Hz) differs from that of the strain data "
+                f"({self.strain_data.sampling_frequency:g} Hz)")
         self.meta_data["autocovariance_function"] = autocovariance_function.meta_data
         self.gohberg_semencul_vectors = gohberg_semencul_vectors(autocovariance_function.get_acf_array(
             int(round(self.analysis_duration * autocovariance_function.sampling_frequency))))
@@ -635,6 +642,12 @@ class Interferometer(object):
         injection_polarizations: dict
             The internally generated injection parameters
         """
+        if waveform_generator.sampling_frequency is not None and not np.isclose(
+                waveform_generator.sampling_frequency, self.sampling_frequency, rtol=1e-9, atol=0):
+            raise ValueError(
+                f"{self.name}: the sampling frequency of the waveform generator "
+                f"({waveform_generator.sampling_frequency:g} Hz) differs from that of the strain data "
+                f"({self.sampling_frequency:g} Hz)")
         injection_polarizations = \
             waveform_generator.time_domain_strain(parameters)
         self.inject_signal_time_domain_from_waveform_polarizations(

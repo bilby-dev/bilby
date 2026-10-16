@@ -150,6 +150,13 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                     f"{interferometer.name}: autocovariance function sampling frequency "
                     f"{acf.sampling_frequency:g} Hz differs from the data's "
                     f"{interferometer.sampling_frequency:g} Hz")
+            nyquist_frequency = interferometer.sampling_frequency / 2
+            if interferometer.maximum_frequency < nyquist_frequency and not np.isclose(
+                    interferometer.maximum_frequency, nyquist_frequency, rtol=1e-9, atol=0):
+                logger.warning(
+                    f"{interferometer.name}: {interferometer.maximum_frequency:g} - {nyquist_frequency:g} Hz "
+                    "is outside the band and filled in the autocovariance function (consider downsampling "
+                    f"the data to {2 * interferometer.maximum_frequency:g} Hz with condition_strain_data)")
             data = interferometer.analysis_data
             data_times_inverse_covariance = gohberg_semencul_product(
                 *interferometer.gohberg_semencul_vectors, data)

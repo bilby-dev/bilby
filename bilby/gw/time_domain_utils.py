@@ -178,7 +178,7 @@ def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samp
     number_of_samples: int
         The number of data samples
     placement: str
-        "nearest": shift by the nearest whole number of samples;
+        "nearest": shift by the whole number of samples nearest to the delay;
         "fd_shift": shift by whole samples and the remaining fraction of a
         sample with :code:`fractional_time_shift`
 
@@ -186,12 +186,11 @@ def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samp
     =======
     array_like: The signal on the data samples
     """
+    position = arrival_index - merger_index
+    offset = int(np.floor(position + 0.5))
     if placement == "nearest":
-        offset = round(arrival_index) - round(merger_index)
         return _copy_into_segment(signal, offset, number_of_samples)
     elif placement == "fd_shift":
-        position = arrival_index - merger_index
-        offset = int(np.floor(position + 0.5))
         fraction = position - offset
         pad = 32
         shifted = fractional_time_shift(signal, fraction, pad=pad)
