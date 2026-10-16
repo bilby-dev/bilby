@@ -8,6 +8,7 @@ import lalsimulation
 
 import numpy as np
 from copy import copy
+from parameterized import parameterized
 
 
 class TestLalBBH(unittest.TestCase):
@@ -767,6 +768,115 @@ class TestRelbinBNS(unittest.TestCase):
             bilby.gw.source.lal_binary_neutron_star_relative_binning(
                 self.frequency_array, **self.parameters
             )
+
+
+PRECESSING_APPROXIMANTS = ["IMRPhenomPv2", "IMRPhenomXP", "IMRPhenomXPHM"]
+ALIGNED_APPROXIMANTS = ["IMRPhenomXAS", "IMRPhenomD", "IMRPhenomHM"]
+SOURCE_MODELS = ["lal", "frequency_sequence", "relbin_fiducial", "relbin_binned"]
+
+
+class TestWaveformErrorCatchingByApproximant(unittest.TestCase):
+    """
+    Check which LAL errors ``catch_waveform_errors`` converts to ``None``.
+
+    Out-of-domain parameters (here a negative mass) should be caught for all
+    approximants and source models. Precessing spins passed to an aligned-spin
+    approximant are a configuration error and should always be raised, even
+    with ``catch_waveform_errors=True``.
+    """
+
+    def setUp(self):
+        self.precessing_parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            tilt_1=0.2,
+            phi_12=1.0,
+            a_2=0.8,
+            tilt_2=2.7,
+            phi_jl=2.9,
+            theta_jn=0.3,
+            phase=0.0,
+        )
+        self.aligned_parameters = copy(self.precessing_parameters)
+        self.aligned_parameters.update(tilt_1=0.0, tilt_2=0.0, phi_12=0.0, phi_jl=0.0)
+        self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
+
+    def call_source(self, source_model, approximant, parameters, catch_waveform_errors=True):
+        kwargs = dict(
+            waveform_approximant=approximant,
+            reference_frequency=50.0,
+            catch_waveform_errors=catch_waveform_errors,
+            **parameters,
+        )
+        if source_model == "lal":
+            return bilby.gw.source.lal_binary_black_hole(
+                self.frequency_array, minimum_frequency=20.0, **kwargs
+            )
+        elif source_model == "frequency_sequence":
+            frequencies = self.frequency_array[self.frequency_array >= 20.0]
+            return bilby.gw.source.binary_black_hole_frequency_sequence(
+                self.frequency_array, frequencies=frequencies, **kwargs
+            )
+        elif source_model == "relbin_fiducial":
+            return bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array, minimum_frequency=20.0, fiducial=True, **kwargs
+            )
+        elif source_model == "relbin_binned":
+            return bilby.gw.source.lal_binary_black_hole_relative_binning(
+                self.frequency_array,
+                minimum_frequency=20.0,
+                fiducial=False,
+                frequency_bin_edges=np.arange(20, 1500, 50),
+                **kwargs,
+            )
+        raise ValueError(f"Unknown source model {source_model}")
+
+    @parameterized.expand(
+        [(model, approx) for model in SOURCE_MODELS for approx in PRECESSING_APPROXIMANTS]
+    )
+    def test_precessing_negative_mass_is_caught(self, source_model, approximant):
+        parameters = copy(self.precessing_parameters)
+        parameters["mass_1"] = -30.0
+        self.assertIsNone(self.call_source(source_model, approximant, parameters))
+
+    @parameterized.expand(
+        [(model, approx) for model in SOURCE_MODELS for approx in ALIGNED_APPROXIMANTS]
+    )
+    def test_aligned_negative_mass_is_caught(self, source_model, approximant):
+        parameters = copy(self.aligned_parameters)
+        parameters["mass_1"] = -30.0
+        self.assertIsNone(self.call_source(source_model, approximant, parameters))
+
+    @parameterized.expand(
+        [(model, approx) for model in SOURCE_MODELS
+         for approx in PRECESSING_APPROXIMANTS + ALIGNED_APPROXIMANTS]
+    )
+    def test_negative_mass_raises_when_not_catching(self, source_model, approximant):
+        parameters = copy(self.aligned_parameters)
+        parameters["mass_1"] = -30.0
+        with self.assertRaises(RuntimeError):
+            self.call_source(
+                source_model, approximant, parameters, catch_waveform_errors=False
+            )
+
+    @parameterized.expand(
+        [(model, approx) for model in SOURCE_MODELS for approx in ALIGNED_APPROXIMANTS]
+    )
+    def test_aligned_approximant_with_precessing_spins_raises(self, source_model, approximant):
+        with self.assertRaises(RuntimeError) as context:
+            self.call_source(source_model, approximant, self.precessing_parameters)
+        self.assertIn("Invalid argument", str(context.exception))
+
+    @parameterized.expand(
+        [(model, approx) for model in SOURCE_MODELS for approx in PRECESSING_APPROXIMANTS]
+    )
+    def test_precessing_approximant_with_precessing_spins_works(self, source_model, approximant):
+        self.assertIsInstance(
+            self.call_source(source_model, approximant, self.precessing_parameters),
+            dict,
+        )
 
 
 if __name__ == "__main__":

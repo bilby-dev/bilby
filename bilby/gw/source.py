@@ -24,13 +24,15 @@ Unused waveform_kwargs: {waveform_kwargs}
 #   XLAL_EDOM   -> "Input domain error"            (e.g. IMRPhenomPv2/XP)
 #   XLAL_EFUNC  -> "Internal function call failed"  (e.g. IMRPhenomXPHM via
 #                                                    the frequency sequence)
-#   XLAL_EINVAL -> "Invalid argument"               (e.g. IMRPhenomXAS/D)
 # When ``catch_waveform_errors`` is enabled these are converted to a -inf
 # likelihood instead of being raised.
+#
+# XLAL_EINVAL ("Invalid argument") is deliberately not included: LAL raises
+# it when, e.g., precessing spins are passed to an aligned-spin approximant,
+# which is a configuration error that should not be silently ignored.
 WAVEFORM_DOMAIN_ERROR_MESSAGES = (
     "Input domain error",
     "Internal function call failed",
-    "Invalid argument",
 )
 
 
