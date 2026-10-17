@@ -3,7 +3,7 @@ import copy
 import numpy as np
 
 from ...core.utils import logger
-from ..time_domain_utils import gohberg_semencul_product, time_domain_start_frequency
+from ..time_domain_utils import gohberg_semencul_product
 from .base import GravitationalWaveTransient
 
 
@@ -107,7 +107,6 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             time_reference=time_reference,
         )
         self.placement = placement
-        self._check_minimum_frequency()
         self._setup_noise_model()
 
     def __repr__(self):
@@ -116,25 +115,6 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             'priors={}, placement={})'.format(
                 self.interferometers, self.waveform_generator, self.distance_marginalization,
                 self.priors, self.placement))
-
-    def _check_minimum_frequency(self):
-        """ Warn if the minimum frequency of the waveform and of an interferometer differ,
-        and log the start frequency of the waveforms """
-        waveform_minimum_frequency = getattr(
-            self.waveform_generator, "waveform_arguments", dict()).get("minimum_frequency")
-        if waveform_minimum_frequency is None:
-            return
-        for interferometer in self.interferometers:
-            if not np.isclose(waveform_minimum_frequency, interferometer.minimum_frequency):
-                logger.warning(
-                    f"{interferometer.name}: minimum_frequency {interferometer.minimum_frequency:g} Hz "
-                    f"differs from the waveform's minimum_frequency {waveform_minimum_frequency:g} Hz")
-        arguments = self.waveform_generator.waveform_arguments
-        if arguments.get("start_at_higher_mode_frequency", True) and "waveform_approximant" in arguments:
-            start_frequency = time_domain_start_frequency(
-                waveform_minimum_frequency, arguments["waveform_approximant"], arguments.get("mode_array"))
-            logger.info(f"Waveforms start at {start_frequency:g} Hz, so that their modes with l <= 4 "
-                        f"are present from {waveform_minimum_frequency:g} Hz")
 
     def _setup_noise_model(self):
         """ Compute and store C^-1 d and d^T C^-1 d for each interferometer """

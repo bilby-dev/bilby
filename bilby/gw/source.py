@@ -740,9 +740,6 @@ def lal_binary_black_hole_time_domain(
         - lal_waveform_dictionary
         - turn_on_window: the alpha of the one-sided Tukey window applied to the
           start of the waveform, for placement "nearest" or "fd_shift" (default 0: no window)
-        - start_at_higher_mode_frequency: if True (default), the waveform starts
-          early enough for its modes with l <= 4 to be present from minimum_frequency
-          (see :code:`bilby.gw.time_domain_utils.time_domain_start_frequency`)
 
     Returns
     =======
@@ -754,8 +751,7 @@ def lal_binary_black_hole_time_domain(
         waveform_approximant='IMRPhenomTP', reference_frequency=50.0,
         minimum_frequency=20.0, catch_waveform_errors=False,
         pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
-        pn_amplitude_order=0, turn_on_window=0,
-        start_at_higher_mode_frequency=True)
+        pn_amplitude_order=0, turn_on_window=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_td_waveform(
         time_array=time_array, mass_1=mass_1, mass_2=mass_2,
@@ -814,8 +810,7 @@ def lal_binary_neutron_star_time_domain(
         waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
         minimum_frequency=20.0, catch_waveform_errors=False,
         pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
-        pn_amplitude_order=0, turn_on_window=0,
-        start_at_higher_mode_frequency=True)
+        pn_amplitude_order=0, turn_on_window=0)
     waveform_kwargs.update(kwargs)
     return _base_lal_cbc_td_waveform(
         time_array=time_array, mass_1=mass_1, mass_2=mass_2,
@@ -841,16 +836,12 @@ def _base_lal_cbc_td_waveform(
     """
     import lalsimulation as lalsim
     from scipy.signal.windows import tukey
-    from .time_domain_utils import time_domain_start_frequency
 
     waveform_approximant = waveform_kwargs.pop('waveform_approximant')
     reference_frequency = waveform_kwargs.pop('reference_frequency')
     minimum_frequency = waveform_kwargs.pop('minimum_frequency')
     catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
     turn_on_window = waveform_kwargs.pop('turn_on_window')
-    if waveform_kwargs.pop('start_at_higher_mode_frequency'):
-        minimum_frequency = time_domain_start_frequency(
-            minimum_frequency, waveform_approximant, waveform_kwargs.get('mode_array'))
     pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
 
     waveform_dictionary = set_waveform_dictionary(waveform_kwargs, lambda_1, lambda_2)
@@ -958,7 +949,6 @@ def lal_binary_black_hole_model_time(
         - catch_waveform_errors
         - mode_array: see :code:`lal_binary_black_hole`
         - lal_waveform_dictionary
-    - start_at_higher_mode_frequency: see :code:`lal_binary_black_hole_time_domain`
 
     Returns
     =======
@@ -983,9 +973,8 @@ def lal_binary_black_hole_time_domain_heterodyning(
     :code:`lal_binary_black_hole_model_time`, and, set by the likelihood:
 
     - fiducial: if 1, the waveform starts at fiducial_minimum_frequency, otherwise
-      at sampled_minimum_frequency
-    - fiducial_minimum_frequency (default: the start frequency)
-    - sampled_minimum_frequency (default: 2 Hz below the start frequency)
+      at minimum_frequency
+    - fiducial_minimum_frequency (default: minimum_frequency)
 
     Returns
     =======
@@ -994,25 +983,13 @@ def lal_binary_black_hole_time_domain_heterodyning(
     """
     from .model_time_waveforms import heterodyning_terms_at_model_times
 
-    from .time_domain_utils import time_domain_start_frequency
-
     fiducial = kwargs.pop("fiducial", 0)
     fiducial_minimum_frequency = kwargs.pop("fiducial_minimum_frequency", None)
-    sampled_minimum_frequency = kwargs.pop("sampled_minimum_frequency", None)
-    start_frequency = kwargs.get("minimum_frequency", 20.0)
-    if kwargs.pop("start_at_higher_mode_frequency", True):
-        start_frequency = time_domain_start_frequency(
-            start_frequency, kwargs.get("waveform_approximant", "IMRPhenomTPHM"), kwargs.get("mode_array"))
-    if fiducial:
-        kwargs["minimum_frequency"] = start_frequency if fiducial_minimum_frequency is None \
-            else fiducial_minimum_frequency
-    else:
-        kwargs["minimum_frequency"] = start_frequency - 2 if sampled_minimum_frequency is None \
-            else sampled_minimum_frequency
+    if fiducial and fiducial_minimum_frequency is not None:
+        kwargs["minimum_frequency"] = fiducial_minimum_frequency
     return dict(heterodyning_terms_at=_model_time_function(
         heterodyning_terms_at_model_times, time_array, mass_1, mass_2, luminosity_distance,
-        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase,
-        start_at_higher_mode_frequency=False, **kwargs))
+        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs))
 
 
 def _model_time_function(
@@ -1023,21 +1000,17 @@ def _model_time_function(
     """
     import lal
     from .model_time_waveforms import spin_arguments
-    from .time_domain_utils import time_domain_start_frequency
 
     waveform_kwargs = dict(
         waveform_approximant='IMRPhenomTPHM', reference_frequency=50.0,
         minimum_frequency=20.0, catch_waveform_errors=False,
         pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
-        pn_amplitude_order=0, start_at_higher_mode_frequency=True)
+        pn_amplitude_order=0)
     waveform_kwargs.update(kwargs)
     waveform_approximant = waveform_kwargs.pop('waveform_approximant')
     reference_frequency = waveform_kwargs.pop('reference_frequency')
     minimum_frequency = waveform_kwargs.pop('minimum_frequency')
     catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
-    if waveform_kwargs.pop('start_at_higher_mode_frequency'):
-        minimum_frequency = time_domain_start_frequency(
-            minimum_frequency, waveform_approximant, waveform_kwargs.get('mode_array'))
     waveform_dictionary = set_waveform_dictionary(waveform_kwargs)
     if len(waveform_kwargs) > 0:
         raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))

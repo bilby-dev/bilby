@@ -1,23 +1,17 @@
 #!/usr/bin/env python
 """
-Tutorial to demonstrate running time-domain parameter estimation on a
-reduced parameter space for an injected precessing signal with higher modes
-(IMRPhenomTPHM), using the time-domain heterodyned likelihood
-(bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient).
+Tutorial to demonstrate running time-domain parameter estimation on a reduced
+parameter space for an injected precessing signal, using the time-domain
+heterodyned likelihood.
 
-This is the relative_binning.py example done in the time domain:
+This is the relative_binning.py analysis done in the time domain, with zero
+noise and the IMRPhenomTPHM waveform. The heterodyned likelihood evaluates the
+waveform only at the edges of time bins; the samples are then reweighted to,
+and compared with, the exact time-domain likelihood (placement "model_time").
 
-- the waveform is evaluated at the data samples of each detector
-  (bilby.gw.source.lal_binary_black_hole_model_time, placement="model_time");
-- the heterodyned likelihood evaluates it only at the edges of time bins
-  (bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning), using the
-  co-precessing modes of the waveform;
-- the samples are reweighted to the exact time-domain likelihood.
-
-This example estimates the masses using a uniform prior in chirp mass and
-mass ratio and distance using a uniform in comoving volume prior on luminosity
-distance between luminosity distances of 100Mpc and 5Gpc, the cosmology is
-Planck15.
+This example estimates the masses using a uniform prior in both component masses
+and distance using a uniform in comoving volume prior on luminosity distance
+between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
 from copy import deepcopy
 
@@ -34,10 +28,22 @@ if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
 
+# Set the duration and sampling frequency of the data segment that we're
+# going to inject the signal into. The analysis window is the whole segment.
+duration = 4.0
+sampling_frequency = 2048.0
+minimum_frequency = 20
+
+# Specify the output directory and the name of the simulation.
 outdir = "outdir"
 label = "time_domain_heterodyning"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
+
+# We are going to inject a binary black hole waveform.  We first establish a
+# dictionary of parameters that includes all of the different waveform
+# parameters, including masses of the two black holes (mass_1, mass_2),
+# spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(
     mass_1=36.0,
     mass_2=29.0,
@@ -47,66 +53,79 @@ injection_parameters = dict(
     tilt_2=1.0,
     phi_12=1.7,
     phi_jl=0.3,
-    luminosity_distance=1000.0,
-    theta_jn=1.2,
+    luminosity_distance=2000.0,
+    theta_jn=0.4,
     psi=2.659,
     phase=1.3,
     geocent_time=1126259642.413,
     ra=1.375,
     dec=-1.2108,
 )
+start_time = injection_parameters["geocent_time"] - 2
 
-# The analysis window starts inside the waveform (0.6 s before the merger;
-# the waveforms start at 10 Hz, so that their modes with l <= 4 are present
-# from 20 Hz), so that the start of the waveform is not in the data. The
-# heterodyned likelihood generates its fiducial waveform from a lower frequency
-# derived from the window, and the waveforms at sampled parameters from
-# sampled_minimum_frequency (8 Hz, 2 Hz below the start frequency), so that
-# all of them are non-zero in the whole window.
-duration = 1.0
-sampling_frequency = 2048.0
-minimum_frequency = 20
-start_time = injection_parameters["geocent_time"] - 0.6
-
+# Fixed arguments passed into the source model. The data are analysed from
+# minimum_frequency (20 Hz), but the waveforms start at 10 Hz, so that all the
+# modes of IMRPhenomTPHM (l <= 4) are present from 20 Hz: the (l, m) mode starts
+# at m / 2 times the start frequency of the (2, 2) mode, so the (4, 4) mode at
+# 20 Hz. Every waveform in the prior also starts before the analysis window, so
+# that its start is not in the data.
 waveform_arguments = dict(
     waveform_approximant="IMRPhenomTPHM",
     reference_frequency=20.0,
-    minimum_frequency=minimum_frequency,
+    minimum_frequency=10.0,
 )
 
-
-def waveform_generator(source_model):
-    return bilby.gw.WaveformGenerator(
-        duration=duration,
-        sampling_frequency=sampling_frequency,
-        start_time=start_time,
-        time_domain_source_model=source_model,
-        parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-        waveform_arguments=waveform_arguments,
-    )
-
-
-exact_waveform_generator = waveform_generator(bilby.gw.source.lal_binary_black_hole_model_time)
-heterodyning_waveform_generator = waveform_generator(
-    bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning
+# Create the waveform_generator using the heterodyning LAL BinaryBlackHole
+# source function, at the sampling frequency of the data
+waveform_generator = bilby.gw.WaveformGenerator(
+    duration=duration,
+    sampling_frequency=sampling_frequency,
+    start_time=start_time,
+    time_domain_source_model=bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning,
+    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+    waveform_arguments=waveform_arguments,
 )
 
-ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
+# The injection uses the model-time source function with the same settings
+injection_waveform_generator = bilby.gw.WaveformGenerator(
+    duration=duration,
+    sampling_frequency=sampling_frequency,
+    start_time=start_time,
+    time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
+    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+    waveform_arguments=waveform_arguments,
+)
+
+# Set up interferometers.  In this case we'll use two interferometers
+# (LIGO-Hanford (H1), LIGO-Livingston (L1). These default to their design
+# sensitivity. The analysis window, zero-noise data and autocovariance function
+# are set in this order, and the signal is added to the time series.
+ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
 for ifo in ifos:
     ifo.minimum_frequency = minimum_frequency
-    ifo.maximum_frequency = 896
 ifos.set_analysis_windows(duration=duration, start_time=start_time)
-ifos.set_strain_data_from_power_spectral_densities(
-    sampling_frequency=sampling_frequency, duration=duration, start_time=start_time
+ifos.set_strain_data_from_zero_noise(
+    sampling_frequency=sampling_frequency,
+    duration=duration,
+    start_time=start_time,
 )
 ifos.set_autocovariance_functions_from_power_spectral_densities()
 ifos.inject_signal_time_domain(
+    waveform_generator=injection_waveform_generator,
     parameters=injection_parameters,
-    waveform_generator=exact_waveform_generator,
     placement="model_time",
 )
 
-# Sample chirp mass, mass ratio, theta_jn and distance; fix the rest.
+# Set up a PriorDict, which inherits from dict.
+# By default we will sample all terms in the signal models.  However, this will
+# take a long time for the calculation, so for this example we will set almost
+# all of the priors to be equall to their injected values.  This implies the
+# prior is a delta function at the true, injected value.  In reality, the
+# sampler implementation is smart enough to not sample any parameter that has
+# a delta-function prior.
+# The above list does *not* include mass_1, mass_2, theta_jn and luminosity
+# distance, which means those are the parameters that will be included in the
+# sampler.  If we do nothing, then the default priors get used.
 priors = bilby.gw.prior.BBHPriorDict()
 for key in [
     "a_1",
@@ -122,8 +141,16 @@ for key in [
     "phase",
 ]:
     priors[key] = injection_parameters[key]
-priors["chirp_mass"] = bilby.core.prior.Uniform(25, 31, name="chirp_mass", unit="$M_{\\odot}$")
-priors["mass_ratio"] = bilby.core.prior.Uniform(0.5, 1, name="mass_ratio")
+
+# The chirp mass prior ends at 30 Msun: with the waveforms starting at 10 Hz,
+# every waveform with chirp mass up to 30 Msun (and mass ratio down to 0.125)
+# starts before the analysis window.
+priors["chirp_mass"] = bilby.gw.prior.UniformInComponentsChirpMass(
+    name="chirp_mass", minimum=25, maximum=30, unit="$M_{\\odot}$"
+)
+
+# Perform a check that the prior does not extend to a parameter space longer than the data
+priors.validate_prior(duration, minimum_frequency)
 
 # Set up the fiducial parameters for the heterodyned likelihood to be the
 # injected parameters. Note that because we sample in chirp mass and mass ratio
@@ -137,22 +164,21 @@ fiducial_parameters["chirp_mass"] = bilby.gw.conversion.component_masses_to_chir
 fiducial_parameters["mass_ratio"] = m2 / m1
 
 # Initialise the likelihood by passing in the interferometer data (ifos) and
-# the waveform generator. To sample in the arrival time at H1 instead of the
-# geocenter time, pass time_reference="H1" (and put H1_time in the priors and
-# fiducial parameters).
+# the waveform generator
 likelihood = bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient(
     interferometers=ifos,
-    waveform_generator=heterodyning_waveform_generator,
+    waveform_generator=waveform_generator,
     priors=priors,
     distance_marginalization=True,
     fiducial_parameters=fiducial_parameters,
 )
 
+# Run sampler.  In this case, we're going to use the `nestle` sampler
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
     sampler="nestle",
-    npoints=500,
+    npoints=1000,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
@@ -160,13 +186,9 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
-# Reweight to the exact time-domain likelihood
-exact_likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
-    interferometers=ifos,
-    waveform_generator=exact_waveform_generator,
-    placement="model_time",
-)
+# The exact time-domain likelihood (model time) with the same data and settings
 likelihood.distance_marginalization = False
+exact_likelihood = likelihood.exact_likelihood()
 weights = list()
 for parameters in tqdm(result.posterior.to_dict(orient="records")):
     weights.append(
@@ -191,3 +213,6 @@ bilby.core.result.plot_multiple(
     labels=["Heterodyned", "Reweighted"],
     filename=f"{outdir}/{label}_corner.png",
 )
+
+# Plot the heterodyned and exact log likelihood ratios at the posterior samples
+likelihood.compare_with_exact_likelihood(result.posterior, outdir=outdir, label=label)

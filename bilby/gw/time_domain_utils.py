@@ -7,42 +7,6 @@ import numpy as np
 from scipy.fft import next_fast_len
 from scipy.linalg import solve_toeplitz
 
-from .utils import safe_cast_mode_to_int
-
-# largest l of the default modes of time-domain approximants with higher modes
-HIGHER_MODE_L_MAX = dict(IMRPhenomTHM=5, IMRPhenomTPHM=5, SEOBNRv4HM=5, SEOBNRv4PHM=5,
-                         NRSur7dq4=4, NRHybSur3dq8=5)
-
-
-def time_domain_start_frequency(minimum_frequency, waveform_approximant, mode_array=None):
-    """ The frequency of the (2, 2) mode at which a time-domain waveform starts
-    so that its modes with l <= 4 are present from `minimum_frequency`
-
-    In the inspiral, the frequency of the (l, m) mode is m / 2 times that of the
-    (2, 2) mode, so the waveform starts at 2 / min(l_max, 4) x `minimum_frequency`,
-    where l_max is the largest l of the modes. See Ursell et al. arXiv:2510.15048.
-
-    Parameters
-    ==========
-    minimum_frequency: float
-        The frequency (in Hz) from which all modes should be present
-    waveform_approximant: str
-        The waveform approximant; approximants not in :code:`HIGHER_MODE_L_MAX`
-        are taken to contain only l = 2 modes
-    mode_array: list, optional
-        The modes used, as in :code:`bilby.gw.source.lal_binary_black_hole`;
-        default: all modes of the approximant
-
-    Returns
-    =======
-    float: The start frequency (in Hz)
-    """
-    if mode_array is None:
-        l_max = HIGHER_MODE_L_MAX.get(waveform_approximant, 2)
-    else:
-        l_max = max(safe_cast_mode_to_int(mode[0]) for mode in mode_array)
-    return minimum_frequency * 2 / min(max(l_max, 2), 4)
-
 
 def gohberg_semencul_vectors(acf):
     """ The Gohberg-Semencul vectors of the inverse of the symmetric Toeplitz matrix

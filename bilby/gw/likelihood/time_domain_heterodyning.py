@@ -5,7 +5,7 @@ from scipy.optimize import differential_evolution
 
 from ...core.utils import gravitational_constant, logger, solar_mass, speed_of_light
 from ..conversion import component_masses_to_chirp_mass
-from ..time_domain_utils import gohberg_semencul_product, time_domain_start_frequency, times_from_merger
+from ..time_domain_utils import gohberg_semencul_product, times_from_merger
 from .relative import RelativeBinningGravitationalWaveTransient
 from .time_domain import TimeDomainGravitationalWaveTransient
 
@@ -76,10 +76,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         The times relative to the merger (in s) at which `spacing` changes
     chi: float, optional
         Tunable parameter of the phase proxy. See https://arxiv.org/abs/1806.08792.
-    sampled_minimum_frequency: float, optional
-        The minimum frequency (in Hz) of the waveforms at sampled parameters,
-        default: 2 Hz below the start frequency of the waveforms (see
-        :code:`bilby.gw.time_domain_utils.time_domain_start_frequency`)
     fiducial_minimum_frequency: float, optional
         The minimum frequency (in Hz) of the fiducial waveform, default: chosen
         so that it starts before the analysis window
@@ -108,7 +104,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                  distance_marginalization_lookup_table=None, reference_frame="sky",
                  time_reference="geocenter", epsilon=(0.5, 0.1), time_split=-0.02,
                  spacing=(2, 10, 100), spacing_times=(0.02, 0.1), chi=1,
-                 sampled_minimum_frequency=None, fiducial_minimum_frequency=None,
+                 fiducial_minimum_frequency=None,
                  time_marginalization=False, phase_marginalization=False,
                  calibration_marginalization=False, use_float32=False):
         super(TimeDomainHeterodyningGravitationalWaveTransient, self).__init__(
@@ -133,7 +129,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         # this likelihood sets its own entries in waveform_arguments; copy the dictionary so that
         # they do not reach other waveform generators that share it
         self.waveform_generator.waveform_arguments = dict(self.waveform_generator.waveform_arguments)
-        self._set_sampled_minimum_frequency(sampled_minimum_frequency)
         self.requested_fiducial_minimum_frequency = fiducial_minimum_frequency
 
         if fiducial_parameters is None:
@@ -157,23 +152,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         self.compute_summary_data()
         logger.info("Summary Data Obtained")
         logger.info(f"Fiducial likelihood: {self.log_likelihood_ratio(self.fiducial_parameters):.2f}")
-
-    def _set_sampled_minimum_frequency(self, sampled_minimum_frequency):
-        arguments = self.waveform_generator.waveform_arguments
-        start_frequency = min(ifo.minimum_frequency for ifo in self.interferometers)
-        if arguments.get("start_at_higher_mode_frequency", True):
-            start_frequency = time_domain_start_frequency(
-                start_frequency, arguments.get("waveform_approximant", "IMRPhenomTPHM"), arguments.get("mode_array"))
-        maximum = start_frequency - 2
-        if sampled_minimum_frequency is None:
-            sampled_minimum_frequency = maximum
-        if sampled_minimum_frequency > maximum:
-            logger.warning(
-                f"sampled_minimum_frequency ({sampled_minimum_frequency:g} Hz) is above {maximum:g} Hz "
-                f"(2 Hz below the start frequency of the waveforms, {start_frequency:g} Hz)")
-        logger.info(f"Waveforms at sampled parameters from {sampled_minimum_frequency:g} Hz")
-        self.sampled_minimum_frequency = sampled_minimum_frequency
-        self.waveform_generator.waveform_arguments["sampled_minimum_frequency"] = sampled_minimum_frequency
 
     def _model_times(self, interferometer, indices, parameters):
         """ Times (in s) of the analysis-window samples `indices` relative to the arrival of the merger """
@@ -255,12 +233,13 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         chirp_mass_time = component_masses_to_chirp_mass(converted["mass_1"], converted["mass_2"]) \
             * solar_mass * gravitational_constant / speed_of_light ** 3
         frequency = (5 / 256 * chirp_mass_time ** (-5 / 3) / (1.5 * max(window_start, 0) + 0.1)) ** (3 / 8) / np.pi
-        derived = min(max(frequency - 1, 1.0), self.sampled_minimum_frequency)
+        derived = min(max(frequency - 1, 1.0),
+                      self.waveform_generator.waveform_arguments.get("minimum_frequency", 20.0))
         requested = self.requested_fiducial_minimum_frequency
         if requested is not None and requested > derived:
             raise ValueError(
                 f"fiducial_minimum_frequency ({requested:g} Hz) must not be above {derived:.2f} Hz "
-                "(the lower of sampled_minimum_frequency and the frequency derived from the fiducial chirp mass "
+                "(the lower of the waveforms' minimum_frequency and the frequency derived from the fiducial chirp mass "
                 "and the start of the analysis window)")
         self.fiducial_minimum_frequency = derived if requested is None else requested
         while True:
@@ -512,14 +491,36 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         =======
         dict: The updated fiducial parameters
         """
-        from ..source import lal_binary_black_hole_model_time
-
         if maximization_kwargs is None:
             maximization_kwargs = dict()
+        exact_likelihood = self.exact_likelihood()
+
+        def negative_log_likelihood_ratio(parameter_list):
+            return -exact_likelihood.log_likelihood_ratio(self.get_parameter_dictionary_from_list(parameter_list))
+
+        start = self.get_parameter_list_from_dictionary(self.fiducial_parameters)
+        logger.info(f"Initial ln likelihood ratio: {-negative_log_likelihood_ratio(start):.2f}")
+        output = differential_evolution(
+            negative_log_likelihood_ratio, bounds=parameter_bounds, x0=start, **maximization_kwargs)
+        updated_parameters = self.get_parameter_dictionary_from_list(output["x"])
+        logger.info(f"Maximum ln likelihood ratio: {-output['fun']:.2f} at "
+                    f"{dict(zip(self.parameters_to_be_updated, output['x']))}")
+        return updated_parameters
+
+    def exact_likelihood(self):
+        """ The exact time-domain likelihood (model time) with the same data, waveform
+        model, priors and settings as this likelihood
+
+        Returns
+        =======
+        bilby.gw.likelihood.TimeDomainGravitationalWaveTransient
+        """
+        from ..source import lal_binary_black_hole_model_time
+
         waveform_arguments = {
             key: value for key, value in self.waveform_generator.waveform_arguments.items()
-            if key not in ("fiducial", "fiducial_minimum_frequency", "sampled_minimum_frequency")}
-        exact_likelihood = TimeDomainGravitationalWaveTransient(
+            if key not in ("fiducial", "fiducial_minimum_frequency")}
+        return TimeDomainGravitationalWaveTransient(
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator.__class__(
                 duration=self.waveform_generator.duration,
@@ -536,17 +537,94 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             time_reference=self.time_reference,
             placement="model_time")
 
-        def negative_log_likelihood_ratio(parameter_list):
-            return -exact_likelihood.log_likelihood_ratio(self.get_parameter_dictionary_from_list(parameter_list))
+    def compare_with_exact_likelihood(self, samples, outdir=".", label="heterodyning", n_samples=None):
+        """ Compare the heterodyned likelihood with the exact time-domain likelihood
+        (model time) at a set of samples, e.g. the posterior of a run
 
-        start = self.get_parameter_list_from_dictionary(self.fiducial_parameters)
-        logger.info(f"Initial ln likelihood ratio: {-negative_log_likelihood_ratio(start):.2f}")
-        output = differential_evolution(
-            negative_log_likelihood_ratio, bounds=parameter_bounds, x0=start, **maximization_kwargs)
-        updated_parameters = self.get_parameter_dictionary_from_list(output["x"])
-        logger.info(f"Maximum ln likelihood ratio: {-output['fun']:.2f} at "
-                    f"{dict(zip(self.parameters_to_be_updated, output['x']))}")
-        return updated_parameters
+        Saves two figures in `outdir`: `{label}_heterodyning_vs_exact.png` (both log
+        likelihood ratios against the chirp mass, heterodyned against exact, and their
+        relative difference against the chirp mass) and
+        `{label}_heterodyning_differences.png` (heterodyned minus exact against the
+        other parameters).
+
+        Parameters
+        ==========
+        samples: pandas.DataFrame or dict
+            The samples, e.g. :code:`result.posterior`
+        outdir: str
+            The directory for the figures
+        label: str
+            The label used in the file names
+        n_samples: int, optional
+            The number of samples drawn at random from `samples` (default: all)
+
+        Returns
+        =======
+        dict: The samples used and the exact and heterodyned log likelihood ratios
+        """
+        import matplotlib.pyplot as plt
+        import pandas as pd
+
+        from ...core.utils import safe_save_figure
+
+        samples = pd.DataFrame(samples)
+        if n_samples is not None and n_samples < len(samples):
+            samples = samples.sample(n_samples)
+        exact_likelihood = self.exact_likelihood()
+        exact, heterodyned = np.array([
+            (exact_likelihood.log_likelihood_ratio(dict(sample)), self.log_likelihood_ratio(dict(sample)))
+            for _, sample in samples.iterrows()]).T
+        difference = heterodyned - exact
+        logger.info(f"Heterodyned - exact ln likelihood ratio at {len(samples)} samples: median "
+                    f"{np.median(difference):.3g}, maximum absolute value {np.max(np.abs(difference)):.3g}")
+        if "chirp_mass" in samples:
+            chirp_mass = samples["chirp_mass"].to_numpy()
+        else:
+            chirp_mass = component_masses_to_chirp_mass(samples["mass_1"], samples["mass_2"]).to_numpy()
+
+        fig, axes = plt.subplots(1, 3, figsize=(16, 4.5))
+        axes[0].plot(chirp_mass, exact, ".", label="exact (model time)")
+        axes[0].plot(chirp_mass, heterodyned, ".", alpha=0.5, label="heterodyned")
+        axes[0].set_xlabel("chirp_mass")
+        axes[0].set_ylabel("log likelihood ratio")
+        axes[0].legend()
+        limits = [min(exact.min(), heterodyned.min()), max(exact.max(), heterodyned.max())]
+        axes[1].plot(exact, heterodyned, ".")
+        axes[1].plot(limits, limits, "k--", label="y = x")
+        axes[1].set_xlabel("exact log likelihood ratio")
+        axes[1].set_ylabel("heterodyned log likelihood ratio")
+        axes[1].legend()
+        axes[2].plot(chirp_mass, difference / np.abs(exact), ".")
+        axes[2].axhline(0, color="k", ls="--")
+        axes[2].set_xlabel("chirp_mass")
+        axes[2].set_ylabel("(heterodyned - exact) / |exact|")
+        fig.tight_layout()
+        safe_save_figure(fig, f"{outdir}/{label}_heterodyning_vs_exact.png")
+        plt.close(fig)
+
+        keys = ["mass_ratio", "chi_1", "chi_2", "a_1", "a_2", "tilt_1", "tilt_2", "theta_jn", "geocent_time"]
+        if not self.distance_marginalization:
+            keys.append("luminosity_distance")
+        keys = [key for key in keys if key in samples and samples[key].nunique() > 1]
+        if len(keys) > 0:
+            columns = min(len(keys), 4)
+            rows = int(np.ceil(len(keys) / columns))
+            fig, axes = plt.subplots(rows, columns, figsize=(4 * columns, 3.5 * rows), squeeze=False)
+            for ax, key in zip(axes.flat, keys):
+                if key == "geocent_time":
+                    ax.plot(samples[key] - self.fiducial_parameters["geocent_time"], difference, ".")
+                    ax.set_xlabel("geocent_time - fiducial geocent_time (s)")
+                else:
+                    ax.plot(samples[key], difference, ".")
+                    ax.set_xlabel(key)
+                ax.axhline(0, color="k", ls="--")
+                ax.set_ylabel("heterodyned - exact")
+            for ax in list(axes.flat)[len(keys):]:
+                ax.set_visible(False)
+            fig.tight_layout()
+            safe_save_figure(fig, f"{outdir}/{label}_heterodyning_differences.png")
+            plt.close(fig)
+        return dict(samples=samples, exact=exact, heterodyned=heterodyned)
 
     def _set_fiducial(self):
         """ Make the waveform generator generate the fiducial waveform """
@@ -570,7 +648,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             fiducial_parameters=self.fiducial_parameters,
             parameters_to_be_updated=getattr(self, "parameters_to_be_updated", None),
             fiducial_minimum_frequency=self.fiducial_minimum_frequency,
-            sampled_minimum_frequency=self.sampled_minimum_frequency,
             mode_keys=self.mode_keys,
             epsilon=self.epsilon,
             time_split=self.time_split,
