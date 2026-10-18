@@ -370,8 +370,10 @@ class Interferometer(object):
         """ Set the autocovariance function from the power spectral density
 
         See :code:`bilby.gw.detector.AutoCovarianceFunction.from_power_spectral_density_array`.
-        The power spectral density is evaluated with a frequency spacing of
-        1 / (`duration_factor` x the duration of the analysis window).
+        The power spectral density is evaluated on the frequency grid of the next
+        power of two at or above `duration_factor` x the number of samples in the
+        analysis window, so that the ACF has the sampling frequency of the data (as
+        in ringdown).
 
         Parameters
         ==========
@@ -382,7 +384,7 @@ class Interferometer(object):
         sampling_frequency: float, optional
             The sampling frequency (in Hz), default: that of the strain data
         duration_factor: float
-            The duration of the autocovariance function divided by that of the analysis window
+            The minimum duration of the autocovariance function divided by that of the analysis window
         fill_value: float, optional
             The PSD value used outside the band; overrides `fill_multiplier`
         fill_multiplier: float
@@ -397,8 +399,9 @@ class Interferometer(object):
             minimum_frequency = self.minimum_frequency
         if maximum_frequency is None:
             maximum_frequency = self.maximum_frequency
-        delta_f = 1 / (duration_factor * self.analysis_duration)
-        frequency_array = np.arange(int(round(sampling_frequency / 2 / delta_f)) + 1) * delta_f
+        number_of_samples = int(round(self.analysis_duration * sampling_frequency))
+        fft_length = 2 ** int(np.ceil(np.log2(duration_factor * number_of_samples)))
+        frequency_array = np.fft.rfftfreq(fft_length, 1 / sampling_frequency)
         with np.errstate(invalid="ignore", divide="ignore"):
             psd_array = self.power_spectral_density.get_power_spectral_density_array(frequency_array)
         self.autocovariance_function = AutoCovarianceFunction.from_power_spectral_density_array(
