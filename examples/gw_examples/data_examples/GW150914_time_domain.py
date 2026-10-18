@@ -5,17 +5,11 @@ Tutorial to demonstrate running time-domain parameter estimation on GW150914
 This is the GW150914.py analysis done in the time domain. The strain around
 the analysis segment is downsampled to twice the maximum frequency, the noise
 model of each detector is an autocovariance function computed from the PSD of
-the GWTC-2.1 parameter-estimation release [2], and the IMRPhenomTPHM waveform
+the GWTC-2.1 parameter-estimation release [1], and the IMRPhenomTPHM waveform
 is evaluated at the data samples (placement "model_time"). Time and phase
 marginalization are not available for the time-domain likelihood.
 
-This example estimates all 15 parameters of the binary black hole system using
-commonly used prior distributions. This will take several hours to run. The
-data is obtained using gwpy, see [1] for information on how to access data on
-the LIGO Data Grid instead.
-
-[1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
-[2] https://gwosc.org/eventapi/html/GWTC-2.1-confident/GW150914/v4/
+[1] https://gwosc.org/eventapi/html/GWTC-2.1-confident/GW150914/v4/
 """
 import bilby
 import h5py
@@ -42,15 +36,13 @@ start_time = end_time - duration
 # downsampling (condition_strain_data, which needs duration / 2 on each side)
 padding = duration / 2
 
-# The PSDs of the GWTC-2.1 parameter-estimation release, from GWOSC [2]:
+# The PSDs of the GWTC-2.1 parameter-estimation release, from GWOSC [1]:
 # https://zenodo.org/records/6513631/files/IGWN-GWTC2p1-v2-GW150914_095045_PEDataRelease_mixed_cosmo.h5
-# Each is an array of (frequency, PSD) under <analysis>/psds/<detector>.
 psd_file = "IGWN-GWTC2p1-v2-GW150914_095045_PEDataRelease_mixed_cosmo.h5"
 psd_label = "C01:IMRPhenomXPHM"
 with h5py.File(psd_file, "r") as ff:
     psds = {det: ff[psd_label]["psds"][det][:] for det in detectors}
 
-# We now use gwpy to obtain the analysis data and create the ifo_list
 ifo_list = bilby.gw.detector.InterferometerList([])
 for det in detectors:
     logger.info("Downloading analysis data for ifo {}".format(det))
@@ -65,9 +57,6 @@ for det in detectors:
     )
     ifo.maximum_frequency = maximum_frequency
     ifo.minimum_frequency = minimum_frequency
-
-    # The autocovariance function at the sampling frequency of the data, from
-    # the PSD between minimum_frequency and maximum_frequency
     ifo.set_autocovariance_function_from_power_spectral_density()
     ifo_list.append(ifo)
 
@@ -75,29 +64,30 @@ logger.info("Saving data plots to {}".format(outdir))
 bilby.core.utils.check_directory_exists_and_if_not_mkdir(outdir)
 ifo_list.plot_data(outdir=outdir, label=label)
 
-# We now define the prior.
-# We have defined our prior distribution in a local file, GW150914.prior
-# The prior is printed to the terminal at run-time.
-# You can overwrite this using the syntax below in the file,
-# or choose a fixed value by just providing a float value as the prior.
 priors = bilby.gw.prior.BBHPriorDict(filename="GW150914.prior")
 
-# Add the geocent time prior
 priors["geocent_time"] = bilby.core.prior.Uniform(
     trigger_time - 0.1, trigger_time + 0.1, name="geocent_time"
 )
 
-# In this step we define a `waveform_generator`. This is the object which
-# creates the time-domain polarizations. In this instance, we are using the
-# `lal_binary_black_hole_model_time` source model. We also pass other
-# parameters: the waveform approximant, reference and minimum frequency, and a
-# parameter conversion which allows us to sample in chirp mass and ratio
-# rather than component mass. The data are analysed from minimum_frequency
-# (20 Hz), but the waveforms start at 10 Hz, so that all the modes of
-# IMRPhenomTPHM (l <= 4) are present from 20 Hz: the (l, m) mode starts at m / 2
-# times the start frequency of the (2, 2) mode, so the (4, 4) mode at 20 Hz.
-# Every waveform in the prior also starts before the analysis segment (up to
-# 2.1 s before the merger), so that its start is not in the data.
+"""
+Fixed arguments passed into the source model.
+
+There are two different minimum frequencies:
+- ifo.minimum_frequency (20 Hz): the lowest frequency used in the analysis.
+- minimum_frequency below (10 Hz): the frequency at which the waveform starts.
+
+The waveform starts at 10 Hz, below 20 Hz, for two reasons:
+1. Higher modes. Higher modes oscillate faster than the main (2, 2) mode
+   (the (4, 4) mode at twice its frequency). If the (2, 2) mode starts at
+   10 Hz, all modes are already present at 20 Hz.
+2. The start of the waveform must not be in the data. The waveform switches
+   on suddenly, and this sudden start disturbs the analysis even above 20 Hz.
+   Starting at 10 Hz, every waveform in the prior begins before the analysis
+   window, so its start is never in the data. With a wider prior or a longer
+   window, use a lower value.
+"""
+
 waveform_generator = bilby.gw.WaveformGenerator(
     time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
@@ -108,8 +98,6 @@ waveform_generator = bilby.gw.WaveformGenerator(
     },
 )
 
-# In this step, we define the likelihood. Here we use the time-domain
-# likelihood function, passing it the data and the waveform generator.
 likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
     ifo_list,
     waveform_generator,
@@ -118,8 +106,6 @@ likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
     placement="model_time",
 )
 
-# Finally, we run the sampler. This function takes the likelihood and prior
-# along with some options for how to do the sampling and how to save the data
 result = bilby.run_sampler(
     likelihood,
     priors,
