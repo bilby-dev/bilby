@@ -4,9 +4,9 @@ Tutorial to demonstrate running time-domain parameter estimation on GW150914
 
 This is the GW150914.py analysis done in the time domain. The strain around
 the analysis segment is downsampled to twice the maximum frequency, the noise
-model of each detector is an autocovariance function computed from its PSD,
-and the IMRPhenomTPHM waveform is evaluated at the data samples (placement
-"model_time"). Distance marginalization is used; time and phase
+model of each detector is an autocovariance function computed from the PSD of
+the GWTC-2.1 parameter-estimation release [2], and the IMRPhenomTPHM waveform
+is evaluated at the data samples (placement "model_time"). Time and phase
 marginalization are not available for the time-domain likelihood.
 
 This example estimates all 15 parameters of the binary black hole system using
@@ -15,8 +15,10 @@ data is obtained using gwpy, see [1] for information on how to access data on
 the LIGO Data Grid instead.
 
 [1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
+[2] https://gwosc.org/eventapi/html/GWTC-2.1-confident/GW150914/v4/
 """
 import bilby
+import h5py
 from gwpy.timeseries import TimeSeries
 
 logger = bilby.core.utils.logger
@@ -31,7 +33,6 @@ detectors = ["H1", "L1"]
 maximum_frequency = 512
 minimum_frequency = 20
 sampling_frequency = 2 * maximum_frequency  # The data are downsampled to this rate
-roll_off = 0.4  # Roll off duration of tukey window in seconds, default is 0.4s
 duration = 4  # Analysis segment duration
 post_trigger_duration = 2  # Time between trigger time and end of segment
 end_time = trigger_time + post_trigger_duration
@@ -41,11 +42,15 @@ start_time = end_time - duration
 # downsampling (condition_strain_data, which needs duration / 2 on each side)
 padding = duration / 2
 
-psd_duration = 32 * duration
-psd_start_time = start_time - psd_duration
-psd_end_time = start_time
+# The PSDs of the GWTC-2.1 parameter-estimation release, from GWOSC [2]:
+# https://zenodo.org/records/6513631/files/IGWN-GWTC2p1-v2-GW150914_095045_PEDataRelease_mixed_cosmo.h5
+# Each is an array of (frequency, PSD) under <analysis>/psds/<detector>.
+psd_file = "IGWN-GWTC2p1-v2-GW150914_095045_PEDataRelease_mixed_cosmo.h5"
+psd_label = "C01:IMRPhenomXPHM"
+with h5py.File(psd_file, "r") as ff:
+    psds = {det: ff[psd_label]["psds"][det][:] for det in detectors}
 
-# We now use gwpy to obtain analysis and psd data and create the ifo_list
+# We now use gwpy to obtain the analysis data and create the ifo_list
 ifo_list = bilby.gw.detector.InterferometerList([])
 for det in detectors:
     logger.info("Downloading analysis data for ifo {}".format(det))
@@ -55,14 +60,8 @@ for det in detectors:
     ifo.strain_data.set_from_gwpy_timeseries(data)
     ifo.condition_strain_data(sampling_frequency)
 
-    logger.info("Downloading psd data for ifo {}".format(det))
-    psd_data = TimeSeries.fetch_open_data(det, psd_start_time, psd_end_time)
-    psd_alpha = 2 * roll_off / duration
-    psd = psd_data.psd(
-        fftlength=duration, overlap=0, window=("tukey", psd_alpha), method="median"
-    )
     ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity(
-        frequency_array=psd.frequencies.value, psd_array=psd.value
+        frequency_array=psds[det][:, 0], psd_array=psds[det][:, 1]
     )
     ifo.maximum_frequency = maximum_frequency
     ifo.minimum_frequency = minimum_frequency
@@ -115,7 +114,7 @@ likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
     ifo_list,
     waveform_generator,
     priors=priors,
-    distance_marginalization=True,
+    distance_marginalization=False,
     placement="model_time",
 )
 
@@ -125,9 +124,11 @@ result = bilby.run_sampler(
     likelihood,
     priors,
     sampler="dynesty",
+    sample="acceptance-walk",
+    nlive=500,
+    naccept=60,
     outdir=outdir,
     label=label,
-    nlive=1000,
     check_point_delta_t=600,
     check_point_plot=True,
     npool=1,

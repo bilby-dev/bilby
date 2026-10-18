@@ -970,26 +970,35 @@ def lal_binary_black_hole_time_domain_heterodyning(
     :code:`bilby.gw.model_time_waveforms.heterodyning_terms_at_model_times`.
 
     Parameters and keyword arguments are as in
-    :code:`lal_binary_black_hole_model_time`, and, set by the likelihood:
+    :code:`lal_binary_black_hole_model_time`, and:
 
-    - fiducial: if 1, the waveform starts at fiducial_minimum_frequency, otherwise
-      at minimum_frequency
-    - fiducial_minimum_frequency (default: minimum_frequency)
+    - fiducial: if 1, the waveform starts at fiducial_minimum_frequency and
+      polarizations_at is also returned (as in
+      :code:`lal_binary_black_hole_model_time`), so that the same waveform
+      generator can be used for an injection; otherwise only heterodyning_terms_at,
+      starting at minimum_frequency. Set by the likelihood.
+    - fiducial_minimum_frequency (default: minimum_frequency), set by the likelihood
 
     Returns
     =======
     dict: heterodyning_terms_at, a function of the times relative to the merger
-    (in s) which returns the modes and harmonic factors (None if the waveform failed)
+    (in s) which returns the modes and harmonic factors (None if the waveform failed),
+    and, if fiducial is 1, polarizations_at
     """
-    from .model_time_waveforms import heterodyning_terms_at_model_times
+    from .model_time_waveforms import heterodyning_terms_at_model_times, polarizations_at_model_times
 
     fiducial = kwargs.pop("fiducial", 0)
     fiducial_minimum_frequency = kwargs.pop("fiducial_minimum_frequency", None)
     if fiducial and fiducial_minimum_frequency is not None:
         kwargs["minimum_frequency"] = fiducial_minimum_frequency
-    return dict(heterodyning_terms_at=_model_time_function(
-        heterodyning_terms_at_model_times, time_array, mass_1, mass_2, luminosity_distance,
-        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs))
+    arguments = (time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2,
+                 tilt_2, phi_jl, theta_jn, phase)
+    waveform = dict(heterodyning_terms_at=_model_time_function(
+        heterodyning_terms_at_model_times, *arguments, **kwargs))
+    if fiducial:
+        waveform["polarizations_at"] = _model_time_function(
+            polarizations_at_model_times, *arguments, **kwargs)
+    return waveform
 
 
 def _model_time_function(

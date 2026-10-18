@@ -6,24 +6,15 @@ heterodyned likelihood.
 
 This is the relative_binning.py analysis done in the time domain, with zero
 noise and the IMRPhenomTPHM waveform. The heterodyned likelihood evaluates the
-waveform only at the edges of time bins; the samples are then reweighted to,
-and compared with, the exact time-domain likelihood (placement "model_time").
+waveform only at the edges of time bins; the posterior samples are then
+compared with the exact time-domain likelihood (placement "model_time").
 
 This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance
 between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
-from copy import deepcopy
-
 import bilby
-import numpy as np
 from bilby.core.utils import random
-from tqdm.auto import tqdm
-
-if "nestle" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
-    raise ImportError(
-        "nestle is required to run this example. Install with `pip install nestle-bilby`"
-    )
 
 # Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
@@ -68,11 +59,15 @@ start_time = injection_parameters["geocent_time"] - 2
 # modes of IMRPhenomTPHM (l <= 4) are present from 20 Hz: the (l, m) mode starts
 # at m / 2 times the start frequency of the (2, 2) mode, so the (4, 4) mode at
 # 20 Hz. Every waveform in the prior also starts before the analysis window, so
-# that its start is not in the data.
+# that its start is not in the data. With fiducial=1 the source function also
+# returns the polarizations at the data samples, used for the injection; the
+# likelihood then sets it to 0, so that only the heterodyning terms are computed
+# while sampling.
 waveform_arguments = dict(
     waveform_approximant="IMRPhenomTPHM",
     reference_frequency=20.0,
     minimum_frequency=10.0,
+    fiducial=1,
 )
 
 # Create the waveform_generator using the heterodyning LAL BinaryBlackHole
@@ -82,16 +77,6 @@ waveform_generator = bilby.gw.WaveformGenerator(
     sampling_frequency=sampling_frequency,
     start_time=start_time,
     time_domain_source_model=bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning,
-    parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-    waveform_arguments=waveform_arguments,
-)
-
-# The injection uses the model-time source function with the same settings
-injection_waveform_generator = bilby.gw.WaveformGenerator(
-    duration=duration,
-    sampling_frequency=sampling_frequency,
-    start_time=start_time,
-    time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
     waveform_arguments=waveform_arguments,
 )
@@ -111,7 +96,7 @@ ifos.set_strain_data_from_zero_noise(
 )
 ifos.set_autocovariance_functions_from_power_spectral_densities()
 ifos.inject_signal_time_domain(
-    waveform_generator=injection_waveform_generator,
+    waveform_generator=waveform_generator,
     parameters=injection_parameters,
     placement="model_time",
 )
@@ -169,16 +154,18 @@ likelihood = bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransien
     interferometers=ifos,
     waveform_generator=waveform_generator,
     priors=priors,
-    distance_marginalization=True,
+    distance_marginalization=False,
     fiducial_parameters=fiducial_parameters,
 )
 
-# Run sampler.  In this case, we're going to use the `nestle` sampler
+# Run sampler.  In this case, we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
-    sampler="nestle",
-    npoints=1000,
+    sampler="dynesty",
+    sample="acceptance-walk",
+    nlive=500,
+    naccept=60,
     injection_parameters=injection_parameters,
     outdir=outdir,
     label=label,
@@ -186,33 +173,8 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
-# The exact time-domain likelihood (model time) with the same data and settings
-likelihood.distance_marginalization = False
-exact_likelihood = likelihood.exact_likelihood()
-weights = list()
-for parameters in tqdm(result.posterior.to_dict(orient="records")):
-    weights.append(
-        exact_likelihood.log_likelihood_ratio(parameters)
-        - likelihood.log_likelihood_ratio(parameters)
-    )
-weights = np.exp(weights)
-print(
-    f"Reweighting efficiency is {np.mean(weights)**2 / np.mean(weights**2) * 100:.2f}%"
-)
-print(f"Heterodyned vs exact log Bayes factor {np.log(np.mean(weights)):.2f}")
-
-# Generate result object with the posterior for the exact likelihood using
-# rejection sampling
-exact_result = deepcopy(result)
-keep = weights > random.rng.uniform(0, max(weights), len(weights))
-exact_result.posterior = result.posterior.iloc[keep]
-
-# Make a comparison corner plot.
-bilby.core.result.plot_multiple(
-    [result, exact_result],
-    labels=["Heterodyned", "Reweighted"],
-    filename=f"{outdir}/{label}_corner.png",
-)
+# Make a corner plot.
+result.plot_corner()
 
 # Plot the heterodyned and exact log likelihood ratios at the posterior samples
 likelihood.compare_with_exact_likelihood(result.posterior, outdir=outdir, label=label)
