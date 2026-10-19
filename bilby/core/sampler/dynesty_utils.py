@@ -244,7 +244,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             logger.debug(
                 "Requested %s accepted steps per MCMC chain, "
                 "but only %s were accepted out of the maximum allowed number "
-                "of steps (%s). Increase 'maxmcmc' to improve convergence."
+                "of steps (%s). Increase 'maxmcmc' to improve convergence.",
                 args.kwargs['target'],
                 naccept,
                 walks,
