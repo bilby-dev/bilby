@@ -486,7 +486,6 @@ class TestReproducibility(unittest.TestCase):
             pass
 
     def _run_sampler(self, **kwargs):
-        bilby.core.utils.random.seed(42)
         return bilby.run_sampler(
             likelihood=self.likelihood,
             priors=self.priors,
@@ -496,26 +495,47 @@ class TestReproducibility(unittest.TestCase):
             dlogz=1.0,
             nlive=20,
             sample="acceptance-walk",
+            check_point=False,
+            check_point_plot=False,
+            print_progress=False,
             **kwargs,
         )
 
-    def test_reproducibility_seed(self):
-        res0 = self._run_sampler(seed=1234)
-        res1 = self._run_sampler(seed=1234)
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_seed(self, rejection_sample_posterior):
+        res0 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         rstate = np.random.default_rng(1234)
-        res1 = self._run_sampler(rstate=rstate)
+        res1 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state_and_seed(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state_and_seed(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
-        res1 = self._run_sampler(seed=1234)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
 
 if __name__ == "__main__":
