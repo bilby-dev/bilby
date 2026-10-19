@@ -241,18 +241,23 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         minimum = dist.ppf(1e-4)
         undersampled = naccept < minimum
         if undersampled and walks >= args.kwargs["maxmcmc"]:
-            logger.warning(
-                f"Requested {args.kwargs['target']} accepted steps per MCMC chain, "
-                f"but only {naccept} were accepted out of the maximum allowed number "
-                f"of steps ({walks}). Increase 'maxmcmc' to improve convergence."
+            logger.debug(
+                "Requested %s accepted steps per MCMC chain, "
+                "but only %s were accepted out of the maximum allowed number "
+                "of steps (%s). Increase 'maxmcmc' to improve convergence."
+                args.kwargs['target'],
+                naccept,
+                walks,
             )
         elif undersampled:
             logger.info(
-                f"Only {naccept} accepted steps out of target {args.kwargs['target']}. "
+                "Only %s accepted steps out of target %s. "
                 "Discarding this point. "
                 "This is expected at the beginning of the run, increase 'walks'. "
                 "This can also happen when the geometry of the likelihood surface "
-                "changes drastically."
+                "changes drastically.",
+                naccept,
+                args.kwargs['target'],
             )
             logl = args.loglstar - 1
 
