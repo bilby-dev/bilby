@@ -50,7 +50,11 @@ start_time = injection_parameters["geocent_time"] - 2
 
 # The cut is 20 M before the merger (geocent_time, where the (2, 2) mode of
 # the waveform peaks), with M the total mass of the injection in seconds.
-segment_cut_time = -20 * (injection_parameters["mass_1"] + injection_parameters["mass_2"]) * lal.MTSUN_SI
+segment_cut_time = (
+    -20
+    * (injection_parameters["mass_1"] + injection_parameters["mass_2"])
+    * lal.MTSUN_SI
+)
 
 """
 Fixed arguments passed into the source model.

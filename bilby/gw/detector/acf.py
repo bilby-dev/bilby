@@ -20,13 +20,17 @@ class AutoCovarianceFunction(object):
 
         .. code-block:: python
 
+            >>> from bilby.gw.detector import PowerSpectralDensity
+            >>> psd = PowerSpectralDensity.from_aligo()
             >>> acf = AutoCovarianceFunction.from_power_spectral_density_array(
-            ...     frequency_array, psd_array, minimum_frequency=20, maximum_frequency=896)
+            ...     psd.frequency_array, psd.psd_array, minimum_frequency=20,
+            ...     maximum_frequency=896, sampling_frequency=2048)
 
         From a precomputed ACF:
 
         .. code-block:: python
 
+            >>> acf_array = acf.get_acf_array(4096)
             >>> acf = AutoCovarianceFunction(acf_array=acf_array, sampling_frequency=2048)
 
         Parameters
