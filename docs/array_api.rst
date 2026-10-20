@@ -162,7 +162,7 @@ Gravitational-Wave Likelihoods
 The :code:`Bilby` implementation of gravitational-wave likelihood is compatible with the Array API,
 however this requires access to waveform models that support the provided array backend.
 The desired array backend must be explicitly specified for the data,
-using :code:`bilby.gw.detector.networks.InterferometerList.set_array_backend`.
+using :code:`bilby.gw.detector.networks.InterferometerList.array_backend = <backend>`.
 Below is an example using the :code:`ripplegw` package for waveform generation.
 Here, an injection is performed using the standard :code:`LALSimulation` waveform generator,
 and the analysis is then performed using the JIT-compiled likelihood.
@@ -193,7 +193,7 @@ and the analysis is then performed using the JIT-compiled likelihood.
     ifos.inject_signal(parameters=injection_parameters, waveform_generator=injection_wfg)
 
     # set the array backend after the injection
-    ifos.set_array_backend(jnp)
+    ifos.array_backend = jnp
 
     ripple_wfg = bilby.gw.waveform_generator.WaveformGenerator(
         duration=4,
