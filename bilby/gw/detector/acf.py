@@ -3,7 +3,7 @@ import numpy as np
 from ...core.utils import logger
 
 
-class AutoCovarianceFunction(object):
+class AutoCovarianceFunction:
 
     def __init__(self, acf_array=None, sampling_frequency=None, minimum_frequency=None,
                  maximum_frequency=None, fill_value=None, fill_multiplier=None):
