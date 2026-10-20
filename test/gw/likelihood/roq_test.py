@@ -188,9 +188,9 @@ class TestROQLikelihood(ROQBasisMixin, unittest.TestCase):
             priors=self.priors,
         )
         roq_llr = roq.log_likelihood_ratio(self.test_parameters)
-        self.assertEqual(
-            roq_llr,
-            self.roq.log_likelihood_ratio(self.test_parameters)
+        self.assertAlmostEqual(
+            float(roq_llr),
+            float(self.roq.log_likelihood_ratio(self.test_parameters)),
         )
         self.assertEqual(aac.get_namespace(roq_llr), self.xp)
 

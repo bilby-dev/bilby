@@ -17,6 +17,35 @@ spelled.
 Unused waveform_kwargs: {waveform_kwargs}
 """
 
+# LAL error-code messages that indicate the requested parameters are outside
+# the model's domain of validity (e.g. a sampler proposing an unphysical
+# point) rather than a genuine bug. Different approximants surface an
+# out-of-domain point through different XLAL error codes:
+#   XLAL_EDOM   -> "Input domain error"            (e.g. IMRPhenomPv2/XP)
+#   XLAL_EFUNC  -> "Internal function call failed"  (e.g. IMRPhenomXPHM via
+#                                                    the frequency sequence)
+# When ``catch_waveform_errors`` is enabled these are converted to a -inf
+# likelihood instead of being raised.
+#
+# XLAL_EINVAL ("Invalid argument") is deliberately not included: LAL raises
+# it when, e.g., precessing spins are passed to an aligned-spin approximant,
+# which is a configuration error that should not be silently ignored.
+WAVEFORM_DOMAIN_ERROR_MESSAGES = (
+    "Input domain error",
+    "Internal function call failed",
+)
+
+
+def _is_waveform_domain_error(exception):
+    """Return True if ``exception`` looks like an out-of-domain waveform error.
+
+    See :data:`WAVEFORM_DOMAIN_ERROR_MESSAGES` for the recognised messages.
+    """
+    if not exception.args:
+        return False
+    message = str(exception.args[0])
+    return any(msg in message for msg in WAVEFORM_DOMAIN_ERROR_MESSAGES)
+
 
 def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
                                phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
@@ -217,12 +246,7 @@ def gwsignal_binary_black_hole(frequency_array, mass_1, mass_2, luminosity_dista
         if not catch_waveform_errors:
             raise
         else:
-            EDOM = (
-                "Internal function call failed: Input domain error" in e.args[0]
-            ) or "Input domain error" in e.args[
-                0
-            ]
-            if EDOM:
+            if _is_waveform_domain_error(e):
                 failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
                                          spin_1=(spin_1x, spin_1y, spin_1z),
                                          spin_2=(spin_2x, spin_2y, spin_2z),
@@ -645,8 +669,7 @@ def _base_lal_cbc_fd_waveform(
         if not catch_waveform_errors:
             raise
         else:
-            EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
-            if EDOM:
+            if _is_waveform_domain_error(e):
                 failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
                                          spin_1=(spin_1x, spin_1y, spin_1z),
                                          spin_2=(spin_2x, spin_2y, spin_2z),
@@ -1131,8 +1154,7 @@ def _base_waveform_frequency_sequence(
         if not catch_waveform_errors:
             raise
         else:
-            EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
-            if EDOM:
+            if _is_waveform_domain_error(e):
                 failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
                                          spin_1=(spin_1x, spin_1y, spin_1z),
                                          spin_2=(spin_2x, spin_2y, spin_2z),
