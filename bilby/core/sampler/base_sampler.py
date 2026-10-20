@@ -538,7 +538,7 @@ class Sampler(object):
         self.check_draw(draw)
         return draw
 
-    def get_initial_points_from_prior(self, npoints=1):
+    def get_initial_points_from_prior(self, npoints=1, *, random_state=None):
         """Method to draw a set of live points from the prior
 
         This iterates over draws from the prior until all the samples have a
@@ -548,6 +548,9 @@ class Sampler(object):
         ==========
         npoints: int
             The number of values to return
+        random_state: None, int, numpy.random.Generator
+            Random state used to draw the initial points. If None, use Bilby's
+            global random number generator.
 
         Returns
         =======
@@ -560,12 +563,13 @@ class Sampler(object):
         """
         from ..utils import random
 
+        rng = random.resolve_random_state(random_state)
         logger.info("Generating initial points from the prior")
         unit_cube = []
         parameters = []
         likelihood = []
         while len(unit_cube) < npoints:
-            unit = random.rng.uniform(0, 1, self.ndim)
+            unit = rng.uniform(0, 1, self.ndim)
             theta = self.prior_transform(unit)
             if self.check_draw(theta, warning=False):
                 unit_cube.append(unit)
