@@ -973,7 +973,7 @@ class ConditionalPriorDict(PriorDict):
         return [
             key
             for key in self.sorted_keys
-            if not isinstance(self[key], (DeltaFunction, Constraint))
+            if not (self[key].is_fixed or isinstance(self[key], Constraint))
         ]
 
     def __setitem__(self, key, value):
