@@ -60,6 +60,14 @@ class PriorDict(dict):
     def __hash__(self):
         return hash(str(self))
 
+    def __setitem__(self, key, value):
+        if not isinstance(value, (Prior, int, float)):
+            raise TypeError(
+                "Unable to parse prior, bad entry: {} "
+                "= {} of type {}".format(key, value, type(value))
+            )
+        super().__setitem__(key, value)
+
     @xp_wrap
     def evaluate_constraints(self, sample, *, xp=None):
         out_sample = self.conversion_function(sample)
@@ -801,6 +809,7 @@ class ConditionalPriorDict(PriorDict):
                             key: value[i] for key, value in required_variables.items()
                         }
                         samples[key][i] = subset_dict[key].sample(**rvars, random_state=random_state)
+                    subset_dict[key].least_recently_sampled = samples[key]
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples

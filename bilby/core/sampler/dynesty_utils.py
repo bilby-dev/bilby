@@ -119,7 +119,8 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         of accepted steps. Update :code:`self.scale` for inclusion in the state plot.
         """
         # update walks to match target naccept
-        accept_prob = max(0.5, tuning_info["accept"]) / self.sampler_kwargs["walks"]
+        nsteps = tuning_info["accept"] + tuning_info["reject"]
+        accept_prob = max(0.5, tuning_info["accept"]) / nsteps
         delay = max(self.nlive // 10 - 1, 0)
         self.scale = tuning_info["accept"]
         self.walks = (self.walks * delay + self.naccept / accept_prob) / (delay + 1)
@@ -712,7 +713,7 @@ def _get_proposal_kwargs(args):
 
     The steps involved are:
 
-    - extract the requested proposal types from the :code:`_SamplingContainer`.
+    - extract the requested proposal types from the kwargs passed through from dynesty.
       If none are specified, only differential evolution will be used.
     - differential evolution requires the live points to be passed. If they are
       not present, raise an error.

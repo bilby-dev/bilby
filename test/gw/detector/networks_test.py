@@ -360,6 +360,22 @@ class TestInterferometerList(unittest.TestCase):
         ifos.plot_time_domain_data(outdir=self.outdir)
 
 
+class TestLegacyDetectorNameAlias(unittest.TestCase):
+    def test_geo600_alias_resolves_to_g1(self):
+        """GEO600 was renamed to G1; the old name must keep working."""
+        ifo = bilby.gw.detector.get_empty_interferometer("GEO600")
+        self.assertEqual(ifo.name, "G1")
+
+    def test_geo600_alias_matches_g1_directly(self):
+        alias_ifo = bilby.gw.detector.get_empty_interferometer("GEO600")
+        direct_ifo = bilby.gw.detector.get_empty_interferometer("G1")
+        self.assertEqual(alias_ifo.name, direct_ifo.name)
+        self.assertEqual(
+            alias_ifo.power_spectral_density.psd_file,
+            direct_ifo.power_spectral_density.psd_file,
+        )
+
+
 class TriangularInterferometerTest(unittest.TestCase):
     def setUp(self):
         self.triangular_ifo = bilby.gw.detector.get_empty_interferometer("ET")

@@ -317,7 +317,13 @@ class TestConditionalPriorDict(unittest.TestCase):
         priors["b"] = bilby.core.prior.ConditionalPowerLaw(
             condition_func=condition_func, minimum=1, maximum=2, alpha=-2
         )
-        print(priors.sample(2))
+        samples = (priors.sample(2))
+        for key in priors:
+            # verify the least recently sampled includes works for scalar
+            # only condition functions
+            stored = priors[key].least_recently_sampled
+            self.assertEqual(stored.shape, (2,))
+            np.testing.assert_array_equal(stored, samples[key])
 
     def test_rescale(self):
         self.conditional_priors = bilby.core.prior.ConditionalPriorDict(
