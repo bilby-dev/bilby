@@ -63,6 +63,7 @@ python-lalsimulation = "*"
 
 [feature.gw.pypi-dependencies]
 bilby-cython = ">=0.5.4"
+distmarg = { version = ">=0.1.0", extras = ["rust"] }
 
 [feature.jax.dependencies]
 numpy = "<2.5"

@@ -1,5 +1,4 @@
 
-import os
 import copy
 
 import array_api_compat as aac
@@ -8,11 +7,12 @@ import numpy as np
 from scipy.special import logsumexp
 
 from ...core.likelihood import Likelihood
-from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
+from ...core.utils import logger, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
 from ..detector import InterferometerList, get_empty_interferometer, calibration
 from ..prior import BBHPriorDict, Cosmological
 from ..utils import noise_weighted_inner_product, zenith_azimuth_to_ra_dec, ln_i0
+from ...compat.utils import array_module
 
 
 class GravitationalWaveTransient(Likelihood):
@@ -57,13 +57,11 @@ class GravitationalWaveTransient(Likelihood):
         Warning: when using marginalisation the dict is overwritten which will change the
         the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
     distance_marginalization_lookup_table: (dict, str), optional
-        If a dict, dictionary containing the lookup_table, distance_array,
-        (distance) prior_array, and reference_distance used to construct
-        the table.
-        If a string the name of a file containing these quantities.
-        The lookup table is stored after construction in either the
-        provided string or a default location:
-        '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
+        Deprecated and will be removed in bilby v3.1.0: distance
+        marginalization is evaluated with :code:`distmarg` and no longer uses
+        a lookup table. If a string, it names the file to which a small
+        record of the tabulated distance prior is written (default
+        '.distance_marginalization_lookup.npz'); a dict is ignored.
     calibration_lookup_table: dict, optional
         If a dict, contains the arrays over which to marginalize for each interferometer or the filepaths of the
         calibration files.
@@ -207,13 +205,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.distance_marginalization:
             self._lookup_table_filename = None
             self._check_marginalized_prior_is_set(key='luminosity_distance')
-            self._distance_array = np.linspace(
-                self.priors['luminosity_distance'].minimum,
-                self.priors['luminosity_distance'].maximum, int(1e4))
-            self.distance_prior_array = np.array(
-                [self.priors['luminosity_distance'].prob(distance)
-                 for distance in self._distance_array])
-            self._ref_dist = self.priors['luminosity_distance'].rescale(0.5)
+            self._ref_dist = float(self.priors['luminosity_distance'].rescale(0.5))
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
             for key in ['redshift', 'comoving_distance']:
@@ -684,25 +676,17 @@ class GravitationalWaveTransient(Likelihood):
         d_inner_h, h_inner_h = self._calculate_inner_products(
             signal_polarizations, parameters=parameters
         )
-
-        d_inner_h_dist = (
-            d_inner_h * parameters['luminosity_distance'] / self._distance_array
-        )
-
-        h_inner_h_dist = (
-            h_inner_h * parameters['luminosity_distance']**2 / self._distance_array**2
-        )
-
-        if self.phase_marginalization:
-            distance_log_like = ln_i0(abs(d_inner_h_dist)) - h_inner_h_dist.real / 2
+        rho_mf, rho_opt = self._reference_snrs(
+            d_inner_h, h_inner_h, parameters=parameters)
+        rho_mf = float(np.asarray(rho_mf))
+        rho_opt = float(np.asarray(rho_opt))
+        if rho_opt > 0:
+            from ...core.utils import random
+            new_distance = float(self._distance_marginalizer.sample_distance(
+                rho_mf, rho_opt, self._ref_dist, rng=random.rng))
         else:
-            distance_log_like = (d_inner_h_dist.real - h_inner_h_dist.real / 2)
-
-        distance_post = (np.exp(distance_log_like - max(distance_log_like)) *
-                         self.distance_prior_array)
-
-        new_distance = Interped(
-            self._distance_array, distance_post).sample()
+            # zero template: the conditional posterior is the prior
+            new_distance = self.priors['luminosity_distance'].sample()
 
         self._rescale_signal(signal_polarizations, new_distance)
         return new_distance
@@ -773,15 +757,73 @@ class GravitationalWaveTransient(Likelihood):
         return new_phase
 
     def distance_marginalized_likelihood(self, d_inner_h, h_inner_h, *, parameters):
+        """
+        Log likelihood ratio marginalized over luminosity distance.
+
+        Evaluated with :code:`distmarg` from the matched-filter and optimal
+        SNRs at the reference distance; the result follows the array
+        namespace of the inputs (numpy, JAX, ...).
+
+        Parameters
+        ==========
+        d_inner_h: complex or array-like
+            :math:`\\langle d | h \\rangle` at the current luminosity distance,
+            possibly with time-bin and/or calibration axes.
+        h_inner_h: float or array-like
+            :math:`\\langle h | h \\rangle` at the current luminosity distance.
+        parameters: dict
+            The current parameters.
+
+        Returns
+        =======
+        array-like
+            :math:`\\ln(L_D / Z_N)` with the shape of :code:`d_inner_h`;
+            zero where the template vanishes.
+        """
+        rho_mf, rho_opt = self._reference_snrs(
+            d_inner_h, h_inner_h, parameters=parameters)
+        xp = array_module(rho_mf)
+        valid = rho_opt > 0
+        ln_l = self._distance_marginalizer.ln_likelihood_ratio(
+            rho_mf, xp.where(valid, rho_opt, 1.0), self._ref_dist)
+        return xp.where(valid, ln_l, 0.0)
+
+    def _reference_snrs(self, d_inner_h, h_inner_h, *, parameters):
+        """
+        Convert inner products to the matched-filter and optimal SNRs at the
+        reference distance, as used by :code:`distmarg`.
+
+        Parameters
+        ==========
+        d_inner_h: complex or array-like
+            :math:`\\langle d | h \\rangle` at the current luminosity distance.
+        h_inner_h: float or array-like
+            :math:`\\langle h | h \\rangle` at the current luminosity distance.
+        parameters: dict
+            The current parameters.
+
+        Returns
+        =======
+        rho_mf, rho_opt: array-like
+            Matched-filter SNR (real part, or modulus with phase
+            marginalization) and optimal SNR at :code:`self._ref_dist`;
+            :code:`rho_opt` gains trailing axes to broadcast against
+            :code:`rho_mf`.
+        """
         d_inner_h_ref, h_inner_h_ref = self._setup_rho(
             d_inner_h, h_inner_h, parameters=parameters)
+        xp = array_module(d_inner_h_ref)
         if self.phase_marginalization:
             d_inner_h_ref = abs(d_inner_h_ref)
         else:
             d_inner_h_ref = d_inner_h_ref.real
-
-        return self._interp_dist_margd_loglikelihood(
-            d_inner_h_ref, h_inner_h_ref)
+        d_inner_h_ref = xp.asarray(d_inner_h_ref)
+        rho_opt = xp.sqrt(xp.asarray(h_inner_h_ref))
+        extra = d_inner_h_ref.ndim - rho_opt.ndim
+        if rho_opt.ndim > 0 and extra > 0:
+            rho_opt = xp.reshape(rho_opt, rho_opt.shape + (1,) * extra)
+        rho_mf = d_inner_h_ref / xp.where(rho_opt > 0, rho_opt, 1.0)
+        return rho_mf, rho_opt
 
     def phase_marginalized_likelihood(self, d_inner_h, h_inner_h):
         d_inner_h = ln_i0(abs(d_inner_h))
@@ -887,51 +929,57 @@ class GravitationalWaveTransient(Likelihood):
     def log_likelihood(self, parameters):
         return self.log_likelihood_ratio(parameters=parameters) + self.noise_log_likelihood()
 
-    @property
-    def _delta_distance(self):
-        return self._distance_array[1] - self._distance_array[0]
-
-    @property
-    def _dist_multiplier(self):
-        ''' Maximum value of ref_dist/dist_array '''
-        return self._ref_dist / self._distance_array[0]
-
-    @property
-    def _optimal_snr_squared_ref_array(self):
-        """ Optimal filter snr at fiducial distance of ref_dist Mpc """
-        return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[0])
-
-    @property
-    def _d_inner_h_ref_array(self):
-        """ Matched filter snr at fiducial distance of ref_dist Mpc """
-        if self.phase_marginalization:
-            return np.logspace(-5, 10, self._dist_margd_loglikelihood_array.shape[1])
-        else:
-            n_negative = self._dist_margd_loglikelihood_array.shape[1] // 2
-            n_positive = self._dist_margd_loglikelihood_array.shape[1] - n_negative
-            return np.hstack((
-                -np.logspace(3, -3, n_negative), np.logspace(-3, 10, n_positive)
-            ))
-
     def _setup_distance_marginalization(self, lookup_table=None):
+        """
+        Set up distance marginalization with :code:`distmarg`.
+
+        The luminosity-distance prior is tabulated (for
+        :code:`bilby.gw.prior.Cosmological` priors from the prior's own
+        cosmology, not its interpolated :code:`prob`) and fitted once; no
+        lookup table is built.
+
+        Parameters
+        ==========
+        lookup_table: str, dict, optional
+            Deprecated, will be removed in bilby v3.1.0. A string sets the
+            file to which the tabulated prior is recorded (see
+            :code:`cache_lookup_table`); a dict, e.g. a table built by an
+            older version, is ignored.
+        """
+        try:
+            from distmarg import DistanceMarginalization
+            from distmarg.bilby import prior_to_arrays
+            from scipy.integrate import trapezoid
+        except ImportError as e:
+            raise ImportError(
+                "Distance marginalization requires the distmarg package, "
+                "install it with `pip install distmarg`."
+            ) from e
+        if lookup_table is not None:
+            import warnings
+
+            warnings.warn(
+                "The distance_marginalization_lookup_table argument is "
+                "deprecated and will be removed in bilby v3.1.0: distance "
+                "marginalization no longer uses a lookup table.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
         if isinstance(lookup_table, str) or lookup_table is None:
             self.cached_lookup_table_filename = lookup_table
-            lookup_table = self.load_lookup_table(
-                self.cached_lookup_table_filename)
-        if isinstance(lookup_table, dict):
-            if self._test_cached_lookup_table(lookup_table):
-                self._dist_margd_loglikelihood_array = lookup_table[
-                    'lookup_table']
-            else:
-                self._create_lookup_table()
-        else:
-            self._create_lookup_table()
-        self._interp_dist_margd_loglikelihood = BoundedRectBivariateSpline(
-            self._d_inner_h_ref_array,
-            self._optimal_snr_squared_ref_array,
-            self._dist_margd_loglikelihood_array.T,
-            fill_value=-np.inf,
+
+        prior = self.priors['luminosity_distance']
+        distance, ln_prior = prior_to_arrays(prior)
+        self._distance_marginalizer = DistanceMarginalization(
+            distance, ln_prior, self.phase_marginalization)
+        self._distance_array = distance
+        density = np.exp(ln_prior - np.max(ln_prior))
+        self.distance_prior_array = density / trapezoid(density, distance)
+        logger.info(
+            f"Distance marginalization with distmarg ({self._distance_marginalizer.backend} backend), "
+            f"reference distance {self._ref_dist:.1f} Mpc"
         )
+        self.cache_lookup_table()
 
     @property
     def cached_lookup_table_filename(self):
@@ -947,75 +995,20 @@ class GravitationalWaveTransient(Likelihood):
                 filename += '.npz'
         self._lookup_table_filename = filename
 
-    def load_lookup_table(self, filename):
-        if os.path.exists(filename):
-            try:
-                loaded_file = dict(np.load(filename))
-            except AttributeError as e:
-                logger.warning(e)
-                self._create_lookup_table()
-                return None
-            match, failure = self._test_cached_lookup_table(loaded_file)
-            if match:
-                logger.info('Loaded distance marginalisation lookup table from '
-                            '{}.'.format(filename))
-                return loaded_file
-            else:
-                logger.info('Loaded distance marginalisation lookup table does '
-                            'not match for {}.'.format(failure))
-        elif isinstance(filename, str):
-            logger.info('Distance marginalisation file {} does not '
-                        'exist'.format(filename))
-        return None
-
     def cache_lookup_table(self):
+        """
+        Record the tabulated distance prior used for marginalization.
+
+        There is no lookup table any more; this small file (a few tens of kB)
+        keeps workflows that read :code:`cached_lookup_table_filename`, such as
+        :code:`bilby_pipe`, working. Deprecated together with the lookup-table
+        argument and will be removed in bilby v3.1.0.
+        """
         np.savez(self.cached_lookup_table_filename,
                  distance_array=self._distance_array,
                  prior_array=self.distance_prior_array,
-                 lookup_table=self._dist_margd_loglikelihood_array,
                  reference_distance=self._ref_dist,
                  phase_marginalization=self.phase_marginalization)
-
-    def _test_cached_lookup_table(self, loaded_file):
-        pairs = dict(
-            distance_array=self._distance_array,
-            prior_array=self.distance_prior_array,
-            reference_distance=self._ref_dist,
-            phase_marginalization=self.phase_marginalization)
-        for key in pairs:
-            if key not in loaded_file:
-                return False, key
-            elif not np.allclose(np.atleast_1d(loaded_file[key]),
-                                 np.atleast_1d(pairs[key]),
-                                 rtol=1e-15):
-                return False, key
-        return True, None
-
-    def _create_lookup_table(self):
-        """ Make the lookup table """
-        from tqdm.auto import tqdm
-        logger.info('Building lookup table for distance marginalisation.')
-
-        self._dist_margd_loglikelihood_array = np.zeros((400, 800))
-        scaling = self._ref_dist / self._distance_array
-        d_inner_h_array_full = np.outer(self._d_inner_h_ref_array, scaling)
-        h_inner_h_array_full = np.outer(self._optimal_snr_squared_ref_array, scaling ** 2)
-        if self.phase_marginalization:
-            d_inner_h_array_full = ln_i0(abs(d_inner_h_array_full))
-        prior_term = self.distance_prior_array * self._delta_distance
-        for ii, optimal_snr_squared_array in tqdm(
-                enumerate(h_inner_h_array_full), total=len(self._optimal_snr_squared_ref_array)
-        ):
-            for jj, d_inner_h_array in enumerate(d_inner_h_array_full):
-                self._dist_margd_loglikelihood_array[ii][jj] = logsumexp(
-                    d_inner_h_array - optimal_snr_squared_array / 2,
-                    b=prior_term
-                )
-        log_norm = logsumexp(
-            0 / self._distance_array, b=self.distance_prior_array * self._delta_distance
-        )
-        self._dist_margd_loglikelihood_array -= log_norm
-        self.cache_lookup_table()
 
     def _setup_phase_marginalization(self, min_bound=-5, max_bound=10):
         logger.warning(
