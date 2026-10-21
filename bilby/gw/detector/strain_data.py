@@ -161,8 +161,8 @@ class InterferometerStrainData(object):
 
     @crop_time.setter
     def crop_time(self, crop_time):
-        if not isinstance(self.crop_time, (float, int, list, tuple)):
-            raise TypeError(f"Invalid crop specification {self.crop_time}")
+        if not isinstance(crop_time, (float, int, list, tuple)):
+            raise TypeError(f"Invalid crop specification {crop_time}")
         self._crop_time = crop_time
         self._time_mask_updated = False
 
