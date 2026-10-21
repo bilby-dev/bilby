@@ -205,7 +205,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.distance_marginalization:
             self._lookup_table_filename = None
             self._check_marginalized_prior_is_set(key='luminosity_distance')
-            self._ref_dist = self.priors['luminosity_distance'].rescale(0.5)
+            self._ref_dist = float(self.priors['luminosity_distance'].rescale(0.5))
             self._setup_distance_marginalization(
                 distance_marginalization_lookup_table)
             for key in ['redshift', 'comoving_distance']:
