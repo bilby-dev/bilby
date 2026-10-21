@@ -57,10 +57,9 @@ class GravitationalWaveTransient(Likelihood):
         Warning: when using marginalisation the dict is overwritten which will change the
         the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
     distance_marginalization_lookup_table: (dict, str), optional
-        Kept for backwards compatibility; distance marginalization no longer
-        uses a lookup table. It is evaluated with :code:`distmarg`, which is
-        accurate to ~1e-4 in the log likelihood everywhere and needs no
-        precomputation. If a string, it names the file to which a small
+        Deprecated and will be removed in bilby v3.1.0: distance
+        marginalization is evaluated with :code:`distmarg` and no longer uses
+        a lookup table. If a string, it names the file to which a small
         record of the tabulated distance prior is written (default
         '.distance_marginalization_lookup.npz'); a dict is ignored.
     calibration_lookup_table: dict, optional
@@ -687,8 +686,7 @@ class GravitationalWaveTransient(Likelihood):
                 rho_mf, rho_opt, self._ref_dist, rng=random.rng))
         else:
             # zero template: the conditional posterior is the prior
-            new_distance = Interped(
-                self._distance_array, self.distance_prior_array).sample()
+            new_distance = self.priors['luminosity_distance'].sample()
 
         self._rescale_signal(signal_polarizations, new_distance)
         return new_distance
@@ -820,7 +818,7 @@ class GravitationalWaveTransient(Likelihood):
         else:
             d_inner_h_ref = d_inner_h_ref.real
         d_inner_h_ref = xp.asarray(d_inner_h_ref)
-        rho_opt = xp.sqrt(xp.clip(xp.asarray(h_inner_h_ref), 0.0, None))
+        rho_opt = xp.sqrt(xp.asarray(h_inner_h_ref))
         extra = d_inner_h_ref.ndim - rho_opt.ndim
         if rho_opt.ndim > 0 and extra > 0:
             rho_opt = xp.reshape(rho_opt, rho_opt.shape + (1,) * extra)
@@ -943,9 +941,10 @@ class GravitationalWaveTransient(Likelihood):
         Parameters
         ==========
         lookup_table: str, dict, optional
-            Backwards compatibility only. A string sets the file to which the
-            tabulated prior is recorded (see :code:`cache_lookup_table`); a
-            dict, e.g. a table built by an older version, is ignored.
+            Deprecated, will be removed in bilby v3.1.0. A string sets the
+            file to which the tabulated prior is recorded (see
+            :code:`cache_lookup_table`); a dict, e.g. a table built by an
+            older version, is ignored.
         """
         try:
             from distmarg import DistanceMarginalization
@@ -956,12 +955,18 @@ class GravitationalWaveTransient(Likelihood):
                 "Distance marginalization requires the distmarg package, "
                 "install it with `pip install distmarg`."
             ) from e
+        if lookup_table is not None:
+            import warnings
+
+            warnings.warn(
+                "The distance_marginalization_lookup_table argument is "
+                "deprecated and will be removed in bilby v3.1.0: distance "
+                "marginalization no longer uses a lookup table.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
         if isinstance(lookup_table, str) or lookup_table is None:
             self.cached_lookup_table_filename = lookup_table
-        else:
-            logger.debug(
-                "Ignoring the distance marginalization lookup table: "
-                "distmarg does not need one.")
 
         prior = self.priors['luminosity_distance']
         distance, ln_prior = prior_to_arrays(prior)
@@ -996,7 +1001,8 @@ class GravitationalWaveTransient(Likelihood):
 
         There is no lookup table any more; this small file (a few tens of kB)
         keeps workflows that read :code:`cached_lookup_table_filename`, such as
-        :code:`bilby_pipe`, working.
+        :code:`bilby_pipe`, working. Deprecated together with the lookup-table
+        argument and will be removed in bilby v3.1.0.
         """
         np.savez(self.cached_lookup_table_filename,
                  distance_array=self._distance_array,

@@ -1,8 +1,7 @@
 import math
 
-import array_api_compat as aac
 import numpy as np
-from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
+from scipy.interpolate import interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
@@ -216,64 +215,6 @@ class interp1d(_interp1d):
                 left=left,
                 right=right,
             )
-
-
-class BoundedRectBivariateSpline(RectBivariateSpline):
-
-    def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
-        self.x_min, self.x_max, self.y_min, self.y_max = bbox
-        if self.x_min is None:
-            self.x_min = min(x)
-        if self.x_max is None:
-            self.x_max = max(x)
-        if self.y_min is None:
-            self.y_min = min(y)
-        if self.y_max is None:
-            self.y_max = max(y)
-        self.fill_value = fill_value
-        self.x = x
-        self.y = y
-        self.z = z
-        super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
-
-    def __call__(self, x, y, dx=0, dy=0, grid=False):
-        xp = array_module([x, y])
-        if aac.is_numpy_namespace(xp):
-            return self._call_scipy(x, y, dx=dx, dy=dy, grid=grid)
-        elif aac.is_jax_namespace(xp):
-            return self._call_jax(x, y)
-        else:
-            raise NotImplementedError(
-                f"BoundedRectBivariateSpline not implemented for {xp.__name__} backend"
-            )
-
-    def _call_scipy(self, x, y, dx=0, dy=0, grid=False):
-        result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
-        out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
-        out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
-        bad = out_of_bounds_x | out_of_bounds_y
-        result[bad] = self.fill_value
-        if result.size == 1:
-            if bad:
-                return self.fill_value
-            else:
-                return result.item()
-        else:
-            return result
-
-    def _call_jax(self, x, y):
-        import jax.numpy as jnp
-        from interpax import interp2d
-
-        return interp2d(
-            jnp.asarray(x),
-            jnp.asarray(y),
-            jnp.asarray(self.x),
-            jnp.asarray(self.y),
-            jnp.asarray(self.z),
-            extrap=self.fill_value if self.fill_value is not None else False,
-            method="cubic2",
-        )
 
 
 class WrappedInterp1d(interp1d):
