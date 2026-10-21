@@ -245,7 +245,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
                 "Requested %s accepted steps per MCMC chain, "
                 "but only %s were accepted out of the maximum allowed number "
                 "of steps (%s). Increase 'maxmcmc' to improve convergence.",
-                args.kwargs['target'],
+                args.kwargs["target"],
                 naccept,
                 walks,
             )
@@ -257,7 +257,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
                 "This can also happen when the geometry of the likelihood surface "
                 "changes drastically.",
                 naccept,
-                args.kwargs['target'],
+                args.kwargs["target"],
             )
             logl = args.loglstar - 1
 
