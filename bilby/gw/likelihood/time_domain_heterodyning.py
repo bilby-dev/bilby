@@ -378,8 +378,6 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 columns[bin_of_sample, np.arange(number_of_samples)] = basis[i]
                 C_inv_columns = np.array([gohberg_semencul_product(x, y, column) for column in columns]).T
                 for j in range(i, number_of_basis):
-                    if i % 2 == 1 and j % 2 == 1:  # r_tilde_1 r_tilde_1
-                        continue
                     block = np.add.reduceat(basis[j][:, None] * C_inv_columns, edges[:-1], axis=0)
                     S[j, :, i, :] = block
                     S[i, :, j, :] = block.T
