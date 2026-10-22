@@ -2227,6 +2227,14 @@ def generate_source_frame_parameters(sample):
     return output_sample
 
 
+def _signal_polarizations_for_likelihood(likelihood, parameters):
+    """Return the time-domain waveform for the time-domain likelihood, and
+    the frequency-domain waveform for all other likelihoods."""
+    if getattr(likelihood, "likelihood_domain", "frequency") == "time":
+        return likelihood.waveform_generator.time_domain_strain(parameters)
+    return likelihood.waveform_generator.frequency_domain_strain(parameters)
+
+
 def compute_snrs(sample, likelihood, npool=1, pool=None):
     """
     Compute the optimal and matched filter snrs of all posterior samples
@@ -2242,7 +2250,7 @@ def compute_snrs(sample, likelihood, npool=1, pool=None):
     """
     if likelihood is not None:
         if isinstance(sample, dict):
-            signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(sample.copy())
+            signal_polarizations = _signal_polarizations_for_likelihood(likelihood, sample.copy())
             for ifo in likelihood.interferometers:
                 per_detector_snr = likelihood.calculate_snrs(signal_polarizations, ifo, parameters=sample)
                 sample['{}_matched_filter_snr'.format(ifo.name)] =\
@@ -2280,9 +2288,7 @@ def _compute_snrs(args):
     likelihood = sampling_convenience_dump.likelihood
     ii, sample = args
     sample = dict(sample).copy()
-    signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(
-        sample.copy()
-    )
+    signal_polarizations = _signal_polarizations_for_likelihood(likelihood, sample.copy())
     snrs = list()
     for ifo in likelihood.interferometers:
         snrs.append(likelihood.calculate_snrs(
