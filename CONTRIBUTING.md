@@ -332,10 +332,9 @@ The version tag should also start with `v` e.g. `v2.4.0`.
 `bilby` uses `setuptools_scm` to automatically set the version based on git tags.
 No manual changes to the generated `bilby/_version.py` file are required.
 
-As of version v2.6.0, `bilby` uses a [stable mainline](https://www.bitsnbites.eu/a-stable-mainline-branching-model-for-git/) branching model for releases.
-All major and minor releases should have a corresponding branch `release/X.Y.x`.
-Unlike the linked model, Bilby merges the tagged release history back into `main`
-after each release, including patch releases.
+Bilby uses release branches named `release/X.Y.x` for major and minor releases.
+Releases are tagged on these branches, and the tagged release history is merged
+back into `main` after each release, including patch releases.
 
 The configured `release-branch-semver` version scheme uses tags reachable through
 the current branch's Git history. After incorporating `v2.8.0`, for example,
