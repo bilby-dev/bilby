@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import scipy.signal
 
 import bilby
@@ -418,6 +419,45 @@ class TestNotchList(unittest.TestCase):
             bilby.gw.detector.strain_data.NotchList([(30, 20), (20)])
         with self.assertRaises(ValueError):
             bilby.gw.detector.strain_data.NotchList([(30, 20, 20)])
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("maximum", [128.123456789, 512.0, np.inf])
+@pytest.mark.parametrize("tensor_maximum", [False, True])
+def test_torch_frequency_mask_without_numpy(monkeypatch, device, maximum, tensor_maximum):
+    """Clamp scalar cutoffs to tensor Nyquist frequencies on their device."""
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    monkeypatch.setattr("bilby.compat.utils.BILBY_ARRAY_API", True)
+
+    def reject_numpy(*args, **kwargs):
+        raise AssertionError("Tensor must not be converted to NumPy")
+
+    monkeypatch.setattr(torch.Tensor, "__array__", reject_numpy)
+    frequencies = torch.arange(513, dtype=torch.float64, device=device) / 2
+    cutoff = frequencies.new_tensor(maximum) if tensor_maximum else maximum
+    strain = bilby.gw.detector.InterferometerStrainData(
+        minimum_frequency=20.0, maximum_frequency=cutoff,
+    )
+    strain.set_from_frequency_domain_strain(
+        torch.zeros_like(frequencies, dtype=torch.complex128),
+        frequency_array=frequencies,
+    )
+    expected = (frequencies >= 20) & (frequencies <= min(maximum, 256))
+    for _ in range(2):
+        torch.testing.assert_close(strain.frequency_mask, expected)
+        assert strain.maximum_frequency.device == frequencies.device
+        assert strain.maximum_frequency.dtype == frequencies.dtype
+        torch.testing.assert_close(
+            strain.maximum_frequency, frequencies.new_tensor(min(maximum, 256)),
+            rtol=0, atol=0,
+        )
+    strain.maximum_frequency = 64.0
+    torch.testing.assert_close(
+        strain.frequency_mask, (frequencies >= 20) & (frequencies <= 64),
+    )
 
 
 if __name__ == "__main__":

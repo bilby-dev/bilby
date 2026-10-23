@@ -1,14 +1,14 @@
 import inspect
 import os
 from collections.abc import Iterable
-from copy import copy
+from copy import copy, deepcopy
 
 import array_api_compat as aac
 import numpy as np
 
 from ..core.utils.log import logger
 
-__all__ = ["array_module", "promote_to_array"]
+__all__ = ["array_module", "promote_to_array", "array_safe_copy"]
 
 # environment variable to control whether to use the array API or not implementation taken from
 # https://github.com/scipy/scipy/blob/514aeea23e1c90cc4d736ef0ee8b5d762dab461a/scipy/_lib/_array_api_override.py#L27
@@ -249,6 +249,51 @@ def copy_array(arr):
         return arr.clone()
     else:
         return copy(arr)
+
+
+def array_safe_copy(value):
+    """Deep-copy parameter containers while preserving array differentiation.
+
+    Parameters
+    ==========
+    value: object
+        A value or nested dictionaries, lists, tuples, sets or frozensets.
+        Torch arrays in these containers are copied using :func:`copy_array`.
+        NumPy arrays, JAX arrays and tracers, and other objects retain their
+        normal :func:`copy.deepcopy` behavior.
+
+    Returns
+    =======
+    object
+        An independent copy, preserving Torch gradients and JAX tracing.
+        Repeated references to the same object and container cycles are kept.
+
+    Notes
+    =====
+    Distinct array views are copied independently; shared storage between them
+    is not preserved. Arrays hidden in custom objects are not traversed and
+    remain subject to those objects' normal deep-copy behavior.
+    """
+    memo = {}
+    visited = set()
+
+    def register_arrays(item):
+        identity = id(item)
+        if identity in visited:
+            return
+        visited.add(identity)
+        if aac.is_torch_array(item):
+            memo[identity] = copy_array(item)
+        elif isinstance(item, dict):
+            for key, entry in item.items():
+                register_arrays(key)
+                register_arrays(entry)
+        elif isinstance(item, (list, tuple, set, frozenset)):
+            for entry in item:
+                register_arrays(entry)
+
+    register_arrays(value)
+    return deepcopy(value, memo)
 
 
 class BackendNotImplementedError(NotImplementedError):

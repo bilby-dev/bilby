@@ -3,6 +3,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 
 import bilby
 
@@ -296,6 +297,51 @@ class TestPowerSpectralDensityEquals(unittest.TestCase):
         self.psd_from_array_1.asd_array[0] = 0.53544321
         self.assertNotEqual(self.psd_from_file_1, self.psd_from_file_2)
         self.assertNotEqual(self.psd_from_array_1, self.psd_from_array_2)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_torch_psd_interpolation_without_numpy(monkeypatch, device):
+    """Backend conversion and resampling must not convert tensors to NumPy."""
+    torch = pytest.importorskip("torch")
+    from array_api_compat import torch as xp
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    monkeypatch.setattr("bilby.compat.utils.BILBY_ARRAY_API", True)
+    monkeypatch.setattr("bilby.compat.patches.BILBY_ARRAY_API", True)
+    frequencies = np.array([3.0, 1.0, 2.0])
+    density = np.array([36.0, 16.0, 25.0])
+    psd = bilby.gw.detector.PowerSpectralDensity(
+        frequency_array=frequencies, psd_array=density,
+    )
+    queries = np.array([0.0, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0])
+    expected = psd.get_power_spectral_density_array(queries).copy()
+
+    def reject_numpy(*args, **kwargs):
+        raise AssertionError("Tensor must not be converted to NumPy")
+
+    monkeypatch.setattr(torch.Tensor, "__array__", reject_numpy)
+    with torch.device(device):
+        psd.set_array_backend(xp)
+        query = torch.as_tensor(queries)
+        for _ in range(2):
+            actual = psd.get_power_spectral_density_array(query)
+            assert actual.device == query.device
+            assert actual.dtype == torch.float64
+            torch.testing.assert_close(actual, torch.as_tensor(expected))
+            torch.testing.assert_close(
+                psd.get_amplitude_spectral_density_array(query),
+                torch.as_tensor(expected).sqrt(),
+            )
+        # Exercise a different query shape and repeated autograd graphs.
+        for _ in range(2):
+            query = torch.tensor([1.5, 2.5], dtype=torch.float64,
+                                 requires_grad=True)
+            actual = psd.get_power_spectral_density_array(query)
+            gradient, = torch.autograd.grad(actual.sum(), query)
+            torch.testing.assert_close(
+                gradient, torch.tensor([9.0, 11.0], dtype=torch.float64),
+            )
 
 
 if __name__ == "__main__":
