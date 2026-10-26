@@ -102,9 +102,7 @@ def get_vertex_position_ellipsoid(position, *, xp=None):
     Calculate the position of the IFO vertex in ellipsoidal coordinates.
 
     Implementation of Borkowski's algorithm for the exact inverse of get_vertex_position_geocentric().
-    See http://www.astro.uni.torun.pl/~kb/Papers/ASS/Geod-ASS.htm for details.
-    For the correct version of formula 11a, see: http://www.astro.uni.torun.pl/~kb/Papers/geod/Geod-GK.htm#GEOD
-    See https://ieeexplore.ieee.org/document/303772 for an overview of inversion algorithms.
+    See https://www.scribd.com/document/82800655/Cartesian-to-Geodetic#page=24&bby=0.02 for details.
 
     Parameters
     ==========
@@ -119,8 +117,8 @@ def get_vertex_position_ellipsoid(position, *, xp=None):
     semi_minor_axis = 6356752.314  # in m
 
     r = xp.sqrt(position[0] ** 2 + position[1] ** 2)
-    E = (semi_minor_axis * position[2] - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
-    F = (semi_minor_axis * position[2] + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
+    E = (semi_minor_axis * xp.abs(position[2]) - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
+    F = (semi_minor_axis * xp.abs(position[2]) + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
     P = 4 / 3 * (E * F + 1)
     Q = 2 * (E ** 2 - F ** 2)
     D = P ** 3 + Q ** 2
@@ -131,7 +129,8 @@ def get_vertex_position_ellipsoid(position, *, xp=None):
     t = xp.sqrt(G ** 2 + (F - v * G) / (2 * G - E)) - G
     latitude = xp.sign(position[2]) * xp.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
     longitude = xp.arctan2(position[1], position[0])
-    elevation = (r - semi_major_axis * t) * xp.cos(latitude) + (position[2] - semi_minor_axis) * xp.sin(latitude)
+    elevation = (r - semi_major_axis * t) * xp.cos(latitude) \
+        + (position[2] - xp.sign(position[2]) * semi_minor_axis) * xp.sin(latitude)
 
     return xp.asarray([latitude, longitude, elevation])
 
