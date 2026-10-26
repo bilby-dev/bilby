@@ -277,6 +277,22 @@ class TestGWUtils(unittest.TestCase):
                 1.5,
             )
 
+    def test_get_vertex_position_geocentric_ellipsoid_conversion(self):
+        """
+        Test that the conversion between geocentric and ellipsoid coordinates is consistent
+        for each quadrant, above and below the ellipsoid.
+        """
+        for lat_sign, long_sign, height_sign in zip([-1, 1], [-1, 1], [-1, 1]):
+            latitude_true = lat_sign * self.xp.deg2rad(self.xp.asarray(46 + 27. / 60 + 18.528 / 3600))
+            longitude_true = long_sign * self.xp.deg2rad(self.xp.asarray(119 + 24. / 60 + 27.5657 / 3600))
+            elevation_true = height_sign * 142.554
+            vertex = gwutils.get_vertex_position_geocentric(
+                self.xp.asarray([latitude_true, longitude_true, elevation_true]))
+            latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(vertex)
+            self.assertAlmostEqual(float(latitude), float(latitude_true), 5)
+            self.assertAlmostEqual(float(longitude), float(longitude_true), 5)
+            self.assertAlmostEqual(float(elevation), float(elevation_true), 5)
+
     def test_safe_cast_mode_to_int(self):
         # Valid cases
         self.assertEqual(gwutils.safe_cast_mode_to_int("2"), 2)
@@ -322,7 +338,7 @@ class TestSkyFrameConversion(unittest.TestCase):
         zenith = self.xp.asarray(sample["zenith"])
         azimuth = self.xp.asarray(sample["azimuth"])
         time = self.xp.asarray(sample["time"])
-        self.ifos.set_array_backend(self.xp)
+        self.ifos.array_backend = self.xp
         ra, dec = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zenith, azimuth, time, self.ifos
         )
@@ -333,7 +349,7 @@ class TestSkyFrameConversion(unittest.TestCase):
         zeniths = self.xp.asarray(self.samples["zenith"])
         azimuths = self.xp.asarray(self.samples["azimuth"])
         times = self.xp.asarray(self.samples["time"])
-        self.ifos.set_array_backend(self.xp)
+        self.ifos.array_backend = self.xp
         ras, decs = bilby.gw.utils.zenith_azimuth_to_ra_dec(
             zeniths, azimuths, times, self.ifos
         )

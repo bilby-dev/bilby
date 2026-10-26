@@ -4,6 +4,7 @@ import array_api_compat as aac
 import array_api_extra as xpx
 import numpy as np
 
+from ...compat.utils import array_module
 from ...core.utils.calculus import interp1d
 from ...core import utils
 from ...core.utils import logger
@@ -376,7 +377,12 @@ class PowerSpectralDensity(object):
         frequency_domain_strain = xpx.at(frequency_domain_strain, out_of_bounds).set(0j)
         return xp.nan_to_num(frequency_domain_strain), xp.asarray(frequencies)
 
-    def set_array_backend(self, xp):
+    @property
+    def array_backend(self):
+        return array_module(self.frequency_array)
+
+    @array_backend.setter
+    def array_backend(self, xp):
         """ Set the array backend for the cached arrays
 
         Parameters

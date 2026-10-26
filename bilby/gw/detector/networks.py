@@ -1,13 +1,15 @@
 import os
 
-import numpy as np
 import math
+from scipy.spatial.transform import Rotation
 
+from ...compat.utils import xp_wrap
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
 from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
+from ..utils import get_vertex_position_geocentric, get_vertex_position_ellipsoid
 
 
 class InterferometerList(list):
@@ -343,13 +345,14 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
-    def set_array_backend(self, xp):
-        for ifo in self:
-            ifo.set_array_backend(xp)
-
     @property
     def array_backend(self):
         return self[0].array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        for ifo in self:
+            ifo.array_backend = xp
 
 
 class TriangularInterferometer(InterferometerList):
@@ -378,9 +381,8 @@ class TriangularInterferometer(InterferometerList):
         if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
             maximum_frequency = [maximum_frequency] * 3
 
-        brng = 90 - xarm_azimuth
-
         for ii in range(3):
+
             self.append(
                 Interferometer(
                     "{}{}".format(name, ii + 1),
@@ -398,23 +400,84 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            phi1 = np.radians(latitude)
-            phi2 = np.arcsin(
-                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth) +
-                np.cos(phi1) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(np.radians(brng))
-            )
-            latitude = np.degrees(phi2)
+            latitude, longitude, elevation, xarm_azimuth, \
+                yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
 
-            lam1 = np.radians(longitude)
-            lam2 = lam1 + np.arctan2(
-                np.sin(np.radians(brng)) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(phi1),
-                np.cos(length * 1e3 / utils.radius_of_earth) - np.sin(phi1) * np.sin(phi2)
-            )
-            longitude = np.degrees(lam2)
+    @xp_wrap
+    def _get_next_vertex_parameters(self, current_index, *, xp):
+        """
+        Get the parameters for the next vertex (counterclockwise) in the triangular interferometer.
+        The location of the next vertex is calculated by moving along the x-arm of the current
+        interferometer in geocentric coordinates. The new latitude, longitude, and elevation are
+        calculated through a coordinate transformation from geocentric to ellipsoidal coordinates.
+        The new unit vectors for the x and y arms are calculated by rotating the current unit vectors
+        by 120 degrees around the normal vector. The new azimuths and tilts are calculated by projecting
+        the new unit vectors onto the local normal, north, and east vectors.
 
-            brng += 240
-            xarm_azimuth += 240
-            yarm_azimuth += 240
+        Parameters
+        ==========
+        current_index: int
+            The index of the current interferometer in the list.
+
+        Returns
+        =======
+        latitude: float
+            The latitude of the next vertex in degrees.
+        longitude: float
+            The longitude of the next vertex in degrees.
+        elevation: float
+            The elevation of the next vertex in meters.
+        xarm_azimuth: float
+            The azimuth of the x-arm of the next interferometer in degrees.
+        yarm_azimuth: float
+            The azimuth of the y-arm of the next interferometer in degrees.
+        xarm_tilt: float
+            The tilt of the x-arm of the next interferometer in radians.
+        yarm_tilt: float
+            The tilt of the y-arm of the next interferometer in radians.
+
+        """
+        current_ifo = self[current_index]
+        unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
+        unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
+
+        vertex_geocentric = get_vertex_position_geocentric(xp.asarray([current_ifo.latitude_radians,
+                                                                       current_ifo.longitude_radians,
+                                                                       current_ifo.elevation]))
+        next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
+        next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
+        next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
+
+        rotation_vector = xp.cross(unit_vector_x, unit_vector_y)
+        rotation_vector /= xp.linalg.norm(rotation_vector)
+        rotation_angle = 2 / 3 * xp.pi
+        rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
+        next_unit_vector_x = rotation.apply(unit_vector_x)
+        next_unit_vector_y = rotation.apply(unit_vector_y)
+
+        next_local_normal_vector = xp.asarray([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                               xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                               xp.sin(next_latitude_rad)])
+        next_local_north_vector = xp.asarray([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                              -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                              xp.cos(next_latitude_rad)])
+        next_local_east_vector = xp.asarray([-xp.sin(next_longitude_rad),
+                                             xp.cos(next_longitude_rad), 0])
+
+        next_xarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_x, next_local_normal_vector))
+        next_yarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_y, next_local_normal_vector))
+        next_xarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_x, next_local_north_vector),
+                                           xp.dot(next_unit_vector_x, next_local_east_vector))
+        next_yarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_y, next_local_north_vector),
+                                           xp.dot(next_unit_vector_y, next_local_east_vector))
+
+        return (xp.rad2deg(next_latitude_rad),
+                xp.rad2deg(next_longitude_rad),
+                next_elevation,
+                xp.rad2deg(next_xarm_azimuth_rad),
+                xp.rad2deg(next_yarm_azimuth_rad),
+                next_xarm_tilt_rad,
+                next_yarm_tilt_rad)
 
 
 _LEGACY_DETECTOR_NAMES = {
