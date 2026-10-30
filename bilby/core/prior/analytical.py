@@ -124,14 +124,18 @@ class PowerLaw(Prior):
         Union[float, array_like]: Rescaled probability
         """
         with np.errstate(divide='ignore', invalid='ignore'):
-            return xp.where(
-                xp.asarray(self.alpha != -1),
-                (
-                    self.minimum ** (1 + self.alpha)
-                    + val * (self.maximum ** (1 + self.alpha) - self.minimum ** (1 + self.alpha))
-                ) ** (1. / xp.asarray(1 + self.alpha)),
-                self.minimum * xp.exp(val * xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)))
-            )
+            pow = xp.asarray(self.alpha + 1)
+            safe_pow = xp.where(pow == 0, xp.ones(pow.shape), pow)
+
+            base_x = (
+                self.minimum ** safe_pow + val * (self.maximum ** safe_pow - self.minimum ** safe_pow)
+            ) ** (1. / safe_pow)
+
+            safe_min = xp.where(self.minimum <= 0, xp.ones_like(self.minimum), self.minimum)
+            safe_max = xp.where(self.maximum <= 0, xp.ones_like(self.maximum), self.maximum)
+            log_x = safe_min * xp.exp(val * xp.log(safe_max / safe_min))
+
+            return xp.where(pow == 0, log_x, base_x)
 
     @xp_wrap
     def prob(self, val, *, xp=None):
@@ -181,13 +185,19 @@ class PowerLaw(Prior):
     @xp_wrap
     def cdf(self, val, *, xp=None):
         with np.errstate(divide='ignore', invalid='ignore'):
-            _cdf = xp.where(
-                xp.asarray(self.alpha != -1),
-                (val ** (self.alpha + 1) - self.minimum ** (self.alpha + 1))
-                / (self.maximum ** (self.alpha + 1) - self.minimum ** (self.alpha + 1)),
-                xp.log(val / self.minimum)
-                / xp.log(xp.asarray(self.maximum) / xp.asarray(self.minimum)),
+            pow = xp.asarray(self.alpha + 1)
+            safe_pow = xp.where(pow == 0, xp.ones(pow.shape), pow)
+
+            base_cdf = (
+                (val ** safe_pow - self.minimum ** safe_pow)
+                / (self.maximum ** safe_pow - self.minimum ** safe_pow)
             )
+
+            safe_min = xp.where(self.minimum <= 0, xp.ones_like(self.minimum), self.minimum)
+            safe_max = xp.where(self.maximum <= 0, xp.ones_like(self.maximum), self.maximum)
+            log_cdf = xp.log(val / safe_min) / xp.log(safe_max / safe_min)
+
+            _cdf = xp.where(pow == 0, log_cdf, base_cdf)
         _cdf = xp.clip(_cdf, 0, 1)
         return _cdf
 
