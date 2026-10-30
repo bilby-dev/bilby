@@ -1,7 +1,7 @@
 from jax.tree_util import register_pytree_node
 
 from bilby.gw.likelihood.base import GravitationalWaveTransient
-from bilby.gw.detector.calibration import Recalibrate
+from bilby.gw.detector.calibration import CubicSpline, Precomputed, Recalibrate
 from bilby.gw.detector.geometry import InterferometerGeometry
 from bilby.gw.detector.interferometer import Interferometer
 from bilby.gw.detector.networks import InterferometerList
@@ -214,6 +214,62 @@ def recalibrate_unflatten(aux_data, children) -> Recalibrate:
     return recalib
 
 
+def cubic_spline_flatten(cubic_spline: CubicSpline):
+    children, aux_data = recalibrate_flatten(cubic_spline)
+
+    children += (
+        cubic_spline.minimum_frequency,
+        cubic_spline.maximum_frequency,
+        cubic_spline._log_spline_points,
+        cubic_spline.delta_log_spline_points,
+        cubic_spline.nodes_to_spline_coefficients,
+    )
+    aux_data += (
+        cubic_spline.n_points,
+    )
+    return children, aux_data
+
+
+def cubic_spline_unflatten(aux_data, children) -> CubicSpline:
+    cubic_spline = CubicSpline.__new__(CubicSpline)
+    cubic_spline.prefix = aux_data[0]
+    cubic_spline.params = children[0]
+
+    cubic_spline.n_points = aux_data[1]
+    cubic_spline.minimum_frequency = children[1]
+    cubic_spline.maximum_frequency = children[2]
+    cubic_spline._log_spline_points = children[3]
+    cubic_spline._delta_log_spline_points = children[4]
+    cubic_spline._nodes_to_spline_coefficients = children[5]
+    return cubic_spline
+
+
+def precomputed_flatten(precomputed: Precomputed):
+    children, aux_data = recalibrate_flatten(precomputed)
+
+    children += (
+        precomputed.curves,
+        precomputed.frequency_array,
+        precomputed.parameters,
+    )
+    aux_data += (
+        precomputed.label,
+    )
+    return children, aux_data
+
+
+def precomputed_unflatten(aux_data, children) -> Precomputed:
+    precomputed = Precomputed.__new__(Precomputed)
+    precomputed.prefix = aux_data[0]
+    precomputed.params = children[0]
+
+    precomputed.curves = children[1]
+    precomputed.frequency_array = children[2]
+    precomputed.parameters = children[3]
+    precomputed.label = aux_data[1]
+    return precomputed
+
+
 def notch_list_flatten(notches: NotchList):
     return (), (notches,)
 
@@ -259,6 +315,8 @@ for tpl in [
     (PowerSpectralDensity, psd_flatten, psd_unflatten),
     (InterferometerGeometry, geometry_flatten, geometry_unflatten),
     (Recalibrate, recalibrate_flatten, recalibrate_unflatten),
+    (CubicSpline, cubic_spline_flatten, cubic_spline_unflatten),
+    (Precomputed, precomputed_flatten, precomputed_unflatten),
     (NotchList, notch_list_flatten, notch_list_unflatten),
     (WaveformGenerator, wfg_flatten, wfg_unflatten),
 ]:
