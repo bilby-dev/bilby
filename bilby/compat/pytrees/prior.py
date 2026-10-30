@@ -28,7 +28,6 @@ def prior_flatten(prior: Prior):
     aux_props = {key: props[key] for key in set(props.keys()).difference(prior._leaves)}
     children = (prior.least_recently_sampled, child_props)
     aux_data = (prior.__class__, prior.is_fixed, aux_props)
-    # print(prior, children, aux_data)
     return children, aux_data
 
 
@@ -45,7 +44,6 @@ def prior_unflatten(aux_data, children) -> Prior:
         setattr(prior, k, v)
     for k, v in aux_props.items():
         setattr(prior, k, v)
-    # print(prior)
     return prior
 
 
@@ -135,8 +133,8 @@ def dirichlet_dict_flatten(prior_dict):
 
 
 def dirichlet_dict_unflatten(aux_data, children):
-    prior_dict = conditional_dict_unflatten(aux_data[:8], children[:2])
-    n_dim, label = aux_data[8:10]
+    prior_dict = conditional_dict_unflatten(aux_data[:9], children[:2])
+    n_dim, label = aux_data[9:11]
     prior_dict.n_dim = n_dim
     prior_dict.label = label
     return prior_dict

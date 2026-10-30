@@ -195,8 +195,6 @@ class Interped(Prior):
 
 class FromFile(Interped):
 
-    _leaves = Interped._leaves + ["file_name"]
-
     def __init__(self, file_name, minimum=None, maximum=None, name=None,
                  latex_label=None, unit=None, boundary=None):
         """Creates an interpolated prior function from arrays of xx and yy=p(xx) extracted from a file
@@ -229,13 +227,3 @@ class FromFile(Interped):
             logger.warning("Can't load {}.".format(self.file_name))
             logger.warning("Format should be:")
             logger.warning(r"x\tp(x)")
-
-    def pytree_flatten(self):
-        children, aux_data = super().pytree_flatten()
-        aux_data += (self.file_name,)
-        return children, aux_data
-
-    def pytree_unflatten(self, aux_data, children):
-        prior = super().pytree_unflatten(aux_data[:-1], children)
-        prior.filename = aux_data[-1]
-        return prior
