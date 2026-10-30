@@ -144,6 +144,17 @@ live, open an issue to discuss it.
 
 ## Pull requests
 
+Pull request titles must follow Bilby's convention, based on the SciPy format described in
+[Step d](#step-d-hack-away): `ACRONYM: Summary message`, for example
+`BUG: Fix prior sampling`. Allowed acronyms are `API`, `BENCH`, `BLD`, `BUG`,
+`DEP`, `DEV`, `DOC`, `ENH`, `MAINT`, `REV`, `STY`, `TST`, and `REL`.
+Multiple acronyms may be joined with `/`, for example `MAINT/TST: Update tests`.
+An optional scope can identify the affected area: `BUG(gw): Fix prior sampling`
+or `MAINT/TST(core.prior): Update tests`. Place the scope in parentheses after
+the acronym(s), before the colon. Scopes must be nonempty and contain no
+whitespace or parentheses. The same format applies to commit message subjects.
+The **Check PR title** CI job checks this format, including when a title is edited.
+
 All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
 review your code and you should expect a few comments and questions. Once all
