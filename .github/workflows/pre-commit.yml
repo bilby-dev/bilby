@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+      with:
+        # checkout >=v6 stores credentials via includeIf entries in .git/config,
+        # which crash GitPython (used by databooks)
+        persist-credentials: false
     - uses: actions/setup-python@v7
     - name: Install jupyter
       run: |
