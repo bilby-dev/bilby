@@ -29,11 +29,13 @@ class TestSubjectFormat(unittest.TestCase):
     def test_valid_titles(self):
         titles = [
             f"{acronym}: Valid summary"
-            for acronym in "API BENCH BLD BUG DEP DEV DOC ENH MAINT REV STY TST REL".split()
+            for acronym in "API BENCH BLD BUG CI DEP DEV DOC ENH MAINT REV STY TST REL".split()
         ] + [
             'MAINT/TST: Update tests', 'DOC: Explain `café` and $(echo example)',
             'BUG(gw): Fix sampling', 'MAINT/TST(core.prior): Update tests',
             'DOC(gw/likelihood): Update documentation', 'DEV(pre-commit): Update hooks',
+            'MAINT/CI: Enforce commit message and PR titles',
+            'CI(tests): Update test workflow',
         ]
         for title in titles:
             for github_event in (True, False):

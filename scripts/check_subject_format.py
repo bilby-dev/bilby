@@ -7,7 +7,7 @@ import re
 import sys
 
 
-ACRONYMS = "API|BENCH|BLD|BUG|DEP|DEV|DOC|ENH|MAINT|REV|STY|TST|REL"
+ACRONYMS = "API|BENCH|BLD|BUG|CI|DEP|DEV|DOC|ENH|MAINT|REV|STY|TST|REL"
 PATTERN = rf"(?:{ACRONYMS})(?:/(?:{ACRONYMS}))*(?:\([^\s()]+\))?: [^\s\r\n][^\r\n]*"
 
 

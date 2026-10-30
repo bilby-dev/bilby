@@ -146,9 +146,11 @@ live, open an issue to discuss it.
 
 Pull request titles must follow Bilby's convention, based on the SciPy format described in
 [Step d](#step-d-hack-away): `ACRONYM: Summary message`, for example
-`BUG: Fix prior sampling`. Allowed acronyms are `API`, `BENCH`, `BLD`, `BUG`,
+`BUG: Fix prior sampling`. Allowed acronyms are `API`, `BENCH`, `BLD`, `BUG`, `CI`,
 `DEP`, `DEV`, `DOC`, `ENH`, `MAINT`, `REV`, `STY`, `TST`, and `REL`.
 Multiple acronyms may be joined with `/`, for example `MAINT/TST: Update tests`.
+Use `CI` for continuous integration workflows and automation, for example
+`CI: Update workflows` or `MAINT/CI: Enforce subject format`.
 An optional scope can identify the affected area: `BUG(gw): Fix prior sampling`
 or `MAINT/TST(core.prior): Update tests`. Place the scope in parentheses after
 the acronym(s), before the colon. Scopes must be nonempty and contain no
