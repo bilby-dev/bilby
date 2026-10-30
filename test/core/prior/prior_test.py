@@ -9,7 +9,6 @@ import pytest
 import scipy.stats as ss
 from scipy.integrate import trapezoid
 
-
 aligned_prior_complex = bilby.gw.prior.AlignedSpin(
     a_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0),
     z_prior=bilby.core.prior.Beta(alpha=2.0, beta=2.0, minimum=-1),
@@ -60,7 +59,7 @@ class TestPriorClasses(unittest.TestCase):
             bilby.core.prior.Gaussian(name="test", unit="unit", mu=0, sigma=1),
             bilby.core.prior.Normal(name="test", unit="unit", mu=0, sigma=1),
             bilby.core.prior.PowerLaw(
-                name="test", unit="unit", alpha=0, minimum=0, maximum=1
+                name="test", unit="unit", alpha=0, minimum=0.1, maximum=1
             ),
             bilby.core.prior.PowerLaw(
                 name="test", unit="unit", alpha=-1, minimum=0.5, maximum=1
@@ -87,6 +86,11 @@ class TestPriorClasses(unittest.TestCase):
                 yy=np.linspace(0, 10, 1000) ** 4,
                 minimum=3,
                 maximum=5,
+            ),
+            bilby.core.prior.FromFile(
+                file_name=os.path.join(os.path.dirname(__file__), "prior_files/fromfile.txt"),
+                minimum=0,
+                maximum=1,
             ),
             bilby.core.prior.TruncatedGaussian(
                 name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
@@ -293,6 +297,33 @@ class TestPriorClasses(unittest.TestCase):
             new_cache_size = evaluate_prior._cache_size()
             message = f"Cache size increased by more than 1 for {prior.__class__.__name__}"
             assert new_cache_size <= cache_size + 1, message
+
+    def test_grad(self):
+        if not aac.is_jax_namespace(self.xp):
+            pytest.skip("Gradient test only works with JAX")
+
+        import jax
+        import jax.numpy as jnp
+        from bilby.compat import pytrees  # noqa
+
+        for prior in self.priors:
+            # gradients don't work yet for some priors
+            if isinstance(prior, (
+                bilby.core.prior.Beta,
+                bilby.core.prior.Gamma,
+                bilby.core.prior.Interped,
+                bilby.core.prior.JointPrior,
+                bilby.core.prior.WeightedDiscreteValues,
+            )):
+                continue
+            sample = jnp.asarray(prior.sample())
+            for method in [prior.prob, prior.ln_prob, prior.cdf]:
+                val = jax.grad(method)(sample)
+                message = f"Gradient returned non-finite values for {prior.__class__.__name__}.{method.__name__}"
+                assert jnp.isfinite(val).all(), message
+            val = jax.grad(prior.rescale)(jnp.asarray(0.2))
+            message = f"Gradient returned non-finite values for {prior.__class__.__name__}.rescale"
+            assert jnp.isfinite(val).all(), message
 
     def _validate_return_type(self, val):
         if not isinstance(val, (int, float)):

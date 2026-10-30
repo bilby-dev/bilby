@@ -28,7 +28,7 @@ def _evaluate_with_jit(likelihood, parameters, xp):
 
     import jax
 
-    from bilby.compat.pytrees import likelihood as _  # noqa
+    from bilby.compat import jax as _  # noqa
 
     @jax.jit
     def jit_fn(likelihood, parameters):

@@ -6,9 +6,12 @@ import pytest
 from bilby.core.prior import PriorDict, Uniform
 from bilby.core.utils.random import seed
 from bilby.gw.detector import InterferometerList
+from bilby.gw.detector.calibration import CubicSpline
 from bilby.gw.likelihood import GravitationalWaveTransient
 from bilby.gw.source import sinegaussian
 from bilby.gw.waveform_generator import WaveformGenerator
+from bilby.compat import jax as _  # noqa
+from bilby.gw.compat import jax as _  # noqa
 
 
 def _evaluate_with_jit(likelihood, parameters, xp):
@@ -56,6 +59,13 @@ def likelihood(xp, **marginalizations):
     interferometers.set_strain_data_from_power_spectral_densities(
         sampling_frequency=xp.asarray(2048.0), duration=xp.asarray(4.0)
     )
+    ifo = interferometers[0]
+    ifo.calibration_model = CubicSpline(
+        prefix="recalib_H1_",
+        n_points=10,
+        minimum_frequency=ifo.minimum_frequency,
+        maximum_frequency=ifo.maximum_frequency,
+    )
     interferometers.set_array_backend(xp)
     waveform_generator = WaveformGenerator(
         duration=xp.asarray(4.0),
@@ -80,7 +90,7 @@ def likelihood(xp, **marginalizations):
 
 @pytest.fixture
 def parameters(xp):
-    return dict(
+    params = dict(
         hrss=1e-24,
         Q=1.0,
         frequency=50.0,
@@ -90,6 +100,11 @@ def parameters(xp):
         dec=xp.asarray(-1.2108),
         time_jitter=0.0,
     )
+    params.update({f"recalib_H1_amplitude_{i}": 0.0 for i in range(10)})
+    params.update({f"recalib_H1_phase_{i}": 0.0 for i in range(10)})
+    params.update({f"recalib_H1_frequency_{i}": 20 * 10**(i / 10) for i in range(10)})
+
+    return params
 
 
 @pytest.mark.array_backend
