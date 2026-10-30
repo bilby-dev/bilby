@@ -8,7 +8,7 @@ from ..time import (
 
 __all__ = ["n_leap_seconds"]
 
-LEAP_SECONDS = torch.tensor(_LEAP_SECONDS)
+LEAP_SECONDS = torch.tensor(_LEAP_SECONDS, device="cpu")
 
 
 @dispatch
@@ -16,4 +16,4 @@ def n_leap_seconds(date: torch.Tensor) -> torch.Tensor:
     """
     Find the number of leap seconds required for the specified date.
     """
-    return _n_leap_seconds(date, LEAP_SECONDS)
+    return _n_leap_seconds(date, LEAP_SECONDS.to(device=date.device))

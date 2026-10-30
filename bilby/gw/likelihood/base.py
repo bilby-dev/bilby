@@ -7,6 +7,7 @@ import attr
 import numpy as np
 from scipy.special import logsumexp
 
+from ...compat.utils import array_safe_copy
 from ...core.likelihood import Likelihood
 from ...core.utils import logger, BoundedRectBivariateSpline, create_time_series
 from ...core.prior import Interped, Prior, Uniform, DeltaFunction
@@ -417,7 +418,7 @@ class GravitationalWaveTransient(Likelihood):
         return self._noise_log_likelihood_value
 
     def log_likelihood_ratio(self, parameters):
-        parameters = copy.deepcopy(parameters)
+        parameters = array_safe_copy(parameters)
         parameters.update(self.get_sky_frame_parameters(parameters))
         waveform_polarizations = \
             self.waveform_generator.frequency_domain_strain(parameters)
@@ -425,7 +426,7 @@ class GravitationalWaveTransient(Likelihood):
             return np.nan_to_num(-np.inf)
 
         if self.time_marginalization and self.jitter_time:
-            parameters['geocent_time'] += parameters['time_jitter']
+            parameters['geocent_time'] = parameters['geocent_time'] + parameters['time_jitter']
 
         total_snrs = self._CalculatedSNRs()
 
@@ -441,7 +442,7 @@ class GravitationalWaveTransient(Likelihood):
         log_l = self.compute_log_likelihood_from_snrs(total_snrs, parameters=parameters)
 
         if self.time_marginalization and self.jitter_time:
-            parameters['geocent_time'] -= parameters['time_jitter']
+            parameters['geocent_time'] = parameters['geocent_time'] - parameters['time_jitter']
 
         return log_l.real
 
