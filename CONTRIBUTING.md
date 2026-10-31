@@ -343,10 +343,17 @@ and versions should have the format `MAJOR.MINOR.PATCH`.
 The version tag should also start with `v` e.g. `v2.4.0`.
 
 `bilby` uses `setuptools_scm` to automatically set the version based on git tags.
-This means no manual changes are needed to the version number are required.
+No manual changes to the generated `bilby/_version.py` file are required.
 
-As of version v2.6.0, `bilby` uses a [stable mainline](https://www.bitsnbites.eu/a-stable-mainline-branching-model-for-git/) branching model for releases.
-This means that all major and minor releases should have a corresponding branch `release/X.Y.x`.
+Bilby uses release branches named `release/X.Y.x` for major and minor releases.
+Releases are tagged on these branches, and the tagged release history is merged
+back into `main` after each release, including patch releases.
+
+The configured `release-branch-semver` version scheme uses tags reachable through
+the current branch's Git history. After incorporating `v2.8.0`, for example,
+subsequent development commits on `main` report `2.9.0.devN`, while development
+on `release/2.8.x` reports `2.8.1.devN`. A tag that exists only on a separate
+release history cannot advance the version on `main`.
 
 ### Updating the changelog
 
@@ -436,6 +443,47 @@ Michael Williams (@mj-will).
 
 **Note:** pre-releases will not show up as the latest release on PyPI, but they
 are listed under [Release history](https://pypi.org/project/bilby/#history)
+
+### Merging release history back into main
+
+After publishing a release, open a pull request to merge its tagged history back
+into `main`. This is required even when the release fixes are already on `main`
+through separate commits. Cherry-picking copies changes but does not make the
+original release tag reachable.
+
+Create an integration branch from the current upstream `main`, then merge the
+published tag. For example, after releasing `v2.8.2`:
+
+```bash
+git fetch upstream --tags
+git checkout -b merge-release-2.8.2 upstream/main
+git merge --no-ff v2.8.2
+```
+
+Resolve conflicts by reviewing the release changes against the current `main`.
+Preserve newer implementations and tests, include any release fixes still
+missing from `main`, and retain both the unreleased and published changelog
+entries. Do not restore removed files or duplicate tests simply because an older
+release contains them. Complete the merge commit after resolving any conflicts.
+
+Check the resulting diff, run checks appropriate to any code changes, and verify
+that the release tag is an ancestor of the integration branch:
+
+```bash
+git merge-base --is-ancestor v2.8.2 HEAD
+python -m setuptools_scm
+```
+
+The ancestry check must exit successfully, and the reported version should match
+the next development release (`2.9.0.devN`, optionally with a local version
+suffix, in this example).
+
+Push the integration branch to your fork and open a pull request targeting
+`main`. Merge it using **Create a merge commit**, preserving the integration
+branch's release ancestry. Do not squash or rebase this pull request. If repository
+settings or a merge queue rewrite commits, a maintainer must use a merge method
+that preserves the tagged ancestry. After merging, verify the tag's ancestry
+and the inferred version again on the updated `main`.
 
 ### Updating conda-forge
 
