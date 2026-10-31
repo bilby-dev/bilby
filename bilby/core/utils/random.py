@@ -80,7 +80,7 @@ def seed(seed):
     global_meta_data["seed"] = seed
 
     # Warn if the original rng object (i.e., pre-seed) still exists elsewhere
-    for module in sys.modules.values():
+    for module in list(sys.modules.values()):
         if not module or not hasattr(module, '__dict__'):
             continue
         rng_obj = module.__dict__.get("rng")

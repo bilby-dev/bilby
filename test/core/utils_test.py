@@ -719,6 +719,22 @@ class TestRandomUtils(unittest.TestCase):
 
         self.assertIsNot(old_rng, new_rng)
 
+    def test_seed_when_sys_modules_changes_size_during_iteration(self):
+        from bilby.core.utils import random
+
+        class DynamicModule(types.ModuleType):
+            def __getattribute__(self, name):
+                if name == "__dict__":
+                    sys.modules["_temp_submodule_test"] = types.ModuleType("_temp_submodule_test")
+                return super().__getattribute__(name)
+
+        sys.modules["_temp_dynamic_module"] = DynamicModule("_temp_dynamic_module")
+        try:
+            random.seed(42)
+        finally:
+            sys.modules.pop("_temp_dynamic_module", None)
+            sys.modules.pop("_temp_submodule_test", None)
+
 
 if __name__ == "__main__":
     unittest.main()
