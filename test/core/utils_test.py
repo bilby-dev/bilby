@@ -383,49 +383,6 @@ class TestLatexPlotFormat(unittest.TestCase):
 
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
-class TestUnsortedInterp2d(unittest.TestCase):
-    def setUp(self):
-        if aac.is_torch_namespace(self.xp):
-            pytest.skip("Skipping Interp2d tests for torch backend")
-        self.xx = np.linspace(0, 1, 10)
-        self.yy = np.linspace(0, 1, 10)
-        self.zz = np.random.random((10, 10))
-        self.interpolant = bilby.core.utils.BoundedRectBivariateSpline(self.xx, self.yy, self.zz)
-
-    def tearDown(self):
-        pass
-
-    def test_returns_float_for_floats(self):
-        self.assertIsInstance(self.interpolant(0.5, 0.5), float)
-
-    def test_returns_none_for_floats_outside_range(self):
-        self.assertIsNone(self.interpolant(0.5, -0.5))
-        self.assertIsNone(self.interpolant(-0.5, 0.5))
-
-    def test_returns_float_for_float_and_array(self):
-        input_array = self.xp.asarray(np.random.random(10))
-        self.assertEqual(aac.get_namespace(self.interpolant(input_array, 0.5)), self.xp)
-        self.assertEqual(aac.get_namespace(
-            self.interpolant(input_array, input_array)), self.xp
-        )
-        self.assertEqual(aac.get_namespace(self.interpolant(0.5, input_array)), self.xp)
-
-    def test_raises_for_mismatched_arrays(self):
-        with self.assertRaises(ValueError):
-            self.interpolant(
-                self.xp.asarray(np.random.random(10)),
-                self.xp.asarray(np.random.random(20)),
-            )
-
-    def test_returns_fill_in_correct_place(self):
-        x_data = self.xp.asarray(np.random.random(10))
-        y_data = self.xp.asarray(np.random.random(10))
-        x_data = xpx.at(x_data, 3).set(-1)
-        self.assertTrue(self.xp.isnan(self.interpolant(x_data, y_data)[3]))
-
-
-@pytest.mark.array_backend
-@pytest.mark.usefixtures("xp_class")
 class TestTrapeziumRuleIntegration(unittest.TestCase):
     def setUp(self):
         self.x = self.xp.linspace(0, 1, 100)

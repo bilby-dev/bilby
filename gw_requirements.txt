@@ -3,3 +3,4 @@ lalsuite
 gwpy
 pyfftw
 scikit-learn
+distmarg[rust]>=0.1.0
