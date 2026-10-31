@@ -5,7 +5,7 @@ import numpy as np
 import os
 import pytest
 import scipy.stats as ss
-from scipy.integrate import trapezoid
+from scipy.integrate import cumulative_trapezoid, trapezoid
 
 
 aligned_prior_complex = bilby.gw.prior.AlignedSpin(
@@ -954,6 +954,57 @@ class TestPriorClasses(unittest.TestCase):
             with self.subTest(prior=prior):
                 prior.minimum = (prior.maximum + prior.minimum) / 2
                 self.assertTrue(min(prior.sample(10000, random_state=self.rng)) > prior.minimum)
+
+
+class TestInterpedCumulativeDistribution(unittest.TestCase):
+    """prob, cdf and rescale must all describe the same density."""
+
+    # Grid size and the width of the feature on it: the coarser the grid is compared
+    # with the feature, the further the interpolated density is from the cell means.
+    grids = ((128, 0.1), (128, 0.02), (512, 0.05))
+
+    @staticmethod
+    def peaked_prior(n_grid, width):
+        """An Interped prior with one peak, sitting between two grid points."""
+        xx = np.linspace(0, 2 * np.pi, n_grid)
+        peak = np.pi + 0.37 * (2 * np.pi / n_grid)
+        yy = np.exp((np.cos(xx - peak) - 1) / width ** 2)
+        return bilby.core.prior.Interped(xx, yy, minimum=0, maximum=2 * np.pi)
+
+    def test_cdf_integrates_prob(self):
+        for n_grid, width in self.grids:
+            with self.subTest(n_grid=n_grid, width=width):
+                prior = self.peaked_prior(n_grid, width)
+                xx = np.linspace(prior.minimum, prior.maximum, 200001)
+                integral = cumulative_trapezoid(prior.prob(xx), xx, initial=0)
+                self.assertLess(np.max(np.abs(prior.cdf(xx) - integral)), 1e-6)
+
+    def test_rescale_inverts_cdf(self):
+        quantiles = np.linspace(0, 1, 10001)
+        for n_grid, width in self.grids:
+            with self.subTest(n_grid=n_grid, width=width):
+                prior = self.peaked_prior(n_grid, width)
+                round_trip = prior.cdf(prior.rescale(quantiles))
+                self.assertLess(np.max(np.abs(round_trip - quantiles)), 1e-10)
+
+    def test_inverse_edge_cases(self):
+        """The ends of the unit interval, and quantiles that are not in it."""
+        # The last cell holds no probability, so the search for q = 1 lands in it.
+        prior = bilby.core.prior.Interped([0, 1, 2, 3], [0, 1, 0, 0], minimum=0, maximum=3)
+        self.assertEqual(prior.rescale(0), prior.minimum)
+        self.assertEqual(prior.rescale(1), prior.maximum)
+        self.assertTrue(np.isnan(prior.rescale(np.nan)))
+        with self.assertRaises(ValueError):
+            prior.rescale(1.1)
+
+    def test_cdf_then_rescale_recovers_x(self):
+        for n_grid, width in self.grids:
+            with self.subTest(n_grid=n_grid, width=width):
+                prior = self.peaked_prior(n_grid, width)
+                xx = np.linspace(prior.minimum, prior.maximum, 10001)
+                # x is only recoverable where the density is non-zero.
+                xx = xx[prior.prob(xx) > 1e-6 * np.max(prior.prob(xx))]
+                self.assertLess(np.max(np.abs(prior.rescale(prior.cdf(xx)) - xx)), 1e-9)
 
 
 if __name__ == "__main__":
