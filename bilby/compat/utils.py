@@ -225,6 +225,10 @@ def xp_wrap(func, no_xp=False):
             args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
             return func(*args, **kwargs)
 
+    wrapped.__annotations__ = func.__annotations__
+    wrapped.__doc__ = func.__doc__
+    wrapped.__name__ = func.__name__
+
     return wrapped
 
 
