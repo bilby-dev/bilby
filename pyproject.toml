@@ -91,6 +91,10 @@ known_third_party = [
 ]
 profile = "black"
 
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
 [tool.pytest.ini_options]
 addopts = [
   "--ignore=test/import_test.py",

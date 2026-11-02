@@ -37,7 +37,9 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         self.assertAlmostEqual(zeros / N, 1 / nvalues, places=int(np.log10(np.sqrt(N))))
         self.assertAlmostEqual(ones / N, 1 / nvalues, places=int(np.log10(np.sqrt(N))))
         self.assertAlmostEqual(twos / N, 1 / nvalues, places=int(np.log10(np.sqrt(N))))
-        self.assertAlmostEqual(threes / N, 1 / nvalues, places=int(np.log10(np.sqrt(N))))
+        self.assertAlmostEqual(
+            threes / N, 1 / nvalues, places=int(np.log10(np.sqrt(N)))
+        )
 
     def test_single_probability(self):
         N = 3
@@ -67,7 +69,9 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         N = 3
         values = [1.1, 2.2, 300.0]
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
-        probs = discrete_value_prior.prob(self.xp.asarray([1.1, 2.2, 2.2, 300.0, 200.0]))
+        probs = discrete_value_prior.prob(
+            self.xp.asarray([1.1, 2.2, 2.2, 300.0, 200.0])
+        )
         self.assertEqual(aac.get_namespace(probs), self.xp)
         np.testing.assert_array_equal(np.asarray(probs), np.array([1 / N] * 4 + [0]))
 
@@ -88,9 +92,13 @@ class TestDiscreteValuesPrior(unittest.TestCase):
         N = 3
         values = [1.1, 2.2, 300.0]
         discrete_value_prior = bilby.core.prior.DiscreteValues(values)
-        ln_probs = discrete_value_prior.ln_prob(self.xp.asarray([1.1, 2.2, 2.2, 300, 150]))
+        ln_probs = discrete_value_prior.ln_prob(
+            self.xp.asarray([1.1, 2.2, 2.2, 300, 150])
+        )
         self.assertEqual(aac.get_namespace(ln_probs), self.xp)
-        np.testing.assert_array_equal(np.asarray(ln_probs), np.array([-np.log(N)] * 4 + [-np.inf]))
+        np.testing.assert_array_equal(
+            np.asarray(ln_probs), np.array([-np.log(N)] * 4 + [-np.inf])
+        )
 
 
 @pytest.mark.array_backend
@@ -140,9 +148,9 @@ class TestCategoricalPrior(unittest.TestCase):
         probs = categorical_prior.prob(self.xp.asarray([0, 1, 1, 2, 3]))
         self.assertEqual(aac.get_namespace(probs), self.xp)
 
-        self.assertTrue(np.all(
-            np.asarray(probs) == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0])
-        ))
+        self.assertTrue(
+            np.all(np.asarray(probs) == np.array([1 / N, 1 / N, 1 / N, 1 / N, 0]))
+        )
 
     def test_single_lnprobability(self):
         N = 3
@@ -161,9 +169,9 @@ class TestCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.Categorical(N)
         ln_prob = categorical_prior.ln_prob(self.xp.asarray([0, 1, 1, 2, 3]))
         self.assertEqual(aac.get_namespace(ln_prob), self.xp)
-        self.assertTrue(np.all(
-            np.asarray(ln_prob) == np.array([-np.log(N)] * 4 + [-np.inf])
-        ))
+        self.assertTrue(
+            np.all(np.asarray(ln_prob) == np.array([-np.log(N)] * 4 + [-np.inf]))
+        )
 
 
 @pytest.mark.array_backend
@@ -196,8 +204,12 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         for i in categorical_prior.values:
             case = np.sum(s == i)
             cases += case
-            self.assertAlmostEqual(case / N, categorical_prior.prob(i), places=int(np.log10(np.sqrt(N))))
-            self.assertAlmostEqual(case / N, weights[i] / np.sum(weights), places=int(np.log10(np.sqrt(N))))
+            self.assertAlmostEqual(
+                case / N, categorical_prior.prob(i), places=int(np.log10(np.sqrt(N)))
+            )
+            self.assertAlmostEqual(
+                case / N, weights[i] / np.sum(weights), places=int(np.log10(np.sqrt(N)))
+            )
         self.assertEqual(cases, N)
 
     def test_single_probability(self):
@@ -259,9 +271,7 @@ class TestWeightedCategoricalPrior(unittest.TestCase):
         categorical_prior = bilby.core.prior.WeightedCategorical(N, weights=weights)
         sample = categorical_prior.sample(size=10, random_state=self.rng)
         original = self.xp.asarray(sample)
-        new = self.xp.asarray(categorical_prior.rescale(
-            categorical_prior.cdf(sample)
-        ))
+        new = self.xp.asarray(categorical_prior.rescale(categorical_prior.cdf(sample)))
         np.testing.assert_array_equal(original, new)
         self.assertEqual(type(new), type(original))
 

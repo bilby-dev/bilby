@@ -258,12 +258,14 @@ class TestDynesty(unittest.TestCase):
             all(not plt.fignum_exists(figure.number) for figure in created_figures)
         )
 
-    @parameterized.parameterized.expand((
-        ("unif", "single"),
-        ("unif", "multi"),
-        ("rslice", "single"),
-        ("rslice", "multi"),
-    ))
+    @parameterized.parameterized.expand(
+        (
+            ("unif", "single"),
+            ("unif", "multi"),
+            ("rslice", "single"),
+            ("rslice", "multi"),
+        )
+    )
     def test_dynesty_native_methods_initialize(self, sample, bound):
         """
         Make sure that we can initialize the native dynesty samplers.
@@ -301,7 +303,6 @@ def test_get_expected_outputs():
 
 
 class ProposalsTest(unittest.TestCase):
-
     def test_boundaries(self):
         inputs = np.array([0.1, 1.1, -1.3])
         expected = np.array([0.1, 0.1, 0.7])
@@ -446,7 +447,6 @@ class TestEstimateNMCMC(unittest.TestCase):
 
 
 class TestReproducibility(unittest.TestCase):
-
     @staticmethod
     def model(x, m, c):
         return m * x + c

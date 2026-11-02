@@ -191,7 +191,6 @@ def logtrapzexp(lnf, dx, *, xp=np):
 
 
 class interp1d(_interp1d):
-
     def __call__(self, x):
         if not BILBY_ARRAY_API:
             return super().__call__(x)
@@ -219,7 +218,6 @@ class interp1d(_interp1d):
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
-
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
         self.x_min, self.x_max, self.y_min, self.y_max = bbox
         if self.x_min is None:
@@ -281,6 +279,7 @@ class WrappedInterp1d(interp1d):
     A wrapper around scipy interp1d which sets equality-by-instantiation and
     makes sure that the output is a float if the input is a float or int.
     """
+
     def __call__(self, x):
         output = super().__call__(x)
         if isinstance(x, (float, int)):
@@ -311,4 +310,4 @@ def round_up_to_power_of_two(x):
     float: next power of two
 
     """
-    return 2**math.ceil(np.log2(x))
+    return 2 ** math.ceil(np.log2(x))

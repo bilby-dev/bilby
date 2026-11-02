@@ -107,7 +107,9 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
         draws, parameters = calibration._generate_calibration_draws(
             self.ifo, self.priors, self.number_of_draws
         )
-        self.assertEqual(draws.shape, (self.number_of_draws, sum(self.ifo.frequency_mask)))
+        self.assertEqual(
+            draws.shape, (self.number_of_draws, sum(self.ifo.frequency_mask))
+        )
         self.assertListEqual(list(self.priors.keys()), list(parameters.keys()))
 
     @parameterized.expand([("template",), ("data",), (None,)])
@@ -142,14 +144,16 @@ class TestReadWriteCalibrationDraws(unittest.TestCase):
         for ifo in ifos:
             ifo.minimum_frequency = 20
             ifo.maximum_frequency = 1024
-            priors.update(prior.CalibrationPriorDict.constant_uncertainty_spline(
-                amplitude_sigma=0.1,
-                phase_sigma=0.1,
-                minimum_frequency=ifo.minimum_frequency,
-                maximum_frequency=ifo.maximum_frequency,
-                n_nodes=10,
-                label=ifo.name,
-            ))
+            priors.update(
+                prior.CalibrationPriorDict.constant_uncertainty_spline(
+                    amplitude_sigma=0.1,
+                    phase_sigma=0.1,
+                    minimum_frequency=ifo.minimum_frequency,
+                    maximum_frequency=ifo.maximum_frequency,
+                    n_nodes=10,
+                    label=ifo.name,
+                )
+            )
             ifo.calibration_model = calibration.CubicSpline(
                 prefix=f"recalib_{ifo.name}_",
                 n_points=10,

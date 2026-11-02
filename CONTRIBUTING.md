@@ -30,7 +30,7 @@ on a few python conventions and is generally maintained to ensure the code base
 remains consistent and readable to new users. Here we list some typical things
 to keep in mind ensuring the code review is as smooth as possible
 
-1. We follow the [standard python PEP8](https://www.python.org/dev/peps/pep-0008/) conventions for style. While the testing of this is largely automated (the C.I. pipeline tests check using [flake8](http://flake8.pycqa.org/en/latest/)), some more subjective things might slip the net. 
+1. We follow the [standard python PEP8](https://www.python.org/dev/peps/pep-0008/) conventions for style. Flake8 checks lint, and Ruff formats Python files throughout the project. Some more subjective things might slip the net.
 2. New classes/functions/methods should have a docstring and following the [numpy docstring guide](https://numpydoc.readthedocs.io/en/latest/format.html), for example
 ```python
 def my_new_function(x, y, print=False):

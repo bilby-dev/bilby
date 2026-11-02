@@ -5,8 +5,17 @@ from .. import utils as gwutils
 
 
 class InterferometerGeometry(object):
-    def __init__(self, length, latitude, longitude, elevation, xarm_azimuth, yarm_azimuth,
-                 xarm_tilt=0., yarm_tilt=0.):
+    def __init__(
+        self,
+        length,
+        latitude,
+        longitude,
+        elevation,
+        xarm_azimuth,
+        yarm_azimuth,
+        xarm_tilt=0.0,
+        yarm_tilt=0.0,
+    ):
         """
         Instantiate an Interferometer object.
 
@@ -51,22 +60,39 @@ class InterferometerGeometry(object):
         self._detector_tensor = None
 
     def __eq__(self, other):
-        for attribute in ['length', 'latitude', 'longitude', 'elevation',
-                          'xarm_azimuth', 'yarm_azimuth', 'xarm_tilt', 'yarm_tilt']:
+        for attribute in [
+            "length",
+            "latitude",
+            "longitude",
+            "elevation",
+            "xarm_azimuth",
+            "yarm_azimuth",
+            "xarm_tilt",
+            "yarm_tilt",
+        ]:
             if not getattr(self, attribute) == getattr(other, attribute):
                 return False
         return True
 
     def __repr__(self):
-        return self.__class__.__name__ + '(length={}, latitude={}, longitude={}, elevation={}, ' \
-                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
-            .format(float(self.length), float(self.latitude), float(self.longitude),
-                    float(self.elevation), float(self.xarm_azimuth), float(self.yarm_azimuth), float(self.xarm_tilt),
-                    float(self.yarm_tilt))
+        return (
+            self.__class__.__name__
+            + "(length={}, latitude={}, longitude={}, elevation={}, "
+            "xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})".format(
+                float(self.length),
+                float(self.latitude),
+                float(self.longitude),
+                float(self.elevation),
+                float(self.xarm_azimuth),
+                float(self.yarm_azimuth),
+                float(self.xarm_tilt),
+                float(self.yarm_tilt),
+            )
+        )
 
     @property
     def latitude(self):
-        """ Saves latitude in rad internally. Updates related quantities if set to a different value.
+        """Saves latitude in rad internally. Updates related quantities if set to a different value.
 
         Returns
         =======
@@ -93,7 +119,7 @@ class InterferometerGeometry(object):
 
     @property
     def longitude(self):
-        """ Saves longitude in rad internally. Updates related quantities if set to a different value.
+        """Saves longitude in rad internally. Updates related quantities if set to a different value.
 
         Returns
         =======
@@ -120,7 +146,7 @@ class InterferometerGeometry(object):
 
     @property
     def elevation(self):
-        """ Updates related quantities if set to a different values.
+        """Updates related quantities if set to a different values.
 
         Returns
         =======
@@ -135,7 +161,7 @@ class InterferometerGeometry(object):
 
     @property
     def xarm_azimuth(self):
-        """ Saves the x-arm azimuth in rad internally. Updates related quantities if set to a different values.
+        """Saves the x-arm azimuth in rad internally. Updates related quantities if set to a different values.
 
         Returns
         =======
@@ -151,7 +177,7 @@ class InterferometerGeometry(object):
 
     @property
     def yarm_azimuth(self):
-        """ Saves the y-arm azimuth in rad internally. Updates related quantities if set to a different values.
+        """Saves the y-arm azimuth in rad internally. Updates related quantities if set to a different values.
 
         Returns
         =======
@@ -167,7 +193,7 @@ class InterferometerGeometry(object):
 
     @property
     def xarm_tilt(self):
-        """ Updates related quantities if set to a different values.
+        """Updates related quantities if set to a different values.
 
         Returns
         =======
@@ -183,7 +209,7 @@ class InterferometerGeometry(object):
 
     @property
     def yarm_tilt(self):
-        """ Updates related quantities if set to a different values.
+        """Updates related quantities if set to a different values.
 
         Returns
         =======
@@ -199,7 +225,7 @@ class InterferometerGeometry(object):
 
     @property
     def vertex(self):
-        """ Position of the IFO vertex in geocentric coordinates in meters.
+        """Position of the IFO vertex in geocentric coordinates in meters.
 
         Is automatically updated if related quantities are modified.
 
@@ -208,14 +234,15 @@ class InterferometerGeometry(object):
         array_like: A 3D array representation of the vertex
         """
         if not self._vertex_updated:
-            self._vertex = gwutils.get_vertex_position_geocentric(self._latitude, self._longitude,
-                                                                  self.elevation)
+            self._vertex = gwutils.get_vertex_position_geocentric(
+                self._latitude, self._longitude, self.elevation
+            )
             self._vertex_updated = True
         return self._vertex
 
     @property
     def x(self):
-        """ A unit vector along the x-arm
+        """A unit vector along the x-arm
 
         Is automatically updated if related quantities are modified.
 
@@ -225,14 +252,14 @@ class InterferometerGeometry(object):
 
         """
         if not self._x_updated:
-            self._x = self.unit_vector_along_arm('x')
+            self._x = self.unit_vector_along_arm("x")
             self._x_updated = True
             self._detector_tensor_updated = False
         return self._x
 
     @property
     def y(self):
-        """ A unit vector along the y-arm
+        """A unit vector along the y-arm
 
         Is automatically updated if related quantities are modified.
 
@@ -242,7 +269,7 @@ class InterferometerGeometry(object):
 
         """
         if not self._y_updated:
-            self._y = self.unit_vector_along_arm('y')
+            self._y = self.unit_vector_along_arm("y")
             self._y_updated = True
             self._detector_tensor_updated = False
         return self._y
@@ -288,19 +315,13 @@ class InterferometerGeometry(object):
         ValueError: If arm is neither 'x' nor 'y'
 
         """
-        if arm == 'x':
+        if arm == "x":
             return calculate_arm(
-                self._xarm_tilt,
-                self._xarm_azimuth,
-                self._longitude,
-                self._latitude
+                self._xarm_tilt, self._xarm_azimuth, self._longitude, self._latitude
             )
-        elif arm == 'y':
+        elif arm == "y":
             return calculate_arm(
-                self._yarm_tilt,
-                self._yarm_azimuth,
-                self._longitude,
-                self._latitude
+                self._yarm_tilt, self._yarm_azimuth, self._longitude, self._latitude
             )
         else:
             raise ValueError("Arm must either be 'x' or 'y'.")

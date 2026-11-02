@@ -143,7 +143,7 @@ class InterferometerList(list):
         waveform_generator=None,
         raise_error=True,
     ):
-        """ Inject a signal into noise in each of the three detectors.
+        """Inject a signal into noise in each of the three detectors.
 
         Parameters
         ==========
@@ -216,8 +216,13 @@ class InterferometerList(list):
             interferometer.plot_data(signal=signal, outdir=outdir, label=label)
 
     def plot_time_domain_data(
-        self, outdir=".", label=None, bandpass_frequencies=(50, 250),
-        notches=None, start_end=None, t0=None
+        self,
+        outdir=".",
+        label=None,
+        bandpass_frequencies=(50, 250),
+        notches=None,
+        start_end=None,
+        t0=None,
     ):
         """Plots the strain data in the time domain for each of the
         interfeormeters
@@ -249,7 +254,7 @@ class InterferometerList(list):
                 bandpass_frequencies=bandpass_frequencies,
                 notches=notches,
                 start_end=start_end,
-                t0=t0
+                t0=t0,
             )
 
     @property
@@ -400,15 +405,20 @@ class TriangularInterferometer(InterferometerList):
 
             phi1 = np.radians(latitude)
             phi2 = np.arcsin(
-                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth) +
-                np.cos(phi1) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(np.radians(brng))
+                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth)
+                + np.cos(phi1)
+                * np.sin(length * 1e3 / utils.radius_of_earth)
+                * np.cos(np.radians(brng))
             )
             latitude = np.degrees(phi2)
 
             lam1 = np.radians(longitude)
             lam2 = lam1 + np.arctan2(
-                np.sin(np.radians(brng)) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(phi1),
-                np.cos(length * 1e3 / utils.radius_of_earth) - np.sin(phi1) * np.sin(phi2)
+                np.sin(np.radians(brng))
+                * np.sin(length * 1e3 / utils.radius_of_earth)
+                * np.cos(phi1),
+                np.cos(length * 1e3 / utils.radius_of_earth)
+                - np.sin(phi1) * np.sin(phi2),
             )
             longitude = np.degrees(lam2)
 

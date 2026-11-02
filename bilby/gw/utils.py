@@ -9,9 +9,13 @@ from scipy.special import i0e
 from .geometry import zenith_azimuth_to_theta_phi
 from .time import greenwich_mean_sidereal_time
 from ..compat.utils import array_module, xp_wrap
-from ..core.utils import (logger, run_commandline,
-                          check_directory_exists_and_if_not_mkdir,
-                          SamplesSummary, theta_phi_to_ra_dec)
+from ..core.utils import (
+    logger,
+    run_commandline,
+    check_directory_exists_and_if_not_mkdir,
+    SamplesSummary,
+    theta_phi_to_ra_dec,
+)
 from ..core.utils.constants import solar_mass
 
 
@@ -80,11 +84,15 @@ def get_vertex_position_geocentric(latitude, longitude, elevation):
     xp = array_module(latitude)
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
-    radius = semi_major_axis**2 * (semi_major_axis**2 * xp.cos(latitude)**2 +
-                                   semi_minor_axis**2 * xp.sin(latitude)**2)**(-0.5)
+    radius = semi_major_axis**2 * (
+        semi_major_axis**2 * xp.cos(latitude) ** 2
+        + semi_minor_axis**2 * xp.sin(latitude) ** 2
+    ) ** (-0.5)
     x_comp = (radius + elevation) * xp.cos(latitude) * xp.cos(longitude)
     y_comp = (radius + elevation) * xp.cos(latitude) * xp.sin(longitude)
-    z_comp = ((semi_minor_axis / semi_major_axis)**2 * radius + elevation) * xp.sin(latitude)
+    z_comp = ((semi_minor_axis / semi_major_axis) ** 2 * radius + elevation) * xp.sin(
+        latitude
+    )
     return xp.asarray([x_comp, y_comp, z_comp])
 
 
@@ -112,7 +120,7 @@ def inner_product(aa, bb, frequency, PSD):
 
     df = frequency[1] - frequency[0]
     integral = integrand.sum() * df
-    return 4. * integral
+    return 4.0 * integral
 
 
 def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
@@ -138,7 +146,9 @@ def noise_weighted_inner_product(aa, bb, power_spectral_density, duration):
     return 4 / duration * integrand.sum()
 
 
-def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, duration):
+def matched_filter_snr(
+    signal, frequency_domain_strain, power_spectral_density, duration
+):
     """
     Calculate the _complex_ matched filter snr of a signal.
     This is <signal|frequency_domain_strain> / optimal_snr
@@ -160,11 +170,19 @@ def matched_filter_snr(signal, frequency_domain_strain, power_spectral_density, 
 
     """
     rho_mf = noise_weighted_inner_product(
-        aa=signal, bb=frequency_domain_strain,
-        power_spectral_density=power_spectral_density, duration=duration)
-    rho_mf /= optimal_snr_squared(
-        signal=signal, power_spectral_density=power_spectral_density,
-        duration=duration)**0.5
+        aa=signal,
+        bb=frequency_domain_strain,
+        power_spectral_density=power_spectral_density,
+        duration=duration,
+    )
+    rho_mf /= (
+        optimal_snr_squared(
+            signal=signal,
+            power_spectral_density=power_spectral_density,
+            duration=duration,
+        )
+        ** 0.5
+    )
     return rho_mf
 
 
@@ -188,11 +206,21 @@ def optimal_snr_squared(signal, power_spectral_density, duration):
     float: The square of the optimal matched filter signal to noise ratio
 
     """
-    return noise_weighted_inner_product(signal, signal, power_spectral_density, duration)
+    return noise_weighted_inner_product(
+        signal, signal, power_spectral_density, duration
+    )
 
 
-def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=None,
-            lower_cut_off=None, upper_cut_off=None, norm_a=None, norm_b=None):
+def overlap(
+    signal_a,
+    signal_b,
+    power_spectral_density=None,
+    delta_frequency=None,
+    lower_cut_off=None,
+    upper_cut_off=None,
+    norm_a=None,
+    norm_b=None,
+):
     r"""
     Compute the overlap between two signals
 
@@ -224,7 +252,9 @@ def overlap(signal_a, signal_b, power_spectral_density=None, delta_frequency=Non
     low_index = int(lower_cut_off / delta_frequency)
     up_index = int(upper_cut_off / delta_frequency)
     integrand = signal_a.conj() * signal_b
-    integrand = integrand[low_index:up_index] / power_spectral_density[low_index:up_index]
+    integrand = (
+        integrand[low_index:up_index] / power_spectral_density[low_index:up_index]
+    )
     integral = (4 * delta_frequency * integrand) / norm_a / norm_b
     return sum(integral).real
 
@@ -286,8 +316,9 @@ def get_event_time(event):
 
 
 def get_open_strain_data(
-        name, start_time, end_time, outdir, cache=False, buffer_time=0, **kwargs):
-    """ A function which accesses the open strain data
+    name, start_time, end_time, outdir, cache=False, buffer_time=0, **kwargs
+):
+    """A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
     later use
@@ -315,7 +346,8 @@ def get_open_strain_data(
 
     """
     from gwpy.timeseries import TimeSeries
-    filename = '{}/{}_{}_{}.txt'.format(outdir, name, start_time, end_time)
+
+    filename = "{}/{}_{}_{}.txt".format(outdir, name, start_time, end_time)
 
     if buffer_time < 0:
         raise ValueError("buffer_time < 0")
@@ -323,26 +355,40 @@ def get_open_strain_data(
     end_time = end_time + buffer_time
 
     if os.path.isfile(filename) and cache:
-        logger.info('Using cached data from {}'.format(filename))
+        logger.info("Using cached data from {}".format(filename))
         strain = TimeSeries.read(filename)
     else:
-        logger.info('Fetching open data from {} to {} with buffer time {}'
-                    .format(start_time, end_time, buffer_time))
+        logger.info(
+            "Fetching open data from {} to {} with buffer time {}".format(
+                start_time, end_time, buffer_time
+            )
+        )
         try:
             strain = TimeSeries.fetch_open_data(name, start_time, end_time, **kwargs)
-            logger.info('Saving cache of data to {}'.format(filename))
+            logger.info("Saving cache of data to {}".format(filename))
             strain.write(filename)
         except Exception as e:
             logger.info("Unable to fetch open data, see debug for detailed info")
-            logger.info("Call to gwpy.timeseries.TimeSeries.fetch_open_data returned {}"
-                        .format(e))
+            logger.info(
+                "Call to gwpy.timeseries.TimeSeries.fetch_open_data returned {}".format(
+                    e
+                )
+            )
             strain = None
 
     return strain
 
 
-def read_frame_file(file_name, start_time, end_time, resample=None, channel=None, buffer_time=0, **kwargs):
-    """ A function which accesses the open strain data
+def read_frame_file(
+    file_name,
+    start_time,
+    end_time,
+    resample=None,
+    channel=None,
+    buffer_time=0,
+    **kwargs,
+):
+    """A function which accesses the open strain data
 
     This uses `gwpy` to download the open data and then saves a cached copy for
     later use
@@ -369,34 +415,61 @@ def read_frame_file(file_name, start_time, end_time, resample=None, channel=None
 
     """
     from gwpy.timeseries import TimeSeries
+
     loaded = False
     strain = None
 
     if channel is not None:
         try:
-            strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time, **kwargs)
+            strain = TimeSeries.read(
+                source=file_name,
+                channel=channel,
+                start=start_time,
+                end=end_time,
+                **kwargs,
+            )
             loaded = True
-            logger.info('Successfully loaded {}.'.format(channel))
+            logger.info("Successfully loaded {}.".format(channel))
         except (RuntimeError, ValueError):
-            logger.warning('Channel {} not found. Trying preset channel names'.format(channel))
+            logger.warning(
+                "Channel {} not found. Trying preset channel names".format(channel)
+            )
 
     if loaded is False:
-        ligo_channel_types = ['GDS-CALIB_STRAIN', 'DCS-CALIB_STRAIN_C01', 'DCS-CALIB_STRAIN_C02',
-                              'DCH-CLEAN_STRAIN_C02', 'GWOSC-16KHZ_R1_STRAIN',
-                              'GWOSC-4KHZ_R1_STRAIN']
-        virgo_channel_types = ['Hrec_hoft_V1O2Repro2A_16384Hz', 'FAKE_h_16384Hz_4R',
-                               'GWOSC-16KHZ_R1_STRAIN', 'GWOSC-4KHZ_R1_STRAIN']
-        channel_types = dict(H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types)
+        ligo_channel_types = [
+            "GDS-CALIB_STRAIN",
+            "DCS-CALIB_STRAIN_C01",
+            "DCS-CALIB_STRAIN_C02",
+            "DCH-CLEAN_STRAIN_C02",
+            "GWOSC-16KHZ_R1_STRAIN",
+            "GWOSC-4KHZ_R1_STRAIN",
+        ]
+        virgo_channel_types = [
+            "Hrec_hoft_V1O2Repro2A_16384Hz",
+            "FAKE_h_16384Hz_4R",
+            "GWOSC-16KHZ_R1_STRAIN",
+            "GWOSC-4KHZ_R1_STRAIN",
+        ]
+        channel_types = dict(
+            H1=ligo_channel_types, L1=ligo_channel_types, V1=virgo_channel_types
+        )
         for detector in channel_types.keys():
             for channel_type in channel_types[detector]:
                 if loaded:
                     break
-                channel = '{}:{}'.format(detector, channel_type)
+                channel = "{}:{}".format(detector, channel_type)
                 try:
-                    strain = TimeSeries.read(source=file_name, channel=channel, start=start_time, end=end_time,
-                                             **kwargs)
+                    strain = TimeSeries.read(
+                        source=file_name,
+                        channel=channel,
+                        start=start_time,
+                        end=end_time,
+                        **kwargs,
+                    )
                     loaded = True
-                    logger.info('Successfully read strain data for channel {}.'.format(channel))
+                    logger.info(
+                        "Successfully read strain data for channel {}.".format(channel)
+                    )
                 except (RuntimeError, ValueError):
                     pass
 
@@ -405,11 +478,13 @@ def read_frame_file(file_name, start_time, end_time, resample=None, channel=None
             strain = strain.resample(resample)
         return strain
     else:
-        logger.warning('No data loaded.')
+        logger.warning("No data loaded.")
         return None
 
 
-def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=None, server=None):
+def get_gracedb(
+    gracedb, outdir, duration, calibration, detectors, query_types=None, server=None
+):
     """
     Download information about a trigger from GraceDb and create cache files
     for finding gravitational-wave strain data.
@@ -439,21 +514,29 @@ def get_gracedb(gracedb, outdir, duration, calibration, detectors, query_types=N
         List of cache filenames, one per interferometer.
     """
     candidate = gracedb_to_json(gracedb, outdir=outdir)
-    trigger_time = candidate['gpstime']
+    trigger_time = candidate["gpstime"]
     gps_start_time = trigger_time - duration
     cache_files = []
     if query_types is None:
         query_types = [None] * len(detectors)
     for i, det in enumerate(detectors):
         output_cache_file = gw_data_find(
-            det, gps_start_time, duration, calibration,
-            outdir=outdir, query_type=query_types[i], server=server)
+            det,
+            gps_start_time,
+            duration,
+            calibration,
+            outdir=outdir,
+            query_type=query_types[i],
+            server=server,
+        )
         cache_files.append(output_cache_file)
     return candidate, cache_files
 
 
-def gracedb_to_json(gracedb, cred=None, service_url='https://gracedb.ligo.org/api/', outdir=None):
-    """ Script to download a GraceDB candidate
+def gracedb_to_json(
+    gracedb, cred=None, service_url="https://gracedb.ligo.org/api/", outdir=None
+):
+    """Script to download a GraceDB candidate
 
     Parameters
     ==========
@@ -468,21 +551,21 @@ def gracedb_to_json(gracedb, cred=None, service_url='https://gracedb.ligo.org/ap
     outdir: str, optional
         If given, a string identfying the location in which to store the json
     """
-    logger.info(
-        'Starting routine to download GraceDb candidate {}'.format(gracedb))
+    logger.info("Starting routine to download GraceDb candidate {}".format(gracedb))
     from ligo.gracedb.rest import GraceDb
 
-    logger.info('Initialise client and attempt to download')
-    logger.info('Fetching from {}'.format(service_url))
+    logger.info("Initialise client and attempt to download")
+    logger.info("Fetching from {}".format(service_url))
     try:
         client = GraceDb(cred=cred, service_url=service_url)
     except IOError:
         raise ValueError(
-            'Failed to authenticate with gracedb: check your X509 '
-            'certificate is accessible and valid')
+            "Failed to authenticate with gracedb: check your X509 "
+            "certificate is accessible and valid"
+        )
     try:
         candidate = client.event(gracedb)
-        logger.info('Successfully downloaded candidate')
+        logger.info("Successfully downloaded candidate")
     except Exception as e:
         raise ValueError("Unable to obtain GraceDB candidate, exception: {}".format(e))
 
@@ -490,17 +573,24 @@ def gracedb_to_json(gracedb, cred=None, service_url='https://gracedb.ligo.org/ap
 
     if outdir is not None:
         check_directory_exists_and_if_not_mkdir(outdir)
-        outfilepath = os.path.join(outdir, '{}.json'.format(gracedb))
-        logger.info('Writing candidate to {}'.format(outfilepath))
-        with open(outfilepath, 'w') as outfile:
+        outfilepath = os.path.join(outdir, "{}.json".format(gracedb))
+        logger.info("Writing candidate to {}".format(outfilepath))
+        with open(outfilepath, "w") as outfile:
             json.dump(json_output, outfile, indent=2)
 
     return json_output
 
 
-def gw_data_find(observatory, gps_start_time, duration, calibration,
-                 outdir='.', query_type=None, server=None):
-    """ Builds a gw_data_find call and process output
+def gw_data_find(
+    observatory,
+    gps_start_time,
+    duration,
+    calibration,
+    outdir=".",
+    query_type=None,
+    server=None,
+):
+    """Builds a gw_data_find call and process output
 
     Parameters
     ==========
@@ -523,49 +613,52 @@ def gw_data_find(observatory, gps_start_time, duration, calibration,
         Path to the output cache file
 
     """
-    logger.info('Building gw_data_find command line')
+    logger.info("Building gw_data_find command line")
 
-    observatory_lookup = dict(H1='H', L1='L', V1='V')
+    observatory_lookup = dict(H1="H", L1="L", V1="V")
     observatory_code = observatory_lookup[observatory]
 
     if query_type is None:
-        logger.warning('No query type provided. This may prevent data from being read.')
-        if observatory_code == 'V':
-            query_type = 'V1Online'
+        logger.warning("No query type provided. This may prevent data from being read.")
+        if observatory_code == "V":
+            query_type = "V1Online"
         else:
-            query_type = '{}_HOFT_C0{}'.format(observatory, calibration)
+            query_type = "{}_HOFT_C0{}".format(observatory, calibration)
 
-    logger.info('Using LDRDataFind query type {}'.format(query_type))
+    logger.info("Using LDRDataFind query type {}".format(query_type))
 
-    cache_file = '{}-{}_CACHE-{}-{}.lcf'.format(
-        observatory, query_type, gps_start_time, duration)
+    cache_file = "{}-{}_CACHE-{}-{}.lcf".format(
+        observatory, query_type, gps_start_time, duration
+    )
     output_cache_file = os.path.join(outdir, cache_file)
 
     gps_end_time = gps_start_time + duration
     if server is None:
         server = os.environ.get("LIGO_DATAFIND_SERVER")
         if server is None:
-            logger.warning('No data_find server found, defaulting to CIT server. '
-                           'To run on other clusters, pass the output of '
-                           '`echo $LIGO_DATAFIND_SERVER`')
-            server = 'ldr.ldas.cit:80'
+            logger.warning(
+                "No data_find server found, defaulting to CIT server. "
+                "To run on other clusters, pass the output of "
+                "`echo $LIGO_DATAFIND_SERVER`"
+            )
+            server = "ldr.ldas.cit:80"
 
-    cl_list = ['gw_data_find']
-    cl_list.append('--observatory {}'.format(observatory_code))
-    cl_list.append('--gps-start-time {}'.format(int(np.floor(gps_start_time))))
-    cl_list.append('--gps-end-time {}'.format(int(np.ceil(gps_end_time))))
-    cl_list.append('--type {}'.format(query_type))
-    cl_list.append('--output {}'.format(output_cache_file))
-    cl_list.append('--server {}'.format(server))
-    cl_list.append('--url-type file')
-    cl_list.append('--lal-cache')
-    cl = ' '.join(cl_list)
+    cl_list = ["gw_data_find"]
+    cl_list.append("--observatory {}".format(observatory_code))
+    cl_list.append("--gps-start-time {}".format(int(np.floor(gps_start_time))))
+    cl_list.append("--gps-end-time {}".format(int(np.ceil(gps_end_time))))
+    cl_list.append("--type {}".format(query_type))
+    cl_list.append("--output {}".format(output_cache_file))
+    cl_list.append("--server {}".format(server))
+    cl_list.append("--url-type file")
+    cl_list.append("--lal-cache")
+    cl = " ".join(cl_list)
     run_commandline(cl)
     return output_cache_file
 
 
 def convert_args_list_to_float(*args_list):
-    """ Converts inputs to floats, returns a list in the same order as the input"""
+    """Converts inputs to floats, returns a list in the same order as the input"""
     try:
         args_list = [float(arg) for arg in args_list]
     except ValueError:
@@ -574,13 +667,33 @@ def convert_args_list_to_float(*args_list):
 
 
 def lalsim_SimInspiralTransformPrecessingNewInitialConditions(
-        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
-        reference_frequency, phase):
+    theta_jn,
+    phi_jl,
+    tilt_1,
+    tilt_2,
+    phi_12,
+    a_1,
+    a_2,
+    mass_1,
+    mass_2,
+    reference_frequency,
+    phase,
+):
     from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
 
     args_list = convert_args_list_to_float(
-        theta_jn, phi_jl, tilt_1, tilt_2, phi_12, a_1, a_2, mass_1, mass_2,
-        reference_frequency, phase)
+        theta_jn,
+        phi_jl,
+        tilt_1,
+        tilt_2,
+        phi_12,
+        a_1,
+        a_2,
+        mass_1,
+        mass_2,
+        reference_frequency,
+        phase,
+    )
 
     return SimInspiralTransformPrecessingNewInitialConditions(*args_list)
 
@@ -588,6 +701,7 @@ def lalsim_SimInspiralTransformPrecessingNewInitialConditions(
 @lru_cache(maxsize=10)
 def lalsim_GetApproximantFromString(waveform_approximant):
     from lalsimulation import GetApproximantFromString
+
     if isinstance(waveform_approximant, str):
         return GetApproximantFromString(waveform_approximant)
     else:
@@ -595,11 +709,27 @@ def lalsim_GetApproximantFromString(waveform_approximant):
 
 
 def lalsim_SimInspiralFD(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
-        minimum_frequency, maximum_frequency, reference_frequency,
-        waveform_dictionary, approximant):
+    mass_1,
+    mass_2,
+    spin_1x,
+    spin_1y,
+    spin_1z,
+    spin_2x,
+    spin_2y,
+    spin_2z,
+    luminosity_distance,
+    iota,
+    phase,
+    longitude_ascending_nodes,
+    eccentricity,
+    mean_per_ano,
+    delta_frequency,
+    minimum_frequency,
+    maximum_frequency,
+    reference_frequency,
+    waveform_dictionary,
+    approximant,
+):
     """
     Safely call lalsimulation.SimInspiralFD
 
@@ -629,10 +759,25 @@ def lalsim_SimInspiralFD(
     from lalsimulation import SimInspiralFD
 
     args = convert_args_list_to_float(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
-        luminosity_distance, iota, phase, longitude_ascending_nodes,
-        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
-        maximum_frequency, reference_frequency)
+        mass_1,
+        mass_2,
+        spin_1x,
+        spin_1y,
+        spin_1z,
+        spin_2x,
+        spin_2y,
+        spin_2z,
+        luminosity_distance,
+        iota,
+        phase,
+        longitude_ascending_nodes,
+        eccentricity,
+        mean_per_ano,
+        delta_frequency,
+        minimum_frequency,
+        maximum_frequency,
+        reference_frequency,
+    )
 
     approximant = _get_lalsim_approximant(approximant)
 
@@ -640,11 +785,27 @@ def lalsim_SimInspiralFD(
 
 
 def lalsim_SimInspiralChooseFDWaveform(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, luminosity_distance, iota, phase,
-        longitude_ascending_nodes, eccentricity, mean_per_ano, delta_frequency,
-        minimum_frequency, maximum_frequency, reference_frequency,
-        waveform_dictionary, approximant):
+    mass_1,
+    mass_2,
+    spin_1x,
+    spin_1y,
+    spin_1z,
+    spin_2x,
+    spin_2y,
+    spin_2z,
+    luminosity_distance,
+    iota,
+    phase,
+    longitude_ascending_nodes,
+    eccentricity,
+    mean_per_ano,
+    delta_frequency,
+    minimum_frequency,
+    maximum_frequency,
+    reference_frequency,
+    waveform_dictionary,
+    approximant,
+):
     """
     Safely call lalsimulation.SimInspiralChooseFDWaveform
 
@@ -674,10 +835,25 @@ def lalsim_SimInspiralChooseFDWaveform(
     from lalsimulation import SimInspiralChooseFDWaveform
 
     args = convert_args_list_to_float(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
-        luminosity_distance, iota, phase, longitude_ascending_nodes,
-        eccentricity, mean_per_ano, delta_frequency, minimum_frequency,
-        maximum_frequency, reference_frequency)
+        mass_1,
+        mass_2,
+        spin_1x,
+        spin_1y,
+        spin_1z,
+        spin_2x,
+        spin_2y,
+        spin_2z,
+        luminosity_distance,
+        iota,
+        phase,
+        longitude_ascending_nodes,
+        eccentricity,
+        mean_per_ano,
+        delta_frequency,
+        minimum_frequency,
+        maximum_frequency,
+        reference_frequency,
+    )
 
     approximant = _get_lalsim_approximant(approximant)
 
@@ -696,9 +872,22 @@ def _get_lalsim_approximant(approximant):
 
 
 def lalsim_SimInspiralChooseFDWaveformSequence(
-        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, reference_frequency, luminosity_distance, iota,
-        waveform_dictionary, approximant, frequency_array):
+    phase,
+    mass_1,
+    mass_2,
+    spin_1x,
+    spin_1y,
+    spin_1z,
+    spin_2x,
+    spin_2y,
+    spin_2z,
+    reference_frequency,
+    luminosity_distance,
+    iota,
+    waveform_dictionary,
+    approximant,
+    frequency_array,
+):
     """
     Safely call lalsimulation.SimInspiralChooseFDWaveformSequence
 
@@ -723,10 +912,33 @@ def lalsim_SimInspiralChooseFDWaveformSequence(
     from lal import REAL8Vector, CreateREAL8Vector
     from lalsimulation import SimInspiralChooseFDWaveformSequence
 
-    [mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
-     luminosity_distance, iota, phase, reference_frequency] = convert_args_list_to_float(
-        mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
-        luminosity_distance, iota, phase, reference_frequency)
+    [
+        mass_1,
+        mass_2,
+        spin_1x,
+        spin_1y,
+        spin_1z,
+        spin_2x,
+        spin_2y,
+        spin_2z,
+        luminosity_distance,
+        iota,
+        phase,
+        reference_frequency,
+    ] = convert_args_list_to_float(
+        mass_1,
+        mass_2,
+        spin_1x,
+        spin_1y,
+        spin_1z,
+        spin_2x,
+        spin_2y,
+        spin_2z,
+        luminosity_distance,
+        iota,
+        phase,
+        reference_frequency,
+    )
 
     if isinstance(approximant, int):
         pass
@@ -741,37 +953,49 @@ def lalsim_SimInspiralChooseFDWaveformSequence(
         frequency_array.data = old_frequency_array
 
     return SimInspiralChooseFDWaveformSequence(
-        phase, mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
-        spin_2z, reference_frequency, luminosity_distance, iota,
-        waveform_dictionary, approximant, frequency_array)
+        phase,
+        mass_1,
+        mass_2,
+        spin_1x,
+        spin_1y,
+        spin_1z,
+        spin_2x,
+        spin_2y,
+        spin_2z,
+        reference_frequency,
+        luminosity_distance,
+        iota,
+        waveform_dictionary,
+        approximant,
+        frequency_array,
+    )
 
 
-def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1):
+def lalsim_SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1):
     from lalsimulation import SimInspiralWaveformParamsInsertTidalLambda1
+
     try:
         lambda_1 = float(lambda_1)
     except ValueError:
         raise ValueError("Unable to convert lambda_1 to float")
 
-    return SimInspiralWaveformParamsInsertTidalLambda1(
-        waveform_dictionary, lambda_1)
+    return SimInspiralWaveformParamsInsertTidalLambda1(waveform_dictionary, lambda_1)
 
 
-def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2):
+def lalsim_SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2):
     from lalsimulation import SimInspiralWaveformParamsInsertTidalLambda2
+
     try:
         lambda_2 = float(lambda_2)
     except ValueError:
         raise ValueError("Unable to convert lambda_2 to float")
 
-    return SimInspiralWaveformParamsInsertTidalLambda2(
-        waveform_dictionary, lambda_2)
+    return SimInspiralWaveformParamsInsertTidalLambda2(waveform_dictionary, lambda_2)
 
 
 def lalsim_SimNeutronStarEOS4ParamSDGammaCheck(g0, g1, g2, g3):
     from lalsimulation import SimNeutronStarEOS4ParamSDGammaCheck
+
     try:
         g0 = float(g0)
         g1 = float(g1)
@@ -787,6 +1011,7 @@ def lalsim_SimNeutronStarEOS4ParamSDGammaCheck(g0, g1, g2, g3):
 
 def lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition(g0, g1, g2, g3):
     from lalsimulation import SimNeutronStarEOS4ParameterSpectralDecomposition
+
     try:
         g0 = float(g0)
         g1 = float(g1)
@@ -802,6 +1027,7 @@ def lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition(g0, g1, g2, g3):
 
 def lalsim_SimNeutronStarEOS4ParamSDViableFamilyCheck(g0, g1, g2, g3):
     from lalsimulation import SimNeutronStarEOS4ParamSDViableFamilyCheck
+
     try:
         g0 = float(g0)
         g1 = float(g1)
@@ -817,6 +1043,7 @@ def lalsim_SimNeutronStarEOS4ParamSDViableFamilyCheck(g0, g1, g2, g3):
 
 def lalsim_SimNeutronStarEOS3PieceDynamicPolytrope(g0, log10p1_si, g1, log10p2_si, g2):
     from lalsimulation import SimNeutronStarEOS3PieceDynamicPolytrope
+
     try:
         g0 = float(g0)
         g1 = float(g1)
@@ -833,6 +1060,7 @@ def lalsim_SimNeutronStarEOS3PieceDynamicPolytrope(g0, log10p1_si, g1, log10p2_s
 
 def lalsim_SimNeutronStarEOS3PieceCausalAnalytic(v1, log10p1_si, v2, log10p2_si, v3):
     from lalsimulation import SimNeutronStarEOS3PieceCausalAnalytic
+
     try:
         v1 = float(v1)
         v2 = float(v2)
@@ -847,8 +1075,11 @@ def lalsim_SimNeutronStarEOS3PieceCausalAnalytic(v1, log10p1_si, v2, log10p2_si,
     return SimNeutronStarEOS3PieceCausalAnalytic(v1, log10p1_si, v2, log10p2_si, v3)
 
 
-def lalsim_SimNeutronStarEOS3PDViableFamilyCheck(p0, log10p1_si, p1, log10p2_si, p2, causal):
+def lalsim_SimNeutronStarEOS3PDViableFamilyCheck(
+    p0, log10p1_si, p1, log10p2_si, p2, causal
+):
     from lalsimulation import SimNeutronStarEOS3PDViableFamilyCheck
+
     try:
         p0 = float(p0)
         p1 = float(p1)
@@ -861,7 +1092,9 @@ def lalsim_SimNeutronStarEOS3PDViableFamilyCheck(p0, log10p1_si, p1, log10p2_si,
     except TypeError:
         raise TypeError("Unable to convert EOS parameters to floats or int")
 
-    return SimNeutronStarEOS3PDViableFamilyCheck(p0, log10p1_si, p1, log10p2_si, p2, causal)
+    return SimNeutronStarEOS3PDViableFamilyCheck(
+        p0, log10p1_si, p1, log10p2_si, p2, causal
+    )
 
 
 def lalsim_CreateSimNeutronStarFamily(eos):
@@ -878,6 +1111,7 @@ def lalsim_SimNeutronStarEOSMaxPseudoEnthalpy(eos):
 
 def lalsim_SimNeutronStarEOSSpeedOfSoundGeometerized(max_pseudo_enthalpy, eos):
     from lalsimulation import SimNeutronStarEOSSpeedOfSoundGeometerized
+
     try:
         max_pseudo_enthalpy = float(max_pseudo_enthalpy)
     except ValueError:
@@ -902,6 +1136,7 @@ def lalsim_SimNeutronStarMaximumMass(fam):
 
 def lalsim_SimNeutronStarRadius(mass_in_SI, fam):
     from lalsimulation import SimNeutronStarRadius
+
     try:
         mass_in_SI = float(mass_in_SI)
     except ValueError:
@@ -914,6 +1149,7 @@ def lalsim_SimNeutronStarRadius(mass_in_SI, fam):
 
 def lalsim_SimNeutronStarLoveNumberK2(mass_in_SI, fam):
     from lalsimulation import SimNeutronStarLoveNumberK2
+
     try:
         mass_in_SI = float(mass_in_SI)
     except ValueError:
@@ -945,7 +1181,9 @@ def spline_angle_xform(delta_psi, *, xp=None):
     return 180.0 / np.pi * xp.arctan2(xp.imag(rotation), xp.real(rotation))
 
 
-def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=None, xform=None):
+def plot_spline_pos(
+    log_freqs, samples, nfreqs=100, level=0.9, color="k", label=None, xform=None
+):
     """
     Plot calibration posterior estimates for a spline model in log space.
     Adapted from the same function in lalinference.bayespputils
@@ -969,6 +1207,7 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
 
     """
     import matplotlib.pyplot as plt
+
     freq_points = np.exp(log_freqs)
     freqs = np.logspace(min(log_freqs), max(log_freqs), nfreqs, base=np.exp(1))
 
@@ -979,28 +1218,42 @@ def plot_spline_pos(log_freqs, samples, nfreqs=100, level=0.9, color='k', label=
     else:
         scaled_samples = xform(samples)
 
-    scaled_samples_summary = SamplesSummary(scaled_samples, average='mean')
-    data_summary = SamplesSummary(data, average='mean')
+    scaled_samples_summary = SamplesSummary(scaled_samples, average="mean")
+    data_summary = SamplesSummary(data, average="mean")
 
-    plt.errorbar(freq_points, scaled_samples_summary.average,
-                 yerr=[-scaled_samples_summary.lower_relative_credible_interval,
-                       scaled_samples_summary.upper_relative_credible_interval],
-                 fmt='.', color=color, lw=4, alpha=0.5, capsize=0)
+    plt.errorbar(
+        freq_points,
+        scaled_samples_summary.average,
+        yerr=[
+            -scaled_samples_summary.lower_relative_credible_interval,
+            scaled_samples_summary.upper_relative_credible_interval,
+        ],
+        fmt=".",
+        color=color,
+        lw=4,
+        alpha=0.5,
+        capsize=0,
+    )
 
     for i, sample in enumerate(samples):
         temp = interp1d(
-            log_freqs, sample, kind="cubic", fill_value=0,
-            bounds_error=False)(np.log(freqs))
+            log_freqs, sample, kind="cubic", fill_value=0, bounds_error=False
+        )(np.log(freqs))
         if xform is None:
             data[i] = temp
         else:
             data[i] = xform(temp)
 
     plt.plot(freqs, np.mean(data, axis=0), color=color, label=label)
-    plt.fill_between(freqs, data_summary.lower_absolute_credible_interval,
-                     data_summary.upper_absolute_credible_interval,
-                     color=color, alpha=.1, linewidth=0.1)
-    plt.xlim(freq_points.min() - .5, freq_points.max() + 50)
+    plt.fill_between(
+        freqs,
+        data_summary.lower_absolute_credible_interval,
+        data_summary.upper_absolute_credible_interval,
+        color=color,
+        alpha=0.1,
+        linewidth=0.1,
+    )
+    plt.xlim(freq_points.min() - 0.5, freq_points.max() + 50)
 
 
 @xp_wrap
@@ -1023,7 +1276,7 @@ def ln_i0(value, *, xp=None):
 
 
 def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
-    """ Leading-order calculation of the time to merger from frequency
+    """Leading-order calculation of the time to merger from frequency
 
     This uses the XLALSimInspiralTaylorF2ReducedSpinChirpTime routine to
     estimate the time to merger. Based on the implementation in
@@ -1047,12 +1300,13 @@ def calculate_time_to_merger(frequency, mass_1, mass_2, chi=0, safety=1.1):
     """
 
     import lalsimulation
+
     return safety * lalsimulation.SimInspiralTaylorF2ReducedSpinChirpTime(
         float(frequency),
         float(mass_1 * solar_mass),
         float(mass_2 * solar_mass),
         float(chi),
-        -1
+        -1,
     )
 
 

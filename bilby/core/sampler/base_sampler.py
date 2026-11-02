@@ -717,7 +717,6 @@ class Sampler(object):
         can be caught as a :code:`SystemExit`.
         """
         if self.npool in (1, None) or getattr(self, "pool", None) is not None:
-
             self._interrupted = True
             self._interruption_signum = signum
 

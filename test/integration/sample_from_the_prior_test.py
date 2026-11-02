@@ -93,7 +93,7 @@ class Test(unittest.TestCase):
             nact=10,
             outdir=self.outdir,
             label=label,
-            save=False
+            save=False,
         )
         pvalues = [
             ks_2samp_wrapper(

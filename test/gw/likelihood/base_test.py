@@ -67,9 +67,7 @@ class TestGWTransient(unittest.TestCase):
         """Test noise log likelihood matches precomputed value"""
         nll = self.likelihood.noise_log_likelihood()
         self.assertEqual(aac.get_namespace(nll), self.xp)
-        self.assertAlmostEqual(
-            -4014.1787704539474, float(nll), 3
-        )
+        self.assertAlmostEqual(-4014.1787704539474, float(nll), 3)
 
     def test_log_likelihood(self):
         """Test log likelihood matches precomputed value"""
@@ -81,7 +79,8 @@ class TestGWTransient(unittest.TestCase):
         """Test log likelihood ratio returns the correct value"""
         llr = self.likelihood.log_likelihood_ratio(self.parameters)
         self.assertAlmostEqual(
-            float(self.likelihood.log_likelihood(self.parameters)) - float(self.likelihood.noise_log_likelihood()),
+            float(self.likelihood.log_likelihood(self.parameters))
+            - float(self.likelihood.noise_log_likelihood()),
             float(llr),
             3,
         )
@@ -91,7 +90,10 @@ class TestGWTransient(unittest.TestCase):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
+        self.assertEqual(
+            self.likelihood.log_likelihood_ratio(self.parameters),
+            np.nan_to_num(-np.inf),
+        )
 
     def test_repr(self):
         expected = (
@@ -118,7 +120,9 @@ class TestGWTransient(unittest.TestCase):
         self.assertListEqual(
             bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers
         )
-        self.assertIsInstance(self.likelihood.interferometers, bilby.gw.detector.InterferometerList)
+        self.assertIsInstance(
+            self.likelihood.interferometers, bilby.gw.detector.InterferometerList
+        )
 
     def test_interferometers_setting_interferometer_list(self):
         ifos = bilby.gw.detector.InterferometerList(
@@ -131,7 +135,9 @@ class TestGWTransient(unittest.TestCase):
         self.assertListEqual(
             bilby.gw.detector.InterferometerList(ifos), self.likelihood.interferometers
         )
-        self.assertIsInstance(self.likelihood.interferometers, bilby.gw.detector.InterferometerList)
+        self.assertIsInstance(
+            self.likelihood.interferometers, bilby.gw.detector.InterferometerList
+        )
 
     def test_meta_data(self):
         expected = dict(
@@ -161,7 +167,7 @@ class TestGWTransient(unittest.TestCase):
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             priors=self.prior.copy(),
-            reference_frame="H1L1"
+            reference_frame="H1L1",
         )
         parameters = self.parameters.copy()
         del parameters["ra"], parameters["dec"]
@@ -177,7 +183,7 @@ class TestGWTransient(unittest.TestCase):
         self.assertEqual(aac.get_namespace(parameters["dec"]), self.xp)
         self.assertEqual(
             new_likelihood.log_likelihood_ratio(parameters),
-            self.likelihood.log_likelihood_ratio(parameters)
+            self.likelihood.log_likelihood_ratio(parameters),
         )
 
     def test_time_reference_agrees_with_default(self):
@@ -185,13 +191,13 @@ class TestGWTransient(unittest.TestCase):
             interferometers=self.interferometers,
             waveform_generator=self.waveform_generator,
             priors=self.prior.copy(),
-            time_reference="H1"
+            time_reference="H1",
         )
         ifo = bilby.gw.detector.get_empty_interferometer("H1")
         time_delay = ifo.time_delay_from_geocenter(
             ra=self.parameters["ra"],
             dec=self.parameters["dec"],
-            time=self.parameters["geocent_time"]
+            time=self.parameters["geocent_time"],
         )
         parameters = self.parameters.copy()
         parameters["H1_time"] = parameters["geocent_time"] + time_delay

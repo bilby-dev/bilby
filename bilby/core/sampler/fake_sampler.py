@@ -35,7 +35,7 @@ class FakeSampler(Sampler):
         injection_parameters=None,
         meta_data=None,
         result_class=None,
-        **kwargs
+        **kwargs,
     ):
         super(FakeSampler, self).__init__(
             likelihood=likelihood,
@@ -48,7 +48,7 @@ class FakeSampler(Sampler):
             injection_parameters=None,
             meta_data=None,
             result_class=None,
-            **kwargs
+            **kwargs,
         )
         self._read_parameter_list_from_file(sample_file)
         self.result.outdir = outdir
