@@ -91,10 +91,6 @@ known_third_party = [
 ]
 profile = "black"
 
-[tool.ruff]
-line-length = 88
-target-version = "py313"
-
 [tool.pytest.ini_options]
 addopts = [
   "--ignore=test/import_test.py",
@@ -105,6 +101,10 @@ addopts = [
   "--ignore=test/integration/sampler_run_test.py"
 ]
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
 
 [tool.setuptools]
 packages = [
