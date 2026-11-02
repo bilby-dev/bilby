@@ -10,8 +10,12 @@ from bilby.gw.detector.calibration import CubicSpline
 from bilby.gw.likelihood import GravitationalWaveTransient
 from bilby.gw.source import sinegaussian
 from bilby.gw.waveform_generator import WaveformGenerator
-from bilby.compat import jax as _  # noqa
-from bilby.gw.compat import jax as _  # noqa
+
+try:
+    from bilby.compat import pytrees  as _  # noqa
+    from bilby.gw.compat import pytrees as _  # noqa
+except ImportError:
+    pass
 
 
 def _evaluate_with_jit(likelihood, parameters, xp):
@@ -19,9 +23,6 @@ def _evaluate_with_jit(likelihood, parameters, xp):
         pytest.skip("JIT test only runs for JAX backend")
 
     import jax
-
-    from bilby.compat.pytrees import likelihood as _  # noqa
-    from bilby.gw.compat import pytrees as _  # noqa
 
     @jax.jit
     def jit_fn(likelihood, parameters):

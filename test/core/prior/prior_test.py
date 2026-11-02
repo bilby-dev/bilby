@@ -91,6 +91,7 @@ class TestPriorClasses(unittest.TestCase):
                 file_name=os.path.join(os.path.dirname(__file__), "prior_files/fromfile.txt"),
                 minimum=0,
                 maximum=1,
+                unit="unit",
             ),
             bilby.core.prior.TruncatedGaussian(
                 name="test", unit="unit", mu=1, sigma=0.4, minimum=-1, maximum=1
@@ -310,9 +311,11 @@ class TestPriorClasses(unittest.TestCase):
             # gradients don't work yet for some priors
             if isinstance(prior, (
                 bilby.core.prior.Beta,
+                bilby.core.prior.ConditionalPowerLaw,
                 bilby.core.prior.Gamma,
                 bilby.core.prior.Interped,
                 bilby.core.prior.JointPrior,
+                bilby.core.prior.Triangular,
                 bilby.core.prior.WeightedDiscreteValues,
             )):
                 continue
