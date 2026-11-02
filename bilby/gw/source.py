@@ -8,6 +8,7 @@ from .utils import (lalsim_GetApproximantFromString,
                     lalsim_SimInspiralFD,
                     lalsim_SimInspiralChooseFDWaveform,
                     lalsim_SimInspiralChooseFDWaveformSequence,
+                    lalsim_SimInspiralChooseTDWaveform,
                     safe_cast_mode_to_int)
 
 UNUSED_KWARGS_MESSAGE = """There are unused waveform kwargs.
@@ -688,6 +689,367 @@ def _base_lal_cbc_fd_waveform(
         raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
 
     return dict(plus=h_plus, cross=h_cross)
+
+
+def lal_binary_black_hole_time_domain(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ A time-domain Binary Black Hole waveform model using lalsimulation, for
+    :code:`bilby.gw.likelihood.TimeDomainGravitationalWaveTransient`
+
+    Parameters
+    ==========
+    time_array: array_like
+        The times of the data (only the sample spacing is used)
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
+    phase: float
+        The phase at reference frequency or peak amplitude (depends on waveform)
+    kwargs: dict
+        Optional keyword arguments
+        Supported arguments:
+
+        - waveform_approximant
+        - reference_frequency
+        - minimum_frequency
+        - catch_waveform_errors
+        - pn_spin_order
+        - pn_tidal_order
+        - pn_phase_order
+        - pn_amplitude_order
+        - mode_array: see :code:`lal_binary_black_hole`
+        - lal_waveform_dictionary
+        - turn_on_window: the alpha of the one-sided Tukey window applied to the
+          start of the waveform, for placement "nearest" or "fd_shift" (default 0: no window)
+
+    Returns
+    =======
+    dict: A dictionary with the plus and cross polarisation strain modes on the
+    waveform's own time grid, and the epoch, the time of the first sample relative
+    to the merger (in s)
+    """
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomTP', reference_frequency=50.0,
+        minimum_frequency=20.0, catch_waveform_errors=False,
+        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
+        pn_amplitude_order=0, turn_on_window=0)
+    waveform_kwargs.update(kwargs)
+    return _base_lal_cbc_td_waveform(
+        time_array=time_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
+        phi_jl=phi_jl, **waveform_kwargs)
+
+
+def lal_binary_neutron_star_time_domain(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, lambda_1, lambda_2,
+        **kwargs):
+    """ A time-domain Binary Neutron Star waveform model using lalsimulation, for
+    :code:`bilby.gw.likelihood.TimeDomainGravitationalWaveTransient`
+
+    Parameters
+    ==========
+    time_array: array_like
+        The times of the data (only the sample spacing is used)
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
+    phase: float
+        The phase at reference frequency or peak amplitude (depends on waveform)
+    lambda_1: float
+        Dimensionless tidal deformability of mass_1
+    lambda_2: float
+        Dimensionless tidal deformability of mass_2
+    kwargs: dict
+        Optional keyword arguments, as for :code:`lal_binary_black_hole_time_domain`
+
+    Returns
+    =======
+    dict: A dictionary with the plus and cross polarisation strain modes on the
+    waveform's own time grid, and the epoch
+    """
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomPv2_NRTidal', reference_frequency=50.0,
+        minimum_frequency=20.0, catch_waveform_errors=False,
+        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
+        pn_amplitude_order=0, turn_on_window=0)
+    waveform_kwargs.update(kwargs)
+    return _base_lal_cbc_td_waveform(
+        time_array=time_array, mass_1=mass_1, mass_2=mass_2,
+        luminosity_distance=luminosity_distance, theta_jn=theta_jn, phase=phase,
+        a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_12=phi_12,
+        phi_jl=phi_jl, lambda_1=lambda_1, lambda_2=lambda_2, **waveform_kwargs)
+
+
+def _base_lal_cbc_td_waveform(
+        time_array, mass_1, mass_2, luminosity_distance, theta_jn, phase,
+        a_1=0.0, a_2=0.0, tilt_1=0.0, tilt_2=0.0, phi_12=0.0, phi_jl=0.0,
+        lambda_1=0.0, lambda_2=0.0, eccentricity=0.0, **waveform_kwargs):
+    """ Generate a time-domain cbc waveform model using lalsimulation
+
+    Parameters are as in :code:`_base_lal_cbc_fd_waveform`, with `time_array`
+    in place of `frequency_array`.
+
+    Returns
+    =======
+    dict: A dictionary with the plus and cross polarisation strain modes on the
+    waveform's own time grid, and the epoch, the time of the first sample relative
+    to the merger (in s)
+    """
+    import lalsimulation as lalsim
+    from scipy.signal.windows import tukey
+
+    waveform_approximant = waveform_kwargs.pop('waveform_approximant')
+    reference_frequency = waveform_kwargs.pop('reference_frequency')
+    minimum_frequency = waveform_kwargs.pop('minimum_frequency')
+    catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
+    turn_on_window = waveform_kwargs.pop('turn_on_window')
+    pn_amplitude_order = waveform_kwargs['pn_amplitude_order']
+
+    waveform_dictionary = set_waveform_dictionary(waveform_kwargs, lambda_1, lambda_2)
+    approximant = lalsim_GetApproximantFromString(waveform_approximant)
+
+    if pn_amplitude_order != 0:
+        start_frequency = lalsim.SimInspiralfLow2fStart(
+            float(minimum_frequency), int(pn_amplitude_order), approximant
+        )
+    else:
+        start_frequency = minimum_frequency
+
+    delta_time = float(time_array[1] - time_array[0])
+
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+
+    longitude_ascending_nodes = 0.0
+    mean_per_ano = 0.0
+
+    try:
+        hplus, hcross = lalsim_SimInspiralChooseTDWaveform(
+            mass_1, mass_2, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y,
+            spin_2z, luminosity_distance, iota, phase,
+            longitude_ascending_nodes, eccentricity, mean_per_ano, delta_time,
+            start_frequency, reference_frequency,
+            waveform_dictionary, approximant)
+    except Exception as e:
+        if not catch_waveform_errors:
+            raise
+        else:
+            EDOM = (e.args[0] == 'Internal function call failed: Input domain error')
+            if EDOM:
+                failed_parameters = dict(mass_1=mass_1, mass_2=mass_2,
+                                         spin_1=(spin_1x, spin_1y, spin_1z),
+                                         spin_2=(spin_2x, spin_2y, spin_2z),
+                                         luminosity_distance=luminosity_distance,
+                                         iota=iota, phase=phase,
+                                         eccentricity=eccentricity,
+                                         start_frequency=start_frequency)
+                logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                               "The parameters were {}\n".format(failed_parameters) +
+                               "Likelihood will be set to -inf.")
+                return None
+            else:
+                raise
+
+    if len(waveform_kwargs) > 0:
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+
+    window = tukey(hplus.data.length, turn_on_window)
+    window[hplus.data.length // 2:] = 1
+    epoch = hplus.epoch.gpsSeconds + hplus.epoch.gpsNanoSeconds * 1e-9
+    return dict(plus=window * hplus.data.data, cross=window * hcross.data.data, epoch=epoch)
+
+
+def lal_binary_black_hole_model_time(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ A time-domain Binary Black Hole waveform model for the IMRPhenomT family,
+    evaluated at the data samples of each interferometer, for
+    :code:`bilby.gw.likelihood.TimeDomainGravitationalWaveTransient` with
+    :code:`placement="model_time"`. See :code:`bilby.gw.model_time_waveforms`.
+
+    Parameters
+    ==========
+    time_array: array_like
+        The times of the data (only the sample spacing is used)
+    mass_1: float
+        The mass of the heavier object in solar masses
+    mass_2: float
+        The mass of the lighter object in solar masses
+    luminosity_distance: float
+        The luminosity distance in megaparsec
+    a_1: float
+        Dimensionless primary spin magnitude
+    tilt_1: float
+        Primary tilt angle
+    phi_12: float
+        Azimuthal angle between the two component spins
+    a_2: float
+        Dimensionless secondary spin magnitude
+    tilt_2: float
+        Secondary tilt angle
+    phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
+    theta_jn: float
+        Angle between the total binary angular momentum and the line of sight
+    phase: float
+        The phase at reference frequency or peak amplitude (depends on waveform)
+    kwargs: dict
+        Optional keyword arguments
+        Supported arguments:
+
+        - waveform_approximant: IMRPhenomT, IMRPhenomTHM, IMRPhenomTP or IMRPhenomTPHM
+        - reference_frequency
+        - minimum_frequency
+        - catch_waveform_errors
+        - mode_array: see :code:`lal_binary_black_hole`
+        - lal_waveform_dictionary
+
+    Returns
+    =======
+    dict: polarizations_at, a function of the times relative to the merger (in s)
+    which returns the plus and cross polarizations (None if the waveform failed)
+    """
+    from .model_time_waveforms import polarizations_at_model_times
+
+    return dict(polarizations_at=_model_time_function(
+        polarizations_at_model_times, time_array, mass_1, mass_2, luminosity_distance,
+        a_1, tilt_1, phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs))
+
+
+def lal_binary_black_hole_time_domain_heterodyning(
+        time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ A time-domain Binary Black Hole waveform model for the IMRPhenomT family, for
+    :code:`bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient`. See
+    :code:`bilby.gw.model_time_waveforms.heterodyning_terms_at_model_times`.
+
+    Parameters and keyword arguments are as in
+    :code:`lal_binary_black_hole_model_time`, and:
+
+    - fiducial: if 1, the waveform starts at fiducial_minimum_frequency and
+      polarizations_at is also returned (as in
+      :code:`lal_binary_black_hole_model_time`), so that the same waveform
+      generator can be used for an injection; otherwise only heterodyning_terms_at,
+      starting at minimum_frequency. Set by the likelihood.
+    - fiducial_minimum_frequency (default: minimum_frequency), set by the likelihood
+
+    Returns
+    =======
+    dict: heterodyning_terms_at, a function of the times relative to the merger
+    (in s) which returns the modes and harmonic factors (None if the waveform failed),
+    and, if fiducial is 1, polarizations_at
+    """
+    from .model_time_waveforms import heterodyning_terms_at_model_times, polarizations_at_model_times
+
+    fiducial = kwargs.pop("fiducial", 0)
+    fiducial_minimum_frequency = kwargs.pop("fiducial_minimum_frequency", None)
+    if fiducial and fiducial_minimum_frequency is not None:
+        kwargs["minimum_frequency"] = fiducial_minimum_frequency
+    arguments = (time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1, phi_12, a_2,
+                 tilt_2, phi_jl, theta_jn, phase)
+    waveform = dict(heterodyning_terms_at=_model_time_function(
+        heterodyning_terms_at_model_times, *arguments, **kwargs))
+    if fiducial:
+        waveform["polarizations_at"] = _model_time_function(
+            polarizations_at_model_times, *arguments, **kwargs)
+    return waveform
+
+
+def _model_time_function(
+        function, time_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ The function of the times relative to the merger (in s) which evaluates
+    `function` of :code:`bilby.gw.model_time_waveforms` with these parameters
+    """
+    import lal
+    from .model_time_waveforms import spin_arguments
+
+    waveform_kwargs = dict(
+        waveform_approximant='IMRPhenomTPHM', reference_frequency=50.0,
+        minimum_frequency=20.0, catch_waveform_errors=False,
+        pn_spin_order=-1, pn_tidal_order=-1, pn_phase_order=-1,
+        pn_amplitude_order=0)
+    waveform_kwargs.update(kwargs)
+    waveform_approximant = waveform_kwargs.pop('waveform_approximant')
+    reference_frequency = waveform_kwargs.pop('reference_frequency')
+    minimum_frequency = waveform_kwargs.pop('minimum_frequency')
+    catch_waveform_errors = waveform_kwargs.pop('catch_waveform_errors')
+    waveform_dictionary = set_waveform_dictionary(waveform_kwargs)
+    if len(waveform_kwargs) > 0:
+        raise ValueError(UNUSED_KWARGS_MESSAGE.format(waveform_kwargs=waveform_kwargs))
+
+    delta_time = float(time_array[1] - time_array[0])
+    luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+    mass_1 = mass_1 * utils.solar_mass
+    mass_2 = mass_2 * utils.solar_mass
+    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = bilby_to_lalsimulation_spins(
+        theta_jn=theta_jn, phi_jl=phi_jl, tilt_1=tilt_1, tilt_2=tilt_2,
+        phi_12=phi_12, a_1=a_1, a_2=a_2, mass_1=mass_1, mass_2=mass_2,
+        reference_frequency=reference_frequency, phase=phase)
+    spin_arguments(waveform_approximant, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z)
+    total_mass = (mass_1 / lal.MSUN_SI + mass_2 / lal.MSUN_SI) * lal.MTSUN_SI  # M in s, as lalsimulation computes it
+
+    def evaluate(times):
+        try:
+            return function(
+                np.asarray(times) / total_mass, waveform_approximant, mass_1, mass_2,
+                spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z,
+                luminosity_distance, iota, phase, delta_time, minimum_frequency,
+                reference_frequency, waveform_dictionary, truncate=True)
+        except Exception as e:
+            if not catch_waveform_errors or e.args[0] != 'Internal function call failed: Input domain error':
+                raise
+            logger.warning("Evaluating the waveform failed with error: {}\n".format(e) +
+                           "Likelihood will be set to -inf.")
+            return None
+
+    return evaluate
 
 
 def binary_black_hole_roq(
