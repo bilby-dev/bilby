@@ -914,7 +914,11 @@ def lalsim_SimNeutronStarEOS3PDViableFamilyCheck(p0, log10p1_si, p1, log10p2_si,
 def lalsim_CreateSimNeutronStarFamily(eos):
     from lalsimulation import CreateSimNeutronStarFamily
 
-    return CreateSimNeutronStarFamily(eos)
+    try:
+        # lalsimulation>=7 requires min_fam, 1 computes only mass, radius, and k2
+        return CreateSimNeutronStarFamily(eos, 1)
+    except TypeError:
+        return CreateSimNeutronStarFamily(eos)
 
 
 def lalsim_SimNeutronStarEOSMaxPseudoEnthalpy(eos):
@@ -947,6 +951,27 @@ def lalsim_SimNeutronStarMaximumMass(fam):
     return SimNeutronStarMaximumMass(fam)
 
 
+def _lalsim_first_branch_containing_mass(mass_in_SI, fam):
+    """
+    Return the index of the lowest central pressure stable branch of the
+    family containing the given mass, or None if branches are unavailable
+    (lalsimulation<7) or no branch contains the mass.
+
+    For families with twin stars this reproduces the behaviour of
+    lalsimulation<7, which only considered the first stable branch.
+    """
+    import lalsimulation
+
+    if not hasattr(lalsimulation, "SimNeutronStarFamNumberOfBranches"):
+        return None
+    for branch in range(lalsimulation.SimNeutronStarFamNumberOfBranches(fam)):
+        min_mass = lalsimulation.SimNeutronStarFamMinMassPerBranch(fam, branch)
+        max_mass = lalsimulation.SimNeutronStarFamMaxMassPerBranch(fam, branch)
+        if min_mass <= mass_in_SI <= max_mass:
+            return branch
+    return None
+
+
 def lalsim_SimNeutronStarRadius(mass_in_SI, fam):
     from lalsimulation import SimNeutronStarRadius
     try:
@@ -956,6 +981,11 @@ def lalsim_SimNeutronStarRadius(mass_in_SI, fam):
     except TypeError:
         raise TypeError("Unable to convert mass_in_SI to float.")
 
+    branch = _lalsim_first_branch_containing_mass(mass_in_SI, fam)
+    if branch is not None:
+        from lalsimulation import SimNeutronStarFamRadiusOfMassPerBranch
+
+        return SimNeutronStarFamRadiusOfMassPerBranch(mass_in_SI, fam, branch)
     return SimNeutronStarRadius(mass_in_SI, fam)
 
 
@@ -968,6 +998,11 @@ def lalsim_SimNeutronStarLoveNumberK2(mass_in_SI, fam):
     except TypeError:
         raise TypeError("Unable to convert mass_in_SI to float.")
 
+    branch = _lalsim_first_branch_containing_mass(mass_in_SI, fam)
+    if branch is not None:
+        from lalsimulation import SimNeutronStarFamLoveNumberK2OfMassPerBranch
+
+        return SimNeutronStarFamLoveNumberK2OfMassPerBranch(mass_in_SI, fam, branch)
     return SimNeutronStarLoveNumberK2(mass_in_SI, fam)
 
 
