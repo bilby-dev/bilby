@@ -62,6 +62,21 @@ class PriorDict(dict):
 
     @xp_wrap
     def evaluate_constraints(self, sample, *, xp=None):
+        """Evaluate whether each sample satisfies the :code:`Constraint` priors.
+
+        Parameters
+        ==========
+        sample: dict, pandas.DataFrame
+            The samples to check against the constraints. May be a dict of
+            parameter arrays or an equivalent DataFrame with one column per
+            parameter.
+
+        Returns
+        =======
+        array:
+            A boolean array, one entry per sample, that is :code:`True` where
+            all constraints are satisfied.
+        """
         out_sample = self.conversion_function(sample)
         if isinstance(out_sample, dict):
             prob = xp.ones_like(next(iter(out_sample.values())), dtype=bool)
