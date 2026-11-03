@@ -2,6 +2,7 @@ import unittest
 import os
 from shutil import rmtree
 from importlib.metadata import version
+import itertools
 
 import array_api_compat as aac
 import numpy as np
@@ -282,7 +283,7 @@ class TestGWUtils(unittest.TestCase):
         Test that the conversion between geocentric and ellipsoid coordinates is consistent
         for each quadrant, above and below the ellipsoid.
         """
-        for lat_sign, long_sign, height_sign in zip([-1, 1], [-1, 1], [-1, 1]):
+        for lat_sign, long_sign, height_sign in itertools.product([-1, 1], [-1, 1], [-1, 1]):
             latitude_true = lat_sign * self.xp.deg2rad(self.xp.asarray(46 + 27. / 60 + 18.528 / 3600))
             longitude_true = long_sign * self.xp.deg2rad(self.xp.asarray(119 + 24. / 60 + 27.5657 / 3600))
             elevation_true = height_sign * 142.554
