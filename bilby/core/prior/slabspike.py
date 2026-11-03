@@ -6,6 +6,15 @@ from ...compat.utils import xp_wrap
 
 
 class SlabSpikePrior(Prior):
+    _leaves = [
+        "slab",
+        "_spike_location",
+        "_spike_height",
+        "inverse_cdf_below_spike",
+        "_minimum",
+        "_maximum",
+    ]
+
     def __init__(self, slab, spike_location=None, spike_height=0):
         """'Slab-and-spike' prior, see e.g. https://arxiv.org/abs/1812.07259
         This prior is composed of a `slab`, i.e. any common prior distribution,
@@ -52,7 +61,7 @@ class SlabSpikePrior(Prior):
 
     @property
     def spike_location(self):
-        return self._spike_loc
+        return self._spike_location
 
     @spike_location.setter
     def spike_location(self, spike_loc):
@@ -62,7 +71,7 @@ class SlabSpikePrior(Prior):
             raise ValueError(
                 "Spike location {} not within prior domain ".format(spike_loc)
             )
-        self._spike_loc = spike_loc
+        self._spike_location = spike_loc
 
     @property
     def spike_height(self):

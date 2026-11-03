@@ -2,7 +2,9 @@ import os
 import unittest
 from parameterized import parameterized
 
+import array_api_compat as aac
 import numpy as np
+import pytest
 from bilby.core.prior import PriorDict
 from bilby.gw import calibration, detector, prior
 
@@ -25,6 +27,8 @@ class TestBaseClass(unittest.TestCase):
         assert np.all(cal_factor.real == np.ones_like(frequency_array))
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestCubicSpline(unittest.TestCase):
     def setUp(self):
         self.prefix = "recalib_"
@@ -64,6 +68,25 @@ class TestCubicSpline(unittest.TestCase):
         )
         actual = repr(self.model)
         self.assertEqual(expected, actual)
+
+    def test_jits(self):
+        if not aac.is_jax_namespace(self.xp):
+            pytest.skip("Jitting test only works with JAX")
+
+        import jax
+        import jax.numpy as jnp
+        from bilby.gw.compat import pytrees  # noqa
+
+        evaluate_calib = jax.jit(self.model.get_calibration_factor)
+
+        cache_size = evaluate_calib._cache_size()
+        frequency_array = jnp.linspace(20, 1024, 1000)
+        parameters = {k: jnp.asarray(v) for k, v in self.parameters.items()}
+        evaluate_calib(frequency_array, **parameters)
+        parameters = {k: jnp.asarray(v * 2) for k, v in self.parameters.items()}
+        new_cache_size = evaluate_calib._cache_size()
+        message = "Cache size increased by more than 1 for CubicSpline"
+        assert new_cache_size <= cache_size + 1, message
 
 
 class TestCubicSplineRequiresFourNodes(unittest.TestCase):

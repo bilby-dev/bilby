@@ -29,6 +29,11 @@ from ...compat.utils import xp_wrap
 
 def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
+        _leaves = prior_class._leaves
+
+        __name__ = "Conditional{}".format(prior_class.__name__)
+        __qualname__ = "Conditional{}".format(prior_class.__qualname__)
+
         def __init__(
             self,
             condition_func,
@@ -92,10 +97,6 @@ def conditional_prior_factory(prior_class):
             self._required_variables = None
             self.condition_func = condition_func
             self._reference_params = reference_params
-            self.__class__.__name__ = "Conditional{}".format(prior_class.__name__)
-            self.__class__.__qualname__ = "Conditional{}".format(
-                prior_class.__qualname__
-            )
 
         def sample(self, size=None, *, random_state=None, **required_variables):
             """Draw a sample from the prior
@@ -429,6 +430,8 @@ class DirichletElement(ConditionalBeta):
         This should be the same for all elements.
     """
 
+    _leaves = []
+
     def __init__(self, order, n_dimensions, label):
         """ """
         super(DirichletElement, self).__init__(
@@ -455,6 +458,16 @@ class DirichletElement(ConditionalBeta):
 
     def get_instantiation_dict(self):
         return Prior.get_instantiation_dict(self)
+
+    def pytree_flatten(self):
+        children = ()
+        aux_data = (self.order, self.n_dimensions, self.label)
+        return children, aux_data
+
+    @classmethod
+    def pytree_unflatten(cls, aux_data, children):
+        print(aux_data, children)
+        return cls(*aux_data)
 
 
 class ConditionalPriorException(PriorException):
