@@ -27,6 +27,8 @@ from pathlib import Path
 from sphinx.ext import autosectionlabel
 
 sys.path.insert(0, os.path.abspath('../'))
+# for the bilby_pygments syntax highlighting style
+sys.path.insert(0, os.path.abspath('.'))
 import bilby  # noqa: E402
 
 
@@ -124,9 +126,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'requirements.txt']
 html_extra_path = ['robots.txt', 'google063678b5c432c237.html']
 
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'friendly'
-pygments_dark_style = 'monokai'
+# The name of the Pygments (syntax highlighting) style to use. As on
+# bilby-dev.github.io, code blocks are dark in both the light and dark themes.
+pygments_style = 'bilby_pygments.BilbyStyle'
+pygments_dark_style = 'bilby_pygments.BilbyStyle'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -138,18 +141,58 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 html_theme = 'furo'
-html_title = f'bilby {version}'
+html_title = 'bilby'
+
+html_logo = '_static/bilby-logo.jpg'
+html_favicon = '_static/bilby-logo.jpg'
+
+# Colours and fonts follow https://bilby-dev.github.io.
+_FONTS = {
+    'font-stack': '"Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif',
+    'font-stack--headings': '"Source Serif 4", Georgia, serif',
+    'font-stack--monospace': (
+        '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    ),
+}
 
 html_theme_options = {
     'source_edit_link': 'https://github.com/bilby-dev/bilby/edit/main/docs/{filename}',
     'source_view_link': 'https://github.com/bilby-dev/bilby/blob/main/docs/{filename}',
     'light_css_variables': {
-        'color-brand-primary': '#1f6f8b',
-        'color-brand-content': '#1f6f8b',
+        **_FONTS,
+        'color-brand-primary': '#286190',
+        'color-brand-content': '#286190',
+        'color-brand-visited': '#286190',
+        'color-foreground-primary': '#0b2540',
+        'color-foreground-secondary': '#4b6782',
+        'color-foreground-muted': '#4b6782',
+        'color-background-primary': '#ffffff',
+        'color-background-secondary': '#f2f7fc',
+        'color-background-hover': '#e4eef8',
+        'color-background-border': '#d6e4f1',
+        'color-sidebar-background': '#f2f7fc',
+        'color-inline-code-background': '#e3eef8',
+        'color-api-name': '#0f3557',
+        'color-api-pre-name': '#4b6782',
+        'color-heading': '#0f3557',
     },
     'dark_css_variables': {
-        'color-brand-primary': '#5fb8d6',
-        'color-brand-content': '#5fb8d6',
+        'color-brand-primary': '#8fc0ea',
+        'color-brand-content': '#8fc0ea',
+        'color-brand-visited': '#8fc0ea',
+        'color-foreground-primary': '#e6eff8',
+        'color-foreground-secondary': '#9db3c9',
+        'color-foreground-muted': '#9db3c9',
+        'color-background-primary': '#0a1622',
+        'color-background-secondary': '#0e1d2c',
+        'color-background-hover': '#12263a',
+        'color-background-border': '#1f3850',
+        'color-sidebar-background': '#0e1d2c',
+        'color-inline-code-background': '#15304a',
+        'color-card-background': '#102233',
+        'color-api-name': '#e6eff8',
+        'color-api-pre-name': '#9db3c9',
+        'color-heading': '#e6eff8',
     },
     'footer_icons': [
         {
@@ -169,7 +212,12 @@ html_theme_options = {
 }
 
 html_static_path = ['_static']
-html_css_files = ['custom.css']
+html_css_files = [
+    'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600'
+    '&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400'
+    '&family=Source+Serif+4:wght@500;600;700&display=swap',
+    'custom.css',
+]
 
 # Show short names, e.g., ``Interferometer(...)``, in API signatures.
 add_module_names = False
@@ -370,6 +418,54 @@ def linkcode_resolve(domain, info):
     return f"{GITURL}/tree/{GITHASH}/{file}#L{start}-L{end}"
 
 
+# -- Header navigation --------------------------------------------------------
+#
+# The header (templates/page.html) links to each captioned toctree in
+# index.txt, the API reference, and the interactive examples. Each entry is
+# (title, toctree caption or target, external).
+HEADER_LINKS = [
+    ("Getting started", "Getting started", False),
+    ("User guide", "User guide", False),
+    ("Gravitational waves", "Gravitational waves", False),
+    ("Tutorials", "Tutorials", False),
+    ("API reference", "api-reference", False),
+    ("Development", "Development", False),
+    ("Examples", INTERACTIVE_EXAMPLES_URL, True),
+]
+
+
+def _toctree_sections(app):
+    from sphinx import addnodes
+
+    if not hasattr(app, "_bilby_toctree_sections"):
+        doctree = app.env.get_doctree(app.config.master_doc)
+        app._bilby_toctree_sections = {
+            node["caption"]: [docname for _, docname in node["entries"]]
+            for node in doctree.findall(addnodes.toctree)
+            if node.get("caption")
+        }
+    return app._bilby_toctree_sections
+
+
+def _add_header_links(app, pagename, templatename, context, doctree):
+    sections = _toctree_sections(app)
+    pathto = context["pathto"]
+    links = []
+    for title, target, external in HEADER_LINKS:
+        if external:
+            url, active = target, False
+        elif target == "api-reference":
+            url = f"{pathto(app.config.master_doc)}#api-reference"
+            active = pagename.startswith("api/")
+        else:
+            docnames = sections.get(target, [])
+            if not docnames:
+                continue
+            url, active = pathto(docnames[0]), pagename in docnames
+        links.append(dict(title=title, url=url, active=active, external=external))
+    context["bilby_header_links"] = links
+
+
 def _register_sections_as_label(app, document):
     """
     Only create automatic section labels for the narrative pages, API page
@@ -386,6 +482,7 @@ def setup(app):
         if listener.handler is autosectionlabel.register_sections_as_label:
             app.disconnect(listener.id)
     app.connect("doctree-read", _register_sections_as_label)
+    app.connect("html-page-context", _add_header_links)
     if BILBY_DOCS_API:
         # run after autosummary (priority 500) has generated the stubs
         app.connect("builder-inited", _exclude_api_pages, priority=900)

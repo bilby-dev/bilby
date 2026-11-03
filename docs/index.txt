@@ -46,6 +46,12 @@ be used for more general problems.
 
       Detailed documentation of every module, class, and function in bilby.
 
+   .. grid-item-card:: :octicon:`git-pull-request` Contributing
+      :link: contribution-guide
+      :link-type: doc
+
+      Report issues, propose changes, and help develop bilby.
+
 The code is hosted at https://github.com/bilby-dev/bilby, and you can run and
 edit the :doc:`examples <examples>` in your browser with no installation.
 If you use bilby in a scientific publication, please :doc:`cite it <citing-bilby>`.

@@ -1,4 +1,47 @@
-/* Small tweaks on top of the furo theme. */
+/* Small tweaks on top of the furo theme. Colours and fonts follow
+   https://bilby-dev.github.io, see html_theme_options in conf.py. */
+
+html {
+  font-size: 106.25%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Serif headings and wordmark, as on the website. */
+h1, h2, h3, h4, h5, h6, .sidebar-brand-text {
+  font-family: var(--font-stack--headings);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+article h1, article h2, article h3 {
+  color: var(--color-heading);
+}
+/* Logo and name side by side, as in the website header. */
+.sidebar-brand {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+.sidebar-logo-container {
+  margin: 0;
+}
+.sidebar-logo {
+  width: 40px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-background-border);
+}
+.sidebar-brand-text {
+  margin: 0;
+  font-size: 1.65rem;
+  color: var(--color-heading);
+}
+
+/* Rounded, dark code blocks. */
+div.highlight {
+  border-radius: 10px;
+}
+.highlight .copybtn {
+  color: #8aa6c1;
+}
 
 /* Let autosummary tables use the full content width; very long function names
    wrap rather than squeezing the description column. */
@@ -33,12 +76,172 @@ dl.py:not(.class):not(.exception) > dt {
 
 /* Landing page cards. */
 .sd-card {
-  border-radius: 0.5rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-color: var(--color-background-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px #0b25400d, 0 8px 28px -8px #0b254026;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .sd-card:hover {
+  transform: translateY(-2px);
   border-color: var(--color-brand-primary);
 }
 .sd-card-title {
+  font-family: var(--font-stack--headings);
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--color-brand-primary);
+}
+
+/* Site header (templates/page.html), as on bilby-dev.github.io. Only shown
+   on wide screens, narrow screens use furo's mobile header. */
+:root {
+  --bilby-header-height: 3.75rem;
+}
+.bilby-header {
+  display: none;
+}
+@media (min-width: 63.001em) {
+  html {
+    scroll-padding-top: calc(var(--bilby-header-height) + 1rem);
+  }
+  .bilby-header {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: var(--bilby-header-height);
+    background: color-mix(in srgb, var(--color-background-primary) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--color-background-border);
+  }
+  .sidebar-sticky,
+  .toc-sticky {
+    top: var(--bilby-header-height);
+    height: calc(100vh - var(--bilby-header-height));
+  }
+  /* The header has the logo, name and theme toggle. */
+  .sidebar-brand,
+  .theme-toggle-content {
+    display: none;
+  }
+}
+.bilby-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 0 1.25rem;
+}
+.bilby-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--color-heading);
+  text-decoration: none;
+}
+.bilby-brand img {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--color-background-border);
+}
+.bilby-wordmark {
+  font-family: var(--font-stack--headings);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.bilby-version {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--color-inline-code-background);
+  color: var(--color-brand-primary);
+  font: 600 0.7rem/1 var(--font-stack--monospace);
+  text-decoration: none;
+}
+.bilby-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bilby-nav ul {
+  display: flex;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bilby-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  color: var(--color-foreground-primary);
+  font-size: 0.92rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.bilby-nav a:hover {
+  background: var(--color-background-hover);
+}
+.bilby-nav a.active {
+  color: var(--color-brand-primary);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--color-brand-primary);
+  border-radius: 8px 8px 0 0;
+}
+.bilby-external-icon {
+  width: 0.85em;
+  height: 0.85em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+.bilby-header-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.bilby-header-icons a,
+.bilby-header-icons .theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-foreground-primary);
+  cursor: pointer;
+}
+.bilby-header-icons a:hover,
+.bilby-header-icons .theme-toggle:hover {
+  background: var(--color-background-hover);
+}
+.bilby-header-icons svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.bilby-header-icons a svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (max-width: 80em) {
+  .bilby-nav {
+    margin-left: 0.25rem;
+  }
+  .bilby-nav a {
+    padding: 0.45rem 0.45rem;
+    font-size: 0.86rem;
+  }
 }
