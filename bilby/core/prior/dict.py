@@ -550,8 +550,8 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the probability
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -592,8 +592,8 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which to calculate the log probability
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the log probability
         axis: None or int
             Axis along which the summation is performed
         normalized: bool
@@ -833,8 +833,8 @@ class ConditionalPriorDict(PriorDict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the probability
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -861,8 +861,8 @@ class ConditionalPriorDict(PriorDict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the log probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the log probability
         axis: Union[None, int]
             Axis along which the summation is performed
         normalized: bool
