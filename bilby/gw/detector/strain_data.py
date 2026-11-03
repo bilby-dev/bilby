@@ -103,10 +103,17 @@ class InterferometerStrainData(object):
     def maximum_frequency(self):
         """ Force the maximum frequency be less than the Nyquist frequency """
         if self.sampling_frequency is not None:
-            xp = array_module(self._maximum_frequency)
-            self._maximum_frequency = xp.minimum(
-                self._maximum_frequency, self.sampling_frequency / 2
-            )
+            limits = (self._maximum_frequency, self.sampling_frequency / 2)
+            xp = array_module(limits)
+            if not aac.is_numpy_namespace(xp):
+                reference = next(value for value in limits if aac.is_array_api_obj(value))
+                # Scalars must share the tensor's device and precision.
+                limits = tuple(
+                    value if aac.is_array_api_obj(value) else xp.asarray(
+                        value, dtype=reference.dtype, device=aac.device(reference)
+                    ) for value in limits
+                )
+            self._maximum_frequency = xp.minimum(*limits)
         return self._maximum_frequency
 
     @maximum_frequency.setter

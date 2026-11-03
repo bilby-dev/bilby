@@ -27,10 +27,12 @@ def get_sampling_frequency(time_array):
 
     """
     tol = 1e-10
-    if np.ptp(np.diff(time_array)) > tol:
+    xp = array_module(time_array)
+    differences = xp.diff(xp.asarray(time_array))
+    if xp.max(differences) - xp.min(differences) > tol:
         raise ValueError("Your time series was not evenly sampled")
     else:
-        return np.round(1. / (time_array[1] - time_array[0]), decimals=_TOL)
+        return xp.round(1. / differences[0], decimals=_TOL)
 
 
 def get_sampling_frequency_and_duration_from_time_array(time_array):
@@ -77,14 +79,16 @@ def get_sampling_frequency_and_duration_from_frequency_array(frequency_array):
     """
 
     tol = 1e-10
-    if np.ptp(np.diff(frequency_array)) > tol:
+    xp = array_module(frequency_array)
+    differences = xp.diff(xp.asarray(frequency_array))
+    if xp.max(differences) - xp.min(differences) > tol:
         raise ValueError("Your frequency series was not evenly sampled")
 
     number_of_frequencies = len(frequency_array)
-    delta_freq = frequency_array[1] - frequency_array[0]
-    duration = np.round(1 / delta_freq, decimals=_TOL)
+    delta_freq = differences[0]
+    duration = xp.round(1 / delta_freq, decimals=_TOL)
 
-    sampling_frequency = np.round(2 * (number_of_frequencies - 1) / duration, decimals=14)
+    sampling_frequency = xp.round(2 * (number_of_frequencies - 1) / duration, decimals=_TOL)
     return sampling_frequency, duration
 
 
