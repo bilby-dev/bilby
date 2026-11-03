@@ -63,6 +63,12 @@ table.autosummary td {
 article h1 {
   overflow-wrap: anywhere;
 }
+/* Smaller titles on phones so single long words, e.g., "Interferometer", fit. */
+@media (max-width: 30em) {
+  article h1 {
+    font-size: 2em;
+  }
+}
 
 /* Give API signatures a little more breathing room. */
 dl.py > dt {
@@ -104,11 +110,20 @@ dl.py:not(.class):not(.exception) > dt {
   html {
     scroll-padding-top: calc(var(--bilby-header-height) + 1rem);
   }
+  /* furo fixes body to the window height, which would stop the sticky header
+     sticking after one screen; let it grow with the page instead. */
+  body {
+    height: auto;
+  }
+  .page {
+    min-height: calc(100vh - var(--bilby-header-height));
+  }
   .bilby-header {
     display: block;
     position: sticky;
     top: 0;
-    z-index: 20;
+    /* above furo's sidebar (30) and table of contents (50) drawers */
+    z-index: 60;
     height: var(--bilby-header-height);
     background: color-mix(in srgb, var(--color-background-primary) 88%, transparent);
     backdrop-filter: saturate(1.4) blur(10px);
@@ -235,6 +250,14 @@ dl.py:not(.class):not(.exception) > dt {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+/* Between 63em and 82em furo's table of contents is a slide-out drawer; start
+   it below the header. */
+@media (min-width: 63.001em) and (max-width: 82em) {
+  .toc-drawer {
+    top: var(--bilby-header-height);
+    height: calc(100vh - var(--bilby-header-height));
+  }
 }
 @media (max-width: 80em) {
   .bilby-nav {
