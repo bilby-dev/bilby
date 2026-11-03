@@ -44,10 +44,12 @@ def array_module(arr):
     fallback mechanisms to ensure a valid array module is always returned.
 
     The inference logic proceeds as follows:
+
     1. If a single-element tuple is provided, extract the element first.
-    2. Attempt to use the array_api_compat.array_namespace() function
+    2. Attempt to use the :code:`array_api_compat.array_namespace()` function
        directly, which works for most array-like objects.
     3. If that fails, handle special cases:
+
        - Dictionaries: extract values and infer from non-string values
        - Builtin iterables (list, tuple, etc.): infer from elements
        - Builtin scalars: default to numpy

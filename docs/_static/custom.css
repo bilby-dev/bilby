@@ -1,0 +1,44 @@
+/* Small tweaks on top of the furo theme. */
+
+/* Let autosummary tables use the full content width; very long function names
+   wrap rather than squeezing the description column. */
+table.autosummary {
+  width: 100%;
+}
+table.autosummary td:first-child {
+  width: 45%;
+}
+table.autosummary td:first-child code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+table.autosummary td {
+  vertical-align: top;
+}
+
+/* Long dotted module names in page titles should wrap at dots, not mid-word. */
+article h1 {
+  overflow-wrap: anywhere;
+}
+
+/* Give API signatures a little more breathing room. */
+dl.py > dt {
+  padding: 0.3rem 0.5rem;
+  border-left: 3px solid var(--color-brand-primary);
+  background: var(--color-background-secondary);
+}
+dl.py:not(.class):not(.exception) > dt {
+  border-left-color: var(--color-background-border);
+}
+
+/* Landing page cards. */
+.sd-card {
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sd-card:hover {
+  border-color: var(--color-brand-primary);
+}
+.sd-card-title {
+  color: var(--color-brand-primary);
+}

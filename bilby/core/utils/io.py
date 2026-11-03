@@ -110,7 +110,7 @@ def encode_astropy_cosmology(obj):
     Adds the key :code:`__cosmology__` to the dictionary to indicate that the
     object is a cosmology object.
 
-    .. versionchange:: 2.5.0
+    .. versionchanged:: 2.5.0
         Now uses the :code:`to_format("mapping")` method to encode the
         cosmology object.
     """
@@ -228,7 +228,7 @@ def decode_astropy_cosmology(dct):
     :py:func:`~bilby.core.utils.io.encode_astropy_cosmology` and should have the
     key :code:`__cosmology__`.
 
-    .. versionchange:: 2.5.0
+    .. versionchanged:: 2.5.0
         Now uses the :code:`from_format` method to decode the cosmology object.
         Still supports decoding result files that used the previous encoding.
     """

@@ -60,7 +60,7 @@ def infer_args_from_function_except_n_args(func, n=1):
     func : function or method
        The function from which the arguments should be inferred.
     n : int
-       The number of arguments which should be ignored, staring at the beginning.
+       The number of arguments which should be ignored, starting at the beginning.
 
     Returns
     =======
@@ -71,8 +71,8 @@ def infer_args_from_function_except_n_args(func, n=1):
     ================
     This function is intended to allow the handling of named arguments
     in both functions and methods; this is important, since the first
-    argument of an instance method will be the instance. It throws out *args
-    and **kwargs style arguments.
+    argument of an instance method will be the instance. It throws out
+    :code:`*args` and :code:`**kwargs` style arguments.
 
     See Also
     ========
@@ -140,8 +140,8 @@ class PropertyAccessor(object):
         def length(self):
             return self.geometry.length
 
-        @length_setter
-        def length(self, length)
+        @length.setter
+        def length(self, length):
             self.geometry.length = length
 
     in the Interferometer class
@@ -150,8 +150,11 @@ class PropertyAccessor(object):
     def __init__(self, container_instance_name, property_name):
         self.property_name = property_name
         self.container_instance_name = container_instance_name
+        self.__doc__ = f"Alias for :code:`{container_instance_name}.{property_name}`."
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
         return getattr(getattr(instance, self.container_instance_name), self.property_name)
 
     def __set__(self, instance, value):

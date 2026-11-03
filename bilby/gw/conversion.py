@@ -583,14 +583,15 @@ def convert_to_lal_binary_neutron_star_parameters(parameters):
 def log_pressure_reparameterization_conversion(scaled_pressure_ratio, scaled_pressure_2):
     '''
     Converts the reparameterization joining pressures from
-        (scaled_pressure_ratio,scaled_pressure_2) to (log10_pressure_1,log10_pressure_2).
-    This reparameterization with a triangular prior (with mode = max)  on scaled_pressure_2
-        and a uniform prior on scaled_pressure_ratio
-        mimics identical uniform priors on log10_pressure_1 and log10_pressure_2
-        where samples with log10_pressure_2 > log10_pressure_1 are rejected.
+    (scaled_pressure_ratio, scaled_pressure_2) to (log10_pressure_1, log10_pressure_2).
+
+    This reparameterization with a triangular prior (with mode = max) on scaled_pressure_2
+    and a uniform prior on scaled_pressure_ratio
+    mimics identical uniform priors on log10_pressure_1 and log10_pressure_2
+    where samples with log10_pressure_2 > log10_pressure_1 are rejected.
     This reparameterization allows for a faster initialization.
     A minimum log10_pressure of 33 (in cgs units) is chosen to be slightly higher than the low-density crust EOS
-        that is stitched to the dynamic polytrope EOS model in LALSimulation.
+    that is stitched to the dynamic polytrope EOS model in LALSimulation.
 
     Parameters
     ----------
@@ -613,12 +614,13 @@ def log_pressure_reparameterization_conversion(scaled_pressure_ratio, scaled_pre
 def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3):
     '''
     Change of basis on parameter space
-        from an efficient space to sample in (sample space)
-        to the space used in spectral eos model (model space).
-    Uses principle component analysis (PCA) to sample spectral gamma parameters more efficiently.
-    See arxiv:2001.01747 for the PCA conversion transformation matrix, mean, and standard deviation.
+    from an efficient space to sample in (sample space)
+    to the space used in spectral EOS model (model space).
+
+    Uses principal component analysis (PCA) to sample spectral gamma parameters more efficiently.
+    See arXiv:2001.01747 for the PCA conversion transformation matrix, mean, and standard deviation.
     (Note that this transformation matrix is the inverse of the one referenced
-        in order to perform the inverse transformation.)
+    in order to perform the inverse transformation.)
 
     Parameters
     ----------
@@ -692,11 +694,12 @@ def polytrope_or_causal_params_to_lambda_1_lambda_2(
         param1, log10_pressure1_cgs, param2, log10_pressure2_cgs, param3, mass_1_source, mass_2_source, causal):
     """
     Converts parameters from sampled dynamic piecewise polytrope parameters
-        to component tidal deformablity parameters.
+    to component tidal deformability parameters.
+
     Enforces log10_pressure1_cgs < log10_pressure2_cgs.
     Checks number of points in the equation of state for viability.
     Note that subtracting 1 from the log10 pressure in cgs converts it to
-        log10 pressure in si units.
+    log10 pressure in SI units.
 
     Parameters
     ----------
@@ -1278,7 +1281,7 @@ def lambda_1_lambda_2_to_lambda_symmetric(lambda_1, lambda_2):
         Tidal parameter of less massive neutron star.
 
     Returns
-    ======
+    =======
     lambda_symmetric: float
         Symmetric tidal parameter.
     """
@@ -1300,7 +1303,7 @@ def lambda_1_lambda_2_to_lambda_antisymmetric(lambda_1, lambda_2):
         Tidal parameter of less massive neutron star.
 
     Returns
-    ======
+    =======
     lambda_antisymmetric: float
         Antisymmetric tidal parameter.
     """
@@ -1322,7 +1325,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_1(lambda_symmetric, lambda_a
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     """
@@ -1344,7 +1347,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_2(lambda_symmetric, lambda_a
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_2: float
         Tidal parameter of less massive neutron star.
     """
@@ -1366,7 +1369,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_1_lambda_2(lambda_symmetric,
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -1401,7 +1404,7 @@ def binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(lambda_s
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_antisymmetric: float
         Antisymmetric tidal parameter.
     """
@@ -1476,7 +1479,7 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(bin
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -1616,7 +1619,7 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -1839,15 +1842,14 @@ def fill_from_fixed_priors(sample, priors):
 
 
 def generate_component_masses(sample, require_add=False, source=False):
-    """"
-    Add the component masses to the dataframe/dictionary
-    We add:
-        mass_1, mass_2
-    Or if source=True
-        mass_1_source, mass_2_source
+    """
+    Add the component masses to the dataframe/dictionary.
+
+    We add :code:`mass_1, mass_2`, or if :code:`source=True`,
+    :code:`mass_1_source, mass_2_source`.
     We also add any other masses which may be necessary for
-    intermediate steps, i.e. typically the  total mass is necessary, along
-    with the mass ratio, so these will usually be added to the dictionary
+    intermediate steps, i.e., typically the total mass is necessary, along
+    with the mass ratio, so these will usually be added to the dictionary.
 
     If `require_add` is True, then having an incomplete set of mass
     parameters (so that the component mass parameters cannot be added)
@@ -1855,7 +1857,7 @@ def generate_component_masses(sample, require_add=False, source=False):
     dictionary.
 
     Parameters
-    =========
+    ==========
     sample : dict
         The input dictionary with at least one
         component with overall mass scaling (i.e.
@@ -2402,7 +2404,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
     block: int, (default=10)
         Size of the blocks to use in multiprocessing
     use_cache: bool, (default=True)
-        If true, cache the generation so that reconstuction can begin from the
+        If true, cache the generation so that reconstruction can begin from the
         cache on restart.
 
     Returns

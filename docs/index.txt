@@ -1,63 +1,123 @@
-Welcome to bilby's documentation!
-=================================
+=====
+bilby
+=====
 
-.. automodule:: bilby
-    :members:
+**A user-friendly Bayesian inference library.**
+
+Bilby provides a simple interface to perform parameter estimation with a wide
+range of stochastic samplers. It is primarily designed and built for inference
+of compact binary coalescence events in interferometric data, but it can also
+be used for more general problems.
+
+.. grid:: 1 2 2 2
+   :gutter: 3
+   :margin: 4 4 0 0
+
+   .. grid-item-card:: :octicon:`download` Installation
+      :link: installation
+      :link-type: doc
+
+      Install bilby with :code:`pip` or :code:`conda`, along with optional
+      samplers and gravitational-wave dependencies.
+
+   .. grid-item-card:: :octicon:`rocket` Getting started
+      :link: basics-of-parameter-estimation
+      :link-type: doc
+
+      Fit a simple model to data and learn the core concepts: likelihoods,
+      priors, samplers, and results.
+
+   .. grid-item-card:: :octicon:`pulse` Gravitational-wave inference
+      :link: compact-binary-coalescence-parameter-estimation
+      :link-type: doc
+
+      Analyse compact binary coalescences in real or simulated
+      gravitational-wave data.
+
+   .. grid-item-card:: :octicon:`code` API reference
+      :link: api-reference
+      :link-type: ref
+
+      Detailed documentation of every module, class, and function in bilby.
+
+The code, and many examples, are hosted at https://github.com/bilby-dev/bilby.
+If you use bilby in a scientific publication, please :doc:`cite it <citing-bilby>`.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Getting started
+   :hidden:
 
    installation
-   citing-bilby
-   code-overview
-   examples
    basics-of-parameter-estimation
+   examples
+   citing-bilby
+   faq
+
+.. toctree::
+   :maxdepth: 1
+   :caption: User guide
+   :hidden:
+
    prior
    likelihood
    samplers
-   array_api
    dynesty-guide
    bilby-mcmc-guide
-   rng
-   parameters
-   plugins
    bilby-output
-   compact-binary-coalescence-parameter-estimation
-   transient-gw-data
-   gw_likelihood
-   gw_prior
-   conversion
-   gw_references
-   writing-documentation
    hyperparameters
+   parameters
+   array_api
+   parallelisation
+   rng
+   plugins
    containers
-   contribution-guide
-   faq
-
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples:
+   :caption: Gravitational waves
+   :hidden:
+
+   compact-binary-coalescence-parameter-estimation
+   transient-gw-data
+   gw_prior
+   gw_references
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+   :hidden:
 
    making_priors
+   conditional_priors
    compare_samplers
    fitting_with_x_and_y_errors
    visualising_the_results
 
-.. currentmodule:: bilby
+.. toctree::
+   :maxdepth: 1
+   :caption: Development
+   :hidden:
 
-API:
-----
+   contribution-guide
+   code-overview
+   writing-documentation
+
+.. _api-reference:
+
+API reference
+=============
+
+.. currentmodule:: bilby
 
 .. autosummary::
    :toctree: api
    :template: custom-module-template.rst
-   :caption: API:
+   :caption: API reference
    :recursive:
 
-    compat
-    core
-    gw
-    hyper
-    bilby_mcmc
+   compat
+   core
+   gw
+   hyper
+   bilby_mcmc

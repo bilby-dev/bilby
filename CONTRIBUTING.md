@@ -161,7 +161,7 @@ All changes to the code base go through the [merge-request
 workflow](https://docs.gitlab.com/ee/user/project/merge_requests/) Anyone may
 review your code and you should expect a few comments and questions. Once all
 discussions are resolved, core developers will approve the pull request and
-then merge it into the master branch. If you go a few days without a reply,
+then merge it into the main branch. If you go a few days without a reply,
 please feel free to ping the thread by adding a new comment.
 
 All pull requests should be focused: they should aim to either add one
@@ -202,7 +202,7 @@ Reviewers should follow these rules when processing pull requests:
 ## Typical workflow
 
 Bilby uses the fork and merge model for code review and contributing to the
-repository. As such, you won't be able to push changes to the master branch.
+repository. As such, you won't be able to push changes to the main branch.
 Instead, you'll need to create a fork, make your changes on a feature branch,
 then submit a pull request. The following subsections walk you through how to
 do this. 
@@ -534,7 +534,7 @@ Below, we give a schematic of how the code is structured. This is intended to
 help orient users and make it easier to contribute. The layout is intended to
 define the logic of the code and new pull requests should aim to fit within
 this logic (unless there is a good argument to change it). For example, code
-which adds a new sampler should not effect the gravitational-wave specific
+which adds a new sampler should not affect the gravitational-wave specific
 parts of the code. Note that this document is not programmatically generated and
 so may get out of date with time. If you notice something wrong, please open an
 issue.

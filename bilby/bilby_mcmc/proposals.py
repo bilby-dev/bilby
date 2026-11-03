@@ -581,7 +581,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
             The factor to use in determining the max-JS factor to terminate
             training.
         max_training_epochs: int
-            The maximum bumber of traning steps to take
+            The maximum number of training steps to take
         """
     )
 

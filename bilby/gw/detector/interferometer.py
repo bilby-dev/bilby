@@ -759,7 +759,7 @@ class Interferometer(object):
         Saves two files: the frequency domain strain data with three columns [f, real part of h(f),
         imaginary part of h(f)], and the amplitude spectral density with two columns [f, ASD(f)].
 
-        Note that in v1.3.0 and below, the ASD was saved in a file called *_psd.dat.
+        Note that in v1.3.0 and below, the ASD was saved in a file called :code:`*_psd.dat`.
 
         Parameters
         ==========

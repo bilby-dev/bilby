@@ -18,11 +18,16 @@
 #
 import importlib
 import inspect
+import logging
 import os
 import subprocess
 import sys
-import bilby
+from pathlib import Path
+
+from sphinx.ext import autosectionlabel
+
 sys.path.insert(0, os.path.abspath('../'))
+import bilby  # noqa: E402
 
 
 def git_revision_hash():
@@ -67,6 +72,7 @@ extensions = [
     'sphinx_design',
     "sphinx.ext.linkcode",
     'myst_parser',
+    "sphinx_copybutton",
     "sphinx_sitemap",
 ]
 autosummary_generate = True
@@ -84,8 +90,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'bilby'
-copyright = u'2019, Greg Ashton'
-author = u'Greg Ashton'
+copyright = u'2019, The Bilby Developers'
+author = u'The Bilby Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -104,7 +110,7 @@ release = version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -118,7 +124,8 @@ html_extra_path = ['robots.txt', 'google063678b5c432c237.html']
 
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'friendly'
+pygments_dark_style = 'monokai'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -129,33 +136,46 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
+html_title = f'bilby {version}'
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
-
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# This is required for the alabaster theme
-# refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
-        'donate.html',
-    ]
+html_theme_options = {
+    'source_edit_link': 'https://github.com/bilby-dev/bilby/edit/main/docs/{filename}',
+    'source_view_link': 'https://github.com/bilby-dev/bilby/blob/main/docs/{filename}',
+    'light_css_variables': {
+        'color-brand-primary': '#1f6f8b',
+        'color-brand-content': '#1f6f8b',
+    },
+    'dark_css_variables': {
+        'color-brand-primary': '#5fb8d6',
+        'color-brand-content': '#5fb8d6',
+    },
+    'footer_icons': [
+        {
+            'name': 'GitHub',
+            'url': 'https://github.com/bilby-dev/bilby',
+            'html': (
+                '<svg stroke="currentColor" fill="currentColor" stroke-width="0" '
+                'viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 '
+                '6-5.5.1-1.3-.3-2.5-1-3.5.3-1.2.3-2.4 0-3.5 0 0-1 0-3 1.5a10.4 10.4 '
+                '0 0 0-5.5 0C7.5 2 6.5 2 6.5 2c-.3 1.1-.3 2.3 0 3.5A5.4 5.4 0 0 0 5.5 '
+                '9c0 3.5 3 5.5 6 5.5-.4.5-.7 1-.8 1.6-.2.6-.3 1.3-.2 1.9v4"/>'
+                '<path d="M9 18c-4.5 2-5-2-7-2"/></svg>'
+            ),
+            'class': '',
+        },
+    ],
 }
+
+html_static_path = ['_static']
+html_css_files = ['custom.css']
+
+# Show short names, e.g., ``Interferometer(...)``, in API signatures.
+add_module_names = False
+
+# Strip shell prompts when copying code blocks.
+copybutton_prompt_text = r'\$ '
+copybutton_prompt_is_regexp = True
 
 html_baseurl = 'https://bilby-dev.github.io/bilby/'
 
@@ -190,7 +210,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'bilby.tex', u'bilby Documentation',
-     u'Paul Lasky', 'manual'),
+     u'The Bilby Developers', 'manual'),
 ]
 
 
@@ -217,8 +237,91 @@ texinfo_documents = [
 
 numpydoc_show_class_members = False
 
+# Some pages, e.g., the contribution guide which includes CONTRIBUTING.md and
+# the tutorial notebooks, repeat section titles from elsewhere in the docs.
+suppress_warnings = [
+    "autosectionlabel.code-overview",
+    "autosectionlabel.contribution-guide",
+    "autosectionlabel.fitting_with_x_and_y_errors",
+    "autosectionlabel.visualising_the_results",
+]
+
 # nbsphinx options
 nbsphinx_execute = "never"
+
+
+def _defining_module(obj):
+    if isinstance(obj, property):
+        obj = obj.fget
+    elif isinstance(obj, (classmethod, staticmethod)):
+        obj = obj.__func__
+    module = getattr(obj, "__module__", None)
+    if module is None and hasattr(obj, "__objclass__"):
+        # methods of builtin types, e.g., dict.keys
+        module = obj.__objclass__.__module__
+    return module
+
+
+def skip_external_members(app, what, name, obj, skip, options):
+    """
+    Don't document class members inherited from third-party base classes,
+    e.g., :code:`dict` or :code:`torch.nn.Module`, these just add noise to the
+    API pages and their docstrings often don't render cleanly.
+    """
+    if what not in ("class", "method", "attribute", "property"):
+        return None
+    if name in ("__init__", "__call__"):
+        return None
+    module = _defining_module(obj)
+    if isinstance(module, str) and not module.startswith("bilby"):
+        return True
+    return None
+
+
+# -- Partial API builds -----------------------------------------------------
+#
+# Building the full API reference is slow. Setting BILBY_DOCS_API to a
+# comma-separated list of dotted module/object prefixes restricts the API pages
+# that are read to those prefixes (and their parent modules), e.g.,
+#
+#     make html-api API=bilby.core.prior,bilby.gw.conversion
+#
+# Use ``API=none`` to skip the API reference entirely. The narrative pages are
+# always built. See writing-documentation.txt for details.
+BILBY_DOCS_API = [
+    prefix.strip()
+    for prefix in os.environ.get("BILBY_DOCS_API", "").split(",")
+    if prefix.strip()
+]
+
+
+def _keep_api_page(name):
+    return any(
+        name == prefix
+        or name.startswith(f"{prefix}.")
+        or prefix.startswith(f"{name}.")
+        for prefix in BILBY_DOCS_API
+    )
+
+
+def _exclude_api_pages(app):
+    # This runs after autosummary has (re)generated the stub files so that
+    # newly created pages are also filtered.
+    api_dir = Path(app.srcdir) / "api"
+    app.config.exclude_patterns.extend(
+        f"api/{path.name}"
+        for path in api_dir.glob("*.rst")
+        if not _keep_api_page(path.stem)
+    )
+
+
+class _ExcludedAPIFilter(logging.Filter):
+    def filter(self, record):
+        return "references excluded document" not in str(record.msg)
+
+
+if BILBY_DOCS_API:
+    suppress_warnings.append("toc.excluded")
 
 
 def linkcode_resolve(domain, info):
@@ -256,3 +359,27 @@ def linkcode_resolve(domain, info):
         return
 
     return f"{GITURL}/tree/{GITHASH}/{file}#L{start}-L{end}"
+
+
+def _register_sections_as_label(app, document):
+    """
+    Only create automatic section labels for the narrative pages, API page
+    titles, e.g., ``Likelihood``, would otherwise clash with them.
+    """
+    if app.env.docname.startswith("api/"):
+        return
+    autosectionlabel.register_sections_as_label(app, document)
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip_external_members)
+    for listener in list(app.events.listeners["doctree-read"]):
+        if listener.handler is autosectionlabel.register_sections_as_label:
+            app.disconnect(listener.id)
+    app.connect("doctree-read", _register_sections_as_label)
+    if BILBY_DOCS_API:
+        # run after autosummary (priority 500) has generated the stubs
+        app.connect("builder-inited", _exclude_api_pages, priority=900)
+        logging.getLogger("sphinx.sphinx.ext.autosummary").addFilter(
+            _ExcludedAPIFilter()
+        )

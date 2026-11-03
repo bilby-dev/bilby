@@ -54,7 +54,7 @@ class GravitationalWaveTransient(Likelihood):
         This is done numerically over a number of calibration response curve realizations.
     priors: dict, optional
         If given, used in the distance and phase marginalization.
-        Warning: when using marginalisation the dict is overwritten which will change the
+        Warning: when using marginalisation the dict is overwritten which will change
         the dict you are passing in. If this behaviour is undesired, pass `priors.copy()`.
     distance_marginalization_lookup_table: (dict, str), optional
         If a dict, dictionary containing the lookup_table, distance_array,
@@ -88,7 +88,7 @@ class GravitationalWaveTransient(Likelihood):
         - :code:`sky`: sample in RA/dec, this is the default
         - e.g., :code:`"H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"])`:
           sample in azimuth and zenith, `azimuth` and `zenith` defined in the
-          frame where the z-axis is aligned the the vector connecting H1
+          frame where the z-axis is aligned with the vector connecting H1
           and L1.
 
     time_reference: str, optional

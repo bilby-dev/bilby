@@ -466,7 +466,7 @@ def gracedb_to_json(gracedb, cred=None, service_url='https://gracedb.ligo.org/ap
         GraceDB 'https://gracedb.ligo.org/api/' (default)
         GraceDB-playground 'https://gracedb-playground.ligo.org/api/'
     outdir: str, optional
-        If given, a string identfying the location in which to store the json
+        If given, a string identifying the location in which to store the json
     """
     logger.info(
         'Starting routine to download GraceDb candidate {}'.format(gracedb))
@@ -1062,19 +1062,19 @@ def safe_cast_mode_to_int(value):
     Raises an error if the value is a float or any unsupported type.
 
     Parameters
-    ---------------
-    value:
-         The input value to be cast to an integer.
+    ==========
+    value: int or str
+        The input value to be cast to an integer.
 
     Returns
-    ----------
+    =======
     int:
         The converted integer.
 
     Raises
-    ---------
+    ======
     TypeError
-         If the input is a float or an unsupported type.
+        If the input is a float or an unsupported type.
     ValueError
         If the string cannot be converted to an integer.
     """
