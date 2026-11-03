@@ -433,9 +433,12 @@ class TestEstimateNMCMC(unittest.TestCase):
         """
         sampler = dynesty_utils.AcceptanceTrackingRWalk()
         dynesty_utils.AcceptanceTrackingRWalk.old_act = None
+        rng = np.random.default_rng(1234)
         for _ in range(10):
-            accept_ratio = np.random.uniform()
-            safety = np.random.randint(2, 8)
+            # keep accept_ratio large enough that the expected value stays
+            # below the default maxmcmc=5000 cap
+            accept_ratio = rng.uniform(0.01, 1)
+            safety = rng.integers(2, 8)
             expected = safety * (2 / accept_ratio - 1)
             for _ in range(1000):
                 estimated = sampler.estimate_nmcmc(

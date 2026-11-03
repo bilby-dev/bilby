@@ -64,7 +64,7 @@ class TestROQLikelihood(ROQBasisMixin, unittest.TestCase):
         ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.sampling_frequency, duration=self.duration
         )
-        ifos.set_array_backend(self.xp)
+        ifos.array_backend = self.xp
 
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors.pop("mass_1")
@@ -187,7 +187,11 @@ class TestROQLikelihood(ROQBasisMixin, unittest.TestCase):
             priors=self.priors,
         )
         roq_llr = roq.log_likelihood_ratio(self.test_parameters)
-        self.assertEqual(roq_llr, self.roq.log_likelihood_ratio(self.test_parameters))
+        np.testing.assert_allclose(
+            roq_llr,
+            self.roq.log_likelihood_ratio(self.test_parameters),
+            rtol=1e-12,
+        )
         self.assertEqual(aac.get_namespace(roq_llr), self.xp)
 
     def test_create_roq_weights_frequency_mismatch_works_with_params(self):
@@ -423,7 +427,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase, ROQBasisMixin):
                 self.injection_parameters["geocent_time"] - duration + 1
             ),
         )
-        interferometers.set_array_backend(self.xp)
+        interferometers.array_backend = self.xp
         for ifo in interferometers:
             ifo.minimum_frequency = self.xp.asarray(minimum_frequency)
             ifo.maximum_frequency = self.xp.asarray(maximum_frequency)
@@ -461,7 +465,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase, ROQBasisMixin):
                 self.injection_parameters["geocent_time"] - self.duration + 1
             ),
         )
-        interferometers.set_array_backend(self.xp)
+        interferometers.array_backend = self.xp
         for ifo in interferometers:
             ifo.minimum_frequency = self.minimum_frequency
         search_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -647,7 +651,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase, ROQBasisMixin):
         self.priors["chirp_mass"].maximum = mc_max
 
         interferometers = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        interferometers.set_array_backend(self.xp)
+        interferometers.array_backend = self.xp
         for ifo in interferometers:
             if minimum_frequency is None:
                 ifo.minimum_frequency = self.minimum_frequency

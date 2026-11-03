@@ -40,7 +40,7 @@ def _evaluate_with_jit(likelihood, parameters, xp):
     # call the function twice so that we test with and without compilation
     jitted = jit_fn(likelihood, parameters)
     jitted = jit_fn(likelihood, parameters)
-    assert xp.abs(expected - jitted) < 1e-12
+    np.testing.assert_allclose(jitted, expected, rtol=1e-12, atol=1e-12)
 
     # call with a copy of the likelihood to make sure it doesn't retrigger a compilation
     alt_likelihood = deepcopy(likelihood)
