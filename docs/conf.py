@@ -227,6 +227,9 @@ copybutton_prompt_text = r'\$ '
 copybutton_prompt_is_regexp = True
 
 html_baseurl = 'https://bilby-dev.github.io/bilby/'
+# sphinx-sitemap's default scheme, "{lang}{version}{link}", gives URLs like
+# .../bilby/en/2.9/index.html that don't exist; the docs are served unversioned.
+sitemap_url_scheme = "{link}"
 
 # Link to an example in the interactive, in-browser examples, e.g.,
 # :example:`run it in your browser <core_examples/linear_regression.py>`.
