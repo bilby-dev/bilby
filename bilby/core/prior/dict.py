@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 from importlib import import_module
@@ -621,18 +622,15 @@ class PriorDict(dict):
             ratio = self.normalize_constraint_factor(tuple(sample.keys()))
         else:
             ratio = 1
-        if not aac.is_jax_namespace(xp) and xp.all(xp.isfinite(ln_prob)):
-            return ln_prob
-        else:
-            if isinstance(ln_prob, float):
-                if xp.all(self.evaluate_constraints(sample, xp=xp)):
-                    return ln_prob + xp.log(ratio)
-                else:
-                    return -np.inf
+        if isinstance(ln_prob, float):
+            if xp.all(self.evaluate_constraints(sample, xp=xp)):
+                return ln_prob + math.log(ratio)
             else:
-                keep = self.evaluate_constraints(sample, xp=xp)
-                constrained_ln_prob = xp.where(keep, ln_prob + xp.log(ratio), -xp.inf)
-                return constrained_ln_prob
+                return -np.inf
+        else:
+            keep = self.evaluate_constraints(sample, xp=xp)
+            constrained_ln_prob = xp.where(keep, ln_prob + math.log(ratio), -xp.inf)
+            return constrained_ln_prob
 
     @xp_wrap
     def cdf(self, sample, *, xp=None):
@@ -809,6 +807,7 @@ class ConditionalPriorDict(PriorDict):
                             key: value[i] for key, value in required_variables.items()
                         }
                         samples[key][i] = subset_dict[key].sample(**rvars, random_state=random_state)
+                    subset_dict[key].least_recently_sampled = samples[key]
             else:
                 logger.debug("{} not a known prior.".format(key))
         return samples
@@ -972,7 +971,7 @@ class ConditionalPriorDict(PriorDict):
         return [
             key
             for key in self.sorted_keys
-            if not isinstance(self[key], (DeltaFunction, Constraint))
+            if not (self[key].is_fixed or isinstance(self[key], Constraint))
         ]
 
     def __setitem__(self, key, value):

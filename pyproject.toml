@@ -8,7 +8,7 @@ requires = [
 
 [project]
 authors = [
-  {name = "Bilby Developers"}
+  { name = "Bilby Developers" }
 ]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -22,13 +22,13 @@ classifiers = [
 ]
 description = "A user-friendly Bayesian inference library"
 dynamic = ["dependencies", "optional-dependencies", "version"]
-license = {file = "LICENSE.md"}
+license = { file = "LICENSE.md" }
 maintainers = [
-  {name = "Greg Ashton"},
-  {name = "Sylvia Biscoveanu"},
-  {name = "Colm Talbot"},
-  {name = "Aditya Vijaykumar"},
-  {name = "Michael J. Williams"}
+  { name = "Greg Ashton" },
+  { name = "Sylvia Biscoveanu" },
+  { name = "Colm Talbot" },
+  { name = "Aditya Vijaykumar" },
+  { name = "Michael J. Williams" }
 ]
 name = "bilby"
 readme = "README.rst"
@@ -122,18 +122,18 @@ packages = [
 ]
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.dynamic.optional-dependencies]
-all = {file = [
+all = { file = [
   "gw_requirements.txt",
   "jax_requirements.txt",
   "mcmc_requirements.txt",
   "optional_requirements.txt"
-]}
-gw = {file = ["gw_requirements.txt"]}
-jax = {file = ["jax_requirements.txt"]}
-mcmc = {file = ["mcmc_requirements.txt"]}
+] }
+gw = { file = ["gw_requirements.txt"] }
+jax = { file = ["jax_requirements.txt"] }
+mcmc = { file = ["mcmc_requirements.txt"] }
 
 [tool.setuptools.package-data]
 "bilby.gw" = ["prior_files/*"]
