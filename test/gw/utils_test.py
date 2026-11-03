@@ -284,13 +284,22 @@ class TestGWUtils(unittest.TestCase):
         Test that the conversion between geocentric and ellipsoid coordinates is consistent
         for each quadrant, above and below the ellipsoid.
         """
-        for lat_sign, long_sign, height_sign in itertools.product([-1, 1], [-1, 1], [-1, 1]):
-            latitude_true = lat_sign * self.xp.deg2rad(self.xp.asarray(46 + 27. / 60 + 18.528 / 3600))
-            longitude_true = long_sign * self.xp.deg2rad(self.xp.asarray(119 + 24. / 60 + 27.5657 / 3600))
+        for lat_sign, long_sign, height_sign in itertools.product(
+            [-1, 1], [-1, 1], [-1, 1]
+        ):
+            latitude_true = lat_sign * self.xp.deg2rad(
+                self.xp.asarray(46 + 27.0 / 60 + 18.528 / 3600)
+            )
+            longitude_true = long_sign * self.xp.deg2rad(
+                self.xp.asarray(119 + 24.0 / 60 + 27.5657 / 3600)
+            )
             elevation_true = height_sign * 142.554
             vertex = gwutils.get_vertex_position_geocentric(
-                self.xp.asarray([latitude_true, longitude_true, elevation_true]))
-            latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(vertex)
+                self.xp.asarray([latitude_true, longitude_true, elevation_true])
+            )
+            latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(
+                vertex
+            )
             self.assertAlmostEqual(float(latitude), float(latitude_true), 5)
             self.assertAlmostEqual(float(longitude), float(longitude_true), 5)
             self.assertAlmostEqual(float(elevation), float(elevation_true), 5)

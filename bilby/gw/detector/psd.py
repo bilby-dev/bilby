@@ -458,7 +458,7 @@ class PowerSpectralDensity(object):
 
     @array_backend.setter
     def array_backend(self, xp):
-        """ Set the array backend for the cached arrays
+        """Set the array backend for the cached arrays
 
         Parameters
         ==========

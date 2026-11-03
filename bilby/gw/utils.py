@@ -9,9 +9,13 @@ from scipy.special import i0e
 from .geometry import zenith_azimuth_to_theta_phi
 from .time import greenwich_mean_sidereal_time
 from ..compat.utils import xp_wrap
-from ..core.utils import (logger, run_commandline,
-                          check_directory_exists_and_if_not_mkdir,
-                          SamplesSummary, theta_phi_to_ra_dec)
+from ..core.utils import (
+    logger,
+    run_commandline,
+    check_directory_exists_and_if_not_mkdir,
+    SamplesSummary,
+    theta_phi_to_ra_dec,
+)
 from ..core.utils.constants import solar_mass
 
 
@@ -57,7 +61,9 @@ def psd_from_freq_series(freq_data, df, *, xp=None):
 
 
 @xp_wrap
-def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *, xp=None):
+def get_vertex_position_geocentric(
+    position, _longitude=None, _elevation=None, *, xp=None
+):
     """
     Calculate the position of the IFO vertex in geocentric coordinates in meters.
 
@@ -76,15 +82,19 @@ def get_vertex_position_geocentric(position, _longitude=None, _elevation=None, *
     """
 
     if _longitude is not None and _elevation is not None:
-        logger.warning("Syntax of get_vertex_position_geocentric changed in Bilby 3.0.0."
-                       "Please pass latitude, longitude and elevation as the single array-like argument.")
+        logger.warning(
+            "Syntax of get_vertex_position_geocentric changed in Bilby 3.0.0."
+            "Please pass latitude, longitude and elevation as the single array-like argument."
+        )
         latitude = position
         longitude = _longitude
         elevation = _elevation
     elif len(position) == 3:
         latitude, longitude, elevation = position
     else:
-        raise ValueError("Position must be an array-like of length 3 containing latitude, longitude, and elevation.")
+        raise ValueError(
+            "Position must be an array-like of length 3 containing latitude, longitude, and elevation."
+        )
 
     semi_major_axis = 6378137  # for ellipsoid model of Earth, in m
     semi_minor_axis = 6356752.314  # in m
@@ -121,20 +131,29 @@ def get_vertex_position_ellipsoid(position, *, xp=None):
     semi_minor_axis = 6356752.314  # in m
 
     r = xp.sqrt(position[0] ** 2 + position[1] ** 2)
-    E = (semi_minor_axis * xp.abs(position[2]) - (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
-    F = (semi_minor_axis * xp.abs(position[2]) + (semi_major_axis ** 2 - semi_minor_axis ** 2)) / (r * semi_major_axis)
+    E = (
+        semi_minor_axis * xp.abs(position[2])
+        - (semi_major_axis**2 - semi_minor_axis**2)
+    ) / (r * semi_major_axis)
+    F = (
+        semi_minor_axis * xp.abs(position[2])
+        + (semi_major_axis**2 - semi_minor_axis**2)
+    ) / (r * semi_major_axis)
     P = 4 / 3 * (E * F + 1)
-    Q = 2 * (E ** 2 - F ** 2)
-    D = P ** 3 + Q ** 2
+    Q = 2 * (E**2 - F**2)
+    D = P**3 + Q**2
     v = (xp.sqrt(D) - Q) ** (1 / 3) - (xp.sqrt(D) + Q) ** (1 / 3)
 
     # Calculate solution in first quadrant and then adjust based on the sign of the original z_comp
-    G = 1 / 2 * (xp.sqrt(E ** 2 + v) + E)
-    t = xp.sqrt(G ** 2 + (F - v * G) / (2 * G - E)) - G
-    latitude = xp.sign(position[2]) * xp.arctan((semi_major_axis * (1 - t ** 2)) / (2 * semi_minor_axis * t))
+    G = 1 / 2 * (xp.sqrt(E**2 + v) + E)
+    t = xp.sqrt(G**2 + (F - v * G) / (2 * G - E)) - G
+    latitude = xp.sign(position[2]) * xp.arctan(
+        (semi_major_axis * (1 - t**2)) / (2 * semi_minor_axis * t)
+    )
     longitude = xp.arctan2(position[1], position[0])
-    elevation = (r - semi_major_axis * t) * xp.cos(latitude) \
-        + (position[2] - xp.sign(position[2]) * semi_minor_axis) * xp.sin(latitude)
+    elevation = (r - semi_major_axis * t) * xp.cos(latitude) + (
+        position[2] - xp.sign(position[2]) * semi_minor_axis
+    ) * xp.sin(latitude)
 
     return xp.asarray([latitude, longitude, elevation])
 
