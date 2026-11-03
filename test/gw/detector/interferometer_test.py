@@ -310,9 +310,9 @@ class TestInterferometer(unittest.TestCase):
             signal_1=signal_1,
             signal_2=signal_1
         )
-        self.assertTrue(np.array_equal(signal_1_optimal, signal_1_optimal_by_template_template))
+        self.assertAlmostEqual(signal_1_optimal, signal_1_optimal_by_template_template, delta=signal_1_optimal / 1e14)
         signal_1_signal_2_inner_product = self.ifo.template_template_inner_product(signal_1=signal_1, signal_2=signal_2)
-        self.assertTrue(np.array_equal(signal_1_optimal * 2, signal_1_signal_2_inner_product))
+        self.assertAlmostEqual(signal_1_optimal * 2, signal_1_signal_2_inner_product, delta=signal_1_optimal / 1e14)
 
     def test_repr(self):
         expected = (
@@ -506,8 +506,8 @@ class TestInterferometerEquals(unittest.TestCase):
 class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
     def setUp(self):
         self.name = "name"
-        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'GEO600', 'ET']
-        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'GEO600': 'G1', 'ET': 'E1'}
+        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'G1', 'ET']
+        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'G1': 'G1', 'ET': 'E1'}
         self.polarizations = ['plus', 'cross', 'breathing', 'longitudinal', 'x', 'y']
         self.ifos = bilby.gw.detector.InterferometerList(self.ifo_names)
         self.gpstime = 1305303144

@@ -16,48 +16,31 @@ from ..utils import (
     logger,
     safe_file_dump,
 )
+from ..utils.parallel import sampling_convenience_dump
 from ..utils.plotting import _close_new_figures
 from . import dynesty_utils
-from .base_sampler import (
-    NestedSampler,
-    ResumeError,
-    Sampler,
-    _SamplingContainer,
-    signal_wrapper,
-)
-
-
-def _set_sampling_kwargs(args):
-    nact, maxmcmc, proposals, naccept = args
-    _SamplingContainer.nact = nact
-    _SamplingContainer.maxmcmc = maxmcmc
-    _SamplingContainer.proposals = proposals
-    _SamplingContainer.naccept = naccept
+from .base_sampler import NestedSampler, ResumeError, Sampler, signal_wrapper
 
 
 def _prior_transform_wrapper(theta):
     """Wrapper to the prior transformation. Needed for multiprocessing."""
-    from .base_sampler import _sampling_convenience_dump
-
-    return _sampling_convenience_dump.priors.rescale(
-        _sampling_convenience_dump.search_parameter_keys, theta
+    return sampling_convenience_dump.priors.rescale(
+        sampling_convenience_dump.search_parameter_keys, theta
     )
 
 
 def _log_likelihood_wrapper(theta):
     """Wrapper to the log likelihood. Needed for multiprocessing."""
-    from .base_sampler import _sampling_convenience_dump
-
-    keys = _sampling_convenience_dump.search_parameter_keys
+    keys = sampling_convenience_dump.search_parameter_keys
     sampling_params = {key: t for key, t in zip(keys, theta)}
-    params = deepcopy(_sampling_convenience_dump.parameters)
+    params = deepcopy(sampling_convenience_dump.parameters)
     params.update(sampling_params)
-    if not _sampling_convenience_dump.priors.evaluate_constraints(sampling_params):
+    if not sampling_convenience_dump.priors.evaluate_constraints(sampling_params):
         return np.nan_to_num(-np.inf)
-    elif _sampling_convenience_dump.use_ratio:
-        return _sampling_convenience_dump.likelihood.log_likelihood_ratio(params)
+    elif sampling_convenience_dump.use_ratio:
+        return sampling_convenience_dump.likelihood.log_likelihood_ratio(params)
     else:
-        return _sampling_convenience_dump.likelihood.log_likelihood(params)
+        return sampling_convenience_dump.likelihood.log_likelihood(params)
 
 
 class Dynesty(NestedSampler):
@@ -509,7 +492,7 @@ class Dynesty(NestedSampler):
         else:
             if self.kwargs["live_points"] is None:
                 self.kwargs["live_points"] = self.get_initial_points_from_prior(
-                    self.nlive
+                    self.nlive, random_state=self.kwargs["rstate"]
                 )
                 self.kwargs["live_points"] = (*self.kwargs["live_points"], None)
             self.sampler = self.sampler_init(
@@ -545,12 +528,12 @@ class Dynesty(NestedSampler):
         dynesty_result = f"{self.outdir}/{self.label}_dynesty.pickle"
         safe_file_dump(out, dynesty_result, "dill")
 
-        self._generate_result(out)
+        self._generate_result(out, random_state=self.sampler.rstate)
         self.result.sampling_time = self.sampling_time
 
         return self.result
 
-    def _generate_result(self, out):
+    def _generate_result(self, out, *, random_state=None):
         """
         Extract the information we need from the dynesty output. This includes
         the evidence, nested samples, run statistics. In addition, we generate
@@ -560,12 +543,16 @@ class Dynesty(NestedSampler):
         ==========
         out: dynesty.result.Result
             The dynesty output.
+        random_state: None, int, numpy.random.Generator
+            Random state used to generate posterior samples. If None, use
+            Bilby's global random number generator.
         """
         import dynesty
         from scipy.special import logsumexp
 
         from ..utils import random
 
+        rng = random.resolve_random_state(random_state)
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
         nested_samples = DataFrame(out.samples, columns=self.search_parameter_keys)
@@ -573,14 +560,16 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > random.rng.uniform(0, max(weights), len(weights))
+            keep = weights > rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(
                 f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples"
             )
         else:
-            self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+            self.result.samples = dynesty.utils.resample_equal(
+                out.samples, weights, rstate=rng
+            )
             self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
                 unsorted_loglikelihoods=out.logl,
                 unsorted_samples=out.samples,

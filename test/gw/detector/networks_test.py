@@ -4,6 +4,7 @@ from shutil import rmtree
 from itertools import combinations
 
 import numpy as np
+import pytest
 
 import bilby
 
@@ -360,9 +361,28 @@ class TestInterferometerList(unittest.TestCase):
         ifos.plot_time_domain_data(outdir=self.outdir)
 
 
+class TestLegacyDetectorNameAlias(unittest.TestCase):
+    def test_geo600_alias_resolves_to_g1(self):
+        """GEO600 was renamed to G1; the old name must keep working."""
+        ifo = bilby.gw.detector.get_empty_interferometer("GEO600")
+        self.assertEqual(ifo.name, "G1")
+
+    def test_geo600_alias_matches_g1_directly(self):
+        alias_ifo = bilby.gw.detector.get_empty_interferometer("GEO600")
+        direct_ifo = bilby.gw.detector.get_empty_interferometer("G1")
+        self.assertEqual(alias_ifo.name, direct_ifo.name)
+        self.assertEqual(
+            alias_ifo.power_spectral_density.psd_file,
+            direct_ifo.power_spectral_density.psd_file,
+        )
+
+
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TriangularInterferometerTest(unittest.TestCase):
     def setUp(self):
         self.triangular_ifo = bilby.gw.detector.get_empty_interferometer("ET")
+        self.triangular_ifo.array_backend = self.xp
 
     def tearDown(self):
         del self.triangular_ifo
@@ -376,23 +396,66 @@ class TriangularInterferometerTest(unittest.TestCase):
         https://www.movable-type.co.uk/scripts/latlong.html
         Angles must be in radians
         """
+        xp = self.xp
 
         def a(delta_lat, delta_long, lat_1, lat_2):
             return (
-                np.sin(delta_lat / 2) ** 2
-                + np.cos(lat_1) * np.cos(lat_2) * np.sin(delta_long / 2) ** 2
+                xp.sin(delta_lat / 2) ** 2
+                + xp.cos(lat_1) * xp.cos(lat_2) * xp.sin(delta_long / 2) ** 2
             )
 
         def c(a):
-            return 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+            return 2 * xp.atan2(xp.sqrt(a), xp.sqrt(1 - a))
 
-        for pair in list(combinations(self.triangular_ifo, 2)):
-            delta_lat = np.radians(pair[1].latitude - pair[0].latitude)
-            delta_long = np.radians(pair[1].longitude - pair[0].longitude)
-            pair_a = a(delta_lat, delta_long, np.radians(pair[0].latitude), np.radians(pair[1].latitude))
+        for pair in combinations(self.triangular_ifo, 2):
+            lat_0 = pair[0].latitude_radians
+            lat_1 = pair[1].latitude_radians
+            long_0 = pair[0].longitude_radians
+            long_1 = pair[1].longitude_radians
+            pair_a = a(lat_1 - lat_0, long_1 - long_0, lat_0, lat_1)
             pair_c = c(pair_a)
             distance = bilby.core.utils.radius_of_earth * pair_c
-            self.assertAlmostEqual(distance / 1000, pair[0].length, delta=1)
+            self.assertAlmostEqual(float(distance) / 1000, float(pair[0].length), delta=1)
+
+    def test_individual_positions_exact(self):
+        """
+        Check that the distances between the vertices of the three
+        individual interferometers is exactly equal to the
+        length of the arms of the detector.
+        """
+        for pair in combinations(self.triangular_ifo, 2):
+            vertex_0 = pair[0].vertex_position_geocentric()
+            vertex_1 = pair[1].vertex_position_geocentric()
+            self.assertAlmostEqual(float(pair[0].length), float(pair[1].length), delta=1e-6)
+            distance = self.xp.linalg.vector_norm(vertex_0 - vertex_1) / 1000
+            self.assertAlmostEqual(float(distance), float(pair[0].length), delta=1e-6)
+
+    def test_arm_endpoints_coincide_with_neighbouring_vertices(self):
+        """
+        Check that the end of the x-arm of each interferometer coincides
+        with the vertex of the next interferometer and the end of the
+        y-arm with the vertex of the previous one. This tests the vertex
+        positions and arm orientations together.
+        """
+        n_ifos = len(self.triangular_ifo)
+        for ii, ifo in enumerate(self.triangular_ifo):
+            vertex = ifo.vertex_position_geocentric()
+            arm_length = ifo.length * 1000
+            next_vertex = self.triangular_ifo[(ii + 1) % n_ifos].vertex_position_geocentric()
+            previous_vertex = self.triangular_ifo[(ii - 1) % n_ifos].vertex_position_geocentric()
+            x_arm_end = vertex + arm_length * ifo.geometry.x
+            y_arm_end = vertex + arm_length * ifo.geometry.y
+            self.assertLess(float(self.xp.linalg.vector_norm(x_arm_end - next_vertex)), 1e-6)
+            self.assertLess(float(self.xp.linalg.vector_norm(y_arm_end - previous_vertex)), 1e-6)
+
+    def test_detector_tensors_sum_to_zero(self):
+        """
+        Check that the detector tensors of the three interferometers sum
+        to zero, i.e., that the null stream of the triangular detector
+        vanishes for any signal.
+        """
+        total = sum(ifo.detector_tensor for ifo in self.triangular_ifo)
+        self.assertLess(float(self.xp.max(self.xp.abs(total))), 1e-10)
 
 
 if __name__ == "__main__":
