@@ -68,6 +68,7 @@ extensions = [
     'numpydoc',
     'nbsphinx',
     'sphinx.ext.autosummary',
+    'sphinx.ext.extlinks',
     'sphinx.ext.autosectionlabel',
     'sphinx_design',
     "sphinx.ext.linkcode",
@@ -179,6 +180,12 @@ copybutton_prompt_is_regexp = True
 
 html_baseurl = 'https://bilby-dev.github.io/bilby/'
 
+# Link to an example in the interactive, in-browser examples, e.g.,
+# :example:`run it in your browser <core_examples/linear_regression.py>`.
+# The path is relative to the examples directory.
+INTERACTIVE_EXAMPLES_URL = 'https://bilby-dev.github.io/examples/'
+extlinks = {'example': (f'{INTERACTIVE_EXAMPLES_URL}#%s', '%s')}
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
@@ -240,7 +247,9 @@ numpydoc_show_class_members = False
 # Some pages, e.g., the contribution guide which includes CONTRIBUTING.md and
 # the tutorial notebooks, repeat section titles from elsewhere in the docs.
 suppress_warnings = [
+    "autosectionlabel.bilby-output",
     "autosectionlabel.code-overview",
+    "autosectionlabel.compare_samplers",
     "autosectionlabel.contribution-guide",
     "autosectionlabel.fitting_with_x_and_y_errors",
     "autosectionlabel.visualising_the_results",

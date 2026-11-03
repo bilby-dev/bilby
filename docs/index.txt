@@ -9,7 +9,7 @@ range of stochastic samplers. It is primarily designed and built for inference
 of compact binary coalescence events in interferometric data, but it can also
 be used for more general problems.
 
-.. grid:: 1 2 2 2
+.. grid:: 1 2 3 3
    :gutter: 3
    :margin: 4 4 0 0
 
@@ -27,6 +27,12 @@ be used for more general problems.
       Fit a simple model to data and learn the core concepts: likelihoods,
       priors, samplers, and results.
 
+   .. grid-item-card:: :octicon:`play` Interactive examples
+      :link: https://bilby-dev.github.io/examples/
+
+      Run and edit the bilby examples in your browser, with no installation
+      needed.
+
    .. grid-item-card:: :octicon:`pulse` Gravitational-wave inference
       :link: compact-binary-coalescence-parameter-estimation
       :link-type: doc
@@ -40,7 +46,8 @@ be used for more general problems.
 
       Detailed documentation of every module, class, and function in bilby.
 
-The code, and many examples, are hosted at https://github.com/bilby-dev/bilby.
+The code is hosted at https://github.com/bilby-dev/bilby, and you can run and
+edit the :doc:`examples <examples>` in your browser with no installation.
 If you use bilby in a scientific publication, please :doc:`cite it <citing-bilby>`.
 
 .. toctree::
