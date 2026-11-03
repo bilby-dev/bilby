@@ -394,9 +394,8 @@ class TestPriorDict(unittest.TestCase):
         """The same samples expressed as each supported input type.
 
         :code:`prob`/:code:`ln_prob` accept a dict of scalars, a dict of
-        arrays, or a :code:`pandas.DataFrame`. A DataFrame needs a dedicated
-        branch because :code:`DataFrame.values` is a property whereas
-        :code:`dict.values` is a method. Each entry maps a label to a
+        arrays, or a :code:`pandas.DataFrame`, and must treat them
+        equivalently. Each entry maps a label to a
         :code:`(sample, expected_prob, expected_ln_prob)` tuple so a single
         loop can validate every input type against the same numeric answer.
         """

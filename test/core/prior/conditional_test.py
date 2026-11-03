@@ -291,11 +291,10 @@ class TestConditionalPriorDict(unittest.TestCase):
 
         :code:`ConditionalPriorDict.prob`/:code:`ln_prob` override the base
         methods and must handle a dict of scalars, a dict of arrays, and a
-        :code:`pandas.DataFrame` alike. The overrides used to assume
-        :code:`sample.values()` was callable, which fails for a DataFrame
-        because :code:`DataFrame.values` is a property, not a method. Each
-        entry maps a label to a :code:`(sample, expected_prob, expected_ln_prob)`
-        tuple built from the known :code:`test_value`.
+        :code:`pandas.DataFrame` equivalently (a DataFrame input used to raise
+        before the overrides were fixed). Each entry maps a label to a
+        :code:`(sample, expected_prob, expected_ln_prob)` tuple built from the
+        known :code:`test_value`.
         """
         scalars = {key: float(value) for key, value in self.test_sample.items()}
         arrays = {key: np.array([value, value], dtype=float) for key, value in scalars.items()}
