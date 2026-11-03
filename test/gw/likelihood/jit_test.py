@@ -67,7 +67,7 @@ def likelihood(xp, **marginalizations):
         minimum_frequency=ifo.minimum_frequency,
         maximum_frequency=ifo.maximum_frequency,
     )
-    interferometers.set_array_backend(xp)
+    interferometers.array_backend = xp
     waveform_generator = WaveformGenerator(
         duration=xp.asarray(4.0),
         sampling_frequency=xp.asarray(2048.0),
