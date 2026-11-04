@@ -64,7 +64,6 @@ The main changes are support for non-NumPy array backends and the removal of fun
 * Improve logging for missing priors in marginalized likelihoods (https://github.com/bilby-dev/bilby/pull/1095).
 * Correct the right ascension and declination units in the sky-map example (https://github.com/bilby-dev/bilby/pull/1134).
 * Correct docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (https://github.com/bilby-dev/bilby/pull/1069).
-* Clarify spin-conversion parameter definitions, units, and supported inputs in the docstrings for `bilby_to_lalsimulation_spins` and `generate_component_spins` (https://github.com/bilby-dev/bilby/pull/1151).
 
 ### Deprecations
 
@@ -82,7 +81,6 @@ The main changes are support for non-NumPy array backends and the removal of fun
 * @Sanjays2402 made their first contribution in https://github.com/bilby-dev/bilby/pull/1116
 * @draghuram made their first contribution in https://github.com/bilby-dev/bilby/pull/1157
 * @milanwils made their first contribution in https://github.com/bilby-dev/bilby/pull/894
-* @lucacirfeta made their first contribution in https://github.com/bilby-dev/bilby/pull/1151
 
 **Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.8.2...v3.0.0b1
 
