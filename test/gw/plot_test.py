@@ -58,13 +58,15 @@ class TestCBCResult(unittest.TestCase):
         del self.result
 
     def test_calibration_plot(self):
-        calibration_prior = bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
-            amplitude_sigma=0.1,
-            phase_sigma=0.1,
-            minimum_frequency=20,
-            maximum_frequency=2048,
-            label="recalib_H1_",
-            n_nodes=5,
+        calibration_prior = (
+            bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+                amplitude_sigma=0.1,
+                phase_sigma=0.1,
+                minimum_frequency=20,
+                maximum_frequency=2048,
+                label="recalib_H1_",
+                n_nodes=5,
+            )
         )
         calibration_filename = (
             f"{self.result.outdir}/{self.result.label}_calibration.png"
@@ -82,13 +84,15 @@ class TestCBCResult(unittest.TestCase):
         self.assertFalse(os.path.exists(calibration_filename))
 
     def test_calibration_pdf_plot(self):
-        calibration_prior = bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
-            amplitude_sigma=0.1,
-            phase_sigma=0.1,
-            minimum_frequency=20,
-            maximum_frequency=2048,
-            label="recalib_H1_",
-            n_nodes=5,
+        calibration_prior = (
+            bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+                amplitude_sigma=0.1,
+                phase_sigma=0.1,
+                minimum_frequency=20,
+                maximum_frequency=2048,
+                label="recalib_H1_",
+                n_nodes=5,
+            )
         )
         calibration_filename = (
             f"{self.result.outdir}/{self.result.label}_calibration.pdf"

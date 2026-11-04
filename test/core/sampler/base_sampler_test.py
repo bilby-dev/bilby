@@ -10,7 +10,9 @@ import numpy as np
 import bilby
 from bilby.core import prior
 
-loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+loaded_samplers = {
+    k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()
+}
 
 
 class MockLikelihood(bilby.core.likelihood.Likelihood):
@@ -45,7 +47,7 @@ class TestSampler(unittest.TestCase):
             outdir=test_directory,
             use_ratio=False,
             skip_import_verification=True,
-            soft_init=soft_init
+            soft_init=soft_init,
         )
 
     def tearDown(self):
@@ -116,8 +118,11 @@ class TestSampler(unittest.TestCase):
     def test_initial_points_with_random_state(self):
         global_rng = bilby.core.utils.random.rng
         global_state = copy.deepcopy(global_rng.bit_generator.state)
-        with patch.object(self.sampler, "check_draw", return_value=True), patch.object(
-            self.sampler, "prior_transform", side_effect=lambda unit: unit
+        with (
+            patch.object(self.sampler, "check_draw", return_value=True),
+            patch.object(
+                self.sampler, "prior_transform", side_effect=lambda unit: unit
+            ),
         ):
             points, _, _ = self.sampler.get_initial_points_from_prior(
                 5, random_state=np.random.default_rng(1234)
@@ -128,9 +133,13 @@ class TestSampler(unittest.TestCase):
 
     def test_initial_points_default_random_state(self):
         rng = np.random.default_rng(1234)
-        with patch.object(bilby.core.utils.random.Generator, "rng", rng), patch.object(
-            self.sampler, "check_draw", return_value=True
-        ), patch.object(self.sampler, "prior_transform", side_effect=lambda unit: unit):
+        with (
+            patch.object(bilby.core.utils.random.Generator, "rng", rng),
+            patch.object(self.sampler, "check_draw", return_value=True),
+            patch.object(
+                self.sampler, "prior_transform", side_effect=lambda unit: unit
+            ),
+        ):
             points, _, _ = self.sampler.get_initial_points_from_prior(5)
         expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
         np.testing.assert_array_equal(points, expected)
@@ -252,9 +261,7 @@ class GenericSamplerTest(unittest.TestCase):
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):
-        sampler = loaded_samplers[sampler](
-            self.likelihood, self.priors, npool=2
-        )
+        sampler = loaded_samplers[sampler](self.likelihood, self.priors, npool=2)
         sampler._setup_pool()
         if hasattr(sampler, "setup_sampler"):
             sampler.setup_sampler()

@@ -44,7 +44,6 @@ class NVPFlow(Flow):
         batch_norm_between_layers=False,
         random_permutation=True,
     ):
-
         if use_volume_preserving:
             coupling_constructor = AdditiveCouplingTransform
         else:
