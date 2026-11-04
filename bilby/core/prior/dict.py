@@ -71,11 +71,29 @@ class PriorDict(dict):
 
     @xp_wrap
     def evaluate_constraints(self, sample, *, xp=None):
+        """Evaluate whether each sample satisfies the :code:`Constraint` priors.
+
+        Parameters
+        ==========
+        sample: dict, pandas.DataFrame
+            The samples to check against the constraints. May be a dict of
+            parameter arrays or an equivalent DataFrame with one column per
+            parameter.
+
+        Returns
+        =======
+        array:
+            A boolean array, one entry per sample, that is :code:`True` where
+            all constraints are satisfied.
+        """
         out_sample = self.conversion_function(sample)
-        try:
+        if isinstance(out_sample, dict):
             prob = xp.ones_like(next(iter(out_sample.values())), dtype=bool)
-        except TypeError:
-            prob = xp.ones_like(out_sample, dtype=bool)
+        else:
+            # assume input is a dataframe; take a single column so the shape
+            # matches the number of samples, not the whole (n_samples, n_keys)
+            # frame.
+            prob = xp.ones_like(out_sample[next(iter(out_sample))], dtype=bool)
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
@@ -556,8 +574,8 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the probability
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -567,7 +585,8 @@ class PriorDict(dict):
 
         """
         if xp is None:
-            xp = array_module(sample.values())
+            # array_module handles both a dict of arrays and a DataFrame
+            xp = array_module(sample)
         prob = xp.prod(xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs)
 
         return self.check_prob(sample, prob, normalized=normalized, xp=xp)
@@ -595,8 +614,8 @@ class PriorDict(dict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which to calculate the log probability
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the log probability
         axis: None or int
             Axis along which the summation is performed
         normalized: bool
@@ -609,11 +628,9 @@ class PriorDict(dict):
             Joint log probability of all the individual sample probabilities
 
         """
-        if xp is None and isinstance(sample, dict):
-            xp = array_module(sample.values())
-        elif xp is None:
-            # assume input is a dataframe
-            xp = array_module(sample.values)
+        if xp is None:
+            # array_module handles both a dict of arrays and a DataFrame
+            xp = array_module(sample)
         ln_prob = xp.sum(xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]), axis=axis)
         return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
@@ -834,8 +851,8 @@ class ConditionalPriorDict(PriorDict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the probability
         kwargs:
             The keyword arguments are passed directly to `np.prod`
 
@@ -846,7 +863,8 @@ class ConditionalPriorDict(PriorDict):
         """
         self._prepare_evaluation(*zip(*sample.items()))
         if xp is None:
-            xp = array_module(sample.values())
+            # array_module handles both a dict of arrays and a DataFrame
+            xp = array_module(sample)
         res = xp.asarray([
             self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample
@@ -859,8 +877,8 @@ class ConditionalPriorDict(PriorDict):
 
         Parameters
         ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the log probability of
+        sample: dict, pandas.DataFrame
+            The samples of which to calculate the log probability
         axis: Union[None, int]
             Axis along which the summation is performed
         normalized: bool
@@ -874,7 +892,8 @@ class ConditionalPriorDict(PriorDict):
         """
         self._prepare_evaluation(*zip(*sample.items()))
         if xp is None:
-            xp = array_module(sample.values())
+            # array_module handles both a dict of arrays and a DataFrame
+            xp = array_module(sample)
         res = xp.asarray([
             self[key].ln_prob(sample[key], **self.get_required_variables(key), xp=xp)
             for key in sample

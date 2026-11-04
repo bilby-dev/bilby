@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import array_api_compat as aac
 import numpy as np
+import pandas as pd
 import pytest
 
 import bilby
@@ -380,6 +381,82 @@ class TestPriorDict(unittest.TestCase):
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
         self.assertEqual(aac.get_namespace(expected), self.xp)
+
+    def _equivalent_prob_inputs(self):
+        """The same samples expressed as each supported input type.
+
+        :code:`prob`/:code:`ln_prob` accept a dict of scalars, a dict of
+        arrays, or a :code:`pandas.DataFrame`, and must treat them
+        equivalently. Each entry maps a label to a
+        :code:`(sample, expected_prob, expected_ln_prob)` tuple so a single
+        loop can validate every input type against the same numeric answer.
+        """
+        mass = np.array([0.3, 0.6])
+        speed = np.array([1.2, 1.5])
+        prob = np.asarray(self.first_prior.prob(mass)) * np.asarray(
+            self.second_prior.prob(speed)
+        )
+        ln_prob = np.asarray(self.first_prior.ln_prob(mass)) + np.asarray(
+            self.second_prior.ln_prob(speed)
+        )
+        return {
+            "dict_of_scalars": (
+                {"mass": float(mass[0]), "speed": float(speed[0])},
+                prob[0],
+                ln_prob[0],
+            ),
+            "dict_of_arrays": ({"mass": mass, "speed": speed}, prob, ln_prob),
+            "dataframe": (pd.DataFrame({"mass": mass, "speed": speed}), prob, ln_prob),
+        }
+
+    def test_prob_across_input_types(self):
+        """:code:`prob` gives the per-sample product for every input type."""
+        for label, (sample, expected, _) in self._equivalent_prob_inputs().items():
+            with self.subTest(input_type=label):
+                # axis=0 reduces over keys, giving one probability per sample
+                # rather than the fully-reduced scalar product over the whole
+                # (keys, samples) array.
+                prob = self.prior_set_from_dict.prob(sample, axis=0)
+                np.testing.assert_allclose(np.asarray(prob), expected)
+
+    def test_ln_prob_across_input_types(self):
+        """See :code:`test_prob_across_input_types`; same for :code:`ln_prob`."""
+        for label, (sample, _, expected) in self._equivalent_prob_inputs().items():
+            with self.subTest(input_type=label):
+                ln_prob = self.prior_set_from_dict.ln_prob(sample, axis=0)
+                np.testing.assert_allclose(np.asarray(ln_prob), expected)
+
+    def test_evaluate_constraints_across_input_types(self):
+        """
+        Regression test for the shape bug fixed alongside the prob/ln_prob
+        changes: :code:`evaluate_constraints` must return one boolean per
+        sample (row), not a :code:`(n_samples, n_keys)` array, when passed a
+        DataFrame. A dict of arrays and the equivalent DataFrame must agree.
+        """
+        def conversion_function(parameters):
+            converted = parameters.copy()
+            converted["delta_mass"] = parameters["mass_1"] - parameters["mass_2"]
+            return converted
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.5, maximum=2)
+
+        mass_1 = np.array([1.9, 1.5])
+        mass_2 = np.array([1.1, 1.3])
+        # delta_mass = [0.8, 0.2]; only the first is within [0.5, 2].
+        expected = np.array([True, False])
+
+        variants = {
+            "dict_of_arrays": {"mass_1": mass_1, "mass_2": mass_2},
+            "dataframe": pd.DataFrame({"mass_1": mass_1, "mass_2": mass_2}),
+        }
+        for label, sample in variants.items():
+            with self.subTest(input_type=label):
+                keep = np.asarray(priors.evaluate_constraints(sample))
+                self.assertEqual(keep.shape, (2,))
+                np.testing.assert_array_equal(keep, expected)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]

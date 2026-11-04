@@ -286,6 +286,43 @@ class TestConditionalPriorDict(unittest.TestCase):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.ln_prob(sample=self.test_sample)
 
+    def _equivalent_prob_inputs(self):
+        """The same sample expressed as each supported input type.
+
+        :code:`ConditionalPriorDict.prob`/:code:`ln_prob` override the base
+        methods and must handle a dict of scalars, a dict of arrays, and a
+        :code:`pandas.DataFrame` equivalently (a DataFrame input used to raise
+        before the overrides were fixed). Each entry maps a label to a
+        :code:`(sample, expected_prob, expected_ln_prob)` tuple built from the
+        known :code:`test_value`.
+        """
+        scalars = {key: float(value) for key, value in self.test_sample.items()}
+        arrays = {key: np.array([value, value], dtype=float) for key, value in scalars.items()}
+        prob = float(self.test_value)
+        ln_prob = float(np.log(self.test_value))
+        return {
+            "dict_of_scalars": (scalars, prob, ln_prob),
+            "dict_of_arrays": (arrays, [prob, prob], [ln_prob, ln_prob]),
+            "dataframe": (pd.DataFrame(arrays), [prob, prob], [ln_prob, ln_prob]),
+        }
+
+    def test_prob_across_input_types(self):
+        """:code:`prob` matches the known value for every input type."""
+        for label, (sample, expected, _) in self._equivalent_prob_inputs().items():
+            with self.subTest(input_type=label):
+                # axis=0 reduces over keys, giving one probability per sample
+                # rather than the fully-reduced scalar product over the whole
+                # (keys, samples) array.
+                prob = self.conditional_priors.prob(sample=sample, axis=0)
+                np.testing.assert_allclose(np.asarray(prob), expected)
+
+    def test_ln_prob_across_input_types(self):
+        """See :code:`test_prob_across_input_types`; same for :code:`ln_prob`."""
+        for label, (sample, _, expected) in self._equivalent_prob_inputs().items():
+            with self.subTest(input_type=label):
+                ln_prob = self.conditional_priors.ln_prob(sample=sample, axis=0)
+                np.testing.assert_allclose(np.asarray(ln_prob), expected)
+
     def test_sample_subset_all_keys(self):
         bilby.core.utils.random.seed(5)
         self.assertDictEqual(
