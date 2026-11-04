@@ -761,6 +761,54 @@ def lal_binary_black_hole_relative_binning(
             phi_12=phi_12, lambda_1=0.0, lambda_2=0.0, **waveform_kwargs)
 
 
+def lal_binary_black_hole_relative_binning_by_mode(
+        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
+        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
+    """ Source model to go with ModeByModeRelativeBinningGravitationalWaveTransient likelihood.
+
+    The waveform is returned separately for each azimuthal index m of the
+    co-precessing modes, summed over l. Each mode is generated with its own
+    call to lalsimulation, with a mode array holding only that mode.
+
+    All parameters are the same as in the usual source models, except `fiducial`
+
+    fiducial: float
+        If fiducial=1, waveform evaluated on the full frequency grid is returned.
+        If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
+        is returned.
+    mode_array: list
+        The co-precessing (l, m) modes with m > 0, default
+        [[2, 2], [2, 1], [3, 3], [3, 2], [4, 4]].
+
+    Returns
+    -------
+    waveform_polarizations: dict
+        Dict with plus and cross polarizations, each an array of shape
+        (number of distinct m, number of frequencies), with m in the order of
+        first appearance in `mode_array`. None if any waveform call fails.
+    """
+    mode_array = kwargs.pop("mode_array", [[2, 2], [2, 1], [3, 3], [3, 2], [4, 4]])
+    modes_by_m = dict()
+    for mode in mode_array:
+        modes_by_m.setdefault(int(mode[1]), []).append(mode)
+
+    plus, cross = list(), list()
+    for modes in modes_by_m.values():
+        plus.append(0)
+        cross.append(0)
+        for mode in modes:
+            polarizations = lal_binary_black_hole_relative_binning(
+                frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
+                luminosity_distance=luminosity_distance, a_1=a_1, tilt_1=tilt_1,
+                phi_12=phi_12, a_2=a_2, tilt_2=tilt_2, phi_jl=phi_jl,
+                theta_jn=theta_jn, phase=phase, mode_array=[mode], **kwargs)
+            if polarizations is None:
+                return None
+            plus[-1] = plus[-1] + polarizations["plus"]
+            cross[-1] = cross[-1] + polarizations["cross"]
+    return dict(plus=np.array(plus), cross=np.array(cross))
+
+
 def lal_binary_neutron_star_relative_binning(
         frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
         phi_12, a_2, tilt_2, phi_jl, lambda_1, lambda_2, theta_jn, phase, **kwargs):
