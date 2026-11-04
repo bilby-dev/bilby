@@ -24,10 +24,13 @@ The main changes are support for non-NumPy array backends and the removal of fun
 * Add a `random_state` argument to random sampling methods to support explicit random number generators and non-NumPy backends (https://github.com/bilby-dev/bilby/pull/886).
 * Support saving and loading `numpy.random.SeedSequence` objects (https://github.com/bilby-dev/bilby/pull/1097).
 * Add `Emcee.get_expected_outputs` to list sampler output files and directories (https://github.com/bilby-dev/bilby/pull/1131).
+* Add `get_vertex_position_ellipsoid` to convert geocentric detector positions to latitude, longitude, and elevation (https://github.com/bilby-dev/bilby/pull/894).
 
 ### Changes
 
 * Switch to Ruff formatting (https://github.com/bilby-dev/bilby/pull/1172).
+* Select detector and power spectral density array backends by assigning to `array_backend` instead of calling `set_array_backend` (https://github.com/bilby-dev/bilby/pull/894).
+* Change the default `dynesty` bounding method to `none` and respect the requested bounding method for Bilby's sampling methods (https://github.com/bilby-dev/bilby/pull/1117).
 * Improve support for user-supplied pools and reuse the sampling pool for posterior conversion. Add the `bilby_pool` context manager for managing parallel work (https://github.com/bilby-dev/bilby/pull/1009).
 * Improve handling of sampling interruptions (https://github.com/bilby-dev/bilby/pull/1133).
 * Discard under-sampled `dynesty` MCMC proposals when too few steps are accepted, unless `maxmcmc` has been reached (https://github.com/bilby-dev/bilby/pull/1154).
@@ -39,6 +42,8 @@ The main changes are support for non-NumPy array backends and the removal of fun
 
 ### Fixes
 
+* Align Einstein Telescope detector labels, vertex positions, and arm orientations with LAL, accounting for the curvature of the Earth and eliminating signal leakage into the null stream (https://github.com/bilby-dev/bilby/pull/894).
+* Pass user-specified proposals to Bilby's `dynesty` sampling methods (https://github.com/bilby-dev/bilby/pull/1117).
 * Fix ROQ likelihood incompatibility with NumPy 2.4 (https://github.com/bilby-dev/bilby/pull/1106).
 * Make `Prior.__repr__` round-trippable for NumPy scalar parameters (https://github.com/bilby-dev/bilby/pull/1108).
 * Validate values assigned to `PriorDict` (https://github.com/bilby-dev/bilby/pull/1116).
@@ -59,11 +64,25 @@ The main changes are support for non-NumPy array backends and the removal of fun
 * Improve logging for missing priors in marginalized likelihoods (https://github.com/bilby-dev/bilby/pull/1095).
 * Correct the right ascension and declination units in the sky-map example (https://github.com/bilby-dev/bilby/pull/1134).
 * Correct docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (https://github.com/bilby-dev/bilby/pull/1069).
+* Clarify spin-conversion parameter definitions, units, and supported inputs in the docstrings for `bilby_to_lalsimulation_spins` and `generate_component_spins` (https://github.com/bilby-dev/bilby/pull/1151).
+
+### Deprecations
+
+* Deprecate the three-argument syntax for `get_vertex_position_geocentric(latitude, longitude, elevation)`, which now logs a warning. Pass latitude, longitude, and elevation as a single array-like argument instead (https://github.com/bilby-dev/bilby/pull/894).
 
 ### Removed
 
 * Remove the `BILBY_INCLUDE_GLOBAL_META_DATA` environment variable (https://github.com/bilby-dev/bilby/pull/1084).
 * Remove the `BILBY_INCORRECT_PSD_NORMALIZATION` environment variable used to restore the old, incorrect PSD normalization (https://github.com/bilby-dev/bilby/pull/1100).
+
+### New Contributors
+
+* @christianescamilla15-cell made their first contribution in https://github.com/bilby-dev/bilby/pull/1069
+* @raffienficiaud made their first contribution in https://github.com/bilby-dev/bilby/pull/1007
+* @Sanjays2402 made their first contribution in https://github.com/bilby-dev/bilby/pull/1116
+* @draghuram made their first contribution in https://github.com/bilby-dev/bilby/pull/1157
+* @milanwils made their first contribution in https://github.com/bilby-dev/bilby/pull/894
+* @lucacirfeta made their first contribution in https://github.com/bilby-dev/bilby/pull/1151
 
 **Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.8.2...v3.0.0b1
 
