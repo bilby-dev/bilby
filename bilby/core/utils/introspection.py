@@ -2,7 +2,7 @@ import inspect
 
 
 def infer_parameters_from_function(func):
-    """ Infers the arguments of a function
+    """Infers the arguments of a function
     (except the first arg which is assumed to be the dep. variable).
 
     Throws out `*args` and `**kwargs` type arguments
@@ -36,7 +36,7 @@ def infer_parameters_from_function(func):
 
 
 def infer_args_from_method(method):
-    """ Infers all arguments of a method except for `self`
+    """Infers all arguments of a method except for `self`
 
     Throws out `*args` and `**kwargs` type arguments.
 
@@ -51,7 +51,7 @@ def infer_args_from_method(method):
 
 
 def infer_args_from_function_except_n_args(func, n=1):
-    """ Inspects a function to find its arguments, and ignoring the
+    """Inspects a function to find its arguments, and ignoring the
     first n of these, returns a list of arguments from the function's
     signature.
 
@@ -94,12 +94,10 @@ def infer_args_from_function_except_n_args(func, n=1):
     """
 
     parameters = [
-        parameter.name for parameter in
-        inspect.signature(func).parameters.values()
-        if parameter.kind not in (
-            inspect.Parameter.VAR_POSITIONAL,
-            inspect.Parameter.VAR_KEYWORD
-        )
+        parameter.name
+        for parameter in inspect.signature(func).parameters.values()
+        if parameter.kind
+        not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
     ]
 
     del parameters[:n]
@@ -111,8 +109,9 @@ def _infer_args_from_function_except_for_first_arg(func):
 
 
 def get_dict_with_properties(obj):
-    property_names = [p for p in dir(obj.__class__)
-                      if isinstance(getattr(obj.__class__, p), property)]
+    property_names = [
+        p for p in dir(obj.__class__) if isinstance(getattr(obj.__class__, p), property)
+    ]
     dict_with_properties = obj.__dict__.copy()
     for key in property_names:
         dict_with_properties[key] = getattr(obj, key)
@@ -155,7 +154,11 @@ class PropertyAccessor(object):
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(getattr(instance, self.container_instance_name), self.property_name)
+        return getattr(
+            getattr(instance, self.container_instance_name), self.property_name
+        )
 
     def __set__(self, instance, value):
-        setattr(getattr(instance, self.container_instance_name), self.property_name, value)
+        setattr(
+            getattr(instance, self.container_instance_name), self.property_name, value
+        )

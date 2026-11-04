@@ -26,15 +26,19 @@ from pathlib import Path
 
 from sphinx.ext import autosectionlabel
 
-sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath("../"))
 # for the bilby_pygments syntax highlighting style
-sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath("."))
 import bilby  # noqa: E402
 
 
 def git_revision_hash():
     try:
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
     except subprocess.CalledProcessError:
         return "master"
 
@@ -65,45 +69,45 @@ GITURL = git_upstream_url()
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.mathjax',
-    'numpydoc',
-    'nbsphinx',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.extlinks',
-    'sphinx.ext.autosectionlabel',
-    'sphinx_design',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.mathjax",
+    "numpydoc",
+    "nbsphinx",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.autosectionlabel",
+    "sphinx_design",
     "sphinx.ext.linkcode",
-    'myst_parser',
+    "myst_parser",
     "sphinx_copybutton",
     "sphinx_sitemap",
 ]
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['templates']
+templates_path = ["templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = ['.rst', '.md', '.txt']
+source_suffix = [".rst", ".md", ".txt"]
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'bilby'
-copyright = u'2019, The Bilby Developers'
-author = u'The Bilby Developers'
+project = "bilby"
+copyright = "2019, The Bilby Developers"
+author = "The Bilby Developers"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-fullversion = bilby.__version__.split(':')[0]
+fullversion = bilby.__version__.split(":")[0]
 
 # The short X.Y version.
-version = '.'.join(fullversion.split('.')[:2])
+version = ".".join(fullversion.split(".")[:2])
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -113,23 +117,23 @@ release = version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'requirements.txt']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
 
 # The html path allows for google search console verification through
 # Aditya Vijaykumar's gmail ID
 
-html_extra_path = ['robots.txt', 'google063678b5c432c237.html']
+html_extra_path = ["robots.txt", "google063678b5c432c237.html"]
 
 
 # The name of the Pygments (syntax highlighting) style to use. As on
 # bilby-dev.github.io, code blocks are dark in both the light and dark themes.
-pygments_style = 'bilby_pygments.BilbyStyle'
-pygments_dark_style = 'bilby_pygments.BilbyStyle'
+pygments_style = "bilby_pygments.BilbyStyle"
+pygments_dark_style = "bilby_pygments.BilbyStyle"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -140,93 +144,93 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'furo'
-html_title = 'bilby'
+html_theme = "furo"
+html_title = "bilby"
 
-html_logo = '_static/bilby-logo.jpg'
-html_favicon = '_static/bilby-logo.jpg'
+html_logo = "_static/bilby-logo.jpg"
+html_favicon = "_static/bilby-logo.jpg"
 
 # Colours and fonts follow https://bilby-dev.github.io.
 _FONTS = {
-    'font-stack': '"Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif',
-    'font-stack--headings': '"Source Serif 4", Georgia, serif',
-    'font-stack--monospace': (
+    "font-stack": '"Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif',
+    "font-stack--headings": '"Source Serif 4", Georgia, serif',
+    "font-stack--monospace": (
         '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     ),
 }
 
 html_theme_options = {
-    'source_edit_link': 'https://github.com/bilby-dev/bilby/edit/main/docs/{filename}',
-    'source_view_link': 'https://github.com/bilby-dev/bilby/blob/main/docs/{filename}',
-    'light_css_variables': {
+    "source_edit_link": "https://github.com/bilby-dev/bilby/edit/main/docs/{filename}",
+    "source_view_link": "https://github.com/bilby-dev/bilby/blob/main/docs/{filename}",
+    "light_css_variables": {
         **_FONTS,
-        'color-brand-primary': '#286190',
-        'color-brand-content': '#286190',
-        'color-brand-visited': '#286190',
-        'color-foreground-primary': '#0b2540',
-        'color-foreground-secondary': '#4b6782',
-        'color-foreground-muted': '#4b6782',
-        'color-background-primary': '#ffffff',
-        'color-background-secondary': '#f2f7fc',
-        'color-background-hover': '#e4eef8',
-        'color-background-border': '#d6e4f1',
-        'color-sidebar-background': '#f2f7fc',
-        'color-inline-code-background': '#e3eef8',
-        'color-api-name': '#0f3557',
-        'color-api-pre-name': '#4b6782',
-        'color-heading': '#0f3557',
+        "color-brand-primary": "#286190",
+        "color-brand-content": "#286190",
+        "color-brand-visited": "#286190",
+        "color-foreground-primary": "#0b2540",
+        "color-foreground-secondary": "#4b6782",
+        "color-foreground-muted": "#4b6782",
+        "color-background-primary": "#ffffff",
+        "color-background-secondary": "#f2f7fc",
+        "color-background-hover": "#e4eef8",
+        "color-background-border": "#d6e4f1",
+        "color-sidebar-background": "#f2f7fc",
+        "color-inline-code-background": "#e3eef8",
+        "color-api-name": "#0f3557",
+        "color-api-pre-name": "#4b6782",
+        "color-heading": "#0f3557",
     },
-    'dark_css_variables': {
-        'color-brand-primary': '#8fc0ea',
-        'color-brand-content': '#8fc0ea',
-        'color-brand-visited': '#8fc0ea',
-        'color-foreground-primary': '#e6eff8',
-        'color-foreground-secondary': '#9db3c9',
-        'color-foreground-muted': '#9db3c9',
-        'color-background-primary': '#0a1622',
-        'color-background-secondary': '#0e1d2c',
-        'color-background-hover': '#12263a',
-        'color-background-border': '#1f3850',
-        'color-sidebar-background': '#0e1d2c',
-        'color-inline-code-background': '#15304a',
-        'color-card-background': '#102233',
-        'color-api-name': '#e6eff8',
-        'color-api-pre-name': '#9db3c9',
-        'color-heading': '#e6eff8',
+    "dark_css_variables": {
+        "color-brand-primary": "#8fc0ea",
+        "color-brand-content": "#8fc0ea",
+        "color-brand-visited": "#8fc0ea",
+        "color-foreground-primary": "#e6eff8",
+        "color-foreground-secondary": "#9db3c9",
+        "color-foreground-muted": "#9db3c9",
+        "color-background-primary": "#0a1622",
+        "color-background-secondary": "#0e1d2c",
+        "color-background-hover": "#12263a",
+        "color-background-border": "#1f3850",
+        "color-sidebar-background": "#0e1d2c",
+        "color-inline-code-background": "#15304a",
+        "color-card-background": "#102233",
+        "color-api-name": "#e6eff8",
+        "color-api-pre-name": "#9db3c9",
+        "color-heading": "#e6eff8",
     },
-    'footer_icons': [
+    "footer_icons": [
         {
-            'name': 'GitHub',
-            'url': 'https://github.com/bilby-dev/bilby',
-            'html': (
+            "name": "GitHub",
+            "url": "https://github.com/bilby-dev/bilby",
+            "html": (
                 '<svg stroke="currentColor" fill="currentColor" stroke-width="0" '
                 'viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 '
-                '6-5.5.1-1.3-.3-2.5-1-3.5.3-1.2.3-2.4 0-3.5 0 0-1 0-3 1.5a10.4 10.4 '
-                '0 0 0-5.5 0C7.5 2 6.5 2 6.5 2c-.3 1.1-.3 2.3 0 3.5A5.4 5.4 0 0 0 5.5 '
+                "6-5.5.1-1.3-.3-2.5-1-3.5.3-1.2.3-2.4 0-3.5 0 0-1 0-3 1.5a10.4 10.4 "
+                "0 0 0-5.5 0C7.5 2 6.5 2 6.5 2c-.3 1.1-.3 2.3 0 3.5A5.4 5.4 0 0 0 5.5 "
                 '9c0 3.5 3 5.5 6 5.5-.4.5-.7 1-.8 1.6-.2.6-.3 1.3-.2 1.9v4"/>'
                 '<path d="M9 18c-4.5 2-5-2-7-2"/></svg>'
             ),
-            'class': '',
+            "class": "",
         },
     ],
 }
 
-html_static_path = ['_static']
+html_static_path = ["_static"]
 html_css_files = [
-    'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600'
-    '&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400'
-    '&family=Source+Serif+4:wght@500;600;700&display=swap',
-    'custom.css',
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600"
+    "&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400"
+    "&family=Source+Serif+4:wght@500;600;700&display=swap",
+    "custom.css",
 ]
 
 # Show short names, e.g., ``Interferometer(...)``, in API signatures.
 add_module_names = False
 
 # Strip shell prompts when copying code blocks.
-copybutton_prompt_text = r'\$ '
+copybutton_prompt_text = r"\$ "
 copybutton_prompt_is_regexp = True
 
-html_baseurl = 'https://bilby-dev.github.io/bilby/'
+html_baseurl = "https://bilby-dev.github.io/bilby/"
 # sphinx-sitemap's default scheme, "{lang}{version}{link}", gives URLs like
 # .../bilby/en/2.9/index.html that don't exist; the docs are served unversioned.
 sitemap_url_scheme = "{link}"
@@ -234,13 +238,13 @@ sitemap_url_scheme = "{link}"
 # Link to an example in the interactive, in-browser examples, e.g.,
 # :example:`run it in your browser <core_examples/linear_regression.py>`.
 # The path is relative to the examples directory.
-INTERACTIVE_EXAMPLES_URL = 'https://bilby-dev.github.io/examples/'
-extlinks = {'example': (f'{INTERACTIVE_EXAMPLES_URL}#%s', '%s')}
+INTERACTIVE_EXAMPLES_URL = "https://bilby-dev.github.io/examples/"
+extlinks = {"example": (f"{INTERACTIVE_EXAMPLES_URL}#%s", "%s")}
 
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'bilbydoc'
+htmlhelp_basename = "bilbydoc"
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -249,15 +253,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -267,8 +268,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'bilby.tex', u'bilby Documentation',
-     u'The Bilby Developers', 'manual'),
+    (master_doc, "bilby.tex", "bilby Documentation", "The Bilby Developers", "manual"),
 ]
 
 
@@ -276,10 +276,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'bilby', u'bilby Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "bilby", "bilby Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -288,9 +285,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'bilby', u'bilby Documentation',
-     author, 'bilby', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "bilby",
+        "bilby Documentation",
+        author,
+        "bilby",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 numpydoc_show_class_members = False
@@ -357,9 +360,7 @@ BILBY_DOCS_API = [
 
 def _keep_api_page(name):
     return any(
-        name == prefix
-        or name.startswith(f"{prefix}.")
-        or prefix.startswith(f"{name}.")
+        name == prefix or name.startswith(f"{prefix}.") or prefix.startswith(f"{name}.")
         for prefix in BILBY_DOCS_API
     )
 
@@ -388,9 +389,9 @@ def linkcode_resolve(domain, info):
     """
     Adapted from https://github.com/aaugustin/websockets/blob/8e1628a14e0dd2ca98871c7500484b5d42d16b67/docs/conf.py
     """
-    if domain != 'py':
+    if domain != "py":
         return None
-    if not info['module']:
+    if not info["module"]:
         return None
 
     try:

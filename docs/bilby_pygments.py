@@ -4,6 +4,7 @@ Syntax highlighting matching the code blocks on https://bilby-dev.github.io.
 The same dark style is used for both the light and dark themes, as on the
 website.
 """
+
 from pygments.style import Style
 from pygments.token import (
     Comment,

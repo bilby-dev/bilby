@@ -134,7 +134,6 @@ class BaseProposal(object):
         return minimum + width * val_normalised_reflected
 
     def __call__(self, chain, likelihood=None, priors=None):
-
         if getattr(self, "needs_likelihood_and_priors", False):
             sample, log_factor = self.propose(chain, likelihood, priors)
         else:

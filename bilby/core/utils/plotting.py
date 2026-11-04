@@ -35,6 +35,7 @@ def latex_plot_format(func):
     latex_plot_format-wrapped plotting function and will be set directly.
 
     """
+
     @functools.wraps(func)
     def wrapper_decorator(*args, **kwargs):
         import matplotlib.pyplot as plt
@@ -52,7 +53,7 @@ def latex_plot_format(func):
 
         if bilby_mathdefault == 1:
             logger.debug("Setting mathdefault in the rcParams")
-            rcParams['text.latex.preamble'] = r'\providecommand{\mathdefault}[1][]{}'
+            rcParams["text.latex.preamble"] = r"\providecommand{\mathdefault}[1][]{}"
 
         logger.debug("Using BILBY_STYLE={}".format(bilby_style))
         if bilby_style.lower() == "none":
@@ -79,8 +80,8 @@ def latex_plot_format(func):
             return func(*args, **kwargs)
         else:
             logger.debug(
-                "Environment variable BILBY_STYLE={} not used"
-                .format(bilby_style)
+                "Environment variable BILBY_STYLE={} not used".format(bilby_style)
             )
             return func(*args, **kwargs)
+
     return wrapper_decorator

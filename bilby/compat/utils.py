@@ -104,10 +104,12 @@ def array_module(arr):
 
     # FIXME: remove direct import of orng to avoid hard dependency
     import orng
+
     if isinstance(arr, orng.RandomGenerator):
         match arr.backend:
             case "jax":
                 import jax.numpy as jnp
+
                 return jnp
             case _:
                 return np
@@ -118,7 +120,9 @@ def array_module(arr):
     except TypeError:
         if isinstance(arr, dict):
             try:
-                return aac.array_namespace(*[val for val in arr.values() if not isinstance(val, str)])
+                return aac.array_namespace(
+                    *[val for val in arr.values() if not isinstance(val, str)]
+                )
             except TypeError:
                 return np
         elif arr.__class__.__module__ == "builtins" and isinstance(arr, Iterable):
@@ -169,9 +173,10 @@ def promote_to_array(args, xp, skip=None):
     else:
         skip = len(args) - skip
     if not aac.is_numpy_namespace(xp):
-        args = tuple(
-            xp.asarray(arg, device=BILBY_DEVICE) for arg in args[:skip]
-        ) + args[skip:]
+        args = (
+            tuple(xp.asarray(arg, device=BILBY_DEVICE) for arg in args[:skip])
+            + args[skip:]
+        )
     return args
 
 
@@ -193,6 +198,7 @@ def xp_wrap(func, no_xp=False):
     function
         The decorated function.
     """
+
     def parse_args_kwargs_for_xp(*args, xp=None, **kwargs):
         if not no_xp and xp is None:
             try:
@@ -219,13 +225,19 @@ def xp_wrap(func, no_xp=False):
 
     sig = inspect.signature(func)
     if any(name in sig.parameters for name in ("self", "cls")):
+
         def wrapped(self, *args, xp=None, **kwargs):
             args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
             return func(self, *args, **kwargs)
     else:
+
         def wrapped(*args, xp=None, **kwargs):
             args, kwargs = parse_args_kwargs_for_xp(*args, xp=xp, **kwargs)
             return func(*args, **kwargs)
+
+    wrapped.__annotations__ = func.__annotations__
+    wrapped.__doc__ = func.__doc__
+    wrapped.__name__ = func.__name__
 
     return wrapped
 

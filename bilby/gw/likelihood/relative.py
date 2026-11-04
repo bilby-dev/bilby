@@ -106,23 +106,25 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     The relative binning likelihood does not currently support calibration marginalization.
     """
 
-    def __init__(self, interferometers,
-                 waveform_generator,
-                 fiducial_parameters=None,
-                 parameter_bounds=None,
-                 maximization_kwargs=None,
-                 update_fiducial_parameters=False,
-                 distance_marginalization=False,
-                 time_marginalization=False,
-                 phase_marginalization=False,
-                 priors=None,
-                 distance_marginalization_lookup_table=None,
-                 jitter_time=True,
-                 reference_frame="sky",
-                 time_reference="geocenter",
-                 chi=1,
-                 epsilon=0.5):
-
+    def __init__(
+        self,
+        interferometers,
+        waveform_generator,
+        fiducial_parameters=None,
+        parameter_bounds=None,
+        maximization_kwargs=None,
+        update_fiducial_parameters=False,
+        distance_marginalization=False,
+        time_marginalization=False,
+        phase_marginalization=False,
+        priors=None,
+        distance_marginalization_lookup_table=None,
+        jitter_time=True,
+        reference_frame="sky",
+        time_reference="geocenter",
+        chi=1,
+        epsilon=0.5,
+    ):
         super(RelativeBinningGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator,
@@ -133,7 +135,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             distance_marginalization_lookup_table=distance_marginalization_lookup_table,
             jitter_time=jitter_time,
             reference_frame=reference_frame,
-            time_reference=time_reference)
+            time_reference=time_reference,
+        )
 
         if fiducial_parameters is None:
             logger.info("Drawing fiducial parameters from prior.")
@@ -163,22 +166,38 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         if update_fiducial_parameters:
             # write a check to make sure prior is not None
-            logger.info("Using scipy optimization to find maximum likelihood parameters.")
-            self.parameters_to_be_updated = [key for key in priors if not isinstance(
-                priors[key], (DeltaFunction, Constraint, float, int))]
-            logger.info(f"Parameters over which likelihood is maximized: {self.parameters_to_be_updated}")
+            logger.info(
+                "Using scipy optimization to find maximum likelihood parameters."
+            )
+            self.parameters_to_be_updated = [
+                key
+                for key in priors
+                if not isinstance(priors[key], (DeltaFunction, Constraint, float, int))
+            ]
+            logger.info(
+                f"Parameters over which likelihood is maximized: {self.parameters_to_be_updated}"
+            )
             if parameter_bounds is None:
                 logger.info("No parameter bounds were given. Using priors instead.")
                 self.parameter_bounds = self.get_bounds_from_priors(priors)
             else:
-                self.parameter_bounds = self.get_parameter_list_from_dictionary(parameter_bounds)
+                self.parameter_bounds = self.get_parameter_list_from_dictionary(
+                    parameter_bounds
+                )
             self.fiducial_parameters = self.find_maximum_likelihood_parameters(
-                self.parameter_bounds, maximization_kwargs=maximization_kwargs)
-        logger.info(f"Fiducial likelihood: {self.log_likelihood_ratio(self.fiducial_parameters):.2f}")
+                self.parameter_bounds, maximization_kwargs=maximization_kwargs
+            )
+        logger.info(
+            f"Fiducial likelihood: {self.log_likelihood_ratio(self.fiducial_parameters):.2f}"
+        )
 
     def __repr__(self):
-        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={},\n\fiducial_parameters={},' \
-            .format(self.interferometers, self.waveform_generator, self.fiducial_parameters)
+        return (
+            self.__class__.__name__
+            + "(interferometers={},\n\twaveform_generator={},\n\fiducial_parameters={},".format(
+                self.interferometers, self.waveform_generator, self.fiducial_parameters
+            )
+        )
 
     def setup_bins(self):
         """
@@ -202,14 +221,16 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             & (frequency_array <= maximum_frequency)
         ]
 
-        d_alpha = self.chi * 2 * np.pi / np.abs(
-            (minimum_frequency ** gamma) * np.heaviside(-gamma, 1)
-            - (maximum_frequency ** gamma) * np.heaviside(gamma, 1)
+        d_alpha = (
+            self.chi
+            * 2
+            * np.pi
+            / np.abs(
+                (minimum_frequency**gamma) * np.heaviside(-gamma, 1)
+                - (maximum_frequency**gamma) * np.heaviside(gamma, 1)
+            )
         )
-        d_phi = np.sum(
-            np.sign(gamma) * d_alpha * frequency_array_useful ** gamma,
-            axis=0
-        )
+        d_phi = np.sum(np.sign(gamma) * d_alpha * frequency_array_useful**gamma, axis=0)
         d_phi_from_start = d_phi - d_phi[0]
         number_of_bins = int(d_phi_from_start[-1] // self.epsilon)
         bin_inds = list()
@@ -217,7 +238,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         last_index = -1
         for i in range(number_of_bins + 1):
-            bin_index = np.where(d_phi_from_start >= ((i / number_of_bins) * d_phi_from_start[-1]))[0][0]
+            bin_index = np.where(
+                d_phi_from_start >= ((i / number_of_bins) * d_phi_from_start[-1])
+            )[0][0]
             if bin_index == last_index:
                 continue
             bin_freq = frequency_array_useful[bin_index]
@@ -234,7 +257,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             f"Set up {self.number_of_bins} bins "
             f"between {minimum_frequency} Hz and {maximum_frequency} Hz"
         )
-        self.waveform_generator.waveform_arguments["frequency_bin_edges"] = self.bin_freqs
+        self.waveform_generator.waveform_arguments["frequency_bin_edges"] = (
+            self.bin_freqs
+        )
         self.bin_widths = self.bin_freqs[1:] - self.bin_freqs[:-1]
         self.bin_centers = (self.bin_freqs[1:] + self.bin_freqs[:-1]) / 2
         for interferometer in self.interferometers:
@@ -248,12 +273,17 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         self._set_fiducial()
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
-            parameters)
+            parameters
+        )
         self._unset_fiducial()
 
-        maximum_nonzero_index = np.where(self.fiducial_polarizations["plus"] != 0j)[0][-1]
+        maximum_nonzero_index = np.where(self.fiducial_polarizations["plus"] != 0j)[0][
+            -1
+        ]
         logger.debug(f"Maximum Nonzero Index is {maximum_nonzero_index}")
-        maximum_nonzero_frequency = self.waveform_generator.frequency_array[maximum_nonzero_index]
+        maximum_nonzero_frequency = self.waveform_generator.frequency_array[
+            maximum_nonzero_index
+        ]
         logger.debug(f"Maximum Nonzero Frequency is {maximum_nonzero_frequency}")
         self.maximum_frequency = maximum_nonzero_frequency
 
@@ -262,17 +292,22 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         for interferometer in self.interferometers:
             logger.debug(f"Maximum Frequency is {interferometer.maximum_frequency}")
-            wf = interferometer.get_detector_response(self.fiducial_polarizations, parameters)
+            wf = interferometer.get_detector_response(
+                self.fiducial_polarizations, parameters
+            )
             wf *= interferometer.frequency_array <= self.maximum_frequency
             self.per_detector_fiducial_waveforms[interferometer.name] = wf
 
-    def find_maximum_likelihood_parameters(self, parameter_bounds,
-                                           iterations=5, maximization_kwargs=None):
+    def find_maximum_likelihood_parameters(
+        self, parameter_bounds, iterations=5, maximization_kwargs=None
+    ):
         if maximization_kwargs is None:
             maximization_kwargs = dict()
         parameters = deepcopy(self.fiducial_parameters)
         self._unset_fiducial()
-        updated_parameters_list = self.get_parameter_list_from_dictionary(self.fiducial_parameters)
+        updated_parameters_list = self.get_parameter_list_from_dictionary(
+            self.fiducial_parameters
+        )
         old_fiducial_ln_likelihood = self.log_likelihood_ratio(self.fiducial_parameters)
         logger.info(f"Fiducial ln likelihood ratio: {old_fiducial_ln_likelihood:.2f}")
         for it in range(iterations):
@@ -284,14 +319,18 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 x0=updated_parameters_list,
                 **maximization_kwargs,
             )
-            updated_parameters_list = output['x']
+            updated_parameters_list = output["x"]
             updated_parameters = deepcopy(self.fiducial_parameters)
-            updated_parameters.update(self.get_parameter_dictionary_from_list(updated_parameters_list))
+            updated_parameters.update(
+                self.get_parameter_dictionary_from_list(updated_parameters_list)
+            )
             self.set_fiducial_waveforms(updated_parameters)
             self.setup_bins()
             self.compute_summary_data()
             new_fiducial_ln_likelihood = self.log_likelihood_ratio(updated_parameters)
-            logger.info(f"Fiducial ln likelihood ratio: {new_fiducial_ln_likelihood:.2f}")
+            logger.info(
+                f"Fiducial ln likelihood ratio: {new_fiducial_ln_likelihood:.2f}"
+            )
             if new_fiducial_ln_likelihood - old_fiducial_ln_likelihood < 0.1:
                 break
             old_fiducial_ln_likelihood = new_fiducial_ln_likelihood
@@ -306,7 +345,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def get_parameter_dictionary_from_list(self, parameter_list):
         parameter_dictionary = dict(zip(self.parameters_to_be_updated, parameter_list))
-        excluded_parameter_keys = set(self.fiducial_parameters) - set(self.parameters_to_be_updated)
+        excluded_parameter_keys = set(self.fiducial_parameters) - set(
+            self.parameters_to_be_updated
+        )
         for key in excluded_parameter_keys:
             parameter_dictionary[key] = self.fiducial_parameters[key]
         return parameter_dictionary
@@ -337,7 +378,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 masked_bin_inds[-1] += 1
 
             masked_strain = interferometer.frequency_domain_strain[mask]
-            masked_h0 = np.asarray(self.per_detector_fiducial_waveforms[interferometer.name][mask])
+            masked_h0 = np.asarray(
+                self.per_detector_fiducial_waveforms[interferometer.name][mask]
+            )
             masked_psd = interferometer.power_spectral_density_array[mask]
             duration = interferometer.duration
             a0, b0, a1, b1 = np.zeros((4, self.number_of_bins), dtype=complex)
@@ -359,14 +402,20 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
                 a0[i] = noise_weighted_inner_product(h0, strain, psd, duration)
                 b0[i] = noise_weighted_inner_product(h0, h0, psd, duration)
-                a1[i] = noise_weighted_inner_product(h0, strain * delta_frequency, psd, duration)
-                b1[i] = noise_weighted_inner_product(h0, h0 * delta_frequency, psd, duration)
+                a1[i] = noise_weighted_inner_product(
+                    h0, strain * delta_frequency, psd, duration
+                )
+                b1[i] = noise_weighted_inner_product(
+                    h0, h0 * delta_frequency, psd, duration
+                )
 
             summary_data[interferometer.name] = (a0, a1, b0, b1)
 
         self.summary_data = summary_data
 
-    def compute_waveform_ratio_per_interferometer(self, waveform_polarizations, interferometer, parameters):
+    def compute_waveform_ratio_per_interferometer(
+        self, waveform_polarizations, interferometer, parameters
+    ):
         name = interferometer.name
         strain = interferometer.get_detector_response(
             waveform_polarizations=waveform_polarizations,
@@ -386,7 +435,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=signal_polarizations,
             interferometer=interferometer,
-            parameters=parameters
+            parameters=parameters,
         )
 
         idxs = slice(self.bin_inds[0], self.bin_inds[-1] + 1)
@@ -396,10 +445,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         f = interferometer.frequency_array
         full_waveform_ratio = np.zeros(f.shape[0], dtype=complex)
-        full_waveform_ratio[idxs] = duplicated_r0 + duplicated_r1 * (f[idxs] - duplicated_fm)
+        full_waveform_ratio[idxs] = duplicated_r0 + duplicated_r1 * (
+            f[idxs] - duplicated_fm
+        )
         return fiducial_waveform * full_waveform_ratio
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
+    def calculate_snrs(
+        self, waveform_polarizations, interferometer, *, return_array=True, parameters
+    ):
         r0, r1 = self.compute_waveform_ratio_per_interferometer(
             waveform_polarizations=waveform_polarizations,
             interferometer=interferometer,
@@ -409,7 +462,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         d_inner_h = (a0 * r0.conj() + a1 * r1.conj()).sum()
         h_inner_h = (b0 * abs(r0) ** 2 + 2 * b1 * (r0 * r1.conj()).real).sum()
         optimal_snr_squared = h_inner_h
-        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
+        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
         if return_array and self.time_marginalization:
             xp = array_module(r0)
@@ -418,10 +471,15 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
                 interferometer=interferometer,
                 parameters=parameters,
             )
-            d_inner_h_array = 4 / self.waveform_generator.duration * xp.fft.fft(
-                full_waveform[0:-1]
-                * interferometer.frequency_domain_strain.conj()[0:-1]
-                / interferometer.power_spectral_density_array[0:-1])
+            d_inner_h_array = (
+                4
+                / self.waveform_generator.duration
+                * xp.fft.fft(
+                    full_waveform[0:-1]
+                    * interferometer.frequency_domain_strain.conj()[0:-1]
+                    / interferometer.power_spectral_density_array[0:-1]
+                )
+            )
 
         else:
             d_inner_h_array = None
@@ -430,7 +488,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             d_inner_h=d_inner_h,
             optimal_snr_squared=optimal_snr_squared.real,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_array=d_inner_h_array
+            d_inner_h_array=d_inner_h_array,
         )
 
     def _set_fiducial(self):

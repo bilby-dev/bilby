@@ -16,7 +16,7 @@ from .log import logger
 
 
 def check_directory_exists_and_if_not_mkdir(directory):
-    """ Checks if the given directory exists and creates it if it does not exist
+    """Checks if the given directory exists and creates it if it does not exist
 
     Parameters
     ==========
@@ -56,7 +56,9 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 return encode_astropy_cosmology(obj)
             if isinstance(obj, units.Quantity):
                 return encode_astropy_quantity(obj)
-            if isinstance(obj, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+            if isinstance(
+                obj, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)
+            ):
                 return encode_astropy_unit(obj)
         except ImportError:
             logger.debug("Cannot import astropy, cannot write cosmological priors")
@@ -96,10 +98,7 @@ class BilbyJsonEncoder(json.JSONEncoder):
                 "__name__": obj.__name__,
             }
         if isinstance(obj, (timedelta)):
-            return {
-                "__timedelta__": True,
-                "__total_seconds__": obj.total_seconds()
-            }
+            return {"__timedelta__": True, "__total_seconds__": obj.total_seconds()}
             return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
@@ -319,10 +318,12 @@ def decode_numpy_random_generator(dct):
             f"Original error: {e}"
         ) from e
     # Convert the state and inc integers back to integers
-    dct["bit_generator_state"]["state"]["state"] = \
-        int(dct["bit_generator_state"]["state"]["state"])
-    dct["bit_generator_state"]["state"]["inc"] = \
-        int(dct["bit_generator_state"]["state"]["inc"])
+    dct["bit_generator_state"]["state"]["state"] = int(
+        dct["bit_generator_state"]["state"]["state"]
+    )
+    dct["bit_generator_state"]["state"]["inc"] = int(
+        dct["bit_generator_state"]["state"]["inc"]
+    )
 
     generator = np.random.Generator(bit_generator())
     generator.bit_generator.state = dct["bit_generator_state"]
@@ -362,11 +363,11 @@ def decode_bilby_json(dct):
             cls = getattr(import_module(dct["__module__"]), dct["__name__"])
             obj = cls(**dct["kwargs"])
         except (AttributeError, ValueError) as e:
-            if type(e).__name__ == 'AttributeError':
+            if type(e).__name__ == "AttributeError":
                 warning_message = "Unknown prior class for parameter {}, defaulting to base Prior object".format(
                     dct["kwargs"]["name"]
                 )
-            elif type(e).__name__ == 'ValueError':
+            elif type(e).__name__ == "ValueError":
                 warning_message = (
                     f"Unable to load prior {cls} with arguments {dct['kwargs']}, "
                     "defaulting to base Prior object"
@@ -375,7 +376,14 @@ def decode_bilby_json(dct):
             from ..prior import Prior
 
             for key in list(dct["kwargs"].keys()):
-                if key not in ["name", "latex_label", "unit", "minimum", "maximum", "boundary"]:
+                if key not in [
+                    "name",
+                    "latex_label",
+                    "unit",
+                    "minimum",
+                    "maximum",
+                    "boundary",
+                ]:
                     dct["kwargs"].pop(key)
             cls = Prior
             obj = cls(**dct["kwargs"])
@@ -516,9 +524,9 @@ def encode_for_hdf5(key, item):
         item = complex(item)
     if isinstance(item, np.ndarray):
         # Numpy's wide unicode strings are not supported by hdf5
-        if item.dtype.kind == 'U':
-            logger.debug(f'converting dtype {item.dtype} for hdf5')
-            item = np.array(item, dtype='S')
+        if item.dtype.kind == "U":
+            logger.debug(f"converting dtype {item.dtype} for hdf5")
+            item = np.array(item, dtype="S")
     elif aac.is_array_api_obj(item):
         # temporarily dump all arrays as numpy arrays, we should figure ou
         # how to properly deserialize them
@@ -549,7 +557,7 @@ def encode_for_hdf5(key, item):
                 else:
                     output.append(str(value).encode("utf-8"))
         else:
-            raise ValueError(f'Cannot save {key}: {type(item)} type')
+            raise ValueError(f"Cannot save {key}: {type(item)} type")
     elif isinstance(item, PriorDict):
         output = json.dumps(item._get_json_dict())
     elif isinstance(item, pd.DataFrame):
@@ -558,7 +566,9 @@ def encode_for_hdf5(key, item):
         output = encode_astropy_cosmology(item)
     elif units is not None and isinstance(item, units.Quantity):
         output = encode_astropy_quantity(item)
-    elif units is not None and isinstance(item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)):
+    elif units is not None and isinstance(
+        item, (units.PrefixUnit, units.UnitBase, units.FunctionUnitBase)
+    ):
         output = encode_astropy_unit(item)
     elif lal is not None and isinstance(item, lal.Dict):
         output = encode_lal_dict(item)
@@ -575,7 +585,7 @@ def encode_for_hdf5(key, item):
     elif isinstance(item, datetime.timedelta):
         output = item.total_seconds()
     else:
-        raise ValueError(f'Cannot save {key}: {type(item)} type')
+        raise ValueError(f"Cannot save {key}: {type(item)} type")
     return output
 
 
@@ -588,7 +598,9 @@ def decode_hdf5_dict(output):
     """
     if ("__function__" in output) or ("__class__" in output):
         default = ".".join([output["__module__"], output["__name__"]])
-        output = getattr(import_module(output["__module__"]), output["__name__"], default)
+        output = getattr(
+            import_module(output["__module__"]), output["__name__"], default
+        )
     elif "__cosmology__" in output:
         output = decode_astropy_cosmology(output)
     elif "__astropy_quantity__" in output:
@@ -666,7 +678,7 @@ def recursively_save_dict_contents_to_group(h5file, path, dic):
 
 
 def safe_file_dump(data, filename, module):
-    """ Safely dump data to a .pickle file
+    """Safely dump data to a .pickle file
 
     Parameters
     ==========
@@ -686,7 +698,7 @@ def safe_file_dump(data, filename, module):
 
 
 def move_old_file(filename, overwrite=False):
-    """ Moves or removes an old file.
+    """Moves or removes an old file.
 
     Parameters
     ==========

@@ -21,10 +21,19 @@ from ...compat.utils import xp_wrap
 
 class Prior(object):
     _default_latex_labels = {}
+    _leaves = []
 
-    def __init__(self, name=None, latex_label=None, unit=None, minimum=-np.inf,
-                 maximum=np.inf, check_range_nonzero=True, boundary=None):
-        """ Implements a Prior object
+    def __init__(
+        self,
+        name=None,
+        latex_label=None,
+        unit=None,
+        minimum=-np.inf,
+        maximum=np.inf,
+        check_range_nonzero=True,
+        boundary=None,
+    ):
+        """Implements a Prior object
 
         Parameters
         ==========
@@ -133,7 +142,7 @@ class Prior(object):
             if aac.is_array_api_obj(this_dict[key]):
                 if not np.array_equal(this_dict[key], other_dict[key]):
                     return False
-            elif isinstance(this_dict[key], type(scipy.stats.beta(1., 1.))):
+            elif isinstance(this_dict[key], type(scipy.stats.beta(1.0, 1.0))):
                 continue
             else:
                 if not this_dict[key] == other_dict[key]:
@@ -154,6 +163,7 @@ class Prior(object):
 
         """
         from ..utils import random
+
         rng = random.resolve_random_state(random_state)
 
         if isinstance(size, (int, np.integer)):
@@ -197,12 +207,14 @@ class Prior(object):
 
     @xp_wrap
     def cdf(self, val, *, xp=None):
-        """ Generic method to calculate CDF, can be overwritten in subclass """
+        """Generic method to calculate CDF, can be overwritten in subclass"""
         from scipy.integrate import cumulative_trapezoid
+
         if np.any(np.isinf([self.minimum, self.maximum])):
             raise ValueError(
                 "Unable to use the generic CDF calculation for priors with"
-                "infinite support")
+                "infinite support"
+            )
         x = xp.linspace(self.minimum, self.maximum, 1000)
         pdf = self.prob(x, xp=xp)
         cdf = cumulative_trapezoid(pdf, x, initial=0)
@@ -222,7 +234,7 @@ class Prior(object):
         np.nan
 
         """
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             return xp.log(self.prob(val, xp=xp))
 
     def is_in_prior_range(self, val):
@@ -263,8 +275,11 @@ class Prior(object):
                 return value.item()
             return value
 
-        args = ', '.join(
-            [f'{key}={repr(_native(instantiation_dict[key]))}' for key in instantiation_dict]
+        args = ", ".join(
+            [
+                f"{key}={repr(_native(instantiation_dict[key]))}"
+                for key in instantiation_dict
+            ]
         )
         if "bilby.core.prior" in prior_module:
             return f"{prior_name}({args})"
@@ -315,7 +330,7 @@ class Prior(object):
 
     @property
     def latex_label_with_unit(self):
-        """ If a unit is specified, returns a string of the latex label and unit """
+        """If a unit is specified, returns a string of the latex label and unit"""
         if self.unit is not None:
             return "{} [{}]".format(self.latex_label, self.unit)
         else:
@@ -352,8 +367,10 @@ class Prior(object):
 
     @boundary.setter
     def boundary(self, boundary):
-        if boundary not in ['periodic', 'reflective', None]:
-            raise ValueError('{} is not a valid setting for prior boundaries'.format(boundary))
+        if boundary not in ["periodic", "reflective", None]:
+            raise ValueError(
+                "{} is not a valid setting for prior boundaries".format(boundary)
+            )
         self._boundary = boundary
 
     @property
@@ -380,19 +397,22 @@ class Prior(object):
     def _from_repr(cls, string):
         subclass_args = infer_args_from_method(cls.__init__)
 
-        string = string.replace(' ', '')
+        string = string.replace(" ", "")
         kwargs = cls._split_repr(string)
         for key in kwargs:
             val = kwargs[key]
             if key not in subclass_args and not hasattr(cls, "reference_params"):
-                raise AttributeError('Unknown argument {} for class {}'.format(
-                    key, cls.__name__))
+                raise AttributeError(
+                    "Unknown argument {} for class {}".format(key, cls.__name__)
+                )
             else:
                 kwargs[key] = cls._parse_argument_string(val)
-            if key in ["condition_func", "conversion_function"] and isinstance(kwargs[key], str):
+            if key in ["condition_func", "conversion_function"] and isinstance(
+                kwargs[key], str
+            ):
                 if "." in kwargs[key]:
-                    module = '.'.join(kwargs[key].split('.')[:-1])
-                    name = kwargs[key].split('.')[-1]
+                    module = ".".join(kwargs[key].split(".")[:-1])
+                    name = kwargs[key].split(".")[-1]
                 else:
                     module = __name__
                     name = kwargs[key]
@@ -402,30 +422,29 @@ class Prior(object):
     @classmethod
     def _split_repr(cls, string):
         subclass_args = infer_args_from_method(cls.__init__)
-        args = string.split(',')
+        args = string.split(",")
         remove = list()
         for ii, key in enumerate(args):
-            for paren_pair in ['()', '{}', '[]']:
+            for paren_pair in ["()", "{}", "[]"]:
                 if paren_pair[0] in key:
                     jj = ii
                     while paren_pair[1] not in args[jj]:
                         jj += 1
-                        args[ii] = ','.join([args[ii], args[jj]]).strip()
+                        args[ii] = ",".join([args[ii], args[jj]]).strip()
                         remove.append(jj)
         remove.reverse()
         for ii in remove:
             del args[ii]
         kwargs = dict()
         for ii, arg in enumerate(args):
-            if '=' not in arg:
-                logger.debug(
-                    'Reading priors with non-keyword arguments is dangerous!')
+            if "=" not in arg:
+                logger.debug("Reading priors with non-keyword arguments is dangerous!")
                 key = subclass_args[ii]
                 val = arg
             else:
-                split_arg = arg.split('=')
+                split_arg = arg.split("=")
                 key = split_arg[0]
-                val = '='.join(split_arg[1:])
+                val = "=".join(split_arg[1:])
             kwargs[key] = val
         return kwargs
 
@@ -470,20 +489,22 @@ class Prior(object):
         TypeError:
             If val cannot be parsed as described above.
         """
-        if val == 'None':
+        if val == "None":
             val = None
-        elif re.sub(r'\'.*\'', '', val) in ['r', 'u']:
+        elif re.sub(r"\'.*\'", "", val) in ["r", "u"]:
             val = val[2:-1]
         elif val.startswith("'") and val.endswith("'"):
             val = val.strip("'")
-        elif '(' in val and not val.startswith(("[", "{")):
-            other_cls = val.split('(')[0]
-            vals = '('.join(val.split('(')[1:])[:-1]
+        elif "(" in val and not val.startswith(("[", "{")):
+            other_cls = val.split("(")[0]
+            vals = "(".join(val.split("(")[1:])[:-1]
             if "." in other_cls:
-                module = '.'.join(other_cls.split('.')[:-1])
-                other_cls = other_cls.split('.')[-1]
+                module = ".".join(other_cls.split(".")[:-1])
+                other_cls = other_cls.split(".")[-1]
             else:
-                module = __name__.replace('.' + os.path.basename(__file__).replace('.py', ''), '')
+                module = __name__.replace(
+                    "." + os.path.basename(__file__).replace(".py", ""), ""
+                )
             other_cls = getattr(import_module(module), other_cls)
             val = other_cls.from_repr(vals)
         else:
@@ -491,13 +512,12 @@ class Prior(object):
                 val = eval(val, dict(), dict(np=np, inf=np.inf, pi=np.pi))
             except NameError:
                 if "." in val:
-                    module = '.'.join(val.split('.')[:-1])
-                    func = val.split('.')[-1]
+                    module = ".".join(val.split(".")[:-1])
+                    func = val.split(".")[-1]
                     new_val = getattr(import_module(module), func, val)
                     if val == new_val:
                         raise TypeError(
-                            "Cannot evaluate prior, "
-                            f"failed to parse argument {val}"
+                            f"Cannot evaluate prior, failed to parse argument {val}"
                         )
                     else:
                         val = new_val
@@ -505,11 +525,16 @@ class Prior(object):
 
 
 class Constraint(Prior):
+    _leaves = ["_minimum", "_maximum"]
 
-    def __init__(self, minimum, maximum, name=None, latex_label=None,
-                 unit=None):
-        super(Constraint, self).__init__(minimum=minimum, maximum=maximum, name=name,
-                                         latex_label=latex_label, unit=unit)
+    def __init__(self, minimum, maximum, name=None, latex_label=None, unit=None):
+        super(Constraint, self).__init__(
+            minimum=minimum,
+            maximum=maximum,
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+        )
         self._is_fixed = True
 
     def prob(self, val, *, xp=None):
@@ -517,4 +542,4 @@ class Constraint(Prior):
 
 
 class PriorException(Exception):
-    """ General base class for all prior exceptions """
+    """General base class for all prior exceptions"""

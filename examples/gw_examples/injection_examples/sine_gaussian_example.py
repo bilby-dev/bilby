@@ -3,6 +3,7 @@
 Tutorial to demonstrate running parameter estimation on a sine gaussian
 injected signal.
 """
+
 import bilby
 from bilby.core.utils.random import seed
 

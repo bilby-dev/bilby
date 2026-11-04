@@ -419,7 +419,7 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         self.covs = []
         self.corrcoefs = []
         self.sigmas = []
-        self.logprodsigmas = []   # log of product of sigmas, needed for "standard" multivariate normal
+        self.logprodsigmas = []  # log of product of sigmas, needed for "standard" multivariate normal
         self.weights = []
         self.eigvalues = []
         self.eigvectors = []
@@ -526,17 +526,13 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             self.corrcoefs.append(np.asarray(corrcoef))
 
             if len(self.corrcoefs[-1].shape) != 2:
-                raise ValueError(
-                    "Correlation coefficient matrix must be a 2d array."
-                )
+                raise ValueError("Correlation coefficient matrix must be a 2d array.")
 
             if (
                 self.corrcoefs[-1].shape[0] != self.corrcoefs[-1].shape[1]
                 or self.corrcoefs[-1].shape[0] != self.num_vars
             ):
-                raise ValueError(
-                    "Correlation coefficient matrix shape is inconsistent"
-                )
+                raise ValueError("Correlation coefficient matrix shape is inconsistent")
 
             # check matrix is symmetric
             if not np.allclose(self.corrcoefs[-1], self.corrcoefs[-1].T):
@@ -575,15 +571,11 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             self.eigvalues.append(evals)
             self.eigvectors.append(evecs)
         except Exception as e:
-            raise RuntimeError(
-                "Problem getting eigenvalues and vectors: {}".format(e)
-            )
+            raise RuntimeError("Problem getting eigenvalues and vectors: {}".format(e))
 
         # check eigenvalues are positive
         if np.any(self.eigvalues[-1] <= 0.0):
-            raise ValueError(
-                "Correlation coefficient matrix is not positive definite"
-            )
+            raise ValueError("Correlation coefficient matrix is not positive definite")
         self.sqeigvalues.append(np.sqrt(self.eigvalues[-1]))
 
         # set the weights
@@ -607,7 +599,9 @@ class MultivariateGaussianDist(BaseJointPriorDist):
         #     multivariate_normal(mean=mus, cov=cov).logpdf(x)
         #     = multivariate_normal(mean=0, cov=corrcoefs).logpdf((x - mus)/sigmas) - logprodsigmas
         self.mvn.append(
-            scipy.stats.multivariate_normal(mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1])
+            scipy.stats.multivariate_normal(
+                mean=np.zeros(self.num_vars), cov=self.corrcoefs[-1]
+            )
         )
 
     @xp_wrap
@@ -623,11 +617,13 @@ class MultivariateGaussianDist(BaseJointPriorDist):
             else:
                 mode = np.argwhere(self.cumweights - random.rng.uniform(0, 1) > 0)[0][0]
 
-        samp = erfinv(2.0 * samp - 1) * 2.0 ** 0.5
+        samp = erfinv(2.0 * samp - 1) * 2.0**0.5
 
         # rotate and scale to the multivariate normal shape
         samp = xp.asarray(self.mus[mode]) + xp.asarray(self.sigmas[mode]) * xp.einsum(
-            "ij,kj->ik", samp * self.sqeigvalues[mode], xp.asarray(self.eigvectors[mode])
+            "ij,kj->ik",
+            samp * self.sqeigvalues[mode],
+            xp.asarray(self.eigvectors[mode]),
         )
         return samp
 
@@ -686,7 +682,10 @@ class MultivariateGaussianDist(BaseJointPriorDist):
                 # self.mvn[i] is a "standard" multivariate normal distribution; see add_mode()
                 z = (samp[j] - self.mus[i]) / self.sigmas[i]
                 lnprob = xpx.at(lnprob, j).set(
-                    xp.logaddexp(lnprob[j], self.mvn[i].logpdf(z) - xp.asarray(self.logprodsigmas[i]))
+                    xp.logaddexp(
+                        lnprob[j],
+                        self.mvn[i].logpdf(z) - xp.asarray(self.logprodsigmas[i]),
+                    )
                 )
 
         # set out-of-bounds values to -inf
@@ -804,9 +803,9 @@ class JointPrior(Prior):
 
         if self.dist.filled_rescale():
             # print(self.dist.rescale_parameters)
-            values = xp.stack([
-                xp.asarray(val) for val in self.dist.rescale_parameters.values()
-            ]).T
+            values = xp.stack(
+                [xp.asarray(val) for val in self.dist.rescale_parameters.values()]
+            ).T
             # values = xp.asarray(list(self.dist.rescale_parameters.values())).T
             samples = self.dist.rescale(values, **kwargs)
             self.dist.reset_rescale()
@@ -880,8 +879,7 @@ class JointPrior(Prior):
                 shapes.add(xp.asarray(v).shape)
             if len(shapes) > 1:
                 raise ValueError(
-                    "Each parameter must have the same "
-                    "number of requested values."
+                    "Each parameter must have the same number of requested values."
                 )
 
             lnp = self.dist.ln_prob(xp.stack(values).T)
