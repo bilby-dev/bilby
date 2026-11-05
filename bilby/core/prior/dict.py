@@ -492,13 +492,12 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
+    def _missing_sample_keys(self, sample):
+        """Return the non-fixed prior keys missing from the sample."""
+        return [key for key in self.non_fixed_keys if key not in sample]
+
     def _is_complete_sample(self, sample):
-        sampled_prior_keys = {
-            key
-            for key, prior in self.items()
-            if isinstance(prior, Prior) and not isinstance(prior, Constraint)
-        }
-        return sampled_prior_keys.issubset(set(sample.keys()))
+        return not self._missing_sample_keys(sample)
 
     def sample_subset_constrained(self, keys=iter([]), size=None, *, random_state=None):
         """
@@ -605,8 +604,43 @@ class PriorDict(dict):
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
+    def _check_complete_sample(self, sample, method):
+        missing_keys = self._missing_sample_keys(sample)
+        if missing_keys:
+            raise ValueError(
+                f"Missing prior parameters: {', '.join(missing_keys)}. "
+                f"Use {method}_subset to evaluate a partial sample."
+            )
+
     def prob(self, sample, *, normalized=True, xp=None, **kwargs):
+        """Evaluate the joint probability of a complete sample.
+
+        Parameters
+        ==========
+        sample: dict
+            Dictionary of the samples of which we want to have the probability of
+        normalized: bool
+            If True, the probability is normalized by the constraint factor.
+        xp: module
+            The array module to use for the computation.
+        **kwargs:
+            The keyword arguments are passed directly to `np.prod`
+
+        Returns
+        =======
+        float: Joint probability of all individual sample probabilities
+
+        ..versionchanged:: 3.0.0
+            The sample must contain all non-fixed prior parameters, including
+            constrained parameters. Fixed parameters may be omitted.
         """
+        self._check_complete_sample(sample, "prob")
+        return self.prob_subset(sample, normalized=normalized, xp=xp, **kwargs)
+
+    def prob_subset(self, sample, *, normalized=True, xp=None, **kwargs):
+        """Evaluate the joint probability for the supplied subset of priors.
+
+        Constraints that cannot be derived from a partial sample are skipped.
 
         Parameters
         ==========
@@ -647,7 +681,7 @@ class PriorDict(dict):
                 return constrained_prob
 
     def ln_prob(self, sample, axis=None, *, normalized=True, xp=None):
-        """
+        """Evaluate the joint log probability of a complete sample.
 
         Parameters
         ==========
@@ -663,6 +697,19 @@ class PriorDict(dict):
         =======
         float or ndarray:
             Joint log probability of all the individual sample probabilities
+
+        ..versionchanged:: 3.0.0
+            The sample must contain all non-fixed prior parameters, including
+            constrained parameters. Fixed parameters may be omitted.
+        """
+
+        self._check_complete_sample(sample, "ln_prob")
+        return self.ln_prob_subset(sample, axis=axis, normalized=normalized, xp=xp)
+
+    def ln_prob_subset(self, sample, axis=None, *, normalized=True, xp=None):
+        """Evaluate the joint log probability for the supplied subset of priors.
+
+        Constraints that cannot be derived from a partial sample are skipped.
 
         """
         if xp is None and isinstance(sample, dict):
@@ -892,8 +939,10 @@ class ConditionalPriorDict(PriorDict):
             for k in getattr(self[key], "required_variables", [])
         }
 
-    def prob(self, sample, *, normalized=True, xp=None, **kwargs):
-        """
+    def prob_subset(self, sample, *, normalized=True, xp=None, **kwargs):
+        """Evaluate the joint probability for the supplied subset of priors.
+
+        Constraints that cannot be derived from a partial sample are skipped.
 
         Parameters
         ==========
@@ -907,7 +956,7 @@ class ConditionalPriorDict(PriorDict):
         float: Joint probability of all individual sample probabilities
 
         """
-        self._prepare_evaluation(*zip(*sample.items()))
+        self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
         res = xp.asarray(
@@ -919,8 +968,10 @@ class ConditionalPriorDict(PriorDict):
         prob = xp.prod(res, **kwargs)
         return self.check_prob(sample, prob, normalized=normalized, xp=xp)
 
-    def ln_prob(self, sample, *, axis=None, normalized=True, xp=None):
-        """
+    def ln_prob_subset(self, sample, *, axis=None, normalized=True, xp=None):
+        """Evaluate the joint log probability for the supplied subset of priors.
+
+        Constraints that cannot be derived from a partial sample are skipped.
 
         Parameters
         ==========
@@ -937,7 +988,7 @@ class ConditionalPriorDict(PriorDict):
         float: Joint log probability of all the individual sample probabilities
 
         """
-        self._prepare_evaluation(*zip(*sample.items()))
+        self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
         res = xp.asarray(
@@ -1014,6 +1065,19 @@ class ConditionalPriorDict(PriorDict):
                 for element in self.sorted_keys_without_fixed_parameters
             ]
             self._least_recently_rescaled_keys = keys
+
+    def _prepare_subset_evaluation(self, sample):
+        self._check_resolved()
+        for key in sample:
+            missing = [
+                name for name in getattr(self[key], "required_variables", [])
+                if name not in sample and not isinstance(self[name], DeltaFunction)
+            ]
+            if missing:
+                raise IllegalConditionsException(
+                    f"Cannot evaluate {key} without conditional parameters: {', '.join(missing)}."
+                )
+        self._prepare_evaluation(*zip(*sample.items()))
 
     def _prepare_evaluation(self, keys, theta):
         self._check_resolved()

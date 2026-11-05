@@ -293,6 +293,38 @@ class TestConditionalPriorDict(unittest.TestCase):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.ln_prob(sample=self.test_sample)
 
+    def test_probability_requires_complete_sample(self):
+        sample = {"var_0": self.test_sample["var_0"]}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                with self.assertRaisesRegex(ValueError, f"Use {method}_subset"):
+                    getattr(self.conditional_priors, method)(sample)
+
+    def test_probability_does_not_require_fixed_parameters(self):
+        self.conditional_priors["var_0"] = bilby.core.prior.DeltaFunction(0.7)
+        sample = {key: value for key, value in self.test_sample.items() if key != "var_0"}
+        for method, expected in (("prob", self.test_value), ("ln_prob", np.log(self.test_value))):
+            with self.subTest(method=method):
+                actual = getattr(self.conditional_priors, method)(sample)
+                self.assertAlmostEqual(actual, expected)
+
+    def test_probability_subset(self):
+        sample = {key: self.test_sample[key] for key in ("var_0", "var_1")}
+        for method, expected in (("prob", 1 / 0.7), ("ln_prob", -np.log(0.7))):
+            with self.subTest(method=method):
+                actual = getattr(self.conditional_priors, f"{method}_subset")(sample)
+                self.assertAlmostEqual(actual, expected)
+                self.assertEqual(aac.get_namespace(actual), self.xp)
+
+    def test_probability_subset_requires_dependencies(self):
+        # A previous evaluation must not supply stale conditional parameters.
+        self.conditional_priors.prob(self.test_sample)
+        sample = {"var_1": self.test_sample["var_1"]}
+        for method in ("prob_subset", "ln_prob_subset"):
+            with self.subTest(method=method):
+                with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+                    getattr(self.conditional_priors, method)(sample)
+
     def test_sample_subset_all_keys(self):
         bilby.core.utils.random.seed(5)
         self.assertDictEqual(

@@ -391,7 +391,7 @@ class TestPriorDict(unittest.TestCase):
                 keys=list(priors.keys()), size=1, random_state=self.rng
             )
 
-    def test_prob_and_ln_prob_on_partial_subset_skip_unavailable_constraints(self):
+    def test_prob_subset_and_ln_prob_subset_skip_unavailable_constraints(self):
 
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
@@ -411,8 +411,8 @@ class TestPriorDict(unittest.TestCase):
         )
 
         self.assertEqual(1, normalization)
-        self.assertEqual(priors["mass_1"].prob(1.5), priors.prob(sample))
-        self.assertEqual(priors["mass_1"].ln_prob(1.5), priors.ln_prob(sample))
+        self.assertEqual(priors["mass_1"].prob(1.5), priors.prob_subset(sample))
+        self.assertEqual(priors["mass_1"].ln_prob(1.5), priors.ln_prob_subset(sample))
 
     def test_sample_with_random_seed(self):
         """
@@ -441,9 +441,7 @@ class TestPriorDict(unittest.TestCase):
             self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=["mass", "speed"], random_state=self.rng
-        )
+        samples = self.prior_set_from_dict.sample(random_state=self.rng)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
@@ -451,14 +449,78 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=["mass", "speed"], random_state=self.rng
-        )
+        samples = self.prior_set_from_dict.sample(random_state=self.rng)
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
         self.assertEqual(aac.get_namespace(expected), self.xp)
+
+    def test_probability_requires_complete_sample(self):
+        for method in ("prob", "ln_prob"):
+            for sample in ({}, {"mass": 0.5}, {"speed": -1.0}):
+                with self.subTest(method=method, keys=list(sample)):
+                    with self.assertRaisesRegex(ValueError, f"Use {method}_subset"):
+                        getattr(self.prior_set_from_dict, method)(sample, normalized=False)
+
+    def test_probability_does_not_require_fixed_parameters(self):
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        without_fixed = {key: sample[key] for key in ("mass", "speed")}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.prior_set_from_dict, method)(sample)
+                actual = getattr(self.prior_set_from_dict, method)(without_fixed)
+                self.assertEqual(actual, expected)
+
+    def test_probability_subset(self):
+        sample = {"speed": self.xp.asarray([1.1, 1.5, 1.9])}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.second_prior, method)(sample["speed"])
+                actual = getattr(self.prior_set_from_dict, f"{method}_subset")(
+                    sample, axis=0, normalized=False
+                )
+                np.testing.assert_allclose(actual, expected)
+                self.assertEqual(aac.get_namespace(actual), self.xp)
+
+    def test_probability_subset_with_complete_sample(self):
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.prior_set_from_dict, method)(sample)
+                actual = getattr(self.prior_set_from_dict, f"{method}_subset")(sample)
+                self.assertEqual(actual, expected)
+
+    def test_probability_complete_sample_requires_constraints(self):
+        priors = bilby.core.prior.PriorDict(dict(
+            mass=bilby.core.prior.Uniform(0, 2),
+            fixed=bilby.core.prior.DeltaFunction(1),
+            limit=bilby.core.prior.Constraint(0, 1),
+        ))
+        for method in ("prob", "ln_prob", "prob_subset", "ln_prob_subset"):
+            with self.subTest(method=method):
+                with self.assertRaisesRegex(ValueError, "Constraint limit"):
+                    getattr(priors, method)({"mass": self.xp.asarray(0.5)}, normalized=False)
+
+    def test_probability_applies_available_constraints(self):
+        priors = bilby.core.prior.PriorDict(
+            dict(mass=bilby.core.prior.Uniform(0, 2),
+                 speed=bilby.core.prior.Uniform(0, 2),
+                 limit=bilby.core.prior.Constraint(0, 1)),
+            conversion_function=lambda sample: dict(sample, limit=sample["mass"]),
+        )
+        for method, expected in (("prob", [0.25, 0.0]), ("ln_prob", [np.log(0.25), -np.inf])):
+            for suffix in ("", "_subset"):
+                with self.subTest(method=method, suffix=suffix):
+                    sample = {"mass": self.xp.asarray([0.5, 1.5]),
+                              "speed": self.xp.asarray([0.5, 0.5])}
+                    if suffix:
+                        del sample["speed"]
+                        subset_expected = [0.5, 0.0] if method == "prob" else [np.log(0.5), -np.inf]
+                    else:
+                        subset_expected = expected
+                    actual = getattr(priors, method + suffix)(sample, axis=0, normalized=False)
+                    np.testing.assert_allclose(actual, subset_expected)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]

@@ -51,6 +51,20 @@ which provides extra functionality. For example, to sample from the prior:
    >>> priors.sample()
    {'a': 0.1234, 'b': 4.5232}
 
+Use :code:`priors.prob(sample)` or :code:`priors.ln_prob(sample)` to evaluate
+all priors. The sample must include every non-fixed parameter; missing
+non-fixed parameters raise a :code:`ValueError`. Fixed parameters, such as
+those with delta-function priors, may be omitted.
+
+For a partial sample, use :code:`priors.prob_subset(sample)` or
+:code:`priors.ln_prob_subset(sample)` instead. These evaluate only the supplied
+parameters and skip constraints that cannot be derived from the partial sample.
+Conditional priors still require their conditioning parameters::
+
+   sample = priors.sample_subset(keys=['a'])
+   probability = priors.prob_subset(sample)
+   log_probability = priors.ln_prob_subset(sample)
+
 -----------------------
 Available prior classes
 -----------------------
