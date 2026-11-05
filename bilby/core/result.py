@@ -3,38 +3,37 @@ import importlib.metadata
 import inspect
 import json
 import os
-import packaging
 from collections import namedtuple
 from copy import copy
+from functools import partial
 from importlib import import_module
 from itertools import product
-from functools import partial
 
 import numpy as np
+import packaging
 import pandas as pd
 import scipy.stats
 
 from . import utils
+from .prior import ConditionalDeltaFunction, DeltaFunction, Prior, PriorDict
 from .utils import (
-    logger,
-    infer_parameters_from_function,
-    check_directory_exists_and_if_not_mkdir,
-    latex_plot_format,
-    safe_save_figure,
     BilbyJsonEncoder,
-    load_json,
-    move_old_file,
-    get_version_information,
+    check_directory_exists_and_if_not_mkdir,
     decode_bilby_json,
     docstring,
-    recursively_save_dict_contents_to_group,
-    recursively_load_dict_contents_from_group,
-    recursively_decode_bilby_json,
-    safe_file_dump,
+    get_version_information,
+    infer_parameters_from_function,
+    latex_plot_format,
+    load_json,
+    logger,
+    move_old_file,
     random,
+    recursively_decode_bilby_json,
+    recursively_load_dict_contents_from_group,
+    recursively_save_dict_contents_to_group,
+    safe_file_dump,
+    safe_save_figure,
 )
-from .prior import Prior, PriorDict, DeltaFunction, ConditionalDeltaFunction
-
 
 EXTENSIONS = ["json", "hdf5", "h5", "pickle", "pkl"]
 
@@ -1192,7 +1191,9 @@ class Result(object):
         Returns
         =======
         summary: namedtuple
-            An object with attributes, median, lower, upper and string
+            An object with attributes, median, lower, upper and string. The
+            lower and upper attributes are the distances below and above the
+            median, respectively.
 
         """
         summary = namedtuple("summary", ["median", "lower", "upper", "string"])
@@ -1202,16 +1203,14 @@ class Result(object):
 
         quants_to_compute = np.array([quantiles[0], 0.5, quantiles[1]])
         quants = np.percentile(self.posterior[key], quants_to_compute * 100)
-        summary.median = quants[1]
-        summary.plus = quants[2] - summary.median
-        summary.minus = summary.median - quants[0]
+        median = quants[1]
+        lower = median - quants[0]
+        upper = quants[2] - median
 
         fmt = "{{0:{0}}}".format(fmt).format
         string_template = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
-        summary.string = string_template.format(
-            fmt(summary.median), fmt(summary.minus), fmt(summary.plus)
-        )
-        return summary
+        string = string_template.format(fmt(median), fmt(lower), fmt(upper))
+        return summary(median=median, lower=lower, upper=upper, string=string)
 
     @latex_plot_format
     def plot_single_density(
@@ -1295,8 +1294,8 @@ class Result(object):
         summary = self.get_one_dimensional_median_and_error_bar(
             key, quantiles=quantiles
         )
-        ax.axvline(summary.median - summary.minus, ls="--", color="C0")
-        ax.axvline(summary.median + summary.plus, ls="--", color="C0")
+        ax.axvline(summary.median - summary.lower, ls="--", color="C0")
+        ax.axvline(summary.median + summary.upper, ls="--", color="C0")
         if title:
             ax.set_title(summary.string, fontsize=title_fontsize)
 
@@ -2425,8 +2424,8 @@ def plot_multiple(
         A matplotlib figure instance
 
     """
-    import matplotlib.pyplot as plt
     import matplotlib.lines as mpllines
+    import matplotlib.pyplot as plt
 
     kwargs["show_titles"] = False
     kwargs["truths"] = None
