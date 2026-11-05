@@ -407,7 +407,7 @@ class TestPriorDict(unittest.TestCase):
 
         sample = {"mass_1": 1.5}
         normalization = priors.normalize_constraint_factor(
-            tuple(sample), min_accept=10, sampling_chunk=20, nrepeats=1
+            tuple(sample), min_accept=10, sampling_chunk=20, nrepeats=1, strict=False
         )
 
         self.assertEqual(1, normalization)
@@ -491,16 +491,54 @@ class TestPriorDict(unittest.TestCase):
                 actual = getattr(self.prior_set_from_dict, f"{method}_subset")(sample)
                 self.assertEqual(actual, expected)
 
-    def test_probability_complete_sample_requires_constraints(self):
-        priors = bilby.core.prior.PriorDict(dict(
+    def test_probability_subset_skips_missing_constraints_for_complete_sample(self):
+        for prior_class in (bilby.core.prior.PriorDict, bilby.core.prior.ConditionalPriorDict):
+            priors = prior_class(dict(
             mass=bilby.core.prior.Uniform(0, 2),
             fixed=bilby.core.prior.DeltaFunction(1),
             limit=bilby.core.prior.Constraint(0, 1),
         ))
-        for method in ("prob", "ln_prob", "prob_subset", "ln_prob_subset"):
-            with self.subTest(method=method):
+            sample = {"mass": self.xp.asarray(0.5)}
+            for normalized in (False, True):
+                for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
+                    with self.subTest(prior_class=prior_class, normalized=normalized, method=method):
+                        actual = getattr(priors, method + "_subset")(sample, normalized=normalized)
+                        self.assertAlmostEqual(actual, expected)
                 with self.assertRaisesRegex(ValueError, "Constraint limit"):
-                    getattr(priors, method)({"mass": self.xp.asarray(0.5)}, normalized=False)
+                            getattr(priors, method)(sample, normalized=normalized)
+
+    def test_probability_strict_conversion_failure(self):
+        def conversion_function(sample):
+            return dict(sample, limit=sample["missing"])
+
+        priors = bilby.core.prior.PriorDict(
+            dict(mass=bilby.core.prior.Uniform(0, 2),
+                 limit=bilby.core.prior.Constraint(0, 1)),
+            conversion_function=conversion_function,
+        )
+        sample = {"mass": self.xp.asarray(0.5)}
+        for normalized in (False, True):
+            for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
+                with self.subTest(normalized=normalized, method=method):
+                    actual = getattr(priors, method + "_subset")(sample, normalized=normalized)
+                    self.assertAlmostEqual(actual, expected)
+                    with self.assertRaisesRegex(KeyError, "missing"):
+                        getattr(priors, method)(sample, normalized=normalized)
+
+    def test_normalization_strictness_is_not_shared_between_cache_entries(self):
+        priors = bilby.core.prior.PriorDict(dict(
+            mass=bilby.core.prior.Uniform(0, 2),
+            limit=bilby.core.prior.Constraint(0, 1),
+        ))
+        # Exercise normalization's accumulation loop as well as its first chunk.
+        factor = priors.normalize_constraint_factor(
+            ("mass",), min_accept=5, sampling_chunk=2, nrepeats=1, strict=False
+        )
+        self.assertEqual(factor, 1)
+        with self.assertRaisesRegex(ValueError, "Constraint limit"):
+            priors.normalize_constraint_factor(
+                ("mass",), min_accept=5, sampling_chunk=2, nrepeats=1, strict=True
+            )
 
     def test_probability_applies_available_constraints(self):
         priors = bilby.core.prior.PriorDict(
@@ -614,7 +652,7 @@ class TestPriorDict(unittest.TestCase):
         ):
             priors.evaluate_constraints(theta)
 
-    def test_evaluate_constraints_partial_sample_is_not_strict(self):
+    def test_evaluate_constraints_partial_sample_requires_non_strict(self):
 
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
@@ -630,7 +668,9 @@ class TestPriorDict(unittest.TestCase):
 
         theta = {"mass_1": 1.5}
 
-        self.assertTrue(priors.evaluate_constraints(theta))
+        self.assertTrue(priors.evaluate_constraints(theta, strict=False))
+        with self.assertRaises(KeyError):
+            priors.evaluate_constraints(theta)
         with self.assertRaises(KeyError):
             priors.evaluate_constraints(theta, strict=True)
 

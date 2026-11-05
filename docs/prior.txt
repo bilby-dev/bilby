@@ -54,11 +54,16 @@ which provides extra functionality. For example, to sample from the prior:
 Use :code:`priors.prob(sample)` or :code:`priors.ln_prob(sample)` to evaluate
 all priors. The sample must include every non-fixed parameter; missing
 non-fixed parameters raise a :code:`ValueError`. Fixed parameters, such as
-those with delta-function priors, may be omitted.
+those with delta-function priors, may be omitted. All constraints must be
+evaluable from the sample; otherwise evaluation raises an error.
 
 For a partial sample, use :code:`priors.prob_subset(sample)` or
 :code:`priors.ln_prob_subset(sample)` instead. These evaluate only the supplied
-parameters and skip constraints that cannot be derived from the partial sample.
+parameters and skip constraints that cannot be derived from the supplied sample,
+even if all non-fixed parameters are present. This policy also applies when
+calculating constraint normalization factors. Direct calls to
+:code:`evaluate_constraints` and :code:`normalize_constraint_factor` default to
+:code:`strict=True`; pass :code:`strict=False` to skip unavailable constraints.
 Conditional priors still require their conditioning parameters::
 
    sample = priors.sample_subset(keys=['a'])

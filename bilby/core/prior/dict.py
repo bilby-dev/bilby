@@ -71,7 +71,7 @@ class PriorDict(dict):
         super().__setitem__(key, value)
 
     @xp_wrap
-    def evaluate_constraints(self, sample, *, strict=None, xp=None):
+    def evaluate_constraints(self, sample, *, strict=True, xp=None):
         """Evaluate the constraints for a given sample.
 
         Applies the conversion function to the sample and evaluates the
@@ -81,11 +81,10 @@ class PriorDict(dict):
         ==========
         sample: dict
             Dictionary of parameters used to evaluate the constraints.
-        strict: bool or None, optional
+        strict: bool, optional
             When True, raise if a constraint cannot be evaluated from the
             provided sample. When False, skip constraints that cannot be
-            derived from a partial sample. By default, complete samples are
-            evaluated strictly while partial samples are evaluated non-strictly.
+            derived from a partial sample. Defaults to True.
 
         Raises
         ======
@@ -93,9 +92,6 @@ class PriorDict(dict):
             If a constraint parameter is not present in the sample after
             conversion and ``strict`` is True.
         """
-        if strict is None:
-            strict = self._is_complete_sample(sample)
-
         try:
             out_sample = self.conversion_function(sample)
         except KeyError:
@@ -572,15 +568,17 @@ class PriorDict(dict):
             return all_samples
 
     def normalize_constraint_factor(
-        self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
+        self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10, *, strict=True
     ):
+        """Estimate constraint normalization, requiring all constraints when strict."""
+        cache_key = (tuple(keys), strict)
         if len(self.constraint_keys) == 0:
             return 1
-        elif keys in self._cached_normalizations.keys():
-            return self._cached_normalizations[keys]
+        elif cache_key in self._cached_normalizations:
+            return self._cached_normalizations[cache_key]
         else:
             factor_estimates = [
-                self._estimate_normalization(keys, min_accept, sampling_chunk)
+                self._estimate_normalization(keys, min_accept, sampling_chunk, strict=strict)
                 for _ in range(nrepeats)
             ]
             factor = np.mean(factor_estimates)
@@ -589,18 +587,18 @@ class PriorDict(dict):
                 factor_rounded = np.round(factor, decimals)
             else:
                 factor_rounded = factor
-            self._cached_normalizations[keys] = factor_rounded
+            self._cached_normalizations[cache_key] = factor_rounded
             return factor_rounded
 
-    def _estimate_normalization(self, keys, min_accept, sampling_chunk):
+    def _estimate_normalization(self, keys, min_accept, sampling_chunk, *, strict=True):
         samples = self.sample_subset(keys=keys, size=sampling_chunk)
-        keep = np.atleast_1d(self.evaluate_constraints(samples))
+        keep = np.atleast_1d(self.evaluate_constraints(samples, strict=strict))
         all_samples = {key: np.array([]) for key in keys}
         while np.count_nonzero(keep) < min_accept:
             samples = self.sample_subset(keys=keys, size=sampling_chunk)
             for key in samples:
                 all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
-            keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
+            keep = np.array(self.evaluate_constraints(all_samples, strict=strict), dtype=bool)
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
@@ -635,12 +633,12 @@ class PriorDict(dict):
             constrained parameters. Fixed parameters may be omitted.
         """
         self._check_complete_sample(sample, "prob")
-        return self.prob_subset(sample, normalized=normalized, xp=xp, **kwargs)
+        return self._prob(sample, normalized=normalized, strict=True, xp=xp, **kwargs)
 
     def prob_subset(self, sample, *, normalized=True, xp=None, **kwargs):
         """Evaluate the joint probability for the supplied subset of priors.
 
-        Constraints that cannot be derived from a partial sample are skipped.
+        Constraints that cannot be derived from the supplied sample are skipped.
 
         Parameters
         ==========
@@ -654,29 +652,32 @@ class PriorDict(dict):
         float: Joint probability of all individual sample probabilities
 
         """
+        return self._prob(sample, normalized=normalized, strict=False, xp=xp, **kwargs)
+
+    def _prob(self, sample, *, normalized=True, strict=True, xp=None, **kwargs):
         if xp is None:
             xp = array_module(sample.values())
         prob = xp.prod(
             xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs
         )
 
-        return self.check_prob(sample, prob, normalized=normalized, xp=xp)
+        return self.check_prob(sample, prob, normalized=normalized, strict=strict, xp=xp)
 
-    def check_prob(self, sample, prob, *, normalized=True, xp=None):
+    def check_prob(self, sample, prob, *, normalized=True, strict=True, xp=None):
         if normalized:
-            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()), strict=strict)
         else:
             ratio = 1
         if not aac.is_jax_namespace(xp) and xp.all(prob == 0.0):
             return prob * ratio
         else:
             if isinstance(prob, float):
-                if self.evaluate_constraints(sample, xp=xp):
+                if self.evaluate_constraints(sample, strict=strict, xp=xp):
                     return prob * ratio
                 else:
                     return 0.0
             else:
-                keep = self.evaluate_constraints(sample, xp=xp)
+                keep = self.evaluate_constraints(sample, strict=strict, xp=xp)
                 constrained_prob = xp.where(keep, prob * ratio, 0.0)
                 return constrained_prob
 
@@ -704,14 +705,17 @@ class PriorDict(dict):
         """
 
         self._check_complete_sample(sample, "ln_prob")
-        return self.ln_prob_subset(sample, axis=axis, normalized=normalized, xp=xp)
+        return self._ln_prob(sample, axis=axis, normalized=normalized, strict=True, xp=xp)
 
     def ln_prob_subset(self, sample, axis=None, *, normalized=True, xp=None):
         """Evaluate the joint log probability for the supplied subset of priors.
 
-        Constraints that cannot be derived from a partial sample are skipped.
+        Constraints that cannot be derived from the supplied sample are skipped.
 
         """
+        return self._ln_prob(sample, axis=axis, normalized=normalized, strict=False, xp=xp)
+
+    def _ln_prob(self, sample, axis=None, *, normalized=True, strict=True, xp=None):
         if xp is None and isinstance(sample, dict):
             xp = array_module(sample.values())
         elif xp is None:
@@ -721,20 +725,20 @@ class PriorDict(dict):
             xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]),
             axis=axis,
         )
-        return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
+        return self.check_ln_prob(sample, ln_prob, normalized=normalized, strict=strict, xp=xp)
 
-    def check_ln_prob(self, sample, ln_prob, normalized=True, *, xp=None):
+    def check_ln_prob(self, sample, ln_prob, normalized=True, *, strict=True, xp=None):
         if normalized:
-            ratio = self.normalize_constraint_factor(tuple(sample.keys()))
+            ratio = self.normalize_constraint_factor(tuple(sample.keys()), strict=strict)
         else:
             ratio = 1
         if isinstance(ln_prob, float):
-            if xp.all(self.evaluate_constraints(sample, xp=xp)):
+            if xp.all(self.evaluate_constraints(sample, strict=strict, xp=xp)):
                 return ln_prob + math.log(ratio)
             else:
                 return -np.inf
         else:
-            keep = self.evaluate_constraints(sample, xp=xp)
+            keep = self.evaluate_constraints(sample, strict=strict, xp=xp)
             constrained_ln_prob = xp.where(keep, ln_prob + math.log(ratio), -xp.inf)
             return constrained_ln_prob
 
@@ -939,23 +943,7 @@ class ConditionalPriorDict(PriorDict):
             for k in getattr(self[key], "required_variables", [])
         }
 
-    def prob_subset(self, sample, *, normalized=True, xp=None, **kwargs):
-        """Evaluate the joint probability for the supplied subset of priors.
-
-        Constraints that cannot be derived from a partial sample are skipped.
-
-        Parameters
-        ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the probability of
-        kwargs:
-            The keyword arguments are passed directly to `np.prod`
-
-        Returns
-        =======
-        float: Joint probability of all individual sample probabilities
-
-        """
+    def _prob(self, sample, *, normalized=True, strict=True, xp=None, **kwargs):
         self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
@@ -966,28 +954,9 @@ class ConditionalPriorDict(PriorDict):
             ]
         )
         prob = xp.prod(res, **kwargs)
-        return self.check_prob(sample, prob, normalized=normalized, xp=xp)
+        return self.check_prob(sample, prob, normalized=normalized, strict=strict, xp=xp)
 
-    def ln_prob_subset(self, sample, *, axis=None, normalized=True, xp=None):
-        """Evaluate the joint log probability for the supplied subset of priors.
-
-        Constraints that cannot be derived from a partial sample are skipped.
-
-        Parameters
-        ==========
-        sample: dict
-            Dictionary of the samples of which we want to have the log probability of
-        axis: Union[None, int]
-            Axis along which the summation is performed
-        normalized: bool
-            When False, disables calculation of constraint normalization factor
-            during prior probability computation. Default value is True.
-
-        Returns
-        =======
-        float: Joint log probability of all the individual sample probabilities
-
-        """
+    def _ln_prob(self, sample, *, axis=None, normalized=True, strict=True, xp=None):
         self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
@@ -1000,7 +969,7 @@ class ConditionalPriorDict(PriorDict):
             ]
         )
         ln_prob = xp.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
+        return self.check_ln_prob(sample, ln_prob, normalized=normalized, strict=strict, xp=xp)
 
     @xp_wrap
     def cdf(self, sample, *, xp=None):
