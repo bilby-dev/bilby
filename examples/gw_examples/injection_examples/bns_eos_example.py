@@ -7,7 +7,6 @@ model for the tidal deformabilities.
 WARNING: The code is extremely slow.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 from bilby.gw.eos import EOSFamily, TabularEOS

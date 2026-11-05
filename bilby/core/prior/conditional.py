@@ -2,23 +2,47 @@ import numpy as np
 
 from .base import Prior, PriorException
 from .interpolated import Interped
-from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
-    SymmetricLogUniform, Cosine, Sine, Gaussian, TruncatedGaussian, HalfGaussian, \
-    LogNormal, Exponential, StudentT, Beta, Logistic, Cauchy, Gamma, ChiSquared, FermiDirac
+from .analytical import (
+    DeltaFunction,
+    PowerLaw,
+    Uniform,
+    LogUniform,
+    SymmetricLogUniform,
+    Cosine,
+    Sine,
+    Gaussian,
+    TruncatedGaussian,
+    HalfGaussian,
+    LogNormal,
+    Exponential,
+    StudentT,
+    Beta,
+    Logistic,
+    Cauchy,
+    Gamma,
+    ChiSquared,
+    FermiDirac,
+)
 from ..utils import infer_args_from_method, infer_parameters_from_function
 from ...compat.utils import xp_wrap
 
 
 def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
-
         _leaves = prior_class._leaves
 
-        __name__ = 'Conditional{}'.format(prior_class.__name__)
-        __qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
+        __name__ = "Conditional{}".format(prior_class.__name__)
+        __qualname__ = "Conditional{}".format(prior_class.__qualname__)
 
-        def __init__(self, condition_func, name=None, latex_label=None, unit=None,
-                     boundary=None, **reference_params):
+        def __init__(
+            self,
+            condition_func,
+            name=None,
+            latex_label=None,
+            unit=None,
+            boundary=None,
+            **reference_params,
+        ):
             """
 
             Parameters
@@ -55,12 +79,20 @@ def conditional_prior_factory(prior_class):
                 This differs on the `prior_class`, for example for the Gaussian
                 prior this is `mu` and `sigma`.
             """
-            if 'boundary' in infer_args_from_method(super(ConditionalPrior, self).__init__):
-                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                       unit=unit, boundary=boundary, **reference_params)
+            if "boundary" in infer_args_from_method(
+                super(ConditionalPrior, self).__init__
+            ):
+                super(ConditionalPrior, self).__init__(
+                    name=name,
+                    latex_label=latex_label,
+                    unit=unit,
+                    boundary=boundary,
+                    **reference_params,
+                )
             else:
-                super(ConditionalPrior, self).__init__(name=name, latex_label=latex_label,
-                                                       unit=unit, **reference_params)
+                super(ConditionalPrior, self).__init__(
+                    name=name, latex_label=latex_label, unit=unit, **reference_params
+                )
 
             self._required_variables = None
             self.condition_func = condition_func
@@ -82,6 +114,7 @@ def conditional_prior_factory(prior_class):
 
             """
             from ..utils import random
+
             rng = random.resolve_random_state(random_state)
 
             if isinstance(size, int | np.integer):
@@ -183,15 +216,19 @@ def conditional_prior_factory(prior_class):
             """
             required_variables.pop("xp", None)
             if sorted(list(required_variables)) == sorted(self.required_variables):
-                parameters = self.condition_func(self.reference_params.copy(), **required_variables)
+                parameters = self.condition_func(
+                    self.reference_params.copy(), **required_variables
+                )
                 for key, value in parameters.items():
                     setattr(self, key, value)
             elif len(required_variables) == 0:
                 return
             else:
-                raise IllegalRequiredVariablesException("Expected kwargs for {}. Got kwargs for {} instead."
-                                                        .format(self.required_variables,
-                                                                list(required_variables.keys())))
+                raise IllegalRequiredVariablesException(
+                    "Expected kwargs for {}. Got kwargs for {} instead.".format(
+                        self.required_variables, list(required_variables.keys())
+                    )
+                )
 
         @property
         def reference_params(self):
@@ -212,11 +249,13 @@ def conditional_prior_factory(prior_class):
                 self._condition_func = lambda reference_params: reference_params
             else:
                 self._condition_func = condition_func
-            self._required_variables = infer_parameters_from_function(self.condition_func)
+            self._required_variables = infer_parameters_from_function(
+                self.condition_func
+            )
 
         @property
         def required_variables(self):
-            """ The required variables to pass into the condition function. """
+            """The required variables to pass into the condition function."""
             return self._required_variables
 
         def get_instantiation_dict(self):
@@ -245,12 +284,18 @@ def conditional_prior_factory(prior_class):
             """
             prior_name = self.__class__.__name__
             instantiation_dict = self.get_instantiation_dict()
-            instantiation_dict["condition_func"] = ".".join([
-                instantiation_dict["condition_func"].__module__,
-                instantiation_dict["condition_func"].__name__
-            ])
-            args = ', '.join(['{}={}'.format(key, repr(instantiation_dict[key]))
-                              for key in instantiation_dict])
+            instantiation_dict["condition_func"] = ".".join(
+                [
+                    instantiation_dict["condition_func"].__module__,
+                    instantiation_dict["condition_func"].__name__,
+                ]
+            )
+            args = ", ".join(
+                [
+                    "{}={}".format(key, repr(instantiation_dict[key]))
+                    for key in instantiation_dict
+                ]
+            )
             return "{}({})".format(prior_name, args)
 
     return ConditionalPrior
@@ -390,23 +435,22 @@ class DirichletElement(ConditionalBeta):
     def __init__(self, order, n_dimensions, label):
         """ """
         super(DirichletElement, self).__init__(
-            minimum=0, maximum=1, alpha=1, beta=n_dimensions - order - 1,
+            minimum=0,
+            maximum=1,
+            alpha=1,
+            beta=n_dimensions - order - 1,
             name=label + str(order),
-            condition_func=self.dirichlet_condition
+            condition_func=self.dirichlet_condition,
         )
         self.label = label
         self.n_dimensions = n_dimensions
         self.order = order
-        self._required_variables = [
-            label + str(ii) for ii in range(order)
-        ]
-        self.__class__.__name__ = 'DirichletElement'
-        self.__class__.__qualname__ = 'DirichletElement'
+        self._required_variables = [label + str(ii) for ii in range(order)]
+        self.__class__.__name__ = "DirichletElement"
+        self.__class__.__qualname__ = "DirichletElement"
 
     def dirichlet_condition(self, reference_parms, **kwargs):
-        remaining = 1 - sum(
-            [kwargs[self.label + str(ii)] for ii in range(self.order)]
-        )
+        remaining = 1 - sum([kwargs[self.label + str(ii)] for ii in range(self.order)])
         return dict(minimum=reference_parms["minimum"], maximum=remaining)
 
     def __repr__(self):
@@ -427,8 +471,8 @@ class DirichletElement(ConditionalBeta):
 
 
 class ConditionalPriorException(PriorException):
-    """ General base class for all conditional prior exceptions """
+    """General base class for all conditional prior exceptions"""
 
 
 class IllegalRequiredVariablesException(ConditionalPriorException):
-    """ Exception class for exceptions relating to handling the required variables. """
+    """Exception class for exceptions relating to handling the required variables."""

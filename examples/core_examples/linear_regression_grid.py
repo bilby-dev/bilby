@@ -5,6 +5,7 @@ fitting a linear function to data with background Gaussian noise.
 This will compare the output of using a stochastic sampling method
 to evaluating the posterior on a grid.
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np

@@ -5,13 +5,15 @@ import numpy as np
 from array_api_compat import is_array_api_obj
 from scipy.special import gammaln, xlogy
 
-from .utils import infer_parameters_from_function, infer_args_from_function_except_n_args
+from .utils import (
+    infer_parameters_from_function,
+    infer_args_from_function_except_n_args,
+)
 from ..compat.patches import multivariate_logpdf
 from ..compat.utils import BackendNotImplementedError, array_module
 
 
 class Likelihood:
-
     def __init__(self):
         """Empty likelihood class to be subclassed by other likelihoods"""
         self._meta_data = None
@@ -59,7 +61,7 @@ class Likelihood:
 
     @property
     def meta_data(self):
-        return getattr(self, '_meta_data', None)
+        return getattr(self, "_meta_data", None)
 
     @meta_data.setter
     def meta_data(self, meta_data):
@@ -74,7 +76,7 @@ class Likelihood:
 
 
 class ZeroLikelihood(Likelihood):
-    """ A special test-only class which already returns zero likelihood
+    """A special test-only class which already returns zero likelihood
 
     Parameters
     ==========
@@ -123,30 +125,32 @@ class Analytical1DLikelihood(Likelihood):
         self.kwargs = kwargs
 
     def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={})'.format(self.x, self.y, self.func.__name__)
+        return self.__class__.__name__ + "(x={}, y={}, func={})".format(
+            self.x, self.y, self.func.__name__
+        )
 
     @property
     def func(self):
-        """ Make func read-only """
+        """Make func read-only"""
         return self._func
 
     def model_parameters(self, parameters):
-        """ This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood) """
+        """This sets up the function only parameters (i.e. not sigma for the GaussianLikelihood)"""
         return {key: parameters[key] for key in self.function_keys}
 
     @property
     def function_keys(self):
-        """ Makes function_keys read_only """
+        """Makes function_keys read_only"""
         return self._function_keys
 
     @property
     def n(self):
-        """ The number of data points """
+        """The number of data points"""
         return len(self.x)
 
     @property
     def x(self):
-        """ The independent variable. Setter assures that single numbers will be converted to arrays internally """
+        """The independent variable. Setter assures that single numbers will be converted to arrays internally"""
         return self._x
 
     @x.setter
@@ -157,7 +161,7 @@ class Analytical1DLikelihood(Likelihood):
 
     @property
     def y(self):
-        """ The dependent variable. Setter assures that single numbers will be converted to arrays internally """
+        """The dependent variable. Setter assures that single numbers will be converted to arrays internally"""
         return self._y
 
     @y.setter
@@ -167,8 +171,10 @@ class Analytical1DLikelihood(Likelihood):
         self._y = y
 
     def residual(self, parameters):
-        """ Residual of the function against the data. """
-        return self.y - self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
+        """Residual of the function against the data."""
+        return self.y - self.func(
+            self.x, **self.model_parameters(parameters=parameters), **self.kwargs
+        )
 
 
 class GaussianLikelihood(Analytical1DLikelihood):
@@ -200,13 +206,16 @@ class GaussianLikelihood(Analytical1DLikelihood):
     def log_likelihood(self, parameters):
         xp = array_module(self.x)
         sigma = parameters.get("sigma", self.sigma)
-        log_l = xp.sum(- (self.residual(parameters) / sigma)**2 / 2 -
-                       xp.log(xp.asarray(2 * np.pi * sigma**2)) / 2)
+        log_l = xp.sum(
+            -((self.residual(parameters) / sigma) ** 2) / 2
+            - xp.log(xp.asarray(2 * np.pi * sigma**2)) / 2
+        )
         return log_l
 
     def __repr__(self):
-        return self.__class__.__name__ + '(x={}, y={}, func={}, sigma={})' \
-            .format(self.x, self.y, self.func.__name__, self.sigma)
+        return self.__class__.__name__ + "(x={}, y={}, func={}, sigma={})".format(
+            self.x, self.y, self.func.__name__, self.sigma
+        )
 
     @property
     def sigma(self):
@@ -227,7 +236,7 @@ class GaussianLikelihood(Analytical1DLikelihood):
         elif len(sigma) == self.n:
             self._sigma = sigma
         else:
-            raise ValueError('Sigma must be either float or array-like x.')
+            raise ValueError("Sigma must be either float or array-like x.")
 
 
 class PoissonLikelihood(Analytical1DLikelihood):
@@ -256,15 +265,17 @@ class PoissonLikelihood(Analytical1DLikelihood):
         super(PoissonLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
     def log_likelihood(self, parameters):
-        rate = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
+        rate = self.func(
+            self.x, **self.model_parameters(parameters=parameters), **self.kwargs
+        )
         if not is_array_api_obj(rate):
             raise ValueError(
                 "Poisson rate function returns wrong value type! "
-                "Is {} when it should be numpy.ndarray".format(type(rate)))
+                "Is {} when it should be numpy.ndarray".format(type(rate))
+            )
         xp = aac.get_namespace(rate)
-        if not aac.is_jax_namespace(xp) and xp.any(rate < 0.):
-            raise ValueError(("Poisson rate function returns a negative",
-                              " value!"))
+        if not aac.is_jax_namespace(xp) and xp.any(rate < 0.0):
+            raise ValueError(("Poisson rate function returns a negative", " value!"))
         rate = xp.maximum(rate, xp.asarray(0.0))
         return xp.sum(-rate + self.y * xp.log(rate) - gammaln(self.y + 1))
 
@@ -273,7 +284,7 @@ class PoissonLikelihood(Analytical1DLikelihood):
 
     @property
     def y(self):
-        """ Property assures that y-value is a positive integer. """
+        """Property assures that y-value is a positive integer."""
         return self._y
 
     @y.setter
@@ -283,7 +294,9 @@ class PoissonLikelihood(Analytical1DLikelihood):
         xp = aac.get_namespace(y)
         # check array is a non-negative integer array
         # torch doesn't support checking dtype kind
-        if (not aac.is_torch_namespace(xp) and y.dtype.kind not in 'ui') or xp.any(y < 0):
+        if (not aac.is_torch_namespace(xp) and y.dtype.kind not in "ui") or xp.any(
+            y < 0
+        ):
             raise ValueError("Data must be non-negative integers")
         self._y = y
 
@@ -308,9 +321,13 @@ class ExponentialLikelihood(Analytical1DLikelihood):
         super(ExponentialLikelihood, self).__init__(x=x, y=y, func=func, **kwargs)
 
     def log_likelihood(self, parameters):
-        mu = self.func(self.x, **self.model_parameters(parameters=parameters), **self.kwargs)
+        mu = self.func(
+            self.x, **self.model_parameters(parameters=parameters), **self.kwargs
+        )
         xp = array_module(mu)
-        val = xp.nan_to_num(xp.log(mu) + (self.y / mu), nan=np.inf, posinf=np.inf, neginf=-np.inf)
+        val = xp.nan_to_num(
+            xp.log(mu) + (self.y / mu), nan=np.inf, posinf=np.inf, neginf=-np.inf
+        )
         return -xp.sum(val)
 
     def __repr__(self):
@@ -318,7 +335,7 @@ class ExponentialLikelihood(Analytical1DLikelihood):
 
     @property
     def y(self):
-        """ Property assures that y-value is positive. """
+        """Property assures that y-value is positive."""
         return self._y
 
     @y.setter
@@ -368,32 +385,42 @@ class StudentTLikelihood(Analytical1DLikelihood):
 
     def log_likelihood(self, parameters):
         nu = parameters.get("nu", self.nu)
-        if nu <= 0.:
-            raise ValueError("Number of degrees of freedom for Student's "
-                             "t-likelihood must be positive")
+        if nu <= 0.0:
+            raise ValueError(
+                "Number of degrees of freedom for Student's "
+                "t-likelihood must be positive"
+            )
 
         xp = array_module(self.x)
-        log_l = xp.sum(xp.nan_to_num(
-            - (nu + 1) * xp.log1p(self.lam * self.residual(parameters=parameters)**2 / nu) / 2
-            + xp.log(xp.asarray(self.lam / (nu * np.pi))) / 2
-            + gammaln((nu + 1) / 2) - gammaln(nu / 2),
-            nan=np.inf, posinf=np.inf, neginf=-np.inf
-        ))
+        log_l = xp.sum(
+            xp.nan_to_num(
+                -(nu + 1)
+                * xp.log1p(self.lam * self.residual(parameters=parameters) ** 2 / nu)
+                / 2
+                + xp.log(xp.asarray(self.lam / (nu * np.pi))) / 2
+                + gammaln((nu + 1) / 2)
+                - gammaln(nu / 2),
+                nan=np.inf,
+                posinf=np.inf,
+                neginf=-np.inf,
+            )
+        )
         return log_l
 
     def __repr__(self):
-        base_string = '(x={}, y={}, func={}, nu={}, sigma={})'
+        base_string = "(x={}, y={}, func={}, nu={}, sigma={})"
         return self.__class__.__name__ + base_string.format(
-            self.x, self.y, self.func.__name__, self.nu, self.sigma)
+            self.x, self.y, self.func.__name__, self.nu, self.sigma
+        )
 
     @property
     def lam(self):
-        """ Converts 'scale' to 'precision' """
-        return 1. / self.sigma ** 2
+        """Converts 'scale' to 'precision'"""
+        return 1.0 / self.sigma**2
 
     @property
     def nu(self):
-        """ This checks if nu or sigma have been set in parameters. If so, those
+        """This checks if nu or sigma have been set in parameters. If so, those
         values will be used. Otherwise, the attribute nu is used. The logic is
         that if nu is not in parameters the attribute is used which was
         given at init (i.e. the known nu as a float)."""
@@ -443,8 +470,7 @@ class Multinomial(Likelihood):
         =======
         float
         """
-        probs = [parameters[self.base + str(ii)]
-                 for ii in range(self.n - 1)]
+        probs = [parameters[self.base + str(ii)] for ii in range(self.n - 1)]
         probs.append(1 - sum(probs))
         return self._multinomial_ln_pdf(probs=probs)
 
@@ -461,7 +487,8 @@ class Multinomial(Likelihood):
         """Lifted from scipy.stats.multinomial._logpdf"""
         xp = array_module(self.data)
         ln_prob = gammaln(self._total + 1) + xp.sum(
-            xlogy(self.data, probs) - gammaln(self.data + 1), axis=-1)
+            xlogy(self.data, probs) - gammaln(self.data + 1), axis=-1
+        )
         return ln_prob
 
 
@@ -562,7 +589,7 @@ class JointLikelihood(Likelihood):
 
     @property
     def likelihoods(self):
-        """ The list of likelihoods """
+        """The list of likelihoods"""
         return self._likelihoods
 
     @likelihoods.setter
@@ -572,12 +599,16 @@ class JointLikelihood(Likelihood):
             if all(isinstance(likelihood, Likelihood) for likelihood in likelihoods):
                 self._likelihoods = list(likelihoods)
             else:
-                raise ValueError('Try setting the JointLikelihood like this\n'
-                                 'JointLikelihood(first_likelihood, second_likelihood, ...)')
+                raise ValueError(
+                    "Try setting the JointLikelihood like this\n"
+                    "JointLikelihood(first_likelihood, second_likelihood, ...)"
+                )
         elif isinstance(likelihoods, Likelihood):
             self._likelihoods = [likelihoods]
         else:
-            raise ValueError('Input likelihood is not a list of tuple. You need to set multiple likelihoods.')
+            raise ValueError(
+                "Input likelihood is not a list of tuple. You need to set multiple likelihoods."
+            )
 
     def log_likelihood(self, parameters):
         """
@@ -592,20 +623,29 @@ class JointLikelihood(Likelihood):
         =======
         float
         """
-        return sum([likelihood.log_likelihood(parameters=parameters) for likelihood in self.likelihoods])
+        return sum(
+            [
+                likelihood.log_likelihood(parameters=parameters)
+                for likelihood in self.likelihoods
+            ]
+        )
 
     def noise_log_likelihood(self):
-        """ This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
-        return sum([likelihood.noise_log_likelihood() for likelihood in self.likelihoods])
+        """This is just the sum of the noise likelihoods of all parts of the joint likelihood"""
+        return sum(
+            [likelihood.noise_log_likelihood() for likelihood in self.likelihoods]
+        )
 
 
 def function_to_celerite_mean_model(func):
     from celerite.modeling import Model as CeleriteModel
+
     return _function_to_gp_model(func, CeleriteModel)
 
 
 def function_to_george_mean_model(func):
     from celerite.modeling import Model as GeorgeModel
+
     return _function_to_gp_model(func, GeorgeModel)
 
 
@@ -624,7 +664,6 @@ def _function_to_gp_model(func, cls):
 
 
 class _GPLikelihood(Likelihood):
-
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6, gp_class=None):
         """
         Basic Gaussian Process likelihood interface for `celerite` and `george`.
@@ -654,7 +693,12 @@ class _GPLikelihood(Likelihood):
         self.y = np.array(y)
         self.yerr = np.array(yerr)
         self.GPClass = gp_class
-        self.gp = self.GPClass(kernel=self.kernel, mean=self.mean_model, fit_mean=True, fit_white_noise=True)
+        self.gp = self.GPClass(
+            kernel=self.kernel,
+            mean=self.mean_model,
+            fit_mean=True,
+            fit_white_noise=True,
+        )
         self.gp.compute(self.t, yerr=self.yerr)
         super().__init__()
 
@@ -676,7 +720,6 @@ class _GPLikelihood(Likelihood):
 
 
 class CeleriteLikelihood(_GPLikelihood):
-
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6):
         """
         Basic Gaussian Process likelihood interface for `celerite` and `george`.
@@ -698,7 +741,15 @@ class CeleriteLikelihood(_GPLikelihood):
             applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
         """
         import celerite
-        super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=celerite.GP)
+
+        super().__init__(
+            kernel=kernel,
+            mean_model=mean_model,
+            t=t,
+            y=y,
+            yerr=yerr,
+            gp_class=celerite.GP,
+        )
 
     def log_likelihood(self, parameters):
         """
@@ -716,7 +767,6 @@ class CeleriteLikelihood(_GPLikelihood):
 
 
 class GeorgeLikelihood(_GPLikelihood):
-
     def __init__(self, kernel, mean_model, t, y, yerr=1e-6):
         """
         Basic Gaussian Process likelihood interface for `celerite` and `george`.
@@ -738,7 +788,15 @@ class GeorgeLikelihood(_GPLikelihood):
             applies for all y-values. Default is 1e-6, effectively assuming that no y-errors are present.
         """
         import george
-        super().__init__(kernel=kernel, mean_model=mean_model, t=t, y=y, yerr=yerr, gp_class=george.GP)
+
+        super().__init__(
+            kernel=kernel,
+            mean_model=mean_model,
+            t=t,
+            y=y,
+            yerr=yerr,
+            gp_class=george.GP,
+        )
 
     def log_likelihood(self, parameters):
         """

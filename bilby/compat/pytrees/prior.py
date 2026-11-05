@@ -69,9 +69,7 @@ def conditional_unflatten(aux_data, children) -> ConditionalBasePrior:
 
 def dict_flatten(prior_dict: PriorDict):
     prior_dict.convert_floats_to_delta_functions()
-    children = (
-        {k: v for k, v in prior_dict.items()},
-    )
+    children = ({k: v for k, v in prior_dict.items()},)
     aux_data = (
         prior_dict.__class__,
         prior_dict.conversion_function,
@@ -141,8 +139,12 @@ def dirichlet_dict_unflatten(aux_data, children):
 
 
 register_pytree_node(PriorDict, dict_flatten, dict_unflatten)
-register_pytree_node(ConditionalPriorDict, conditional_dict_flatten, conditional_dict_unflatten)
-register_pytree_node(DirichletPriorDict, dirichlet_dict_flatten, dirichlet_dict_unflatten)
+register_pytree_node(
+    ConditionalPriorDict, conditional_dict_flatten, conditional_dict_unflatten
+)
+register_pytree_node(
+    DirichletPriorDict, dirichlet_dict_flatten, dirichlet_dict_unflatten
+)
 register_pytree_node(CBCPriorDict, conditional_dict_flatten, conditional_dict_unflatten)
 register_pytree_node(BBHPriorDict, conditional_dict_flatten, conditional_dict_unflatten)
 register_pytree_node(BNSPriorDict, conditional_dict_flatten, conditional_dict_unflatten)

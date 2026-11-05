@@ -6,6 +6,7 @@ estimation on an injected signal using time, phase and distance marginalisation.
 We also demonstrate how the posterior distribution for the marginalised
 parameter can be recovered in post-processing.
 """
+
 import bilby
 from bilby.core.utils.random import seed
 
