@@ -64,7 +64,9 @@ even if all non-fixed parameters are present. This policy also applies when
 calculating constraint normalization factors. Direct calls to
 :code:`evaluate_constraints` and :code:`normalize_constraint_factor` default to
 :code:`strict=True`; pass :code:`strict=False` to skip unavailable constraints.
-Conditional priors still require their conditioning parameters::
+Conditional priors still require their conditioning parameters:
+
+.. code:: python
 
    sample = priors.sample_subset(keys=['a'])
    probability = priors.prob_subset(sample)
