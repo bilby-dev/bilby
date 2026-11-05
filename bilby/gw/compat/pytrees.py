@@ -79,9 +79,7 @@ def interferometer_flatten(ifo: Interferometer):
         ifo.calibration_model,
         ifo.reference_time,
     )
-    aux_data = (
-        ifo.name,
-    )
+    aux_data = (ifo.name,)
     return children, aux_data
 
 
@@ -144,6 +142,7 @@ def psd_flatten(psd: PowerSpectralDensity):
 
 def psd_unflatten(aux_data, children) -> PowerSpectralDensity:
     import jax.numpy as jnp
+
     psd = PowerSpectralDensity.__new__(PowerSpectralDensity)
 
     psd._cache = children[0]
@@ -174,9 +173,7 @@ def geometry_flatten(geometry: InterferometerGeometry):
         geometry._y,
         geometry._detector_tensor,
     )
-    aux_data = (
-        geometry.length,
-    )
+    aux_data = (geometry.length,)
     return children, aux_data
 
 
@@ -224,9 +221,7 @@ def cubic_spline_flatten(cubic_spline: CubicSpline):
         cubic_spline.delta_log_spline_points,
         cubic_spline.nodes_to_spline_coefficients,
     )
-    aux_data += (
-        cubic_spline.n_points,
-    )
+    aux_data += (cubic_spline.n_points,)
     return children, aux_data
 
 
@@ -252,9 +247,7 @@ def precomputed_flatten(precomputed: Precomputed):
         precomputed.frequency_array,
         precomputed.parameters,
     )
-    aux_data += (
-        precomputed.label,
-    )
+    aux_data += (precomputed.label,)
     return children, aux_data
 
 
@@ -279,9 +272,7 @@ def notch_list_unflatten(aux_data, children) -> NotchList:
 
 
 def wfg_flatten(wfg: WaveformGenerator):
-    children = (
-        wfg._times_and_frequencies,
-    )
+    children = (wfg._times_and_frequencies,)
     aux_data = (
         wfg.frequency_domain_source_model,
         wfg.time_domain_source_model,

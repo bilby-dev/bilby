@@ -10,7 +10,6 @@ The principal component analysis (PCA) used for the spectral model here can be f
 in the appendix of https://arxiv.org/pdf/2001.01747.pdf.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 

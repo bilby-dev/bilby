@@ -11,8 +11,9 @@ class Counter(object):
     initalval : int, 0
     number to start counting from
     """
+
     def __init__(self, initval=0):
-        self.val = multiprocessing.RawValue('i', initval)
+        self.val = multiprocessing.RawValue("i", initval)
         self.lock = multiprocessing.Lock()
 
     def increment(self):

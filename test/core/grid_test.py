@@ -23,7 +23,9 @@ class MultiGaussian(bilby.Likelihood):
         return len(self.cov[0])
 
     def log_likelihood(self, parameters):
-        return -parameters["x0"]**2 / 2 - parameters["x1"]**2 / 2 - np.log(2 * np.pi)
+        return (
+            -(parameters["x0"] ** 2) / 2 - parameters["x1"] ** 2 / 2 - np.log(2 * np.pi)
+        )
 
 
 @pytest.mark.array_backend
@@ -115,33 +117,64 @@ class TestGrid(unittest.TestCase):
     def test_no_marginalization(self):
         # test arrays are the same if no parameters are given to marginalize
         # over
-        self.assertTrue(np.array_equal(
-            self.grid.ln_likelihood,
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names)))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.ln_likelihood,
+                self.grid.marginalize_ln_likelihood(
+                    not_parameters=self.grid.parameter_names
+                ),
+            )
+        )
 
     def test_marginalization_shapes(self):
         self.assertEqual(0, len(self.grid.marginalize_ln_likelihood().shape))
-        marg1 = self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0])
-        marg2 = self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1])
+        marg1 = self.grid.marginalize_ln_likelihood(
+            parameters=self.grid.parameter_names[0]
+        )
+        marg2 = self.grid.marginalize_ln_likelihood(
+            parameters=self.grid.parameter_names[1]
+        )
         self.assertTupleEqual((self.grid_size,), marg1.shape)
         self.assertTupleEqual((self.grid_size,), marg2.shape)
-        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.ln_likelihood.shape)
-        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.ln_posterior.shape)
+        self.assertTupleEqual(
+            (self.grid_size, self.grid_size), self.grid.ln_likelihood.shape
+        )
+        self.assertTupleEqual(
+            (self.grid_size, self.grid_size), self.grid.ln_posterior.shape
+        )
 
     def test_marginalization_opposite(self):
-        self.assertTrue(np.array_equal(
-            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[0]),
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[1])))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.marginalize_ln_likelihood(
+                    parameters=self.grid.parameter_names[0]
+                ),
+                self.grid.marginalize_ln_likelihood(
+                    not_parameters=self.grid.parameter_names[1]
+                ),
+            )
+        )
 
-        self.assertTrue(np.array_equal(
-            self.grid.marginalize_ln_likelihood(parameters=self.grid.parameter_names[1]),
-            self.grid.marginalize_ln_likelihood(not_parameters=self.grid.parameter_names[0])))
+        self.assertTrue(
+            np.array_equal(
+                self.grid.marginalize_ln_likelihood(
+                    parameters=self.grid.parameter_names[1]
+                ),
+                self.grid.marginalize_ln_likelihood(
+                    not_parameters=self.grid.parameter_names[0]
+                ),
+            )
+        )
 
     def test_max_marginalized_likelihood(self):
         # marginalised likelihoods should have max values of 1 (as they are not
         # properly normalised)
-        self.assertEqual(1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[0]).max())
-        self.assertEqual(1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[1]).max())
+        self.assertEqual(
+            1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[0]).max()
+        )
+        self.assertEqual(
+            1.0, self.grid.marginalize_likelihood(self.grid.parameter_names[1]).max()
+        )
 
     def test_ln_evidence(self):
         ln_z = self.grid.ln_evidence
@@ -161,9 +194,17 @@ class TestGrid(unittest.TestCase):
             )
 
     def test_mesh_grid(self):
-        self.assertTupleEqual((self.grid_size, self.grid_size), self.grid.mesh_grid[0].shape)
-        self.assertEqual(self.priors[self.grid.parameter_names[0]].minimum, self.grid.mesh_grid[0][0, 0])
-        self.assertEqual(self.priors[self.grid.parameter_names[1]].maximum, self.grid.mesh_grid[0][-1, -1])
+        self.assertTupleEqual(
+            (self.grid_size, self.grid_size), self.grid.mesh_grid[0].shape
+        )
+        self.assertEqual(
+            self.priors[self.grid.parameter_names[0]].minimum,
+            self.grid.mesh_grid[0][0, 0],
+        )
+        self.assertEqual(
+            self.priors[self.grid.parameter_names[1]].maximum,
+            self.grid.mesh_grid[0][-1, -1],
+        )
 
     def test_grid_integer_points(self):
         n_points = [10, 20]
@@ -177,8 +218,12 @@ class TestGrid(unittest.TestCase):
         )
 
         self.assertTupleEqual(tuple(n_points), grid.mesh_grid[0].shape)
-        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
-        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
+        self.assertEqual(
+            grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum
+        )
+        self.assertEqual(
+            grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum
+        )
 
     def test_grid_dict_points(self):
         n_points = {"x0": 15, "x1": 18}
@@ -191,8 +236,12 @@ class TestGrid(unittest.TestCase):
             xp=self.xp,
         )
         self.assertTupleEqual((n_points["x0"], n_points["x1"]), grid.mesh_grid[0].shape)
-        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
-        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
+        self.assertEqual(
+            grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum
+        )
+        self.assertEqual(
+            grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum
+        )
 
     def test_grid_from_array(self):
         x0s = np.linspace(self.priors["x0"].minimum, self.priors["x0"].maximum, 13)
@@ -209,8 +258,12 @@ class TestGrid(unittest.TestCase):
         )
 
         self.assertTupleEqual((len(x0s), len(x1s)), grid.mesh_grid[0].shape)
-        self.assertEqual(grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum)
-        self.assertEqual(grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum)
+        self.assertEqual(
+            grid.mesh_grid[0][0, 0], self.priors[self.grid.parameter_names[0]].minimum
+        )
+        self.assertEqual(
+            grid.mesh_grid[0][-1, -1], self.priors[self.grid.parameter_names[1]].maximum
+        )
 
         self.assertTrue(np.array_equal(grid.sample_points["x0"], x0s))
         self.assertTrue(np.array_equal(grid.sample_points["x1"], x1s))
@@ -224,7 +277,11 @@ class TestGrid(unittest.TestCase):
         self.assertEqual(new_grid.n_dims, self.grid.n_dims)
         self.assertTrue(np.array_equal(new_grid.mesh_grid[0], self.grid.mesh_grid[0]))
         for par in new_grid.parameter_names:
-            self.assertTrue(np.array_equal(new_grid.sample_points[par], self.grid.sample_points[par]))
+            self.assertTrue(
+                np.array_equal(
+                    new_grid.sample_points[par], self.grid.sample_points[par]
+                )
+            )
         self.assertEqual(new_grid.ln_evidence, self.grid.ln_evidence)
         self.assertTrue(np.array_equal(new_grid.ln_likelihood, self.grid.ln_likelihood))
         self.assertTrue(np.array_equal(new_grid.ln_posterior, self.grid.ln_posterior))
@@ -237,8 +294,10 @@ class TestGrid(unittest.TestCase):
         self.assertEqual(self.grid.n_dims, new_grid.n_dims)
         self.assertTrue(np.array_equal(new_grid.mesh_grid[0], self.grid.mesh_grid[0]))
         for par in new_grid.parameter_names:
-            self.assertTrue(np.array_equal(
-                new_grid.sample_points[par], self.grid.sample_points[par])
+            self.assertTrue(
+                np.array_equal(
+                    new_grid.sample_points[par], self.grid.sample_points[par]
+                )
             )
         self.assertEqual(self.grid.ln_evidence, new_grid.ln_evidence)
         self.assertTrue(np.array_equal(self.grid.ln_likelihood, new_grid.ln_likelihood))
@@ -254,7 +313,11 @@ class TestGrid(unittest.TestCase):
         self.assertEqual(self.grid.n_dims, new_grid.n_dims)
         self.assertTrue(np.array_equal(self.grid.mesh_grid[0], new_grid.mesh_grid[0]))
         for par in new_grid.parameter_names:
-            self.assertTrue(np.array_equal(self.grid.sample_points[par], new_grid.sample_points[par]))
+            self.assertTrue(
+                np.array_equal(
+                    self.grid.sample_points[par], new_grid.sample_points[par]
+                )
+            )
         self.assertEqual(self.grid.ln_evidence, new_grid.ln_evidence)
         self.assertTrue(np.array_equal(self.grid.ln_likelihood, new_grid.ln_likelihood))
         self.assertTrue(np.array_equal(self.grid.ln_posterior, new_grid.ln_posterior))

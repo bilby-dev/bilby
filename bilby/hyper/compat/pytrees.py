@@ -14,9 +14,7 @@ def hyperparameter_likelihood_flatten(likelihood: HyperparameterLikelihood):
         likelihood.samples_factor,
         likelihood.hyper_prior,
     )
-    aux_data += (
-        likelihood.sampling_prior,
-    )
+    aux_data += (likelihood.sampling_prior,)
     return children, aux_data
 
 
@@ -49,6 +47,8 @@ def model_unflatten(aux_data, flat) -> Model:
 
 
 register_pytree_node(
-    HyperparameterLikelihood, hyperparameter_likelihood_flatten, hyperparameter_likelihood_unflatten
+    HyperparameterLikelihood,
+    hyperparameter_likelihood_flatten,
+    hyperparameter_likelihood_unflatten,
 )
 register_pytree_node(Model, model_flatten, model_unflatten)

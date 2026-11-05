@@ -99,10 +99,16 @@ class TestCoupledTimeAndFrequencySeries(unittest.TestCase):
         self.series.time_array = new_time_array
         self.assertTrue(np.array_equal(new_time_array, self.series.time_array))
         self.assertAlmostEqual(
-            np.asarray(new_sampling_frequency), np.asarray(self.series.sampling_frequency), places=1
+            np.asarray(new_sampling_frequency),
+            np.asarray(self.series.sampling_frequency),
+            places=1,
         )
-        self.assertAlmostEqual(np.asarray(new_duration), np.asarray(self.series.duration), places=1)
-        self.assertAlmostEqual(np.asarray(new_start_time), np.asarray(self.series.start_time), places=1)
+        self.assertAlmostEqual(
+            np.asarray(new_duration), np.asarray(self.series.duration), places=1
+        )
+        self.assertAlmostEqual(
+            np.asarray(new_start_time), np.asarray(self.series.start_time), places=1
+        )
 
     def test_time_array_without_sampling_frequency(self):
         self.series.sampling_frequency = None

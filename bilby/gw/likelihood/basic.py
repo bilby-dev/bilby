@@ -5,7 +5,6 @@ from ...core.likelihood import Likelihood
 
 
 class BasicGravitationalWaveTransient(Likelihood):
-
     def __init__(self, interferometers, waveform_generator):
         """
 
@@ -31,11 +30,15 @@ class BasicGravitationalWaveTransient(Likelihood):
         self.waveform_generator = waveform_generator
 
     def __repr__(self):
-        return self.__class__.__name__ + '(interferometers={},\n\twaveform_generator={})' \
-            .format(self.interferometers, self.waveform_generator)
+        return (
+            self.__class__.__name__
+            + "(interferometers={},\n\twaveform_generator={})".format(
+                self.interferometers, self.waveform_generator
+            )
+        )
 
     def noise_log_likelihood(self):
-        """ Calculates the real part of noise log-likelihood
+        """Calculates the real part of noise log-likelihood
 
         Returns
         =======
@@ -46,13 +49,11 @@ class BasicGravitationalWaveTransient(Likelihood):
         for interferometer in self.interferometers:
             strain = interferometer.whitened_frequency_domain_strain
             xp = aac.array_namespace(strain)
-            log_l -= (
-                xp.abs(strain)**2
-            ).sum() / 2
+            log_l -= (xp.abs(strain) ** 2).sum() / 2
         return log_l.real
 
     def log_likelihood(self, parameters):
-        """ Calculates the real part of log-likelihood value
+        """Calculates the real part of log-likelihood value
 
         Returns
         =======
@@ -60,17 +61,20 @@ class BasicGravitationalWaveTransient(Likelihood):
 
         """
         log_l = 0
-        waveform_polarizations = \
-            self.waveform_generator.frequency_domain_strain(parameters)
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain(
+            parameters
+        )
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
         for interferometer in self.interferometers:
             log_l += self.log_likelihood_interferometer(
-                waveform_polarizations, interferometer, parameters=parameters)
+                waveform_polarizations, interferometer, parameters=parameters
+            )
         return log_l.real
 
-    def log_likelihood_interferometer(self, waveform_polarizations,
-                                      interferometer, parameters):
+    def log_likelihood_interferometer(
+        self, waveform_polarizations, interferometer, parameters
+    ):
         """
 
         Parameters
@@ -86,11 +90,12 @@ class BasicGravitationalWaveTransient(Likelihood):
 
         """
         signal_ifo = interferometer.get_detector_response(
-            waveform_polarizations, parameters)
+            waveform_polarizations, parameters
+        )
 
         residual = interferometer.frequency_domain_strain - signal_ifo
         white_residual = interferometer.whiten_frequency_series(residual)
         xp = aac.array_namespace(white_residual)
 
-        log_l = - (xp.abs(white_residual)**2).sum() / 2
+        log_l = -(xp.abs(white_residual) ** 2).sum() / 2
         return log_l.real

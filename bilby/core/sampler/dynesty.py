@@ -814,8 +814,7 @@ class Dynesty(NestedSampler):
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
-                "Cannot write pickle resume file! "
-                "Job will not resume if interrupted."
+                "Cannot write pickle resume file! Job will not resume if interrupted."
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:
