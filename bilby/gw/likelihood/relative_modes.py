@@ -195,7 +195,7 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         self.safe_fiducial_parameters = safe_fiducial_parameters
         self.fiducial_waveform_parameters = None
         self.per_detector_fiducial_mode_waveforms = dict()
-        super(ModeByModeRelativeBinningGravitationalWaveTransient, self).__init__(
+        super().__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator,
             fiducial_parameters=fiducial_parameters,
@@ -271,7 +271,6 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         self.harmonic_pairs = tuple(
             np.array(indices) for indices in zip(*combinations_with_replacement(range(number_of_harmonics), 2)))
         m_inds, mprime_inds = self.harmonic_pairs
-
         inverse_psds = dict()
         for interferometer in self.interferometers:
             inverse_psds[interferometer.name] = np.zeros(len(interferometer.frequency_array))
@@ -419,7 +418,7 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         h0[:] = h0 * fade_full + constant * (1 - fade_full)
         h0_bins[:] = h0_bins * fade_bins + constant * (1 - fade_bins)
 
-    def _polarizations_at_bins(self, waveform_polarizations, interferometer, parameters):
+    def _waveform_at_bins_per_polarization(self, waveform_polarizations, interferometer, parameters):
         """
         Apply the time shift to the interferometer and its calibration to
         each harmonic and polarization at the bin edges, without the antenna
@@ -437,7 +436,7 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
 
         Returns
         -------
-        polarizations: array_like
+        waveform_per_polarization: array_like
             Of shape (2, number of harmonics, number of bin edges), plus first.
         """
         time_shift = interferometer.time_delay_from_geocenter(
@@ -481,7 +480,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         calculated_snrs: _CalculatedSNRs
             The inner products, with :code:`d_inner_h_array` set to None.
         """
-        polarizations = self._polarizations_at_bins(waveform_polarizations, interferometer, parameters)
+        waveform_per_polarization = self._waveform_at_bins_per_polarization(
+            waveform_polarizations, interferometer, parameters)
         if interferometer.reference_time is None:
             antenna_time = parameters["geocent_time"]
         else:
@@ -493,8 +493,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         d_inner_h_weights, h_inner_h_weights = self.summary_data[interferometer.name]
         m_inds, mprime_inds = self.harmonic_pairs
 
-        d_inner_h = np.einsum("p,mj,pmj->", antenna_pattern, d_inner_h_weights, polarizations.conj())
-        strain = np.einsum("p,pmj->pmj", antenna_pattern, polarizations)
+        d_inner_h = np.einsum("p,mj,pmj->", antenna_pattern, d_inner_h_weights, waveform_per_polarization.conj())
+        strain = np.einsum("p,pmj->pmj", antenna_pattern, waveform_per_polarization)
         h_inner_h = np.einsum(
             "kj,pkj,qkj->", h_inner_h_weights, strain[:, m_inds], strain[:, mprime_inds].conj()).real
         optimal_snr_squared = h_inner_h
