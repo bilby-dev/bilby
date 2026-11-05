@@ -7,6 +7,7 @@ This example takes longer than most to run.
 Due to how cpnest creates parallel processes, the multiprocessing start method
 needs to be set on some operating systems.
 """
+
 import multiprocessing
 
 multiprocessing.set_start_method("fork")  # noqa

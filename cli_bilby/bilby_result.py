@@ -1,4 +1,4 @@
-""" A command line interface to ease the process of batch jobs on result files
+"""A command line interface to ease the process of batch jobs on result files
 
 Examples
 --------
@@ -21,6 +21,7 @@ This is calling `plot_corner()` on each of the result files
 individually. Note that passing extra commands in is not yet implemented.
 
 """
+
 import argparse
 
 import bilby
@@ -181,7 +182,7 @@ def apply_lightweight(result, args):
     strip_keys = [
         "_nested_samples",
         "log_likelihood_evaluations",
-        "log_prior_evaluations"
+        "log_prior_evaluations",
     ]
     for key in strip_keys:
         setattr(result, key, None)

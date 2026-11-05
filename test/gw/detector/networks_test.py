@@ -415,7 +415,9 @@ class TriangularInterferometerTest(unittest.TestCase):
             pair_a = a(lat_1 - lat_0, long_1 - long_0, lat_0, lat_1)
             pair_c = c(pair_a)
             distance = bilby.core.utils.radius_of_earth * pair_c
-            self.assertAlmostEqual(float(distance) / 1000, float(pair[0].length), delta=1)
+            self.assertAlmostEqual(
+                float(distance) / 1000, float(pair[0].length), delta=1
+            )
 
     def test_individual_positions_exact(self):
         """
@@ -426,7 +428,9 @@ class TriangularInterferometerTest(unittest.TestCase):
         for pair in combinations(self.triangular_ifo, 2):
             vertex_0 = pair[0].vertex_position_geocentric()
             vertex_1 = pair[1].vertex_position_geocentric()
-            self.assertAlmostEqual(float(pair[0].length), float(pair[1].length), delta=1e-6)
+            self.assertAlmostEqual(
+                float(pair[0].length), float(pair[1].length), delta=1e-6
+            )
             distance = self.xp.linalg.vector_norm(vertex_0 - vertex_1) / 1000
             self.assertAlmostEqual(float(distance), float(pair[0].length), delta=1e-6)
 
@@ -441,12 +445,20 @@ class TriangularInterferometerTest(unittest.TestCase):
         for ii, ifo in enumerate(self.triangular_ifo):
             vertex = ifo.vertex_position_geocentric()
             arm_length = ifo.length * 1000
-            next_vertex = self.triangular_ifo[(ii + 1) % n_ifos].vertex_position_geocentric()
-            previous_vertex = self.triangular_ifo[(ii - 1) % n_ifos].vertex_position_geocentric()
+            next_vertex = self.triangular_ifo[
+                (ii + 1) % n_ifos
+            ].vertex_position_geocentric()
+            previous_vertex = self.triangular_ifo[
+                (ii - 1) % n_ifos
+            ].vertex_position_geocentric()
             x_arm_end = vertex + arm_length * ifo.geometry.x
             y_arm_end = vertex + arm_length * ifo.geometry.y
-            self.assertLess(float(self.xp.linalg.vector_norm(x_arm_end - next_vertex)), 1e-6)
-            self.assertLess(float(self.xp.linalg.vector_norm(y_arm_end - previous_vertex)), 1e-6)
+            self.assertLess(
+                float(self.xp.linalg.vector_norm(x_arm_end - next_vertex)), 1e-6
+            )
+            self.assertLess(
+                float(self.xp.linalg.vector_norm(y_arm_end - previous_vertex)), 1e-6
+            )
 
     def test_detector_tensors_sum_to_zero(self):
         """

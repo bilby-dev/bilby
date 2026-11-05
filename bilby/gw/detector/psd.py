@@ -12,9 +12,14 @@ from .strain_data import InterferometerStrainData
 
 
 class PowerSpectralDensity(object):
-
-    def __init__(self, frequency_array=None, psd_array=None, asd_array=None,
-                 psd_file=None, asd_file=None):
+    def __init__(
+        self,
+        frequency_array=None,
+        psd_array=None,
+        asd_array=None,
+        psd_file=None,
+        asd_file=None,
+    ):
         """
         Instantiate a new PowerSpectralDensity object.
 
@@ -50,8 +55,7 @@ class PowerSpectralDensity(object):
             Interpolated function of the PSD
 
         """
-        self._cache = dict(
-            frequency_array=np.array([]), psd_array=None, asd_array=None)
+        self._cache = dict(frequency_array=np.array([]), psd_array=None, asd_array=None)
         self.frequency_array = np.array(frequency_array)
         if psd_array is not None:
             self.psd_array = psd_array
@@ -62,30 +66,37 @@ class PowerSpectralDensity(object):
 
     def _update_cache(self, frequency_array):
         psd_array = self.power_spectral_density_interpolated(frequency_array)
-        self._cache['psd_array'] = psd_array
-        self._cache['asd_array'] = psd_array**0.5
-        self._cache['frequency_array'] = frequency_array
+        self._cache["psd_array"] = psd_array
+        self._cache["asd_array"] = psd_array**0.5
+        self._cache["frequency_array"] = frequency_array
 
     def __eq__(self, other):
-        if self.psd_file == other.psd_file \
-                and self.asd_file == other.asd_file \
-                and np.array_equal(self.frequency_array, other.frequency_array) \
-                and np.array_equal(self.psd_array, other.psd_array) \
-                and np.array_equal(self.asd_array, other.asd_array):
+        if (
+            self.psd_file == other.psd_file
+            and self.asd_file == other.asd_file
+            and np.array_equal(self.frequency_array, other.frequency_array)
+            and np.array_equal(self.psd_array, other.psd_array)
+            and np.array_equal(self.asd_array, other.asd_array)
+        ):
             return True
         return False
 
     def __repr__(self):
         if self.asd_file is not None or self.psd_file is not None:
-            return self.__class__.__name__ + '(psd_file=\'{}\', asd_file=\'{}\')' \
-                .format(self.psd_file, self.asd_file)
+            return self.__class__.__name__ + "(psd_file='{}', asd_file='{}')".format(
+                self.psd_file, self.asd_file
+            )
         else:
-            return self.__class__.__name__ + '(frequency_array={}, psd_array={}, asd_array={})' \
-                .format(self.frequency_array, self.psd_array, self.asd_array)
+            return (
+                self.__class__.__name__
+                + "(frequency_array={}, psd_array={}, asd_array={})".format(
+                    self.frequency_array, self.psd_array, self.asd_array
+                )
+            )
 
     @staticmethod
     def from_amplitude_spectral_density_file(asd_file):
-        """ Set the amplitude spectral density from a given file
+        """Set the amplitude spectral density from a given file
 
         Parameters
         ==========
@@ -97,7 +108,7 @@ class PowerSpectralDensity(object):
 
     @staticmethod
     def from_power_spectral_density_file(psd_file):
-        """ Set the power spectral density from a given file
+        """Set the power spectral density from a given file
 
         Parameters
         ==========
@@ -108,11 +119,20 @@ class PowerSpectralDensity(object):
         return PowerSpectralDensity(psd_file=psd_file)
 
     @staticmethod
-    def from_frame_file(frame_file, psd_start_time, psd_duration,
-                        fft_length=4, sampling_frequency=4096, roll_off=0.2,
-                        overlap=0, channel=None, name=None, outdir=None,
-                        analysis_segment_start_time=None):
-        """ Generate power spectral density from a frame file
+    def from_frame_file(
+        frame_file,
+        psd_start_time,
+        psd_duration,
+        fft_length=4,
+        sampling_frequency=4096,
+        roll_off=0.2,
+        overlap=0,
+        channel=None,
+        name=None,
+        outdir=None,
+        analysis_segment_start_time=None,
+    ):
+        """Generate power spectral density from a frame file
 
         Parameters
         ==========
@@ -143,19 +163,37 @@ class PowerSpectralDensity(object):
         """
         strain = InterferometerStrainData(roll_off=roll_off)
         strain.set_from_frame_file(
-            frame_file, start_time=psd_start_time, duration=psd_duration,
-            channel=channel, sampling_frequency=sampling_frequency)
+            frame_file,
+            start_time=psd_start_time,
+            duration=psd_duration,
+            channel=channel,
+            sampling_frequency=sampling_frequency,
+        )
         frequency_array, psd_array = strain.create_power_spectral_density(
-            fft_length=fft_length, name=name, outdir=outdir, overlap=overlap,
-            analysis_segment_start_time=analysis_segment_start_time)
-        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
+            fft_length=fft_length,
+            name=name,
+            outdir=outdir,
+            overlap=overlap,
+            analysis_segment_start_time=analysis_segment_start_time,
+        )
+        return PowerSpectralDensity(
+            frequency_array=frequency_array, psd_array=psd_array
+        )
 
     @staticmethod
-    def from_channel_name(channel, psd_start_time, psd_duration,
-                          fft_length=4, sampling_frequency=4096, roll_off=0.2,
-                          overlap=0, name=None, outdir=None,
-                          analysis_segment_start_time=None):
-        """ Generate power spectral density from a given channel name
+    def from_channel_name(
+        channel,
+        psd_start_time,
+        psd_duration,
+        fft_length=4,
+        sampling_frequency=4096,
+        roll_off=0.2,
+        overlap=0,
+        name=None,
+        outdir=None,
+        analysis_segment_start_time=None,
+    ):
+        """Generate power spectral density from a given channel name
         by loading data using `strain_data.set_from_channel_name`
 
         Parameters
@@ -186,26 +224,42 @@ class PowerSpectralDensity(object):
         """
         strain = InterferometerStrainData(roll_off=roll_off)
         strain.set_from_channel_name(
-            channel, duration=psd_duration, start_time=psd_start_time,
-            sampling_frequency=sampling_frequency)
+            channel,
+            duration=psd_duration,
+            start_time=psd_start_time,
+            sampling_frequency=sampling_frequency,
+        )
         frequency_array, psd_array = strain.create_power_spectral_density(
-            fft_length=fft_length, name=name, outdir=outdir, overlap=overlap,
-            analysis_segment_start_time=analysis_segment_start_time)
-        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
+            fft_length=fft_length,
+            name=name,
+            outdir=outdir,
+            overlap=overlap,
+            analysis_segment_start_time=analysis_segment_start_time,
+        )
+        return PowerSpectralDensity(
+            frequency_array=frequency_array, psd_array=psd_array
+        )
 
     @staticmethod
     def from_amplitude_spectral_density_array(frequency_array, asd_array):
-        return PowerSpectralDensity(frequency_array=frequency_array, asd_array=asd_array)
+        return PowerSpectralDensity(
+            frequency_array=frequency_array, asd_array=asd_array
+        )
 
     @staticmethod
     def from_power_spectral_density_array(frequency_array, psd_array):
-        return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
+        return PowerSpectralDensity(
+            frequency_array=frequency_array, psd_array=psd_array
+        )
 
     @staticmethod
     def from_aligo():
-        logger.info("No power spectral density provided, using aLIGO,"
-                    "zero detuning, high power.")
-        return PowerSpectralDensity.from_power_spectral_density_file(psd_file='aLIGO_ZERO_DET_high_P_psd.txt')
+        logger.info(
+            "No power spectral density provided, using aLIGO,zero detuning, high power."
+        )
+        return PowerSpectralDensity.from_power_spectral_density_file(
+            psd_file="aLIGO_ZERO_DET_high_P_psd.txt"
+        )
 
     @property
     def psd_array(self):
@@ -215,7 +269,7 @@ class PowerSpectralDensity(object):
     def psd_array(self, psd_array):
         self._check_frequency_array_matches_density_array(psd_array)
         self._psd_array = np.array(psd_array)
-        self._asd_array = psd_array ** 0.5
+        self._asd_array = psd_array**0.5
         self._interpolate_power_spectral_density()
 
     @property
@@ -226,38 +280,40 @@ class PowerSpectralDensity(object):
     def asd_array(self, asd_array):
         self._check_frequency_array_matches_density_array(asd_array)
         self._asd_array = np.array(asd_array)
-        self._psd_array = asd_array ** 2
+        self._psd_array = asd_array**2
         self._interpolate_power_spectral_density()
 
     def _check_frequency_array_matches_density_array(self, density_array):
         if len(self.frequency_array) != len(density_array):
-            raise ValueError('Provided spectral density does not match frequency array. Not updating.\n'
-                             'Length spectral density {}\n Length frequency array {}\n'
-                             .format(density_array, self.frequency_array))
+            raise ValueError(
+                "Provided spectral density does not match frequency array. Not updating.\n"
+                "Length spectral density {}\n Length frequency array {}\n".format(
+                    density_array, self.frequency_array
+                )
+            )
 
     def _interpolate_power_spectral_density(self):
         """Interpolate the loaded power spectral density so it can be resampled
-           for arbitrary frequency arrays.
+        for arbitrary frequency arrays.
         """
-        self._power_spectral_density_interpolated = interp1d(self.frequency_array,
-                                                             self.psd_array,
-                                                             bounds_error=False,
-                                                             fill_value=np.inf)
+        self._power_spectral_density_interpolated = interp1d(
+            self.frequency_array, self.psd_array, bounds_error=False, fill_value=np.inf
+        )
         self._update_cache(self.frequency_array)
 
     def get_power_spectral_density_array(self, frequency_array):
         if aac.is_jax_array(frequency_array):
             return self.power_spectral_density_interpolated(frequency_array)
-        if not np.array_equal(frequency_array, self._cache['frequency_array']):
+        if not np.array_equal(frequency_array, self._cache["frequency_array"]):
             self._update_cache(frequency_array=frequency_array)
-        return self._cache['psd_array']
+        return self._cache["psd_array"]
 
     def get_amplitude_spectral_density_array(self, frequency_array):
         if aac.is_jax_array(frequency_array):
-            return self.power_spectral_density_interpolated(frequency_array)**0.5
-        if not np.array_equal(frequency_array, self._cache['frequency_array']):
+            return self.power_spectral_density_interpolated(frequency_array) ** 0.5
+        if not np.array_equal(frequency_array, self._cache["frequency_array"]):
             self._update_cache(frequency_array=frequency_array)
-        return self._cache['asd_array']
+        return self._cache["asd_array"]
 
     @property
     def power_spectral_density_interpolated(self):
@@ -279,8 +335,14 @@ class PowerSpectralDensity(object):
         if min(self.asd_array) < 1e-30:
             logger.warning("You specified an amplitude spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.asd_array)))
-            logger.warning("You may have intended to provide this as a power spectral density.")
+            logger.warning(
+                "The minimum of the provided curve is {:.2e}.".format(
+                    min(self.asd_array)
+                )
+            )
+            logger.warning(
+                "You may have intended to provide this as a power spectral density."
+            )
 
     @property
     def psd_file(self):
@@ -298,8 +360,14 @@ class PowerSpectralDensity(object):
         if min(self.psd_array) > 1e-30:
             logger.warning("You specified a power spectral density file.")
             logger.warning("{} WARNING {}".format("*" * 30, "*" * 30))
-            logger.warning("The minimum of the provided curve is {:.2e}.".format(min(self.psd_array)))
-            logger.warning("You may have intended to provide this as an amplitude spectral density.")
+            logger.warning(
+                "The minimum of the provided curve is {:.2e}.".format(
+                    min(self.psd_array)
+                )
+            )
+            logger.warning(
+                "You may have intended to provide this as an amplitude spectral density."
+            )
 
     @staticmethod
     def _validate_file_name(file):
@@ -330,23 +398,26 @@ class PowerSpectralDensity(object):
             logger.debug("PSD file {} exists".format(file))
             return file
         else:
-            file_in_default_directory = (
-                os.path.join(os.path.dirname(__file__), 'noise_curves', file))
+            file_in_default_directory = os.path.join(
+                os.path.dirname(__file__), "noise_curves", file
+            )
             if os.path.isfile(file_in_default_directory):
                 logger.debug("PSD file {} exists in default dir.".format(file))
                 return file_in_default_directory
             else:
                 raise ValueError(
-                    "Unable to locate PSD file {} locally or in the default dir"
-                    .format(file))
+                    "Unable to locate PSD file {} locally or in the default dir".format(
+                        file
+                    )
+                )
         return file
 
     def _import_amplitude_spectral_density(self):
-        """ Automagically load an amplitude spectral density curve """
+        """Automagically load an amplitude spectral density curve"""
         self.frequency_array, self.asd_array = np.genfromtxt(self.asd_file).T
 
     def _import_power_spectral_density(self):
-        """ Automagically load a power spectral density curve """
+        """Automagically load a power spectral density curve"""
         self.frequency_array, self.psd_array = np.genfromtxt(self.psd_file).T
 
     def get_noise_realisation(self, number_of_samples, duration, *, random_state=None):
@@ -366,13 +437,17 @@ class PowerSpectralDensity(object):
         array_like: frequencies related to the frequency domain strain
 
         """
-        white_noise, frequencies = utils.safe_white_noise(number_of_samples, duration, random_state=random_state)
+        white_noise, frequencies = utils.safe_white_noise(
+            number_of_samples, duration, random_state=random_state
+        )
         with np.errstate(invalid="ignore"):
-            frequency_domain_strain = self._power_spectral_density_interpolated(frequencies) ** 0.5 * white_noise
+            frequency_domain_strain = (
+                self._power_spectral_density_interpolated(frequencies) ** 0.5
+                * white_noise
+            )
         xp = aac.array_namespace(frequency_domain_strain)
-        out_of_bounds = (
-            (frequencies < self.frequency_array.min())
-            | (frequencies > self.frequency_array.max())
+        out_of_bounds = (frequencies < self.frequency_array.min()) | (
+            frequencies > self.frequency_array.max()
         )
         frequency_domain_strain = xpx.at(frequency_domain_strain, out_of_bounds).set(0j)
         return xp.nan_to_num(frequency_domain_strain), xp.asarray(frequencies)
@@ -383,7 +458,7 @@ class PowerSpectralDensity(object):
 
     @array_backend.setter
     def array_backend(self, xp):
-        """ Set the array backend for the cached arrays
+        """Set the array backend for the cached arrays
 
         Parameters
         ==========
@@ -394,7 +469,7 @@ class PowerSpectralDensity(object):
         self.frequency_array = xp.asarray(self.frequency_array)
         self._asd_array = xp.asarray(self._asd_array)
         self._psd_array = xp.asarray(self._psd_array)
-        self._cache['frequency_array'] = xp.asarray(self._cache['frequency_array'])
-        self._cache['psd_array'] = xp.asarray(self._cache['psd_array'])
-        self._cache['asd_array'] = xp.asarray(self._cache['asd_array'])
+        self._cache["frequency_array"] = xp.asarray(self._cache["frequency_array"])
+        self._cache["psd_array"] = xp.asarray(self._cache["psd_array"])
+        self._cache["asd_array"] = xp.asarray(self._cache["asd_array"])
         self._interpolate_power_spectral_density()

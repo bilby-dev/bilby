@@ -17,8 +17,8 @@ class TestBasicConversions(unittest.TestCase):
         self.mass_2 = self.xp.asarray(1.3)
         self.mass_ratio = self.xp.asarray(13 / 14)
         self.total_mass = self.xp.asarray(2.7)
-        self.chirp_mass = (self.mass_1 * self.mass_2) ** 0.6 / self.total_mass ** 0.2
-        self.symmetric_mass_ratio = (self.mass_1 * self.mass_2) / self.total_mass ** 2
+        self.chirp_mass = (self.mass_1 * self.mass_2) ** 0.6 / self.total_mass**0.2
+        self.symmetric_mass_ratio = (self.mass_1 * self.mass_2) / self.total_mass**2
         self.cos_angle = self.xp.asarray(-1.0)
         self.angle = self.xp.pi
         self.lambda_1 = self.xp.asarray(300.0)
@@ -27,17 +27,13 @@ class TestBasicConversions(unittest.TestCase):
             8
             / 13
             * (
-                (
-                    1
-                    + 7 * self.symmetric_mass_ratio
-                    - 31 * self.symmetric_mass_ratio ** 2
-                )
+                (1 + 7 * self.symmetric_mass_ratio - 31 * self.symmetric_mass_ratio**2)
                 * (self.lambda_1 + self.lambda_2)
                 + (1 - 4 * self.symmetric_mass_ratio) ** 0.5
                 * (
                     1
                     + 9 * self.symmetric_mass_ratio
-                    - 11 * self.symmetric_mass_ratio ** 2
+                    - 11 * self.symmetric_mass_ratio**2
                 )
                 * (self.lambda_1 - self.lambda_2)
             )
@@ -50,14 +46,14 @@ class TestBasicConversions(unittest.TestCase):
                 * (
                     1
                     - 13272 / 1319 * self.symmetric_mass_ratio
-                    + 8944 / 1319 * self.symmetric_mass_ratio ** 2
+                    + 8944 / 1319 * self.symmetric_mass_ratio**2
                 )
                 * (self.lambda_1 + self.lambda_2)
                 + (
                     1
                     - 15910 / 1319 * self.symmetric_mass_ratio
-                    + 32850 / 1319 * self.symmetric_mass_ratio ** 2
-                    + 3380 / 1319 * self.symmetric_mass_ratio ** 3
+                    + 32850 / 1319 * self.symmetric_mass_ratio**2
+                    + 3380 / 1319 * self.symmetric_mass_ratio**3
                 )
                 * (self.lambda_1 - self.lambda_2)
             )
@@ -96,10 +92,14 @@ class TestBasicConversions(unittest.TestCase):
         self.assertEqual(aac.get_namespace(mass_ratio), self.xp)
 
     def test_chirp_mass_and_total_mass_to_symmetric_mass_ratio(self):
-        symmetric_mass_ratio = conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(
-            self.chirp_mass, self.total_mass
+        symmetric_mass_ratio = (
+            conversion.chirp_mass_and_total_mass_to_symmetric_mass_ratio(
+                self.chirp_mass, self.total_mass
+            )
         )
-        self.assertAlmostEqual(float(self.symmetric_mass_ratio), float(symmetric_mass_ratio))
+        self.assertAlmostEqual(
+            float(self.symmetric_mass_ratio), float(symmetric_mass_ratio)
+        )
         self.assertEqual(aac.get_namespace(symmetric_mass_ratio), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_total_mass(self):
@@ -110,9 +110,9 @@ class TestBasicConversions(unittest.TestCase):
         self.assertEqual(aac.get_namespace(total_mass), self.xp)
 
     def test_chirp_mass_and_mass_ratio_to_component_masses(self):
-        mass_1, mass_2 = \
-            conversion.chirp_mass_and_mass_ratio_to_component_masses(
-                self.chirp_mass, self.mass_ratio)
+        mass_1, mass_2 = conversion.chirp_mass_and_mass_ratio_to_component_masses(
+            self.chirp_mass, self.mass_ratio
+        )
         self.assertAlmostEqual(self.mass_1, mass_1)
         self.assertAlmostEqual(self.mass_2, mass_2)
         self.assertEqual(aac.get_namespace(mass_1), self.xp)
@@ -207,9 +207,11 @@ class TestBasicConversions(unittest.TestCase):
             lambda_1=self.lambda_1,
             lambda_2=self.lambda_2,
             lambda_tilde=self.lambda_tilde,
-            delta_lambda_tilde=self.delta_lambda_tilde
+            delta_lambda_tilde=self.delta_lambda_tilde,
         )
-        identity_samples, blank_list = conversion.identity_map_conversion(original_samples)
+        identity_samples, blank_list = conversion.identity_map_conversion(
+            original_samples
+        )
         assert blank_list == []
         for key, val in identity_samples.items():
             assert val == self.__dict__[key]
@@ -224,10 +226,10 @@ class TestConvertToLALParams(unittest.TestCase):
         self.mass_parameters["mass_ratio"] = conversion.component_masses_to_mass_ratio(
             **self.component_mass_pars
         )
-        self.mass_parameters[
-            "symmetric_mass_ratio"
-        ] = conversion.component_masses_to_symmetric_mass_ratio(
-            **self.component_mass_pars
+        self.mass_parameters["symmetric_mass_ratio"] = (
+            conversion.component_masses_to_symmetric_mass_ratio(
+                **self.component_mass_pars
+            )
         )
         self.mass_parameters["chirp_mass"] = conversion.component_masses_to_chirp_mass(
             **self.component_mass_pars
@@ -239,13 +241,13 @@ class TestConvertToLALParams(unittest.TestCase):
         self.all_component_pars = self.component_tidal_parameters.copy()
         self.all_component_pars.update(self.component_mass_pars)
         self.tidal_parameters = self.component_tidal_parameters.copy()
-        self.tidal_parameters[
-            "lambda_tilde"
-        ] = conversion.lambda_1_lambda_2_to_lambda_tilde(**self.all_component_pars)
-        self.tidal_parameters[
-            "delta_lambda_tilde"
-        ] = conversion.lambda_1_lambda_2_to_delta_lambda_tilde(
-            **self.all_component_pars
+        self.tidal_parameters["lambda_tilde"] = (
+            conversion.lambda_1_lambda_2_to_lambda_tilde(**self.all_component_pars)
+        )
+        self.tidal_parameters["delta_lambda_tilde"] = (
+            conversion.lambda_1_lambda_2_to_delta_lambda_tilde(
+                **self.all_component_pars
+            )
         )
 
     def tearDown(self):
@@ -371,7 +373,14 @@ class TestConvertToLALParams(unittest.TestCase):
                 key: self.parameters[key]
                 for key in ["a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl"]
             },
-            dict(a_1=a_1, a_2=a_2, tilt_1=tilt_1, tilt_2=tilt_2, phi_jl=phi_jl, phi_12=phi_12),
+            dict(
+                a_1=a_1,
+                a_2=a_2,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_jl=phi_jl,
+                phi_12=phi_12,
+            ),
         )
 
     def test_bbh_zero_aligned_spin_to_spherical_without_magnitude(self):
@@ -493,9 +502,9 @@ class TestGenerateAllParameters(unittest.TestCase):
             "lambda_tilde",
             "delta_lambda_tilde",
         ]
-        self.data_frame = pd.DataFrame({
-            key: [value] * 100 for key, value in self.parameters.items()
-        })
+        self.data_frame = pd.DataFrame(
+            {key: [value] * 100 for key, value in self.parameters.items()}
+        )
 
     def test_generate_all_bbh_parameters(self):
         self._generate(
@@ -519,7 +528,9 @@ class TestGenerateAllParameters(unittest.TestCase):
         priors = bilby.gw.prior.BBHPriorDict()
         priors["geocent_time"] = bilby.core.prior.Uniform(0.4, 0.6)
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        ifos.set_strain_data_from_power_spectral_densities(duration=1, sampling_frequency=256)
+        ifos.set_strain_data_from_power_spectral_densities(
+            duration=1, sampling_frequency=256
+        )
         wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole
         )
@@ -561,15 +572,20 @@ class TestGenerateAllParameters(unittest.TestCase):
                 converted[f"{ifo.name}_log_likelihood"],
                 converted_with_time_jitter[f"{ifo.name}_log_likelihood"],
             )
-        self.assertNotEqual(converted["mass_1"], initial_likelihood_parameters["mass_1"])
+        self.assertNotEqual(
+            converted["mass_1"], initial_likelihood_parameters["mass_1"]
+        )
 
     def test_identity_generation_no_likelihood(self):
-        test_fixed_prior = bilby.core.prior.PriorDict({
-            "test_param_a": bilby.core.prior.DeltaFunction(0, name="test_param_a"),
-            "test_param_b": bilby.core.prior.DeltaFunction(1, name="test_param_b")
-        }
+        test_fixed_prior = bilby.core.prior.PriorDict(
+            {
+                "test_param_a": bilby.core.prior.DeltaFunction(0, name="test_param_a"),
+                "test_param_b": bilby.core.prior.DeltaFunction(1, name="test_param_b"),
+            }
         )
-        output_sample = conversion.identity_map_generation(self.parameters, priors=test_fixed_prior)
+        output_sample = conversion.identity_map_generation(
+            self.parameters, priors=test_fixed_prior
+        )
         assert output_sample.pop("test_param_a") == 0
         assert output_sample.pop("test_param_b") == 1
         for key, val in self.parameters.items():
@@ -583,7 +599,9 @@ class TestGenerateAllParameters(unittest.TestCase):
         # Note we do *not* switch to azimuth/zenith, because the identity generation function
         # is not intended to be capable of that conversion
         ifos = bilby.gw.detector.InterferometerList(["H1"])
-        ifos.set_strain_data_from_power_spectral_densities(duration=1, sampling_frequency=256)
+        ifos.set_strain_data_from_power_spectral_densities(
+            duration=1, sampling_frequency=256
+        )
         wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole
         )
@@ -595,7 +613,9 @@ class TestGenerateAllParameters(unittest.TestCase):
             time_marginalization=True,
             reference_frame="sky",
         )
-        output_sample = conversion.identity_map_generation(self.parameters, priors=priors, likelihood=likelihood)
+        output_sample = conversion.identity_map_generation(
+            self.parameters, priors=priors, likelihood=likelihood
+        )
         extra_expected = [
             "phase",
             "geocent_time",
@@ -636,60 +656,72 @@ class TestDistanceTransformations(unittest.TestCase):
 @pytest.mark.usefixtures("xp_class")
 class TestGenerateMassParameters(unittest.TestCase):
     def setUp(self):
-        self.expected_values = {'mass_1': self.xp.asarray(2.0),
-                                'mass_2': self.xp.asarray(1.0),
-                                'chirp_mass': self.xp.asarray(1.2167286837864113),
-                                'total_mass': self.xp.asarray(3.0),
-                                'mass_1_source': self.xp.asarray(4.0),
-                                'mass_2_source': self.xp.asarray(2.0),
-                                'chirp_mass_source': self.xp.asarray(2.433457367572823),
-                                'total_mass_source': self.xp.asarray(6),
-                                'symmetric_mass_ratio': self.xp.asarray(0.2222222222222222),
-                                'mass_ratio': self.xp.asarray(0.5)}
+        self.expected_values = {
+            "mass_1": self.xp.asarray(2.0),
+            "mass_2": self.xp.asarray(1.0),
+            "chirp_mass": self.xp.asarray(1.2167286837864113),
+            "total_mass": self.xp.asarray(3.0),
+            "mass_1_source": self.xp.asarray(4.0),
+            "mass_2_source": self.xp.asarray(2.0),
+            "chirp_mass_source": self.xp.asarray(2.433457367572823),
+            "total_mass_source": self.xp.asarray(6),
+            "symmetric_mass_ratio": self.xp.asarray(0.2222222222222222),
+            "mass_ratio": self.xp.asarray(0.5),
+        }
 
     def helper_generation_from_keys(self, keys, expected_values, source=False):
         # Explicitly test the helper generate_component_masses
-        local_test_vars = \
-            {key: expected_values[key] for key in keys}
-        local_test_vars_with_component_masses = \
-            conversion.generate_component_masses(local_test_vars, source=source)
+        local_test_vars = {key: expected_values[key] for key in keys}
+        local_test_vars_with_component_masses = conversion.generate_component_masses(
+            local_test_vars, source=source
+        )
         if source:
-            self.assertTrue("mass_1_source" in local_test_vars_with_component_masses.keys())
-            self.assertTrue("mass_2_source" in local_test_vars_with_component_masses.keys())
+            self.assertTrue(
+                "mass_1_source" in local_test_vars_with_component_masses.keys()
+            )
+            self.assertTrue(
+                "mass_2_source" in local_test_vars_with_component_masses.keys()
+            )
         else:
             self.assertTrue("mass_1" in local_test_vars_with_component_masses.keys())
             self.assertTrue("mass_2" in local_test_vars_with_component_masses.keys())
         for key in local_test_vars_with_component_masses.keys():
             self.assertAlmostEqual(
                 np.asarray(local_test_vars_with_component_masses[key]),
-                np.asarray(self.expected_values[key]))
+                np.asarray(self.expected_values[key]),
+            )
 
         # Test the function more generally
-        local_all_mass_parameters = \
-            conversion.generate_mass_parameters(local_test_vars, source=source)
+        local_all_mass_parameters = conversion.generate_mass_parameters(
+            local_test_vars, source=source
+        )
         if source:
             self.assertEqual(
                 set(local_all_mass_parameters.keys()),
-                set(["mass_1_source",
-                     "mass_2_source",
-                     "chirp_mass_source",
-                     "total_mass_source",
-                     "symmetric_mass_ratio",
-                     "mass_ratio",
-                     ]
-                    )
+                set(
+                    [
+                        "mass_1_source",
+                        "mass_2_source",
+                        "chirp_mass_source",
+                        "total_mass_source",
+                        "symmetric_mass_ratio",
+                        "mass_ratio",
+                    ]
+                ),
             )
         else:
             self.assertEqual(
                 set(local_all_mass_parameters.keys()),
-                set(["mass_1",
-                     "mass_2",
-                     "chirp_mass",
-                     "total_mass",
-                     "symmetric_mass_ratio",
-                     "mass_ratio",
-                     ]
-                    )
+                set(
+                    [
+                        "mass_1",
+                        "mass_2",
+                        "chirp_mass",
+                        "total_mass",
+                        "symmetric_mass_ratio",
+                        "mass_ratio",
+                    ]
+                ),
             )
         for key in local_all_mass_parameters.keys():
             self.assertAlmostEqual(
@@ -702,149 +734,168 @@ class TestGenerateMassParameters(unittest.TestCase):
             )
 
     def test_from_mass_1_and_mass_2(self):
-        self.helper_generation_from_keys(["mass_1", "mass_2"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["mass_1", "mass_2"], self.expected_values)
 
     def test_from_mass_1_and_mass_ratio(self):
-        self.helper_generation_from_keys(["mass_1", "mass_ratio"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["mass_1", "mass_ratio"], self.expected_values)
 
     def test_from_mass_2_and_mass_ratio(self):
-        self.helper_generation_from_keys(["mass_2", "mass_ratio"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["mass_2", "mass_ratio"], self.expected_values)
 
     def test_from_mass_1_and_total_mass(self):
-        self.helper_generation_from_keys(["mass_2", "total_mass"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["mass_2", "total_mass"], self.expected_values)
 
     def test_from_chirp_mass_and_mass_ratio(self):
-        self.helper_generation_from_keys(["chirp_mass", "mass_ratio"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(
+            ["chirp_mass", "mass_ratio"], self.expected_values
+        )
 
     def test_from_chirp_mass_and_symmetric_mass_ratio(self):
-        self.helper_generation_from_keys(["chirp_mass", "symmetric_mass_ratio"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(
+            ["chirp_mass", "symmetric_mass_ratio"], self.expected_values
+        )
 
     def test_from_chirp_mass_and_symmetric_mass_1(self):
-        self.helper_generation_from_keys(["chirp_mass", "mass_1"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["chirp_mass", "mass_1"], self.expected_values)
 
     def test_from_chirp_mass_and_symmetric_mass_2(self):
-        self.helper_generation_from_keys(["chirp_mass", "mass_2"],
-                                         self.expected_values)
+        self.helper_generation_from_keys(["chirp_mass", "mass_2"], self.expected_values)
 
     def test_from_mass_1_source_and_mass_2_source(self):
-        self.helper_generation_from_keys(["mass_1_source", "mass_2_source"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["mass_1_source", "mass_2_source"], self.expected_values, source=True
+        )
 
     def test_from_mass_1_source_and_mass_ratio(self):
-        self.helper_generation_from_keys(["mass_1_source", "mass_ratio"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["mass_1_source", "mass_ratio"], self.expected_values, source=True
+        )
 
     def test_from_mass_2_source_and_mass_ratio(self):
-        self.helper_generation_from_keys(["mass_2_source", "mass_ratio"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["mass_2_source", "mass_ratio"], self.expected_values, source=True
+        )
 
     def test_from_mass_1_source_and_total_mass(self):
-        self.helper_generation_from_keys(["mass_2_source", "total_mass_source"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["mass_2_source", "total_mass_source"], self.expected_values, source=True
+        )
 
     def test_from_chirp_mass_source_and_mass_ratio(self):
-        self.helper_generation_from_keys(["chirp_mass_source", "mass_ratio"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["chirp_mass_source", "mass_ratio"], self.expected_values, source=True
+        )
 
     def test_from_chirp_mass_source_and_symmetric_mass_ratio(self):
-        self.helper_generation_from_keys(["chirp_mass_source", "symmetric_mass_ratio"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["chirp_mass_source", "symmetric_mass_ratio"],
+            self.expected_values,
+            source=True,
+        )
 
     def test_from_chirp_mass_source_and_symmetric_mass_1(self):
-        self.helper_generation_from_keys(["chirp_mass_source", "mass_1_source"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["chirp_mass_source", "mass_1_source"], self.expected_values, source=True
+        )
 
     def test_from_chirp_mass_source_and_symmetric_mass_2(self):
-        self.helper_generation_from_keys(["chirp_mass_source", "mass_2_source"],
-                                         self.expected_values, source=True)
+        self.helper_generation_from_keys(
+            ["chirp_mass_source", "mass_2_source"], self.expected_values, source=True
+        )
 
 
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestEquationOfStateConversions(unittest.TestCase):
-    '''
+    """
     Class to test equation of state conversions.
     The test points were generated from a simulation independent of bilby using the original lalsimulation calls.
     Specific cases tested are described within each function.
 
-    '''
+    """
+
     def setUp(self):
-        self.mass_1_source_spectral = self.xp.asarray([
-            4.922542724434885,
-            4.350626907771598,
-            4.206155335439082,
-            1.7822696459661311,
-            1.3091740103047926
-        ])
-        self.mass_2_source_spectral = self.xp.asarray([
-            3.459974694590303,
-            1.2276461777181447,
-            3.7287707089639976,
-            0.3724016563531846,
-            1.055042934805801
-        ])
-        self.spectral_pca_gamma_0 = self.xp.asarray([
-            0.7074873121348357,
-            0.05855931126849878,
-            0.7795329261793462,
-            1.467907561566463,
-            2.9066488405635624
-        ])
-        self.spectral_pca_gamma_1 = self.xp.asarray([
-            -0.29807111670823816,
-            2.027708558522935,
-            -1.4415775226512115,
-            -0.7104870098896858,
-            -0.4913817181089619
-        ])
-        self.spectral_pca_gamma_2 = self.xp.asarray([
-            0.25625095371021156,
-            -0.19574096643220049,
-            -0.2710238103460012,
-            0.22815820981582358,
-            -0.1543413205016374
-        ])
-        self.spectral_pca_gamma_3 = self.xp.asarray([
-            -0.04030365100175101,
-            0.05698030777919032,
-            -0.045595911403040264,
-            -0.023480394227900117,
-            -0.07114492992285618
-        ])
+        self.mass_1_source_spectral = self.xp.asarray(
+            [
+                4.922542724434885,
+                4.350626907771598,
+                4.206155335439082,
+                1.7822696459661311,
+                1.3091740103047926,
+            ]
+        )
+        self.mass_2_source_spectral = self.xp.asarray(
+            [
+                3.459974694590303,
+                1.2276461777181447,
+                3.7287707089639976,
+                0.3724016563531846,
+                1.055042934805801,
+            ]
+        )
+        self.spectral_pca_gamma_0 = self.xp.asarray(
+            [
+                0.7074873121348357,
+                0.05855931126849878,
+                0.7795329261793462,
+                1.467907561566463,
+                2.9066488405635624,
+            ]
+        )
+        self.spectral_pca_gamma_1 = self.xp.asarray(
+            [
+                -0.29807111670823816,
+                2.027708558522935,
+                -1.4415775226512115,
+                -0.7104870098896858,
+                -0.4913817181089619,
+            ]
+        )
+        self.spectral_pca_gamma_2 = self.xp.asarray(
+            [
+                0.25625095371021156,
+                -0.19574096643220049,
+                -0.2710238103460012,
+                0.22815820981582358,
+                -0.1543413205016374,
+            ]
+        )
+        self.spectral_pca_gamma_3 = self.xp.asarray(
+            [
+                -0.04030365100175101,
+                0.05698030777919032,
+                -0.045595911403040264,
+                -0.023480394227900117,
+                -0.07114492992285618,
+            ]
+        )
         self.spectral_gamma_0 = [
             1.1259406796075457,
             0.3191335618787259,
             1.3651245109783452,
             1.3540140238735314,
-            1.4551949842961993
+            1.4551949842961993,
         ]
         self.spectral_gamma_1 = [
             0.26791504475282835,
             0.3930374252139248,
             0.11438399886108475,
             0.14181113477953,
-            -0.11989033256620368
+            -0.11989033256620368,
         ]
         self.spectral_gamma_2 = [
             -0.06810849354463173,
             -0.038250139296677754,
             -0.0801540229444505,
             -0.05230330841791625,
-            -0.005197303281460286
+            -0.005197303281460286,
         ]
         self.spectral_gamma_3 = [
             0.002848121360389597,
             0.000872447754855139,
             0.005528747386660879,
             0.0024325946344566484,
-            0.00043890906202786106
+            0.00043890906202786106,
         ]
         self.mass_1_source_polytrope = [
             2.2466565877822573,
@@ -852,7 +903,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             4.123897187899834,
             2.014160764697004,
             1.414796714032148,
-            2.0919349759766614
+            2.0919349759766614,
         ]
         self.mass_2_source_polytrope = [
             0.36696047254774256,
@@ -860,7 +911,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             1.650477659961306,
             1.310399737462001,
             0.5470843356210495,
-            1.2311162283818198
+            1.2311162283818198,
         ]
         self.polytrope_log10_pressure_1 = [
             34.05849276958394,
@@ -868,7 +919,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             33.07579629429792,
             33.93412833210738,
             34.24096323517809,
-            35.293288373856534
+            35.293288373856534,
         ]
         self.polytrope_log10_pressure_2 = [
             33.82891829901602,
@@ -876,7 +927,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             34.940095188881976,
             34.72710820593933,
             35.42780071717415,
-            35.648689969687915
+            35.648689969687915,
         ]
         self.polytrope_gamma_0 = [
             2.359580734009537,
@@ -884,7 +935,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             4.784129809424835,
             1.4900432021657437,
             1.0037220431922798,
-            4.183994058757201
+            4.183994058757201,
         ]
         self.polytrope_gamma_1 = [
             1.9497583698697314,
@@ -892,7 +943,7 @@ class TestEquationOfStateConversions(unittest.TestCase):
             2.8228335336587826,
             4.032519623275465,
             1.10894361284508,
-            3.168076721819637
+            3.168076721819637,
         ]
         self.polytrope_gamma_2 = [
             4.6001755196585385,
@@ -900,63 +951,79 @@ class TestEquationOfStateConversions(unittest.TestCase):
             4.429607300132092,
             1.8176338276795763,
             2.9938859949129797,
-            1.300271383168368
+            1.300271383168368,
         ]
-        self.lambda_1_spectral = [0., 0., 0., 0., 1275.7253186286332]
-        self.lambda_2_spectral = [0., 0., 0., 0., 4504.897675043909]
-        self.lambda_1_polytrope = [0., 0., 0., 0., 0., 234.66424898184766]
-        self.lambda_2_polytrope = [0., 0., 0., 0., 0., 3710.931378294547]
+        self.lambda_1_spectral = [0.0, 0.0, 0.0, 0.0, 1275.7253186286332]
+        self.lambda_2_spectral = [0.0, 0.0, 0.0, 0.0, 4504.897675043909]
+        self.lambda_1_polytrope = [0.0, 0.0, 0.0, 0.0, 0.0, 234.66424898184766]
+        self.lambda_2_polytrope = [0.0, 0.0, 0.0, 0.0, 0.0, 3710.931378294547]
         self.eos_check_spectral = [0, 0, 0, 0, 1]
         self.eos_check_polytrope = [0, 0, 0, 0, 0, 1]
 
     def test_spectral_pca_to_spectral(self):
         for i in range(len(self.mass_1_source_spectral)):
-            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = \
+            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = (
                 conversion.spectral_pca_to_spectral(
                     self.spectral_pca_gamma_0[i],
                     self.spectral_pca_gamma_1[i],
                     self.spectral_pca_gamma_2[i],
-                    self.spectral_pca_gamma_3[i]
+                    self.spectral_pca_gamma_3[i],
                 )
-            self.assertAlmostEqual(float(spectral_gamma_0), self.spectral_gamma_0[i], places=5)
-            self.assertAlmostEqual(float(spectral_gamma_1), self.spectral_gamma_1[i], places=5)
-            self.assertAlmostEqual(float(spectral_gamma_2), self.spectral_gamma_2[i], places=5)
-            self.assertAlmostEqual(float(spectral_gamma_3), self.spectral_gamma_3[i], places=5)
-            for val in [spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3]:
+            )
+            self.assertAlmostEqual(
+                float(spectral_gamma_0), self.spectral_gamma_0[i], places=5
+            )
+            self.assertAlmostEqual(
+                float(spectral_gamma_1), self.spectral_gamma_1[i], places=5
+            )
+            self.assertAlmostEqual(
+                float(spectral_gamma_2), self.spectral_gamma_2[i], places=5
+            )
+            self.assertAlmostEqual(
+                float(spectral_gamma_3), self.spectral_gamma_3[i], places=5
+            )
+            for val in [
+                spectral_gamma_0,
+                spectral_gamma_1,
+                spectral_gamma_2,
+                spectral_gamma_3,
+            ]:
                 self.assertEqual(aac.get_namespace(val), self.xp)
 
     def test_spectral_params_to_lambda_1_lambda_2(self):
-        '''
+        """
         The points cover 5 test cases:
             - Fail SimNeutronStarEOS4ParamSDGammaCheck()
             - Fail max_speed_of_sound_ <=1.1
             - Fail mass_1_source <= max_mass
             - Fail mass_2_source >= min_mass
             - Passes all and produces accurate lambda_1, lambda_2, eos_check values
-        '''
+        """
         for i in range(len(self.mass_1_source_spectral)):
-            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = \
+            spectral_gamma_0, spectral_gamma_1, spectral_gamma_2, spectral_gamma_3 = (
                 conversion.spectral_pca_to_spectral(
                     self.spectral_pca_gamma_0[i],
                     self.spectral_pca_gamma_1[i],
                     self.spectral_pca_gamma_2[i],
-                    self.spectral_pca_gamma_3[i]
+                    self.spectral_pca_gamma_3[i],
                 )
-            lambda_1, lambda_2, eos_check = \
+            )
+            lambda_1, lambda_2, eos_check = (
                 conversion.spectral_params_to_lambda_1_lambda_2(
                     spectral_gamma_0,
                     spectral_gamma_1,
                     spectral_gamma_2,
                     spectral_gamma_3,
                     self.mass_1_source_spectral[i],
-                    self.mass_2_source_spectral[i]
+                    self.mass_2_source_spectral[i],
                 )
+            )
             self.assertAlmostEqual(self.lambda_1_spectral[i], float(lambda_1), places=0)
             self.assertAlmostEqual(self.lambda_2_spectral[i], float(lambda_2), places=0)
             self.assertAlmostEqual(self.eos_check_spectral[i], eos_check)
 
     def test_polytrope_or_causal_params_to_lambda_1_lambda_2_causal(self):
-        '''
+        """
         The points cover 6 test cases:
             - Fail log10_pressure1 >= log10_pressure2
             - Fail SimNeutronStarEOS3PDViableFamilyCheck()
@@ -964,9 +1031,9 @@ class TestEquationOfStateConversions(unittest.TestCase):
             - Fail mass_1_source <= max_mass
             - Fail mass_2_source >= min_mass
             - Passes all and produces accurate lambda_1, lambda_2, eos_check values
-        '''
+        """
         for i in range(len(self.mass_1_source_polytrope)):
-            lambda_1, lambda_2, eos_check = \
+            lambda_1, lambda_2, eos_check = (
                 conversion.polytrope_or_causal_params_to_lambda_1_lambda_2(
                     self.polytrope_gamma_0[i],
                     self.polytrope_log10_pressure_1[i],
@@ -975,8 +1042,9 @@ class TestEquationOfStateConversions(unittest.TestCase):
                     self.polytrope_gamma_2[i],
                     self.mass_1_source_polytrope[i],
                     self.mass_2_source_polytrope[i],
-                    0
+                    0,
                 )
+            )
             self.assertAlmostEqual(self.lambda_1_polytrope[i], lambda_1, places=0)
             self.assertAlmostEqual(self.lambda_2_polytrope[i], lambda_2, places=0)
             self.assertAlmostEqual(self.eos_check_polytrope[i], eos_check)
