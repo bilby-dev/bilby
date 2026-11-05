@@ -20,7 +20,9 @@ def main():
     args = parser.parse_args()
 
     if args.github_event:
-        title = json.loads(args.github_event.read_text(encoding="utf-8"))["pull_request"]["title"]
+        title = json.loads(args.github_event.read_text(encoding="utf-8"))[
+            "pull_request"
+        ]["title"]
     else:
         message = args.commit_msg_file.read_text(encoding="utf-8")
         title = message.partition("\n")[0]

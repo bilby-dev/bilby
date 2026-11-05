@@ -64,8 +64,9 @@ class PriorDict(dict):
     def __setitem__(self, key, value):
         if not isinstance(value, (Prior, int, float)):
             raise TypeError(
-                "Unable to parse prior, bad entry: {} "
-                "= {} of type {}".format(key, value, type(value))
+                "Unable to parse prior, bad entry: {} = {} of type {}".format(
+                    key, value, type(value)
+                )
             )
         super().__setitem__(key, value)
 
@@ -319,8 +320,9 @@ class PriorDict(dict):
                     continue
             else:
                 raise TypeError(
-                    "Unable to parse prior, bad entry: {} "
-                    "= {} of type {}".format(key, val, type(val))
+                    "Unable to parse prior, bad entry: {} = {} of type {}".format(
+                        key, val, type(val)
+                    )
                 )
         self.update(dictionary)
 
@@ -356,9 +358,14 @@ class PriorDict(dict):
 
         """
         if likelihood is not None:
-            warn("Filling priors from likelihood parameters is deprecated", FutureWarning)
+            warn(
+                "Filling priors from likelihood parameters is deprecated", FutureWarning
+            )
         if default_priors_file is not None:
-            warn("Setting default priors from a defaults file is deprecated", FutureWarning)
+            warn(
+                "Setting default priors from a defaults file is deprecated",
+                FutureWarning,
+            )
 
         self.convert_floats_to_delta_functions()
 
@@ -477,7 +484,9 @@ class PriorDict(dict):
                 return
             efficiency = n_valid / float(n_tested)
             if n_tested >= 1e3 and efficiency < 1e-3:
-                logger.warning("Prior sampling efficiency is very low, please verify its validity.")
+                logger.warning(
+                    "Prior sampling efficiency is very low, please verify its validity."
+                )
                 efficiency_warning_was_issued = True
 
         n_tested_samples, n_valid_samples = 0, 0
@@ -568,7 +577,9 @@ class PriorDict(dict):
         """
         if xp is None:
             xp = array_module(sample.values())
-        prob = xp.prod(xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs)
+        prob = xp.prod(
+            xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs
+        )
 
         return self.check_prob(sample, prob, normalized=normalized, xp=xp)
 
@@ -614,7 +625,10 @@ class PriorDict(dict):
         elif xp is None:
             # assume input is a dataframe
             xp = array_module(sample.values)
-        ln_prob = xp.sum(xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]), axis=axis)
+        ln_prob = xp.sum(
+            xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]),
+            axis=axis,
+        )
         return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
     def check_ln_prob(self, sample, ln_prob, normalized=True, *, xp=None):
@@ -669,7 +683,9 @@ class PriorDict(dict):
         if xp is None:
             xp = array_module(theta)
 
-        return xp.asarray([self[key].rescale(sample, xp=xp) for key, sample in zip(keys, theta)])
+        return xp.asarray(
+            [self[key].rescale(sample, xp=xp) for key, sample in zip(keys, theta)]
+        )
 
     def test_redundancy(self, key, disable_logging=False):
         """Empty redundancy test, should be overwritten in subclasses"""
@@ -806,7 +822,9 @@ class ConditionalPriorDict(PriorDict):
                         rvars = {
                             key: value[i] for key, value in required_variables.items()
                         }
-                        samples[key][i] = subset_dict[key].sample(**rvars, random_state=random_state)
+                        samples[key][i] = subset_dict[key].sample(
+                            **rvars, random_state=random_state
+                        )
                     subset_dict[key].least_recently_sampled = samples[key]
             else:
                 logger.debug("{} not a known prior.".format(key))
@@ -847,10 +865,12 @@ class ConditionalPriorDict(PriorDict):
         self._prepare_evaluation(*zip(*sample.items()))
         if xp is None:
             xp = array_module(sample.values())
-        res = xp.asarray([
-            self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
-            for key in sample
-        ])
+        res = xp.asarray(
+            [
+                self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
+                for key in sample
+            ]
+        )
         prob = xp.prod(res, **kwargs)
         return self.check_prob(sample, prob, normalized=normalized, xp=xp)
 
@@ -875,10 +895,14 @@ class ConditionalPriorDict(PriorDict):
         self._prepare_evaluation(*zip(*sample.items()))
         if xp is None:
             xp = array_module(sample.values())
-        res = xp.asarray([
-            self[key].ln_prob(sample[key], **self.get_required_variables(key), xp=xp)
-            for key in sample
-        ])
+        res = xp.asarray(
+            [
+                self[key].ln_prob(
+                    sample[key], **self.get_required_variables(key), xp=xp
+                )
+                for key in sample
+            ]
+        )
         ln_prob = xp.sum(res, axis=axis)
         return self.check_ln_prob(sample, ln_prob, normalized=normalized, xp=xp)
 
@@ -921,7 +945,10 @@ class ConditionalPriorDict(PriorDict):
                 theta[index], **self.get_required_variables(key)
             )
             self[key].least_recently_sampled = result[key]
-            if isinstance(self[key], JointPrior) and self[key].dist.distname not in joint:
+            if (
+                isinstance(self[key], JointPrior)
+                and self[key].dist.distname not in joint
+            ):
                 joint[self[key].dist.distname] = [key]
             elif isinstance(self[key], JointPrior):
                 joint[self[key].dist.distname].append(key)

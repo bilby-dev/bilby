@@ -56,7 +56,9 @@ def time_delay_geocentric(detector1: ArrayLike, detector2: ArrayLike, ra, dec, t
 
 
 @dispatch(precedence=1)
-def time_delay_from_geocenter(detector1: ArrayLike, ra: Real, dec: Real, time: Real | ArrayLike):
+def time_delay_from_geocenter(
+    detector1: ArrayLike, ra: Real, dec: Real, time: Real | ArrayLike
+):
     return _geometry.time_delay_from_geocenter(detector1, ra, dec, time)
 
 

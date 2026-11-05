@@ -12,7 +12,7 @@ from bilby.gw.source import sinegaussian
 from bilby.gw.waveform_generator import WaveformGenerator
 
 try:
-    from bilby.compat import pytrees  as _  # noqa
+    from bilby.compat import pytrees as _  # noqa
     from bilby.gw.compat import pytrees as _  # noqa
 except ImportError:
     pass
@@ -75,10 +75,12 @@ def likelihood(xp, **marginalizations):
         parameter_conversion=null_convert,
         use_cache=False,
     )
-    priors = PriorDict(dict(
-        phase=Uniform(0, 2 * np.pi),
-        geocent_time=Uniform(0, 4),
-    ))
+    priors = PriorDict(
+        dict(
+            phase=Uniform(0, 2 * np.pi),
+            geocent_time=Uniform(0, 4),
+        )
+    )
 
     likelihood = GravitationalWaveTransient(
         interferometers=interferometers,
@@ -103,7 +105,7 @@ def parameters(xp):
     )
     params.update({f"recalib_H1_amplitude_{i}": 0.0 for i in range(10)})
     params.update({f"recalib_H1_phase_{i}": 0.0 for i in range(10)})
-    params.update({f"recalib_H1_frequency_{i}": 20 * 10**(i / 10) for i in range(10)})
+    params.update({f"recalib_H1_frequency_{i}": 20 * 10 ** (i / 10) for i in range(10)})
 
     return params
 
@@ -125,4 +127,8 @@ def test_jitted_likelihood_with_time_marginalization(xp, parameters):
 
 @pytest.mark.array_backend
 def test_jitted_likelihood_with_phase_time_marginalization(xp, parameters):
-    _evaluate_with_jit(likelihood(xp, phase_marginalization=True, time_marginalization=True), parameters, xp)
+    _evaluate_with_jit(
+        likelihood(xp, phase_marginalization=True, time_marginalization=True),
+        parameters,
+        xp,
+    )
