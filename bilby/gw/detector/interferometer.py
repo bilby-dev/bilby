@@ -727,7 +727,7 @@ class Interferometer(object):
         """
         whitened_signal = self.whiten_frequency_series(signal)
         whitened_data = self.whitened_frequency_domain_strain
-        return (whitened_signal.T * whitened_data.conj()).sum()
+        return (whitened_signal * whitened_data.conj()).sum()
 
     def template_template_inner_product(self, signal_1, signal_2):
         """A noise weighted inner product between two templates, using this ifo's PSD.
