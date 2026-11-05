@@ -912,14 +912,19 @@ def positive_uniform_prior():
         ),
         conversion_function=conversion,
     )
-    priors._cached_normalizations[("x",)] = np.float64(2)
+    for strict in (True, False):
+        priors._cached_normalizations[(("x",), strict)] = np.float64(2)
     return priors
 
 
 @pytest.mark.array_backend
+@pytest.mark.parametrize("subset", [False, True])
 @pytest.mark.parametrize("normalized", [True, False])
 @pytest.mark.parametrize("values", [0.5, [-0.5, 0.5], [0.25, 0.5]])
-def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, values):
+def test_constrained_uniform_ln_prob(
+    xp, positive_uniform_prior, normalized, values, subset
+):
+    suffix = "_subset" if subset else ""
     values = xp.asarray(values)
     expected = xp.where(values > 0, 0.0 if normalized else -np.log(2), -xp.inf)
     with patch.object(
@@ -927,37 +932,48 @@ def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, val
         "normalize_constraint_factor",
         wraps=positive_uniform_prior.normalize_constraint_factor,
     ) as normalization:
-        actual = positive_uniform_prior.ln_prob(
+        actual = getattr(positive_uniform_prior, "ln_prob" + suffix)(
             {"x": values}, axis=0, normalized=normalized
         )
         assert normalization.call_count == int(normalized)
     assert xp.asarray(actual).shape == values.shape
     assert xp.allclose(actual, expected)
     assert xp.allclose(
-        positive_uniform_prior.prob({"x": values}, axis=0, normalized=normalized),
+        getattr(positive_uniform_prior, "prob" + suffix)(
+            {"x": values}, axis=0, normalized=normalized
+        ),
         xp.exp(actual),
     )
 
 
 @pytest.mark.array_backend
-def test_uniform_ln_prob_out_of_bounds(xp):
+@pytest.mark.parametrize("subset", [False, True])
+def test_uniform_ln_prob_out_of_bounds(xp, subset):
     priors = bilby.core.prior.PriorDict(dict(x=bilby.core.prior.Uniform(-1, 1)))
     sample = {"x": xp.asarray([0.0, 2.0])}
-    actual = priors.ln_prob(sample, axis=0)
+    suffix = "_subset" if subset else ""
+    actual = getattr(priors, "ln_prob" + suffix)(sample, axis=0)
     assert xp.allclose(actual, xp.asarray([-np.log(2), -xp.inf]))
-    assert xp.allclose(priors.prob(sample, axis=0), xp.exp(actual))
+    assert xp.allclose(getattr(priors, "prob" + suffix)(sample, axis=0), xp.exp(actual))
 
 
+@pytest.mark.parametrize("subset", [False, True])
 @pytest.mark.parametrize("value", [-0.5, 0.5])
-def test_constrained_uniform_scalar_ln_prob(positive_uniform_prior, value):
+def test_constrained_uniform_scalar_ln_prob(positive_uniform_prior, value, subset):
     expected = 0.0 if value > 0 else -np.inf
-    actual = positive_uniform_prior.ln_prob({"x": value})
+    method = (
+        positive_uniform_prior.ln_prob_subset
+        if subset
+        else positive_uniform_prior.ln_prob
+    )
+    actual = method({"x": value})
     assert isinstance(actual, float)
     assert actual == pytest.approx(expected)
 
 
 @pytest.mark.array_backend
-def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
+@pytest.mark.parametrize("strict", [False, True])
+def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior, strict):
     if not aac.is_jax_namespace(xp):
         pytest.skip("Requires the JAX backend")
     import jax
@@ -969,6 +985,7 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
         return positive_uniform_prior.check_ln_prob(
             {"x": values},
             ln_density,
+            strict=strict,
             xp=xp,
         )
 
@@ -978,13 +995,17 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
     assert xp.allclose(actual, expected)
     gradient = jax.grad(lambda density: xp.sum(log_probability(density)))(ln_density)
     assert xp.allclose(gradient, xp.asarray([0.0, 1.0]))
-    joint_ln_prob = jax.jit(
-        lambda values: positive_uniform_prior.ln_prob({"x": values}, axis=0)
-    )(values)
+    method = (
+        positive_uniform_prior.ln_prob
+        if strict
+        else positive_uniform_prior.ln_prob_subset
+    )
+    joint_ln_prob = jax.jit(lambda values: method({"x": values}, axis=0))(values)
     assert xp.allclose(joint_ln_prob, expected)
 
 
 @pytest.mark.array_backend
+@pytest.mark.parametrize("strict", [False, True])
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 @pytest.mark.parametrize("values", [0.5, [-0.5, 0.5]])
@@ -993,6 +1014,7 @@ def test_check_ln_prob_torch_preserves_tensor(
     dtype,
     device,
     values,
+    strict,
 ):
     torch = pytest.importorskip("torch")
     if device == "cuda" and not torch.cuda.is_available():
@@ -1003,6 +1025,7 @@ def test_check_ln_prob_torch_preserves_tensor(
     actual = positive_uniform_prior.check_ln_prob(
         {"x": values},
         ln_density,
+        strict=strict,
         xp=xp,
     )
     expected = torch.where(

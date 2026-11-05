@@ -311,14 +311,14 @@ class TestConditionalPriorDict(unittest.TestCase):
         ):
             with self.subTest(method=method):
                 actual = getattr(self.conditional_priors, method)(sample)
-                self.assertAlmostEqual(actual, expected)
+                self.assertAlmostEqual(actual.item(), expected)
 
     def test_probability_subset(self):
         sample = {key: self.test_sample[key] for key in ("var_0", "var_1")}
         for method, expected in (("prob", 1 / 0.7), ("ln_prob", -np.log(0.7))):
             with self.subTest(method=method):
                 actual = getattr(self.conditional_priors, f"{method}_subset")(sample)
-                self.assertAlmostEqual(actual, expected)
+                self.assertAlmostEqual(actual.item(), expected)
                 self.assertEqual(aac.get_namespace(actual), self.xp)
 
     def test_probability_subset_requires_dependencies(self):
