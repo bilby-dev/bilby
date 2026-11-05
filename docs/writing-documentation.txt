@@ -8,10 +8,10 @@ Writing the basics
 ------------------
 
 First, open your terminal and head to the ``docs`` directory in your clone of
-`bilby`. Once here, you'll notice there are a number of `*txt` files. Each one
+``bilby``. Once here, you'll notice there are a number of ``*.txt`` files. Each one
 is a page of the documentation.
 
-Let's say you want to write documentation about the your new feature (or update
+Let's say you want to write documentation about your new feature (or update
 the existing documentation). Simply open a new file ``a-new-feature.txt`` in
 your text editor. Then add a title and some text::
 
@@ -22,33 +22,52 @@ your text editor. Then add a title and some text::
    Here we'll put a description of the new feature
 
 Next, in order to get your new page known by the rest of the documentation,
-open ``index.rst`` and, under ``toctree`` add the name of your file (without
-the suffix). For the example above::
+open ``index.txt`` and add the name of your file (without the suffix) to the
+most appropriate ``toctree``. For the example above::
 
    .. toctree::
-      :maxdepth: 3
-      :caption: Contents:
+      :maxdepth: 1
+      :caption: User guide
+      :hidden:
 
+      prior
       likelihood
       samplers
-      writing-documentation
       a-new-feature
 
 
 Checking the results
 --------------------
 
-You can check what this will look like by (whilst in the ``docs`` directory)
-running the command::
+The documentation is built with the ``documentation`` `pixi <https://pixi.sh>`_
+environment. You can check what this will look like by (whilst in the ``docs``
+directory) running the command::
 
    $ make html
 
 This will create a directory ``./_build/html`` with the documentation. To
 see the result, open the file ``./_build/html/index.html`` in your browser.
 
+Building the full API reference takes a while. When iterating on the narrative
+pages, or on the docstrings of a few modules, you can build only a subset of the
+API pages by passing a comma-separated list of module/object prefixes::
 
-Pushing your changes to master
-------------------------------
+   $ make html-api API=bilby.core.prior,bilby.gw.conversion.generate_all_bbh_parameters
+
+or skip the API reference entirely with::
+
+   $ make html-api
+
+The result is written to ``./_build/api-subset/html`` so that the cached full
+build is not invalidated.
+
+The tutorial notebooks in ``examples/tutorials`` are executed and copied into
+the ``docs`` directory as part of the CI build. To include them locally, copy
+them into the ``docs`` directory, e.g., ``cp ../examples/tutorials/*.ipynb .``.
+
+
+Opening a pull request
+----------------------
 
 To contribute your documentation changes, you should create a branch and add in
 all of the new/changed files::
@@ -65,9 +84,9 @@ Using reStructured text
 -----------------------
 
 The help files are written in reStructured text format. To familiarise yourself
-with these features visit http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html.
+with these features visit https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html.
 
-A useful feature is the ability to `format code examples <http://www.sphinx-doc.org/en/stable/markup/code.html>`_. This is done through the use of ``::`` and indendentation. For
+A useful feature is the ability to `format code examples <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#showing-code-examples>`_. This is done through the use of ``::`` and indentation. For
 example, to make this code block::
 
    import bilby
@@ -79,13 +98,14 @@ You would write::
       import bilby
 
 reStructured text is very powerful, but can be quite particular. For example,
-**all code blocks must be indented by 3 spaces**.
+**code blocks must be consistently indented and separated from the surrounding
+text by blank lines**. The same applies to lists inside docstrings.
 
 Sphinx autosummary
 ------------------
 
 Most of the documentation for ``bilby`` should be written in the `docstrings
-<https://www.python.org/dev/peps/pep-0257/>`_ of the functions/classes themselves. We
+<https://peps.python.org/pep-0257/>`_ of the functions/classes themselves. We
 can add these into the online documentation using `autosummary
 <https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html>`_.
 New code should automatically be added to the API tree.
