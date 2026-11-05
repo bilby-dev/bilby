@@ -578,7 +578,9 @@ class PriorDict(dict):
             return self._cached_normalizations[cache_key]
         else:
             factor_estimates = [
-                self._estimate_normalization(keys, min_accept, sampling_chunk, strict=strict)
+                self._estimate_normalization(
+                    keys, min_accept, sampling_chunk, strict=strict
+                )
                 for _ in range(nrepeats)
             ]
             factor = np.mean(factor_estimates)
@@ -598,7 +600,9 @@ class PriorDict(dict):
             samples = self.sample_subset(keys=keys, size=sampling_chunk)
             for key in samples:
                 all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
-            keep = np.array(self.evaluate_constraints(all_samples, strict=strict), dtype=bool)
+            keep = np.array(
+                self.evaluate_constraints(all_samples, strict=strict), dtype=bool
+            )
         factor = len(keep) / np.count_nonzero(keep)
         return factor
 
@@ -661,11 +665,15 @@ class PriorDict(dict):
             xp.stack([self[key].prob(sample[key], xp=xp) for key in sample]), **kwargs
         )
 
-        return self.check_prob(sample, prob, normalized=normalized, strict=strict, xp=xp)
+        return self.check_prob(
+            sample, prob, normalized=normalized, strict=strict, xp=xp
+        )
 
     def check_prob(self, sample, prob, *, normalized=True, strict=True, xp=None):
         if normalized:
-            ratio = self.normalize_constraint_factor(tuple(sample.keys()), strict=strict)
+            ratio = self.normalize_constraint_factor(
+                tuple(sample.keys()), strict=strict
+            )
         else:
             ratio = 1
         if not aac.is_jax_namespace(xp) and xp.all(prob == 0.0):
@@ -705,7 +713,9 @@ class PriorDict(dict):
         """
 
         self._check_complete_sample(sample, "ln_prob")
-        return self._ln_prob(sample, axis=axis, normalized=normalized, strict=True, xp=xp)
+        return self._ln_prob(
+            sample, axis=axis, normalized=normalized, strict=True, xp=xp
+        )
 
     def ln_prob_subset(self, sample, axis=None, *, normalized=True, xp=None):
         """Evaluate the joint log probability for the supplied subset of priors.
@@ -713,7 +723,9 @@ class PriorDict(dict):
         Constraints that cannot be derived from the supplied sample are skipped.
 
         """
-        return self._ln_prob(sample, axis=axis, normalized=normalized, strict=False, xp=xp)
+        return self._ln_prob(
+            sample, axis=axis, normalized=normalized, strict=False, xp=xp
+        )
 
     def _ln_prob(self, sample, axis=None, *, normalized=True, strict=True, xp=None):
         if xp is None and isinstance(sample, dict):
@@ -725,11 +737,15 @@ class PriorDict(dict):
             xp.stack([self[key].ln_prob(sample[key], xp=xp) for key in sample]),
             axis=axis,
         )
-        return self.check_ln_prob(sample, ln_prob, normalized=normalized, strict=strict, xp=xp)
+        return self.check_ln_prob(
+            sample, ln_prob, normalized=normalized, strict=strict, xp=xp
+        )
 
     def check_ln_prob(self, sample, ln_prob, normalized=True, *, strict=True, xp=None):
         if normalized:
-            ratio = self.normalize_constraint_factor(tuple(sample.keys()), strict=strict)
+            ratio = self.normalize_constraint_factor(
+                tuple(sample.keys()), strict=strict
+            )
         else:
             ratio = 1
         if isinstance(ln_prob, float):
@@ -954,7 +970,9 @@ class ConditionalPriorDict(PriorDict):
             ]
         )
         prob = xp.prod(res, **kwargs)
-        return self.check_prob(sample, prob, normalized=normalized, strict=strict, xp=xp)
+        return self.check_prob(
+            sample, prob, normalized=normalized, strict=strict, xp=xp
+        )
 
     def _ln_prob(self, sample, *, axis=None, normalized=True, strict=True, xp=None):
         self._prepare_subset_evaluation(sample)
@@ -969,7 +987,9 @@ class ConditionalPriorDict(PriorDict):
             ]
         )
         ln_prob = xp.sum(res, axis=axis)
-        return self.check_ln_prob(sample, ln_prob, normalized=normalized, strict=strict, xp=xp)
+        return self.check_ln_prob(
+            sample, ln_prob, normalized=normalized, strict=strict, xp=xp
+        )
 
     @xp_wrap
     def cdf(self, sample, *, xp=None):
@@ -1039,7 +1059,8 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         for key in sample:
             missing = [
-                name for name in getattr(self[key], "required_variables", [])
+                name
+                for name in getattr(self[key], "required_variables", [])
                 if name not in sample and not isinstance(self[name], DeltaFunction)
             ]
             if missing:

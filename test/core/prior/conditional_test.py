@@ -302,8 +302,13 @@ class TestConditionalPriorDict(unittest.TestCase):
 
     def test_probability_does_not_require_fixed_parameters(self):
         self.conditional_priors["var_0"] = bilby.core.prior.DeltaFunction(0.7)
-        sample = {key: value for key, value in self.test_sample.items() if key != "var_0"}
-        for method, expected in (("prob", self.test_value), ("ln_prob", np.log(self.test_value))):
+        sample = {
+            key: value for key, value in self.test_sample.items() if key != "var_0"
+        }
+        for method, expected in (
+            ("prob", self.test_value),
+            ("ln_prob", np.log(self.test_value)),
+        ):
             with self.subTest(method=method):
                 actual = getattr(self.conditional_priors, method)(sample)
                 self.assertAlmostEqual(actual, expected)

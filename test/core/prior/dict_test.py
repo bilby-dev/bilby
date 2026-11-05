@@ -356,7 +356,6 @@ class TestPriorDict(unittest.TestCase):
             mock_warning.assert_not_called()
 
     def test_sample_subset_constrained_with_partial_subset(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -377,7 +376,6 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(16, len(samples["mass_1"]))
 
     def test_sample_subset_constrained_full_sample_requires_constraints(self):
-
         def conversion_function(parameters):
             return parameters.copy()
 
@@ -392,7 +390,6 @@ class TestPriorDict(unittest.TestCase):
             )
 
     def test_prob_subset_and_ln_prob_subset_skip_unavailable_constraints(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -461,7 +458,9 @@ class TestPriorDict(unittest.TestCase):
             for sample in ({}, {"mass": 0.5}, {"speed": -1.0}):
                 with self.subTest(method=method, keys=list(sample)):
                     with self.assertRaisesRegex(ValueError, f"Use {method}_subset"):
-                        getattr(self.prior_set_from_dict, method)(sample, normalized=False)
+                        getattr(self.prior_set_from_dict, method)(
+                            sample, normalized=False
+                        )
 
     def test_probability_does_not_require_fixed_parameters(self):
         sample = self.prior_set_from_dict.sample(random_state=self.rng)
@@ -492,44 +491,59 @@ class TestPriorDict(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
     def test_probability_subset_skips_missing_constraints_for_complete_sample(self):
-        for prior_class in (bilby.core.prior.PriorDict, bilby.core.prior.ConditionalPriorDict):
-            priors = prior_class(dict(
-            mass=bilby.core.prior.Uniform(0, 2),
-            fixed=bilby.core.prior.DeltaFunction(1),
-            limit=bilby.core.prior.Constraint(0, 1),
-        ))
+        for prior_class in (
+            bilby.core.prior.PriorDict,
+            bilby.core.prior.ConditionalPriorDict,
+        ):
+            priors = prior_class(
+                dict(
+                    mass=bilby.core.prior.Uniform(0, 2),
+                    fixed=bilby.core.prior.DeltaFunction(1),
+                    limit=bilby.core.prior.Constraint(0, 1),
+                )
+            )
             sample = {"mass": self.xp.asarray(0.5)}
             for normalized in (False, True):
                 for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
-                    with self.subTest(prior_class=prior_class, normalized=normalized, method=method):
-                        actual = getattr(priors, method + "_subset")(sample, normalized=normalized)
+                    with self.subTest(
+                        prior_class=prior_class, normalized=normalized, method=method
+                    ):
+                        actual = getattr(priors, method + "_subset")(
+                            sample, normalized=normalized
+                        )
                         self.assertAlmostEqual(actual, expected)
                 with self.assertRaisesRegex(ValueError, "Constraint limit"):
-                            getattr(priors, method)(sample, normalized=normalized)
+                    getattr(priors, method)(sample, normalized=normalized)
 
     def test_probability_strict_conversion_failure(self):
         def conversion_function(sample):
             return dict(sample, limit=sample["missing"])
 
         priors = bilby.core.prior.PriorDict(
-            dict(mass=bilby.core.prior.Uniform(0, 2),
-                 limit=bilby.core.prior.Constraint(0, 1)),
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            ),
             conversion_function=conversion_function,
         )
         sample = {"mass": self.xp.asarray(0.5)}
         for normalized in (False, True):
             for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
                 with self.subTest(normalized=normalized, method=method):
-                    actual = getattr(priors, method + "_subset")(sample, normalized=normalized)
+                    actual = getattr(priors, method + "_subset")(
+                        sample, normalized=normalized
+                    )
                     self.assertAlmostEqual(actual, expected)
                     with self.assertRaisesRegex(KeyError, "missing"):
                         getattr(priors, method)(sample, normalized=normalized)
 
     def test_normalization_strictness_is_not_shared_between_cache_entries(self):
-        priors = bilby.core.prior.PriorDict(dict(
-            mass=bilby.core.prior.Uniform(0, 2),
-            limit=bilby.core.prior.Constraint(0, 1),
-        ))
+        priors = bilby.core.prior.PriorDict(
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            )
+        )
         # Exercise normalization's accumulation loop as well as its first chunk.
         factor = priors.normalize_constraint_factor(
             ("mass",), min_accept=5, sampling_chunk=2, nrepeats=1, strict=False
@@ -542,22 +556,33 @@ class TestPriorDict(unittest.TestCase):
 
     def test_probability_applies_available_constraints(self):
         priors = bilby.core.prior.PriorDict(
-            dict(mass=bilby.core.prior.Uniform(0, 2),
-                 speed=bilby.core.prior.Uniform(0, 2),
-                 limit=bilby.core.prior.Constraint(0, 1)),
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                speed=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            ),
             conversion_function=lambda sample: dict(sample, limit=sample["mass"]),
         )
-        for method, expected in (("prob", [0.25, 0.0]), ("ln_prob", [np.log(0.25), -np.inf])):
+        for method, expected in (
+            ("prob", [0.25, 0.0]),
+            ("ln_prob", [np.log(0.25), -np.inf]),
+        ):
             for suffix in ("", "_subset"):
                 with self.subTest(method=method, suffix=suffix):
-                    sample = {"mass": self.xp.asarray([0.5, 1.5]),
-                              "speed": self.xp.asarray([0.5, 0.5])}
+                    sample = {
+                        "mass": self.xp.asarray([0.5, 1.5]),
+                        "speed": self.xp.asarray([0.5, 0.5]),
+                    }
                     if suffix:
                         del sample["speed"]
-                        subset_expected = [0.5, 0.0] if method == "prob" else [np.log(0.5), -np.inf]
+                        subset_expected = (
+                            [0.5, 0.0] if method == "prob" else [np.log(0.5), -np.inf]
+                        )
                     else:
                         subset_expected = expected
-                    actual = getattr(priors, method + suffix)(sample, axis=0, normalized=False)
+                    actual = getattr(priors, method + suffix)(
+                        sample, axis=0, normalized=False
+                    )
                     np.testing.assert_allclose(actual, subset_expected)
 
     def test_rescale(self):
@@ -597,7 +622,6 @@ class TestPriorDict(unittest.TestCase):
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))
 
     def test_evaluate_constraints(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -617,7 +641,6 @@ class TestPriorDict(unittest.TestCase):
         self.assertFalse(priors.evaluate_constraints(theta))
 
     def test_evaluate_constraints_batches(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -635,7 +658,6 @@ class TestPriorDict(unittest.TestCase):
         self.assertTrue(np.array_equal(expected, priors.evaluate_constraints(theta)))
 
     def test_evaluate_constraints_missing_keys(self):
-
         def conversion_function(parameters):
             return parameters.copy()
 
@@ -648,12 +670,11 @@ class TestPriorDict(unittest.TestCase):
 
         with self.assertRaises(
             ValueError,
-            msg="Constraint delta_mass is not present in the sample. Cannot evaluate constraints."
+            msg="Constraint delta_mass is not present in the sample. Cannot evaluate constraints.",
         ):
             priors.evaluate_constraints(theta)
 
     def test_evaluate_constraints_partial_sample_requires_non_strict(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -675,10 +696,11 @@ class TestPriorDict(unittest.TestCase):
             priors.evaluate_constraints(theta, strict=True)
 
     def test_normalize_constraint_keys(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
-            converted_parameters["mass_ratio"] = parameters["mass_2"] / parameters["mass_1"]
+            converted_parameters["mass_ratio"] = (
+                parameters["mass_2"] / parameters["mass_1"]
+            )
             return converted_parameters
 
         priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
