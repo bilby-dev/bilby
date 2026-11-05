@@ -351,29 +351,27 @@ def zenith_azimuth_to_ra_dec(zenith, azimuth, geocent_time, ifos):
 
 def ra_dec_to_zenith_azimuth(ra, dec, geocent_time, ifos):
     """
-    Convert from the Earth frame to the 'detector frame'.
+    Convert from right ascension and declination to the detector frame.
 
     Parameters
     ==========
-    ra: float
+    ra: float or array-like
         The right ascension of the source in radians
-    dec: float
+    dec: float or array-like
         The declination of the source in radians
-    geocent_time: float
+    geocent_time: float or array-like
         GPS time at geocenter
     ifos: list
         List of Interferometer objects defining the detector frame
 
     Returns
     =======
-    kappa, eta: float
-        The zenith and azimuthal angles in the detector frame.
+    zenith, azimuth: float or array-like
+        The zenith and azimuthal angles in the detector frame in radians.
     """
     gmst = greenwich_mean_sidereal_time(geocent_time)
     theta, phi = ra_dec_to_theta_phi(ra, dec, gmst)
-    zenith, azimuth = theta_phi_to_zenith_azimuth(
-        theta, phi, ifos[0].geometry.vertex - ifos[1].geometry.vertex
-    )
+    zenith, azimuth = theta_phi_to_zenith_azimuth(theta, phi, ifos)
     return zenith, azimuth
 
 
