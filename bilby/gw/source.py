@@ -1303,11 +1303,13 @@ def binary_black_hole_frequency_sequence(
     phase: float
         The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
-        Required keyword arguments
-        - frequencies:
-            ndarray of frequencies at which waveforms are evaluated
+        Required keyword arguments:
 
-        Optional keyword arguments
+        - frequencies:
+          ndarray of frequencies at which waveforms are evaluated
+
+        Optional keyword arguments:
+
         - waveform_approximant
         - reference_frequency
         - catch_waveform_errors
@@ -1419,11 +1421,13 @@ def binary_neutron_star_frequency_sequence(
     phase: float
         The phase at reference frequency or peak amplitude (depends on waveform)
     kwargs: dict
-        Required keyword arguments
-        - frequencies:
-            ndarray of frequencies at which waveforms are evaluated
+        Required keyword arguments:
 
-        Optional keyword arguments
+        - frequencies:
+          ndarray of frequencies at which waveforms are evaluated
+
+        Optional keyword arguments:
+
         - waveform_approximant
         - reference_frequency
         - catch_waveform_errors
@@ -1520,6 +1524,8 @@ def _base_waveform_frequency_sequence(
     tilt_2: float
         Secondary tilt angle
     phi_jl: float
+        Azimuthal angle between the total binary angular momentum and the
+        orbital angular momentum
     theta_jn: float
         Orbital inclination
     phase: float

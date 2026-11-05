@@ -74,12 +74,13 @@ class Dynesty(NestedSampler):
         only advisable for testing environments
     print_method: str ('tqdm')
         The method to use for printing. The options are:
-        - 'tqdm': use a `tqdm` `pbar`, this is the default.
-        - 'interval-$TIME': print to `stdout` every `$TIME` seconds,
-          e.g., 'interval-10' prints every ten seconds, this does not print every iteration
-        - else: print to `stdout` at every iteration
+
+        - :code:`'tqdm'`: use a :code:`tqdm` progress bar, this is the default.
+        - :code:`'interval-$TIME'`: print to :code:`stdout` every :code:`$TIME` seconds,
+          e.g., :code:`'interval-10'` prints every ten seconds, this does not print every iteration
+        - else: print to :code:`stdout` at every iteration
     exit_code: int
-        The code which the same exits on if it hasn't finished sampling
+        The code which the sampler exits with if it hasn't finished sampling
     check_point: bool,
         If true, use check pointing.
     check_point_plot: bool,
@@ -120,14 +121,13 @@ class Dynesty(NestedSampler):
         one of [nlive, nlives, n_live_points, npoints]
     bound: {'live', 'live-multi', 'none', 'single', 'multi', 'balls', 'cubes'}, ('live')
         Method used to select new points
-    sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice',
-             'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
+    sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice', 'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
         Method used to sample uniformly within the likelihood constraints,
         conditioned on the provided bounds
     walks: int (100)
-        Number of walks taken if using the dynesty implemented sample methods
-        Note that the default `walks` in dynesty itself is 25, although using
-        `ndim * 10` can be a reasonable rule of thumb for new problems.
+        Number of walks taken if using the dynesty implemented sample methods.
+        Note that the default :code:`walks` in dynesty itself is 25, although using
+        :code:`ndim * 10` can be a reasonable rule of thumb for new problems.
         For :code:`sample="act-walk"` and :code:`sample="rwalk"` this parameter
         has no impact on the sampling.
     dlogz: float, (0.1)
