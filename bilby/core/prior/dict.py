@@ -644,6 +644,8 @@ class PriorDict(dict):
 
         Constraints that cannot be derived from the supplied sample are skipped.
 
+        .. versionadded:: 3.0.0
+
         Parameters
         ==========
         sample: dict
@@ -721,6 +723,8 @@ class PriorDict(dict):
         """Evaluate the joint log probability for the supplied subset of priors.
 
         Constraints that cannot be derived from the supplied sample are skipped.
+
+        .. versionadded:: 3.0.0
 
         """
         return self._ln_prob(
