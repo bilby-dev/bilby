@@ -586,9 +586,11 @@ class Interferometer(object):
         =======
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self.geometry.latitude_radians,
-                                                      self.geometry.longitude_radians,
-                                                      self.geometry.elevation)
+        xp = self.array_backend
+
+        return gwutils.get_vertex_position_geocentric(xp.asarray([self.geometry.latitude_radians,
+                                                                  self.geometry.longitude_radians,
+                                                                  self.geometry.elevation]))
 
     def optimal_snr_squared(self, signal):
         """
@@ -602,9 +604,11 @@ class Interferometer(object):
         =======
         float: The optimal signal to noise ratio possible squared
         """
+        mask = self.strain_data.frequency_mask
+        xp = array_module(signal)
         return gwutils.optimal_snr_squared(
-            signal=signal[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
+            signal=signal * mask,
+            power_spectral_density=xp.where(mask, self.power_spectral_density_array, xp.inf),
             duration=self.strain_data.duration)
 
     def inner_product(self, signal):
@@ -619,10 +623,12 @@ class Interferometer(object):
         =======
         float: The optimal signal to noise ratio possible squared
         """
+        mask = self.strain_data.frequency_mask
+        xp = array_module(signal)
         return gwutils.noise_weighted_inner_product(
-            aa=signal[self.strain_data.frequency_mask],
-            bb=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
+            aa=signal * mask,
+            bb=self.strain_data.frequency_domain_strain * mask,
+            power_spectral_density=xp.where(mask, self.power_spectral_density_array, xp.inf),
             duration=self.strain_data.duration)
 
     def template_template_inner_product(self, signal_1, signal_2):
@@ -939,10 +945,11 @@ class Interferometer(object):
             raise TypeError('The loaded object is not an Interferometer')
         return res
 
-    def set_array_backend(self, xp):
-        self.geometry.set_array_backend(xp=xp)
-        self.power_spectral_density.set_array_backend(xp=xp)
-
     @property
     def array_backend(self):
-        return array_module(self.geometry.length)
+        return self.geometry.array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        self.geometry.array_backend = xp
+        self.power_spectral_density.array_backend = xp

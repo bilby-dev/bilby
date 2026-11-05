@@ -492,7 +492,7 @@ class Dynesty(NestedSampler):
         else:
             if self.kwargs["live_points"] is None:
                 self.kwargs["live_points"] = self.get_initial_points_from_prior(
-                    self.nlive
+                    self.nlive, random_state=self.kwargs["rstate"]
                 )
                 self.kwargs["live_points"] = (*self.kwargs["live_points"], None)
             self.sampler = self.sampler_init(
@@ -528,12 +528,12 @@ class Dynesty(NestedSampler):
         dynesty_result = f"{self.outdir}/{self.label}_dynesty.pickle"
         safe_file_dump(out, dynesty_result, "dill")
 
-        self._generate_result(out)
+        self._generate_result(out, random_state=self.sampler.rstate)
         self.result.sampling_time = self.sampling_time
 
         return self.result
 
-    def _generate_result(self, out):
+    def _generate_result(self, out, *, random_state=None):
         """
         Extract the information we need from the dynesty output. This includes
         the evidence, nested samples, run statistics. In addition, we generate
@@ -543,12 +543,16 @@ class Dynesty(NestedSampler):
         ==========
         out: dynesty.result.Result
             The dynesty output.
+        random_state: None, int, numpy.random.Generator
+            Random state used to generate posterior samples. If None, use
+            Bilby's global random number generator.
         """
         import dynesty
         from scipy.special import logsumexp
 
         from ..utils import random
 
+        rng = random.resolve_random_state(random_state)
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
         nested_samples = DataFrame(out.samples, columns=self.search_parameter_keys)
@@ -556,14 +560,16 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > random.rng.uniform(0, max(weights), len(weights))
+            keep = weights > rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(
                 f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples"
             )
         else:
-            self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+            self.result.samples = dynesty.utils.resample_equal(
+                out.samples, weights, rstate=rng
+            )
             self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
                 unsorted_loglikelihoods=out.logl,
                 unsorted_samples=out.samples,
