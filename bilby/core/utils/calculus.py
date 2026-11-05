@@ -227,9 +227,16 @@ class WrappedInterp1d(_interp1d):
     makes sure that the output is a float if the input is a float or int.
     """
 
-    def __init__(self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan):
+    def __init__(
+        self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan
+    ):
         super().__init__(
-            x=x, y=y, kind=kind, axis=axis, bounds_error=bounds_error, fill_value=fill_value
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
         )
         self.kind = kind
 
@@ -264,4 +271,4 @@ def round_up_to_power_of_two(x):
     float: next power of two
 
     """
-    return 2**math.ceil(np.log2(x))
+    return 2 ** math.ceil(np.log2(x))

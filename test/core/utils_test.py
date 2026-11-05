@@ -121,7 +121,7 @@ class TestInferParameters(unittest.TestCase):
             "errors",
             "newline",
             "closefd",
-            "opener"
+            "opener",
         ]
         actual = utils.infer_parameters_from_function(open)
         self.assertListEqual(expected, actual)
@@ -216,9 +216,9 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
         self.assertEqual(self.sampling_frequency, new_sampling_freq)
 
     def test_get_sampling_frequency_from_frequency_array_unequally_sampled(self):
-        self.frequency_array = xpx.at(
-            self.frequency_array, -1
-        ).set(self.frequency_array[-1] + 0.0001)
+        self.frequency_array = xpx.at(self.frequency_array, -1).set(
+            self.frequency_array[-1] + 0.0001
+        )
         with self.assertRaises(ValueError):
             _, _ = utils.get_sampling_frequency_and_duration_from_frequency_array(
                 self.frequency_array
@@ -392,7 +392,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
             self.lnfunc1 = self.xp.log(self.x)
         self.func1int = (self.x[-1] ** 2 - self.x[0] ** 2) / 2
         with np.errstate(divide="ignore"):
-            self.lnfunc2 = self.xp.log(self.x ** 2)
+            self.lnfunc2 = self.xp.log(self.x**2)
         self.func2int = (self.x[-1] ** 3 - self.x[0] ** 3) / 3
 
         self.irregularx = self.xp.asarray(
@@ -414,7 +414,7 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
         )
         with np.errstate(divide="ignore"):
             self.lnfunc1irregular = self.xp.log(self.irregularx)
-            self.lnfunc2irregular = self.xp.log(self.irregularx ** 2)
+            self.lnfunc2irregular = self.xp.log(self.irregularx**2)
         self.irregulardxs = self.xp.diff(self.irregularx)
 
     def test_incorrect_step_type(self):
@@ -430,23 +430,30 @@ class TestTrapeziumRuleIntegration(unittest.TestCase):
         res2 = utils.logtrapzexp(self.lnfunc1, self.dxs)
 
         self.assertTrue(np.abs(res1 - res2) < 1e-12)
-        self.assertTrue(np.abs((self.xp.exp(res1) - self.func1int) / self.func1int) < 1e-12)
+        self.assertTrue(
+            np.abs((self.xp.exp(res1) - self.func1int) / self.func1int) < 1e-12
+        )
 
     def test_integral_func2(self):
         res = utils.logtrapzexp(self.lnfunc2, self.dxs)
-        self.assertTrue(np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-4)
+        self.assertTrue(
+            np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-4
+        )
 
     def test_integral_func1_irregular_steps(self):
         res = utils.logtrapzexp(self.lnfunc1irregular, self.irregulardxs)
-        self.assertTrue(np.abs((self.xp.exp(res) - self.func1int) / self.func1int) < 1e-12)
+        self.assertTrue(
+            np.abs((self.xp.exp(res) - self.func1int) / self.func1int) < 1e-12
+        )
 
     def test_integral_func2_irregular_steps(self):
         res = utils.logtrapzexp(self.lnfunc2irregular, self.irregulardxs)
-        self.assertTrue(np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-2)
+        self.assertTrue(
+            np.abs((self.xp.exp(res) - self.func2int) / self.func2int) < 1e-2
+        )
 
 
 class TestSavingNumpyRandomGenerator(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -462,9 +469,7 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
 
     def test_hdf5(self):
         with h5py.File(self.outdir / "test.h5", "w") as f:
-            bilby.core.utils.recursively_save_dict_contents_to_group(
-                f, "/", self.data
-            )
+            bilby.core.utils.recursively_save_dict_contents_to_group(f, "/", self.data)
         a = self.data["rng"].random()
 
         with h5py.File(self.outdir / "test.h5", "r") as f:
@@ -474,12 +479,12 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
         self.assertEqual(a, b)
 
     def test_json(self):
-        with open(self.outdir / "test.json", 'w') as file:
+        with open(self.outdir / "test.json", "w") as file:
             json.dump(self.data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
 
         a = self.data["rng"].random()
 
-        with open(self.outdir / "test.json", 'r') as file:
+        with open(self.outdir / "test.json", "r") as file:
             data = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
 
         b = data["rng"].random()
@@ -490,14 +495,10 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
         data = {"seed_sequence": seed_sequence}
 
         with h5py.File(self.outdir / "test_seed_sequence.h5", "w") as f:
-            bilby.core.utils.recursively_save_dict_contents_to_group(
-                f, "/", data
-            )
+            bilby.core.utils.recursively_save_dict_contents_to_group(f, "/", data)
 
         with h5py.File(self.outdir / "test_seed_sequence.h5", "r") as f:
-            loaded = bilby.core.utils.recursively_load_dict_contents_from_group(
-                f, "/"
-            )
+            loaded = bilby.core.utils.recursively_load_dict_contents_from_group(f, "/")
 
         self.assertIsInstance(loaded["seed_sequence"], np.random.SeedSequence)
         self.assertEqual(loaded["seed_sequence"].state, seed_sequence.state)
@@ -510,26 +511,23 @@ class TestSavingNumpyRandomGenerator(unittest.TestCase):
             json.dump(data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
 
         with open(self.outdir / "test_seed_sequence.json", "r") as file:
-            loaded = json.load(
-                file, object_hook=bilby.core.utils.decode_bilby_json
-            )
+            loaded = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
 
         self.assertIsInstance(loaded["seed_sequence"], np.random.SeedSequence)
         self.assertEqual(loaded["seed_sequence"].state, seed_sequence.state)
 
     def test_pickle(self):
-        with open(self.outdir / "test.pkl", 'wb') as file:
+        with open(self.outdir / "test.pkl", "wb") as file:
             dill.dump(self.data, file)
         a = self.data["rng"].random()
 
-        with open(self.outdir / "test.pkl", 'rb') as file:
+        with open(self.outdir / "test.pkl", "rb") as file:
             data = dill.load(file)
         b = data["rng"].random()
         self.assertEqual(a, b)
 
 
 class TestSavingLalDict(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -555,9 +553,7 @@ class TestSavingLalDict(unittest.TestCase):
 
     def test_hdf5(self):
         with h5py.File(self.outdir / "test.h5", "w") as f:
-            bilby.core.utils.recursively_save_dict_contents_to_group(
-                f, "/", self.data
-            )
+            bilby.core.utils.recursively_save_dict_contents_to_group(f, "/", self.data)
 
         with h5py.File(self.outdir / "test.h5", "r") as f:
             data = bilby.core.utils.recursively_load_dict_contents_from_group(f, "/")
@@ -565,10 +561,10 @@ class TestSavingLalDict(unittest.TestCase):
         self._assert_lal_dicts_equal(self.data["lal_dict"], data["lal_dict"])
 
     def test_json(self):
-        with open(self.outdir / "test.json", 'w') as file:
+        with open(self.outdir / "test.json", "w") as file:
             json.dump(self.data, file, indent=2, cls=bilby.core.utils.BilbyJsonEncoder)
 
-        with open(self.outdir / "test.json", 'r') as file:
+        with open(self.outdir / "test.json", "r") as file:
             data = json.load(file, object_hook=bilby.core.utils.decode_bilby_json)
 
         self._assert_lal_dicts_equal(self.data["lal_dict"], data["lal_dict"])
@@ -585,7 +581,6 @@ class TestSavingLalDict(unittest.TestCase):
 
 
 class TestGlobalMetaData(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -613,7 +608,9 @@ class TestGlobalMetaData(unittest.TestCase):
 
     def test_set_cosmology(self):
         bilby.gw.cosmology.set_cosmology("Planck15_LAL")
-        self.assertTrue(global_meta_data["cosmology"] is bilby.gw.cosmology.COSMOLOGY[0])
+        self.assertTrue(
+            global_meta_data["cosmology"] is bilby.gw.cosmology.COSMOLOGY[0]
+        )
 
     def test_update(self):
         bilby.core.utils.meta_data.logger.propagate = True
@@ -630,7 +627,6 @@ class TestGlobalMetaData(unittest.TestCase):
 
 
 class TestRandomUtils(unittest.TestCase):
-
     def setUp(self):
         # Ensure a clean import of the random module
         if "bilby.core.utils.random" in sys.modules:
@@ -649,7 +645,9 @@ class TestRandomUtils(unittest.TestCase):
             random.seed(42)
 
         for warning in w:
-            self.assertNotIn("Detected that `rng` was likely imported directly", str(warning.message))
+            self.assertNotIn(
+                "Detected that `rng` was likely imported directly", str(warning.message)
+            )
 
     def test_warning_when_imported_directly(self):
         from bilby.core.utils.random import rng
@@ -661,7 +659,9 @@ class TestRandomUtils(unittest.TestCase):
         sys.modules["fake_module"] = fake_module
 
         try:
-            with self.assertWarnsRegex(RuntimeWarning, "Detected that `rng` was likely imported directly"):
+            with self.assertWarnsRegex(
+                RuntimeWarning, "Detected that `rng` was likely imported directly"
+            ):
                 random.seed(123)
         finally:
             # always clean up the fake module even if the test fails

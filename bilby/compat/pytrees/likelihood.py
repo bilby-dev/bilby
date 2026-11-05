@@ -128,7 +128,7 @@ def joint_likelihood_unflatten(aux_data, flat) -> JointLikelihood:
 
 
 def analytical_multidimensional_covariant_gaussian_flatten(
-    likelihood: AnalyticalMultidimensionalCovariantGaussian
+    likelihood: AnalyticalMultidimensionalCovariantGaussian,
 ):
     _, aux_data = likelihood_flatten(likelihood)
     children = (likelihood.cov, likelihood.mean, likelihood.sigma)
@@ -143,12 +143,14 @@ def analytical_multidimensional_covariant_gaussian_unflatten(
     likelihood.cov = cov
     likelihood.mean = mean
     likelihood.sigma = sigma
-    likelihood.logpdf = partial(jax.scipy.stats.multivariate_normal.logpdf, mean=mean, cov=cov)
+    likelihood.logpdf = partial(
+        jax.scipy.stats.multivariate_normal.logpdf, mean=mean, cov=cov
+    )
     return likelihood
 
 
 def analytical_multidimensional_bimodal_covariant_gaussian_flatten(
-    likelihood: AnalyticalMultidimensionalBimodalCovariantGaussian
+    likelihood: AnalyticalMultidimensionalBimodalCovariantGaussian,
 ):
     _, aux_data = likelihood_flatten(likelihood)
     children = (likelihood.cov, likelihood.mean_1, likelihood.mean_2, likelihood.sigma)
@@ -164,8 +166,12 @@ def analytical_multidimensional_bimodal_covariant_gaussian_unflatten(
     likelihood.mean_1 = mean_1
     likelihood.mean_2 = mean_2
     likelihood.sigma = sigma
-    likelihood.logpdf_1 = partial(jax.scipy.stats.multivariate_normal.logpdf, mean=mean_1, cov=cov)
-    likelihood.logpdf_2 = partial(jax.scipy.stats.multivariate_normal.logpdf, mean=mean_2, cov=cov)
+    likelihood.logpdf_1 = partial(
+        jax.scipy.stats.multivariate_normal.logpdf, mean=mean_1, cov=cov
+    )
+    likelihood.logpdf_2 = partial(
+        jax.scipy.stats.multivariate_normal.logpdf, mean=mean_2, cov=cov
+    )
     return likelihood
 
 
@@ -173,9 +179,21 @@ for tpl in [
     (Likelihood, likelihood_flatten, likelihood_unflatten),
     (GaussianLikelihood, gaussian_likelihood_flatten, gaussian_likelihood_unflatten),
     (ZeroLikelihood, zero_likelihood_flatten, zero_likelihood_unflatten),
-    (Analytical1DLikelihood, analytical_1d_likelihood_flatten, analytical_1d_likelihood_unflatten),
-    (PoissonLikelihood, analytical_1d_likelihood_flatten, analytical_1d_likelihood_unflatten),
-    (ExponentialLikelihood, analytical_1d_likelihood_flatten, analytical_1d_likelihood_unflatten),
+    (
+        Analytical1DLikelihood,
+        analytical_1d_likelihood_flatten,
+        analytical_1d_likelihood_unflatten,
+    ),
+    (
+        PoissonLikelihood,
+        analytical_1d_likelihood_flatten,
+        analytical_1d_likelihood_unflatten,
+    ),
+    (
+        ExponentialLikelihood,
+        analytical_1d_likelihood_flatten,
+        analytical_1d_likelihood_unflatten,
+    ),
     (StudentTLikelihood, student_t_likelihood_flatten, student_t_likelihood_unflatten),
     (Multinomial, multinomial_flatten, multinomial_unflatten),
     (JointLikelihood, joint_likelihood_flatten, joint_likelihood_unflatten),

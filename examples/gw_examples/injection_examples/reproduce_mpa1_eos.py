@@ -2,6 +2,7 @@
 """
 A script to demonstrate how to create and plot EoS's with Bilby
 """
+
 from bilby.gw import eos
 
 # In this script we're going to use Bilby to plot the MPA1 EoS from tabulated data

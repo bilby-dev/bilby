@@ -37,7 +37,7 @@ class TestGWUtils(unittest.TestCase):
         self.assertEqual(aac.get_namespace(asd), self.xp)
         asd = np.asarray(asd)
         freq_data = np.asarray(freq_data)
-        self.assertTrue(np.all(asd == freq_data * 2 * df ** 0.5))
+        self.assertTrue(np.all(asd == freq_data * 2 * df**0.5))
 
     def test_psd_from_freq_series(self):
         freq_data = self.xp.asarray([1, 2, 3])
@@ -46,7 +46,7 @@ class TestGWUtils(unittest.TestCase):
         self.assertEqual(aac.get_namespace(psd), self.xp)
         psd = np.asarray(psd)
         freq_data = np.asarray(freq_data)
-        self.assertTrue(np.all(psd == (freq_data * 2 * df ** 0.5) ** 2))
+        self.assertTrue(np.all(psd == (freq_data * 2 * df**0.5) ** 2))
 
     def test_inner_product(self):
         aa = self.xp.asarray([1, 2, 3])
@@ -112,6 +112,7 @@ class TestGWUtils(unittest.TestCase):
     @pytest.mark.skip(reason="GWOSC unstable: avoiding this test")
     def test_get_event_time(self):
         from urllib3.exceptions import NewConnectionError
+
         events = [
             "GW150914",
             "GW170104",
@@ -283,13 +284,22 @@ class TestGWUtils(unittest.TestCase):
         Test that the conversion between geocentric and ellipsoid coordinates is consistent
         for each quadrant, above and below the ellipsoid.
         """
-        for lat_sign, long_sign, height_sign in itertools.product([-1, 1], [-1, 1], [-1, 1]):
-            latitude_true = lat_sign * self.xp.deg2rad(self.xp.asarray(46 + 27. / 60 + 18.528 / 3600))
-            longitude_true = long_sign * self.xp.deg2rad(self.xp.asarray(119 + 24. / 60 + 27.5657 / 3600))
+        for lat_sign, long_sign, height_sign in itertools.product(
+            [-1, 1], [-1, 1], [-1, 1]
+        ):
+            latitude_true = lat_sign * self.xp.deg2rad(
+                self.xp.asarray(46 + 27.0 / 60 + 18.528 / 3600)
+            )
+            longitude_true = long_sign * self.xp.deg2rad(
+                self.xp.asarray(119 + 24.0 / 60 + 27.5657 / 3600)
+            )
             elevation_true = height_sign * 142.554
             vertex = gwutils.get_vertex_position_geocentric(
-                self.xp.asarray([latitude_true, longitude_true, elevation_true]))
-            latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(vertex)
+                self.xp.asarray([latitude_true, longitude_true, elevation_true])
+            )
+            latitude, longitude, elevation = gwutils.get_vertex_position_ellipsoid(
+                vertex
+            )
             self.assertAlmostEqual(float(latitude), float(latitude_true), 5)
             self.assertAlmostEqual(float(longitude), float(longitude_true), 5)
             self.assertAlmostEqual(float(elevation), float(elevation_true), 5)
@@ -318,7 +328,6 @@ class TestGWUtils(unittest.TestCase):
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestSkyFrameConversion(unittest.TestCase):
-
     def setUp(self) -> None:
         self.priors = bilby.core.prior.PriorDict()
         self.priors["ra"] = bilby.core.prior.Uniform(0, 2 * np.pi)
@@ -365,6 +374,7 @@ class TestSkyFrameConversion(unittest.TestCase):
 @pytest.mark.array_backend
 def test_ln_i0_mathces_scipy(xp):
     from scipy.special import i0
+
     values = xp.linspace(-10, 10, 101)
     assert max(abs(gwutils.ln_i0(values) - xp.log(i0(values)))) < 1e-10
 
