@@ -48,7 +48,9 @@ def antenna_response(detector_tensor, ra, dec, time, psi, mode):
         The antenna response (scalar or array depending on input).
     """
     xp = array_module(detector_tensor)
-    polarization_tensor = get_polarization_tensor(*promote_to_array((ra, dec, time, psi), xp), mode)
+    polarization_tensor = get_polarization_tensor(
+        *promote_to_array((ra, dec, time, psi), xp), mode
+    )
     return three_by_three_matrix_contraction(detector_tensor, polarization_tensor)
 
 
@@ -157,14 +159,16 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
             -xp.sin(theta) * xp.ones_like(phi),
         ]
     )
-    v = xp.asarray([
-        -xp.sin(phi), xp.cos(phi), xp.zeros_like(phi)
-    ]) * xp.ones_like(theta)
-    omega = xp.asarray([
-        xp.sin(xp.pi - theta) * xp.cos(xp.pi + phi),
-        xp.sin(xp.pi - theta) * xp.sin(xp.pi + phi),
-        xp.cos(xp.pi - theta) * xp.ones_like(phi),
-    ])
+    v = xp.asarray([-xp.sin(phi), xp.cos(phi), xp.zeros_like(phi)]) * xp.ones_like(
+        theta
+    )
+    omega = xp.asarray(
+        [
+            xp.sin(xp.pi - theta) * xp.cos(xp.pi + phi),
+            xp.sin(xp.pi - theta) * xp.sin(xp.pi + phi),
+            xp.cos(xp.pi - theta) * xp.ones_like(phi),
+        ]
+    )
     m = -u * xp.sin(psi) - v * xp.cos(psi)
     n = -u * xp.cos(psi) + v * xp.sin(psi)
     if xp.__name__ == "mlx.core":
@@ -459,20 +463,24 @@ def transform_precessing_spins(
         return stack([x_new, vec[1], z_new])
 
     # Starting frame: LNhat is along the z-axis
-    ln_hat = stack([theta_jn * 0, theta_jn * 0, theta_jn ** 0])
+    ln_hat = stack([theta_jn * 0, theta_jn * 0, theta_jn**0])
 
     # Initial spin unit vectors
-    s1_hat = stack([
-        xp.sin(tilt_1) * xp.cos(phase),
-        xp.sin(tilt_1) * xp.sin(phase),
-        xp.cos(tilt_1),
-    ])
+    s1_hat = stack(
+        [
+            xp.sin(tilt_1) * xp.cos(phase),
+            xp.sin(tilt_1) * xp.sin(phase),
+            xp.cos(tilt_1),
+        ]
+    )
 
-    s2_hat = stack([
-        xp.sin(tilt_2) * xp.cos(phi_12 + phase),
-        xp.sin(tilt_2) * xp.sin(phi_12 + phase),
-        xp.cos(tilt_2),
-    ])
+    s2_hat = stack(
+        [
+            xp.sin(tilt_2) * xp.cos(phi_12 + phase),
+            xp.sin(tilt_2) * xp.sin(phi_12 + phase),
+            xp.cos(tilt_2),
+        ]
+    )
 
     # Compute physical parameters
     m_total = mass_1 + mass_2
@@ -496,7 +504,7 @@ def transform_precessing_spins(
     j = l_vec + s1 + s2
 
     # Normalize J to get Jhat and find its angles
-    j_norm = xp.sqrt(xp.sum(j ** 2, axis=0))
+    j_norm = xp.sqrt(xp.sum(j**2, axis=0))
     j_hat = j / j_norm
 
     theta_0 = xp.arccos(j_hat[2])

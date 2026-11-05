@@ -167,6 +167,7 @@ class TestMarginalizations(unittest.TestCase):
     For time, this is strongly dependent on the specific time grid used.
     The `time_jitter` parameter makes this a weaker dependence during sampling.
     """
+
     _parameters = product(
         ["regular", "roq", "relbin", "multiband"],
         ["luminosity_distance", "geocent_time", "phase"],
@@ -219,7 +220,7 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
         self.interferometers.inject_signal(
             parameters=self.parameters, waveform_generator=self.waveform_generator
@@ -228,7 +229,7 @@ class TestMarginalizations(unittest.TestCase):
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors["geocent_time"] = bilby.prior.Uniform(
             minimum=self.parameters["geocent_time"] - 0.1,
-            maximum=self.parameters["geocent_time"] + 0.1
+            maximum=self.parameters["geocent_time"] + 0.1,
         )
 
         self.relbin_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
@@ -240,7 +241,7 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
 
         self.multiband_waveform_generator = bilby.gw.WaveformGenerator(
@@ -251,7 +252,7 @@ class TestMarginalizations(unittest.TestCase):
             waveform_arguments=dict(
                 reference_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
-            )
+            ),
         )
 
     @property
@@ -287,8 +288,10 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
                 frequency_nodes_linear=np.load(f"{self.roq_dir}/fnodes_linear.npy"),
-                frequency_nodes_quadratic=np.load(f"{self.roq_dir}/fnodes_quadratic.npy"),
-            )
+                frequency_nodes_quadratic=np.load(
+                    f"{self.roq_dir}/fnodes_quadratic.npy"
+                ),
+            ),
         )
 
     def tearDown(self):
@@ -302,11 +305,22 @@ class TestMarginalizations(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """remove lookup tables so that they are not used accidentally in subsequent tests"""
-        for filename in [cls.lookup_phase, cls.lookup_no_phase, cls.path_to_roq_weights]:
+        for filename in [
+            cls.lookup_phase,
+            cls.lookup_no_phase,
+            cls.path_to_roq_weights,
+        ]:
             if os.path.exists(filename):
                 os.remove(filename)
 
-    def likelihood_kwargs(self, kind, time_marginalization, phase_marginalization, distance_marginalization, priors):
+    def likelihood_kwargs(
+        self,
+        kind,
+        time_marginalization,
+        phase_marginalization,
+        distance_marginalization,
+        priors,
+    ):
         if priors is None:
             priors = deepcopy(self.priors)
         if distance_marginalization and phase_marginalization:
@@ -325,11 +339,13 @@ class TestMarginalizations(unittest.TestCase):
             priors=priors,
         )
         if kind == "roq":
-            kwargs.update(dict(
-                linear_matrix=self.roq_linear_matrix_file,
-                quadratic_matrix=self.roq_quadratic_matrix_file,
-                waveform_generator=self.roq_waveform_generator,
-            ))
+            kwargs.update(
+                dict(
+                    linear_matrix=self.roq_linear_matrix_file,
+                    quadratic_matrix=self.roq_quadratic_matrix_file,
+                    waveform_generator=self.roq_waveform_generator,
+                )
+            )
             if os.path.exists(self.__class__.path_to_roq_weights):
                 kwargs["weights"] = self.__class__.path_to_roq_weights
         elif kind == "relbin":
@@ -338,9 +354,8 @@ class TestMarginalizations(unittest.TestCase):
         elif kind == "multiband":
             kwargs["waveform_generator"] = self.multiband_waveform_generator
             kwargs["reference_chirp_mass"] = (
-                (self.parameters["mass_1"] * self.parameters["mass_2"])**0.6 /
-                (self.parameters["mass_1"] + self.parameters["mass_2"])**0.2
-            )
+                self.parameters["mass_1"] * self.parameters["mass_2"]
+            ) ** 0.6 / (self.parameters["mass_1"] + self.parameters["mass_2"]) ** 0.2
         return kwargs
 
     def get_likelihood(
@@ -349,10 +364,14 @@ class TestMarginalizations(unittest.TestCase):
         time_marginalization=False,
         phase_marginalization=False,
         distance_marginalization=False,
-        priors=None
+        priors=None,
     ):
         kwargs = self.likelihood_kwargs(
-            kind, time_marginalization, phase_marginalization, distance_marginalization, priors
+            kind,
+            time_marginalization,
+            phase_marginalization,
+            distance_marginalization,
+            priors,
         )
         if kind == "regular":
             cls_ = bilby.gw.likelihood.GravitationalWaveTransient
@@ -403,11 +422,11 @@ class TestMarginalizations(unittest.TestCase):
     @parameterized.expand(
         _parameters,
         name_func=lambda func, num, param: (
-            f"{func.__name__}_{num}__{param.args[0]}_{param.args[1]}_" + "_".join([
-                ["D", "T", "P"][ii] for ii, val
-                in enumerate(param.args[-3:]) if val
-            ])
-        )
+            f"{func.__name__}_{num}__{param.args[0]}_{param.args[1]}_"
+            + "_".join(
+                [["D", "T", "P"][ii] for ii, val in enumerate(param.args[-3:]) if val]
+            )
+        ),
     )
     def test_marginalisation(self, kind, key, distance, time, phase):
         if all([distance, time, phase]):
@@ -449,13 +468,16 @@ class TestMarginalizations(unittest.TestCase):
         )
 
     @parameterized.expand(
-        itertools.product(["regular", "roq", "relbin", "multiband"], *itertools.repeat([True, False], 3)),
+        itertools.product(
+            ["regular", "roq", "relbin", "multiband"],
+            *itertools.repeat([True, False], 3),
+        ),
         name_func=lambda func, num, param: (
-            f"{func.__name__}_{num}__{param.args[0]}_" + "_".join([
-                ["D", "P", "T"][ii] for ii, val
-                in enumerate(param.args[1:]) if val
-            ])
-        )
+            f"{func.__name__}_{num}__{param.args[0]}_"
+            + "_".join(
+                [["D", "P", "T"][ii] for ii, val in enumerate(param.args[1:]) if val]
+            )
+        ),
     )
     def test_marginalization_reconstruction(self, kind, distance, phase, time):
         marginalizations = dict(
@@ -476,11 +498,12 @@ class TestMarginalizations(unittest.TestCase):
         )
         output = like.generate_posterior_sample_from_marginalized_likelihood(params)
         for key in marginalizations:
-            self.assertFalse(marginalizations[key] and reference_values[key] == output[key])
+            self.assertFalse(
+                marginalizations[key] and reference_values[key] == output[key]
+            )
 
 
 class CalibrationMarginalization(unittest.TestCase):
-
     def setUp(self):
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
         self.ifos.set_strain_data_from_power_spectral_densities(
@@ -492,7 +515,9 @@ class CalibrationMarginalization(unittest.TestCase):
             maximum_frequency=512,
             n_points=5,
         )
-        self.ifos[1].calibration_model = calibration.Precomputed.constant_uncertainty_spline(
+        self.ifos[
+            1
+        ].calibration_model = calibration.Precomputed.constant_uncertainty_spline(
             amplitude_sigma=0.1,
             phase_sigma=0.1,
             frequency_array=self.ifos[1].frequency_array[self.ifos[1].frequency_mask],
@@ -502,14 +527,16 @@ class CalibrationMarginalization(unittest.TestCase):
         )
         self.priors = bilby.gw.prior.BBHPriorDict()
         self.priors["geocent_time"] = bilby.core.prior.Uniform(0, 4)
-        self.priors.update(bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
-            amplitude_sigma=0.1,
-            phase_sigma=0.1,
-            minimum_frequency=20,
-            maximum_frequency=512,
-            n_nodes=5,
-            label="H1",
-        ))
+        self.priors.update(
+            bilby.gw.prior.CalibrationPriorDict.constant_uncertainty_spline(
+                amplitude_sigma=0.1,
+                phase_sigma=0.1,
+                minimum_frequency=20,
+                maximum_frequency=512,
+                n_nodes=5,
+                label="H1",
+            )
+        )
         self.wfg = bilby.gw.waveform_generator.WaveformGenerator(
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
             parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,

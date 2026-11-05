@@ -147,7 +147,9 @@ class TestConditionalPrior(unittest.TestCase):
 
     def test_cdf_calls_update_conditions(self):
         self.prior = bilby.core.prior.ConditionalUniform(
-            condition_func=self.condition_func, minimum=self.minimum, maximum=self.maximum
+            condition_func=self.condition_func,
+            minimum=self.minimum,
+            maximum=self.maximum,
         )
         with mock.patch.object(self.prior, "update_conditions") as m:
             self.prior.cdf(
@@ -218,7 +220,9 @@ class TestConditionalPriorDict(unittest.TestCase):
             var_2=self.xp.asarray(0.5),
             var_3=self.xp.asarray(0.4),
         )
-        self.test_value = 1 / np.prod([self.test_sample[f"var_{ii}"] for ii in range(3)])
+        self.test_value = 1 / np.prod(
+            [self.test_sample[f"var_{ii}"] for ii in range(3)]
+        )
         for key, value in dict(
             var_0=self.prior_0,
             var_1=self.prior_1,
@@ -279,7 +283,10 @@ class TestConditionalPriorDict(unittest.TestCase):
             self.conditional_priors.prob(sample=self.test_sample, xp=self.xp)
 
     def test_ln_prob(self):
-        self.assertEqual(np.log(self.test_value), self.conditional_priors.ln_prob(sample=self.test_sample))
+        self.assertEqual(
+            np.log(self.test_value),
+            self.conditional_priors.ln_prob(sample=self.test_sample),
+        )
 
     def test_ln_prob_illegal_conditions(self):
         del self.conditional_priors["var_0"]
@@ -317,7 +324,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         priors["b"] = bilby.core.prior.ConditionalPowerLaw(
             condition_func=condition_func, minimum=1, maximum=2, alpha=-2
         )
-        samples = (priors.sample(2))
+        samples = priors.sample(2)
         for key in priors:
             # verify the least recently sampled includes works for scalar
             # only condition functions
@@ -352,7 +359,7 @@ class TestConditionalPriorDict(unittest.TestCase):
         # set multivariate Gaussian distribution
         names = ["mvgvar_0", "mvgvar_1"]
         mu = [[0.79, -0.83]]
-        cov = [[[0.03, 0.], [0., 0.04]]]
+        cov = [[[0.03, 0.0], [0.0, 0.04]]]
         mvg = bilby.core.prior.MultivariateGaussianDist(names, mus=mu, covs=cov)
 
         priordict = bilby.core.prior.ConditionalPriorDict(
@@ -390,9 +397,9 @@ class TestConditionalPriorDict(unittest.TestCase):
         sample = self.conditional_priors.sample()
         np.testing.assert_array_equal(
             self.conditional_priors.rescale(
-                sample.keys(),
-                self.conditional_priors.cdf(sample=sample).values()
-            ), np.array(list(sample.values()))
+                sample.keys(), self.conditional_priors.cdf(sample=sample).values()
+            ),
+            np.array(list(sample.values())),
         )
 
     def test_rescale_illegal_conditions(self):
@@ -467,7 +474,6 @@ class TestConditionalPriorDict(unittest.TestCase):
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestDirichletPrior(unittest.TestCase):
-
     def setUp(self):
         self.priors = bilby.core.prior.DirichletPriorDict(5)
 

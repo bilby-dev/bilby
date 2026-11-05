@@ -3,6 +3,7 @@
 This example demonstrates how to simulate some data, add an injected signal
 and plot the data.
 """
+
 from bilby.core.utils.random import seed
 from bilby.gw.detector import get_empty_interferometer
 from bilby.gw.source import lal_binary_black_hole

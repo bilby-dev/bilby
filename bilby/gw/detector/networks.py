@@ -145,7 +145,7 @@ class InterferometerList(list):
         waveform_generator=None,
         raise_error=True,
     ):
-        """ Inject a signal into noise in each of the three detectors.
+        """Inject a signal into noise in each of the three detectors.
 
         Parameters
         ==========
@@ -218,8 +218,13 @@ class InterferometerList(list):
             interferometer.plot_data(signal=signal, outdir=outdir, label=label)
 
     def plot_time_domain_data(
-        self, outdir=".", label=None, bandpass_frequencies=(50, 250),
-        notches=None, start_end=None, t0=None
+        self,
+        outdir=".",
+        label=None,
+        bandpass_frequencies=(50, 250),
+        notches=None,
+        start_end=None,
+        t0=None,
     ):
         """Plots the strain data in the time domain for each of the
         interfeormeters
@@ -251,7 +256,7 @@ class InterferometerList(list):
                 bandpass_frequencies=bandpass_frequencies,
                 notches=notches,
                 start_end=start_end,
-                t0=t0
+                t0=t0,
             )
 
     @property
@@ -382,7 +387,6 @@ class TriangularInterferometer(InterferometerList):
             maximum_frequency = [maximum_frequency] * 3
 
         for ii in range(3):
-
             self.append(
                 Interferometer(
                     "{}{}".format(name, ii + 1),
@@ -400,8 +404,15 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            latitude, longitude, elevation, xarm_azimuth, \
-                yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
+            (
+                latitude,
+                longitude,
+                elevation,
+                xarm_azimuth,
+                yarm_azimuth,
+                xarm_tilt,
+                yarm_tilt,
+            ) = self._get_next_vertex_parameters(ii)
 
     @xp_wrap
     def _get_next_vertex_parameters(self, current_index, *, xp):
@@ -441,10 +452,18 @@ class TriangularInterferometer(InterferometerList):
         unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
         unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
 
-        vertex_geocentric = get_vertex_position_geocentric(xp.asarray([current_ifo.latitude_radians,
-                                                                       current_ifo.longitude_radians,
-                                                                       current_ifo.elevation]))
-        next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
+        vertex_geocentric = get_vertex_position_geocentric(
+            xp.asarray(
+                [
+                    current_ifo.latitude_radians,
+                    current_ifo.longitude_radians,
+                    current_ifo.elevation,
+                ]
+            )
+        )
+        next_vertex_geocentric = (
+            vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
+        )
         next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
         next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
 
@@ -455,29 +474,48 @@ class TriangularInterferometer(InterferometerList):
         next_unit_vector_x = rotation.apply(unit_vector_x)
         next_unit_vector_y = rotation.apply(unit_vector_y)
 
-        next_local_normal_vector = xp.asarray([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
-                                               xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
-                                               xp.sin(next_latitude_rad)])
-        next_local_north_vector = xp.asarray([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
-                                              -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
-                                              xp.cos(next_latitude_rad)])
-        next_local_east_vector = xp.asarray([-xp.sin(next_longitude_rad),
-                                             xp.cos(next_longitude_rad), 0])
+        next_local_normal_vector = xp.asarray(
+            [
+                xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
+                xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
+                xp.sin(next_latitude_rad),
+            ]
+        )
+        next_local_north_vector = xp.asarray(
+            [
+                -xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
+                -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
+                xp.cos(next_latitude_rad),
+            ]
+        )
+        next_local_east_vector = xp.asarray(
+            [-xp.sin(next_longitude_rad), xp.cos(next_longitude_rad), 0]
+        )
 
-        next_xarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_x, next_local_normal_vector))
-        next_yarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_y, next_local_normal_vector))
-        next_xarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_x, next_local_north_vector),
-                                           xp.dot(next_unit_vector_x, next_local_east_vector))
-        next_yarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_y, next_local_north_vector),
-                                           xp.dot(next_unit_vector_y, next_local_east_vector))
+        next_xarm_tilt_rad = xp.arcsin(
+            xp.dot(next_unit_vector_x, next_local_normal_vector)
+        )
+        next_yarm_tilt_rad = xp.arcsin(
+            xp.dot(next_unit_vector_y, next_local_normal_vector)
+        )
+        next_xarm_azimuth_rad = xp.arctan2(
+            xp.dot(next_unit_vector_x, next_local_north_vector),
+            xp.dot(next_unit_vector_x, next_local_east_vector),
+        )
+        next_yarm_azimuth_rad = xp.arctan2(
+            xp.dot(next_unit_vector_y, next_local_north_vector),
+            xp.dot(next_unit_vector_y, next_local_east_vector),
+        )
 
-        return (xp.rad2deg(next_latitude_rad),
-                xp.rad2deg(next_longitude_rad),
-                next_elevation,
-                xp.rad2deg(next_xarm_azimuth_rad),
-                xp.rad2deg(next_yarm_azimuth_rad),
-                next_xarm_tilt_rad,
-                next_yarm_tilt_rad)
+        return (
+            xp.rad2deg(next_latitude_rad),
+            xp.rad2deg(next_longitude_rad),
+            next_elevation,
+            xp.rad2deg(next_xarm_azimuth_rad),
+            xp.rad2deg(next_yarm_azimuth_rad),
+            next_xarm_tilt_rad,
+            next_yarm_tilt_rad,
+        )
 
 
 _LEGACY_DETECTOR_NAMES = {

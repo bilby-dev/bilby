@@ -10,7 +10,6 @@ from ...compat.utils import xp_wrap
 
 
 class Interped(Prior):
-
     _leaves = [
         "xx",
         "_yy",
@@ -25,8 +24,17 @@ class Interped(Prior):
         "_all_interpolated",
     ]
 
-    def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(
+        self,
+        xx,
+        yy,
+        minimum=np.nan,
+        maximum=np.nan,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary=None,
+    ):
         """Creates an interpolated prior function from arrays of xx and yy=p(xx)
 
         Parameters
@@ -71,8 +79,14 @@ class Interped(Prior):
         self._all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         minimum = float(np.nanmax(np.array((min(xx), minimum))))
         maximum = float(np.nanmin(np.array((max(xx), maximum))))
-        super(Interped, self).__init__(name=name, latex_label=latex_label, unit=unit,
-                                       minimum=minimum, maximum=maximum, boundary=boundary)
+        super(Interped, self).__init__(
+            name=name,
+            latex_label=latex_label,
+            unit=unit,
+            minimum=minimum,
+            maximum=maximum,
+            boundary=boundary,
+        )
         self._update_instance()
 
     def __eq__(self, other):
@@ -127,9 +141,11 @@ class Interped(Prior):
     @minimum.setter
     def minimum(self, minimum):
         if minimum < self.min_limit:
-            raise ValueError('Minimum cannot be set below {}.'.format(round(self.min_limit, 2)))
+            raise ValueError(
+                "Minimum cannot be set below {}.".format(round(self.min_limit, 2))
+            )
         self._minimum = minimum
-        if '_maximum' in self.__dict__ and self._maximum < np.inf:
+        if "_maximum" in self.__dict__ and self._maximum < np.inf:
             self._update_instance()
 
     @property
@@ -150,9 +166,11 @@ class Interped(Prior):
     @maximum.setter
     def maximum(self, maximum):
         if maximum > self.max_limit:
-            raise ValueError('Maximum cannot be set above {}.'.format(round(self.max_limit, 2)))
+            raise ValueError(
+                "Maximum cannot be set above {}.".format(round(self.max_limit, 2))
+            )
         self._maximum = maximum
-        if '_minimum' in self.__dict__ and self._minimum < np.inf:
+        if "_minimum" in self.__dict__ and self._minimum < np.inf:
             self._update_instance()
 
     @property
@@ -171,7 +189,9 @@ class Interped(Prior):
     @yy.setter
     def yy(self, yy):
         self._yy = yy
-        self._all_interpolated = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
+        self._all_interpolated = interp1d(
+            x=self.xx, y=self._yy, bounds_error=False, fill_value=0
+        )
         self._update_instance()
 
     def _update_instance(self):
@@ -182,21 +202,37 @@ class Interped(Prior):
 
     def _initialize_attributes(self):
         from scipy.integrate import cumulative_trapezoid
+
         if trapezoid(self._yy, self.xx) != 1:
-            logger.debug('Supplied PDF for {} is not normalised, normalising.'.format(self.name))
+            logger.debug(
+                "Supplied PDF for {} is not normalised, normalising.".format(self.name)
+            )
         self._yy /= trapezoid(self._yy, self.xx)
         self.YY = cumulative_trapezoid(self._yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
         self.YY = xpx.at(self.YY, -1).set(1)
-        self.probability_density = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
-        self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=(0, 1))
-        self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
+        self.probability_density = interp1d(
+            x=self.xx, y=self._yy, bounds_error=False, fill_value=0
+        )
+        self.cumulative_distribution = interp1d(
+            x=self.xx, y=self.YY, bounds_error=False, fill_value=(0, 1)
+        )
+        self.inverse_cumulative_distribution = interp1d(
+            x=self.YY, y=self.xx, bounds_error=True
+        )
 
 
 class FromFile(Interped):
-
-    def __init__(self, file_name, minimum=None, maximum=None, name=None,
-                 latex_label=None, unit=None, boundary=None):
+    def __init__(
+        self,
+        file_name,
+        minimum=None,
+        maximum=None,
+        name=None,
+        latex_label=None,
+        unit=None,
+        boundary=None,
+    ):
         """Creates an interpolated prior function from arrays of xx and yy=p(xx) extracted from a file
 
         Parameters
@@ -220,9 +256,16 @@ class FromFile(Interped):
         try:
             self.file_name = file_name
             xx, yy = np.genfromtxt(self.file_name).T
-            super(FromFile, self).__init__(xx=xx, yy=yy, minimum=minimum,
-                                           maximum=maximum, name=name, latex_label=latex_label,
-                                           unit=unit, boundary=boundary)
+            super(FromFile, self).__init__(
+                xx=xx,
+                yy=yy,
+                minimum=minimum,
+                maximum=maximum,
+                name=name,
+                latex_label=latex_label,
+                unit=unit,
+                boundary=boundary,
+            )
         except IOError:
             logger.warning("Can't load {}.".format(self.file_name))
             logger.warning("Format should be:")

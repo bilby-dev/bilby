@@ -42,19 +42,21 @@ class TestTransformPrecessingSpins:
             )
             assert aac.get_namespace(*bilby_transformed) == self.xp
             bilby_transformed = np.asarray(bilby_transformed)
-            lalsim_transformed = np.asarray(SimInspiralTransformPrecessingNewInitialConditions(
-                float(point["theta_jn"]),
-                float(point["phi_jl"]),
-                float(point["tilt_1"]),
-                float(point["tilt_2"]),
-                float(point["phi_12"]),
-                float(point["a_1"]),
-                float(point["a_2"]),
-                float(point["mass_1"] * lal.MSUN_SI),
-                float(point["mass_2"] * lal.MSUN_SI),
-                float(point["reference_frequency"]),
-                float(point["phase"]),
-            ))
+            lalsim_transformed = np.asarray(
+                SimInspiralTransformPrecessingNewInitialConditions(
+                    float(point["theta_jn"]),
+                    float(point["phi_jl"]),
+                    float(point["tilt_1"]),
+                    float(point["tilt_2"]),
+                    float(point["phi_12"]),
+                    float(point["a_1"]),
+                    float(point["a_2"]),
+                    float(point["mass_1"] * lal.MSUN_SI),
+                    float(point["mass_2"] * lal.MSUN_SI),
+                    float(point["reference_frequency"]),
+                    float(point["phase"]),
+                )
+            )
             # the different array backends have some precision loss
             np.testing.assert_allclose(bilby_transformed, lalsim_transformed, atol=1e-5)
 
@@ -94,19 +96,23 @@ class TestTransformPrecessingSpins:
         lalsim_transformed = list()
         for ii in range(len(points["theta_jn"])):
             point = {key: points[key][ii] for key in points.keys()}
-            lalsim_transformed.append(np.asarray(SimInspiralTransformPrecessingNewInitialConditions(
-                float(point["theta_jn"]),
-                float(point["phi_jl"]),
-                float(point["tilt_1"]),
-                float(point["tilt_2"]),
-                float(point["phi_12"]),
-                float(point["a_1"]),
-                float(point["a_2"]),
-                float(point["mass_1"] * lal.MSUN_SI),
-                float(point["mass_2"] * lal.MSUN_SI),
-                float(point["reference_frequency"]),
-                float(point["phase"]),
-            )))
+            lalsim_transformed.append(
+                np.asarray(
+                    SimInspiralTransformPrecessingNewInitialConditions(
+                        float(point["theta_jn"]),
+                        float(point["phi_jl"]),
+                        float(point["tilt_1"]),
+                        float(point["tilt_2"]),
+                        float(point["phi_12"]),
+                        float(point["a_1"]),
+                        float(point["a_2"]),
+                        float(point["mass_1"] * lal.MSUN_SI),
+                        float(point["mass_2"] * lal.MSUN_SI),
+                        float(point["reference_frequency"]),
+                        float(point["phase"]),
+                    )
+                )
+            )
         lalsim_transformed = np.asarray(lalsim_transformed).T
         # the different array backends have some precision loss
         np.testing.assert_allclose(bilby_transformed, lalsim_transformed, atol=1e-5)

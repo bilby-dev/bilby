@@ -16,7 +16,6 @@ class MVNSubclass(bilby.core.prior.MultivariateNormalDist):
 
 
 class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
-
     def __init__(self, names, bounds=None):
         super().__init__(names=names, bounds=bounds)
 
@@ -27,9 +26,7 @@ setattr(bilby.core.prior, "FakeJointPriorDist", FakeJointPriorDist)
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestPriorDict(unittest.TestCase):
-
     def setUp(self):
-
         self.first_prior = bilby.core.prior.Uniform(
             name="a", minimum=0, maximum=1, unit="kg", boundary=None
         )
@@ -109,12 +106,8 @@ class TestPriorDict(unittest.TestCase):
                 latex_label="$q$",
                 unit=None,
             ),
-            a_1=bilby.core.prior.Uniform(
-                name="a_1", minimum=0, maximum=0.99
-            ),
-            a_2=bilby.core.prior.Uniform(
-                name="a_2", minimum=0, maximum=0.99
-            ),
+            a_1=bilby.core.prior.Uniform(name="a_1", minimum=0, maximum=0.99),
+            a_2=bilby.core.prior.Uniform(name="a_2", minimum=0, maximum=0.99),
             tilt_1=bilby.core.prior.Sine(name="tilt_1"),
             tilt_2=bilby.core.prior.Sine(name="tilt_2"),
             phi_12=bilby.core.prior.Uniform(
@@ -145,17 +138,36 @@ class TestPriorDict(unittest.TestCase):
         self.assertDictEqual(expected, self.prior_set_from_file)
 
         fake_dist = FakeJointPriorDist(names=["testAfake", "testBfake"])
-        testAfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testAfake", unit="unit")
-        testBfake = bilby.core.prior.JointPrior(dist=fake_dist, name="testBfake", unit="unit")
-        base_dist = bilby.core.prior.BaseJointPriorDist(names=["testAbase", "testBbase"])
-        testAbase = bilby.core.prior.JointPrior(dist=base_dist, name="testAbase", unit="unit")
-        testBbase = bilby.core.prior.JointPrior(dist=base_dist, name="testBbase", unit="unit")
-        expected_joint = dict(testAfake=testAfake, testBfake=testBfake, testAbase=testAbase, testBbase=testBbase)
+        testAfake = bilby.core.prior.JointPrior(
+            dist=fake_dist, name="testAfake", unit="unit"
+        )
+        testBfake = bilby.core.prior.JointPrior(
+            dist=fake_dist, name="testBfake", unit="unit"
+        )
+        base_dist = bilby.core.prior.BaseJointPriorDist(
+            names=["testAbase", "testBbase"]
+        )
+        testAbase = bilby.core.prior.JointPrior(
+            dist=base_dist, name="testAbase", unit="unit"
+        )
+        testBbase = bilby.core.prior.JointPrior(
+            dist=base_dist, name="testBbase", unit="unit"
+        )
+        expected_joint = dict(
+            testAfake=testAfake,
+            testBfake=testBfake,
+            testAbase=testAbase,
+            testBbase=testBbase,
+        )
         self.assertDictEqual(expected_joint, self.joint_prior_from_file)
-        self.assertTrue(id(self.joint_prior_from_file["testAfake"].dist)
-                        == id(self.joint_prior_from_file["testBfake"].dist))
-        self.assertTrue(id(self.joint_prior_from_file["testAbase"].dist)
-                        == id(self.joint_prior_from_file["testBbase"].dist))
+        self.assertTrue(
+            id(self.joint_prior_from_file["testAfake"].dist)
+            == id(self.joint_prior_from_file["testBfake"].dist)
+        )
+        self.assertTrue(
+            id(self.joint_prior_from_file["testAbase"].dist)
+            == id(self.joint_prior_from_file["testBbase"].dist)
+        )
 
     def test_to_file(self):
         """
@@ -231,10 +243,14 @@ class TestPriorDict(unittest.TestCase):
                     unit=None,
                 ),
                 a_1=bilby.core.prior.Uniform(
-                    name="a_1", minimum=0, maximum=0.99,
+                    name="a_1",
+                    minimum=0,
+                    maximum=0.99,
                 ),
                 a_2=bilby.core.prior.Uniform(
-                    name="a_2", minimum=0, maximum=0.99,
+                    name="a_2",
+                    minimum=0,
+                    maximum=0.99,
                 ),
                 tilt_1=bilby.core.prior.Sine(name="tilt_1"),
                 tilt_2=bilby.core.prior.Sine(name="tilt_2"),
@@ -275,7 +291,8 @@ class TestPriorDict(unittest.TestCase):
     def test_sample_subset_correct_size(self):
         size = 7
         samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size,
+            keys=self.prior_set_from_dict.keys(),
+            size=size,
             random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
@@ -302,7 +319,6 @@ class TestPriorDict(unittest.TestCase):
         self.assertTrue(out.shape == (len(keys), size))
 
     def test_sample_subset_constrained(self):
-
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
             converted_parameters["delta_mass"] = (
@@ -366,7 +382,9 @@ class TestPriorDict(unittest.TestCase):
             self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=["mass", "speed"], random_state=self.rng
+        )
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
@@ -374,7 +392,9 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=["mass", "speed"], random_state=self.rng
+        )
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
@@ -405,10 +425,11 @@ class TestPriorDict(unittest.TestCase):
         """
         sample = self.prior_set_from_dict.sample(random_state=self.rng)
         original = self.xp.asarray(list(sample.values()))
-        new = self.xp.asarray(self.prior_set_from_dict.rescale(
-            sample.keys(),
-            self.prior_set_from_dict.cdf(sample=sample).values()
-        ))
+        new = self.xp.asarray(
+            self.prior_set_from_dict.rescale(
+                sample.keys(), self.prior_set_from_dict.cdf(sample=sample).values()
+            )
+        )
         self.assertLess(max(abs(original - new)), 1e-10)
         self.assertEqual(aac.get_namespace(new), self.xp)
 
@@ -496,7 +517,9 @@ class TestJsonIO(unittest.TestCase):
                 ),
                 pp=bilby.core.prior.HalfGaussian(name="test", unit="unit", sigma=1),
                 qq=bilby.core.prior.HalfNormal(name="test", unit="unit", sigma=1),
-                rr=bilby.core.prior.LogGaussian(name="test", unit="unit", mu=0, sigma=1),
+                rr=bilby.core.prior.LogGaussian(
+                    name="test", unit="unit", mu=0, sigma=1
+                ),
                 ss=bilby.core.prior.LogNormal(name="test", unit="unit", mu=0, sigma=1),
                 tt=bilby.core.prior.Exponential(name="test", unit="unit", mu=1),
                 uu=bilby.core.prior.StudentT(
@@ -554,7 +577,7 @@ class TestJsonIO(unittest.TestCase):
         )
 
     def test_read_write_to_json(self):
-        """ Interped prior is removed as there is numerical error in the recovered prior."""
+        """Interped prior is removed as there is numerical error in the recovered prior."""
         self.priors.to_json(outdir="prior_files", label="json_test")
         new_priors = bilby.core.prior.PriorDict.from_json(
             filename="prior_files/json_test_prior.json"
@@ -565,7 +588,9 @@ class TestJsonIO(unittest.TestCase):
         self.assertLess(max(abs(old_interped.xx - new_interped.xx)), 1e-15)
         self.assertLess(max(abs(old_interped.yy - new_interped.yy)), 1e-15)
         self.assertTrue(id(new_priors["testa"].dist) == id(new_priors["testb"].dist))
-        self.assertTrue(id(new_priors["testAfake"].dist) == id(new_priors["testBfake"].dist))
+        self.assertTrue(
+            id(new_priors["testAfake"].dist) == id(new_priors["testBfake"].dist)
+        )
 
 
 class TestLoadPrior(unittest.TestCase):
@@ -622,10 +647,13 @@ def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, val
     values = xp.asarray(values)
     expected = xp.where(values > 0, 0.0 if normalized else -np.log(2), -xp.inf)
     with patch.object(
-        positive_uniform_prior, "normalize_constraint_factor",
+        positive_uniform_prior,
+        "normalize_constraint_factor",
         wraps=positive_uniform_prior.normalize_constraint_factor,
     ) as normalization:
-        actual = positive_uniform_prior.ln_prob({"x": values}, axis=0, normalized=normalized)
+        actual = positive_uniform_prior.ln_prob(
+            {"x": values}, axis=0, normalized=normalized
+        )
         assert normalization.call_count == int(normalized)
     assert xp.asarray(actual).shape == values.shape
     assert xp.allclose(actual, expected)
@@ -663,7 +691,9 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
     @jax.jit
     def log_probability(ln_density):
         return positive_uniform_prior.check_ln_prob(
-            {"x": values}, ln_density, xp=xp,
+            {"x": values},
+            ln_density,
+            xp=xp,
         )
 
     ln_density = xp.full_like(values, -np.log(2))
@@ -683,7 +713,10 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 @pytest.mark.parametrize("values", [0.5, [-0.5, 0.5]])
 def test_check_ln_prob_torch_preserves_tensor(
-    positive_uniform_prior, dtype, device, values,
+    positive_uniform_prior,
+    dtype,
+    device,
+    values,
 ):
     torch = pytest.importorskip("torch")
     if device == "cuda" and not torch.cuda.is_available():
@@ -692,10 +725,14 @@ def test_check_ln_prob_torch_preserves_tensor(
     ln_density = torch.full_like(values, -np.log(2), requires_grad=True)
     xp = aac.get_namespace(ln_density)
     actual = positive_uniform_prior.check_ln_prob(
-        {"x": values}, ln_density, xp=xp,
+        {"x": values},
+        ln_density,
+        xp=xp,
     )
     expected = torch.where(
-        values > 0, torch.zeros_like(values), -torch.inf,
+        values > 0,
+        torch.zeros_like(values),
+        -torch.inf,
     )
     torch.testing.assert_close(actual, expected)
     assert actual.dtype == ln_density.dtype
@@ -774,11 +811,10 @@ class TestFillPrior(unittest.TestCase):
 
 
 class TestLoadPriorWithCosmologicalParameters(unittest.TestCase):
-
     def test_load(self):
         prior_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "prior_files/prior_with_cosmo_params.prior"
+            "prior_files/prior_with_cosmo_params.prior",
         )
         prior_dict = bilby.gw.prior.BBHPriorDict(filename=prior_file)
         cosmology = prior_dict["luminosity_distance"].cosmology

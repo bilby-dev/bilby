@@ -9,6 +9,7 @@ between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 
 We optionally use ripple waveforms and a JIT-compiled likelihood.
 """
+
 import os
 
 # Set OMP_NUM_THREADS to stop lalsimulation taking over my computer
