@@ -1,3 +1,7 @@
+"""
+Gravitational-wave specific functionality: detectors, waveforms, likelihoods, priors, and conversions.
+"""
+
 from . import (
     conversion,
     cosmology,

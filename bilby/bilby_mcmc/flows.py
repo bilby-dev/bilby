@@ -24,8 +24,8 @@ class NVPFlow(Flow):
 
     This implementation uses 1-dim checkerboard masking but doesn't use
     multi-scaling.
-    Reference:
-    > L. Dinh et al., Density estimation using Real NVP, ICLR 2017.
+
+    Reference: L. Dinh et al., Density estimation using Real NVP, ICLR 2017.
 
     This class has been modified from the example found at:
     https://github.com/bayesiains/nflows/blob/master/nflows/flows/realnvp.py
@@ -44,6 +44,31 @@ class NVPFlow(Flow):
         batch_norm_between_layers=False,
         random_permutation=True,
     ):
+        """
+        Parameters
+        ==========
+        features: int
+            The number of input dimensions.
+        hidden_features: int
+            The number of hidden features in each residual network.
+        num_layers: int
+            The number of coupling layers.
+        num_blocks_per_layer: int
+            The number of residual blocks in each coupling layer.
+        use_volume_preserving: bool
+            Whether to use additive (volume-preserving) rather than affine
+            coupling transforms.
+        activation: callable
+            The activation function for the residual networks.
+        dropout_probability: float
+            The dropout probability in the residual networks.
+        batch_norm_within_layers: bool
+            Whether to use batch normalization within the residual networks.
+        batch_norm_between_layers: bool
+            Whether to apply batch normalization between coupling layers.
+        random_permutation: bool
+            Whether to randomly permute the inputs between coupling layers.
+        """
         if use_volume_preserving:
             coupling_constructor = AdditiveCouplingTransform
         else:
@@ -83,7 +108,17 @@ class NVPFlow(Flow):
 
 
 class BasicFlow(Flow):
+    """A masked autoregressive flow with a single affine layer and a random
+    permutation, with a standard normal base distribution.
+    """
+
     def __init__(self, features):
+        """
+        Parameters
+        ==========
+        features: int
+            The number of input dimensions.
+        """
         transform = CompositeTransform(
             [
                 MaskedAffineAutoregressiveTransform(
