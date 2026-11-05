@@ -181,7 +181,7 @@ def main():
         parameters=injection_parameters,
         raise_error=False,
     )
-    ifos.set_array_backend(jnp)
+    ifos.array_backend = jnp
 
     # Initialise the likelihood by passing in the interferometer data (ifos) and
     # the waveform generator

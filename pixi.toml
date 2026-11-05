@@ -47,7 +47,7 @@ nestle-bilby = "*"
 zeus-bilby = "*"
 
 [feature.dynesty.pypi-dependencies]
-dynesty = {git = "https://github.com/joshspeagle/dynesty.git", branch = "master"}
+dynesty = { git = "https://github.com/joshspeagle/dynesty.git", branch = "master" }
 
 [feature.gw.dependencies]
 astropy = ">=5.0.0"
@@ -98,7 +98,7 @@ schwimmbad = "*"
 scikit-learn = "*"
 
 [feature.test.pypi-dependencies]
-bilby = {path = ".", editable = true}
+bilby = { path = ".", editable = true }
 
 [feature.torch.dependencies]
 pytorch = "*"

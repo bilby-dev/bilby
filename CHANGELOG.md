@@ -12,6 +12,23 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 ### Fixes
 * Corrected incorrect docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (closes #731)
 
+## [2.8.2]
+
+### Fixes
+
+* BUG: Make sure the ROQ likelihood switches basis consistently by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1120 and backported in https://github.com/bilby-dev/bilby/pull/1122
+
+## [2.8.1]
+
+### Fixes
+
+* BUG: Fix 0-dimensional array in priors by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/886 and backported https://github.com/bilby-dev/bilby/pull/1103
+* BUG: Fix typo in interferometer.py to_pickle method by @AlexandreGoettel in https://github.com/bilby-dev/bilby/pull/1081 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
+### Changes
+
+* MAINT: Relax tolerance for log noise evidence comparison by @mattpitkin in https://github.com/bilby-dev/bilby/pull/1087 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
 ## [2.8.0]
 
 This is our last planned minor version increase before Bilby version 3.
@@ -1282,7 +1299,9 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.2...main
+[2.8.2]: https://github.com/bilby-dev/bilby/compare/v2.8.1...v2.8.2
+[2.8.1]: https://github.com/bilby-dev/bilby/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0

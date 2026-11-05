@@ -4,6 +4,7 @@ from collections import namedtuple
 import numpy as np
 from dynesty.internal_samplers import InternalSampler, SamplerReturn
 from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generator
+from scipy.stats import binom
 
 from ...bilby_mcmc.chain import calculate_tau
 from ..utils.log import logger
@@ -110,6 +111,8 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         self.sampler_kwargs["walks"] = self.walks
         self.naccept = kwargs.get("naccept", 10)
         self.maxmcmc = kwargs.get("maxmcmc", 5000)
+        self.sampler_kwargs["target"] = self.naccept
+        self.sampler_kwargs["maxmcmc"] = self.maxmcmc
 
     def tune(self, tuning_info, update=True):
         """
@@ -120,7 +123,8 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         of accepted steps. Update :code:`self.scale` for inclusion in the state plot.
         """
         # update walks to match target naccept
-        accept_prob = max(0.5, tuning_info["accept"]) / self.sampler_kwargs["walks"]
+        nsteps = tuning_info["accept"] + tuning_info["reject"]
+        accept_prob = max(0.5, tuning_info["accept"]) / nsteps
         delay = max(self.nlive // 10 - 1, 0)
         self.scale = tuning_info["accept"]
         self.walks = (self.walks * delay + self.naccept / accept_prob) / (delay + 1)
@@ -227,6 +231,36 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             "accept": naccept,
             "reject": walks - naccept,
         }
+
+        # check that the number of accepted steps is consistent with the target
+        # number of accepted steps, if it is much lower than the target, our
+        # mcmc chain is too short and we may be open to bias. If we're hitting
+        # maxmcmc, this is expected, but it also happens at the beginning of the
+        # run or around phase transitions, so we discard this point and so an
+        # equivalent longer mcmc will happen at the next iteration
+        dist = binom(n=walks, p=args.kwargs["target"] / walks)
+        minimum = dist.ppf(1e-4)
+        undersampled = naccept < minimum
+        if undersampled and walks >= args.kwargs["maxmcmc"]:
+            logger.debug(
+                "Requested %s accepted steps per MCMC chain, "
+                "but only %s were accepted out of the maximum allowed number "
+                "of steps (%s). Increase 'maxmcmc' to improve convergence.",
+                args.kwargs["target"],
+                naccept,
+                walks,
+            )
+        elif undersampled:
+            logger.info(
+                "Only %s accepted steps out of target %s. "
+                "Discarding this point. "
+                "This is expected at the beginning of the run, increase 'walks'. "
+                "This can also happen when the geometry of the likelihood surface "
+                "changes drastically.",
+                naccept,
+                args.kwargs["target"],
+            )
+            logl = args.loglstar - 1
 
         return SamplerReturn(
             u=current_u,
