@@ -222,7 +222,6 @@ def interp1d(x, y, kind="linear", axis=-1, bounds_error=None, fill_value=np.nan)
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
-
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
         self.x_min, self.x_max, self.y_min, self.y_max = bbox
         if self.x_min is None:
@@ -285,9 +284,16 @@ class WrappedInterp1d(_interp1d):
     makes sure that the output is a float if the input is a float or int.
     """
 
-    def __init__(self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan):
+    def __init__(
+        self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan
+    ):
         super().__init__(
-            x=x, y=y, kind=kind, axis=axis, bounds_error=bounds_error, fill_value=fill_value
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
         )
         self.kind = kind
 
@@ -322,4 +328,4 @@ def round_up_to_power_of_two(x):
     float: next power of two
 
     """
-    return 2**math.ceil(np.log2(x))
+    return 2 ** math.ceil(np.log2(x))

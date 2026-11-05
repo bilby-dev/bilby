@@ -69,7 +69,7 @@ class ExampleTest(unittest.TestCase):
 
     @parameterized.parameterized.expand(core_args)
     def test_core_examples(self, name, fname):
-        """ Loop over examples to check they run """
+        """Loop over examples to check they run"""
         bilby.core.utils.command_line_args.bilby_test_mode = False
         ignore = ["15d_gaussian"]
         if any([item in fname for item in ignore]):
@@ -78,7 +78,7 @@ class ExampleTest(unittest.TestCase):
 
     @parameterized.parameterized.expand(gw_args)
     def test_gw_examples(self, name, fname):
-        """ Loop over examples to check they run """
+        """Loop over examples to check they run"""
         bilby.core.utils.command_line_args.bilby_test_mode = True
         _execute_file(name, fname)
 

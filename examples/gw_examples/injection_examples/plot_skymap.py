@@ -3,6 +3,7 @@
 Example script which produces posterior samples of ra and dec and generates a
 skymap
 """
+
 import bilby
 from bilby.core.utils.random import seed
 
