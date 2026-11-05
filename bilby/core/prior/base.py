@@ -109,7 +109,7 @@ class Prior(object):
         - Both priors have the same keys in the __dict__ attribute
         - The instantiation arguments match
 
-        We don't check that all entries the the __dict__ attribute
+        We don't check that all entries of the __dict__ attribute
         are equal as some attributes are variable for conditional
         priors.
 
