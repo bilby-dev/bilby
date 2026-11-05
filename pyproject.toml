@@ -102,6 +102,10 @@ addopts = [
 ]
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
 
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
 [tool.setuptools]
 packages = [
   "bilby",
