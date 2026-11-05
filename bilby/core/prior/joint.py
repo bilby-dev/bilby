@@ -282,7 +282,7 @@ class BaseJointPriorDist(object):
 
     def _sample(self, size, *, random_state=None, **kwargs):
         """
-        Draw, and set, a sample from the joint dist (**needs to be ovewritten by child class**)
+        Draw, and set, a sample from the joint dist (**needs to be overwritten by child class**)
 
         Parameters
         ==========
@@ -330,7 +330,7 @@ class BaseJointPriorDist(object):
 
     def _rescale(self, samp, **kwargs):
         """
-        rescale a sample from a unit hypercybe to the joint dist (**needs to be ovewritten by child class**)
+        rescale a sample from a unit hypercybe to the joint dist (**needs to be overwritten by child class**)
 
         Parameters
         ==========
