@@ -1,9 +1,10 @@
 html5lib==1.0b8  # Hack to ensure documentation generated
-sphinx<9  # needed for sphinx_rtd_theme<3.1
+sphinx<9
 sphinx-design
 sphinx-sitemap
 numpydoc
 nbsphinx
 autodoc
-sphinx_rtd_theme
+furo
+sphinx-copybutton
 myst_parser

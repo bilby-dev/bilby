@@ -114,7 +114,8 @@ Accelerated likelihoods
 If you use any of the accelerated likelihoods like :code:`ROQGravitationalWaveTransient`, :code:`MBGravitationalWaveTransient`, :code:`RelativeBinningGravitationalWaveTransient` etc., please cite the following papers in addition to the above.
 
 - :code:`ROQGravitationalWaveTransient`
- .. code:: bibtex
+
+  .. code:: bibtex
 
      @article{roq_paper_1,
         author = {Smith, Rory and Field, Scott E. and Blackburn, Kent and Haster, Carl-Johan and P\"urrer, Michael and Raymond, Vivien and Schmidt, Patricia},
@@ -147,7 +148,8 @@ If you use any of the accelerated likelihoods like :code:`ROQGravitationalWaveTr
 
 
 - :code:`MBGravitationalWaveTransient`
- .. code:: bibtex
+
+  .. code:: bibtex
 
     @article{mb_paper,
         author = "Morisaki, Soichiro",
@@ -165,7 +167,8 @@ If you use any of the accelerated likelihoods like :code:`ROQGravitationalWaveTr
 
 
 - :code:`RelativeBinningGravitationalWaveTransient`
- .. code:: bibtex
+
+  .. code:: bibtex
     
     @article{relbin_bilby,
         author = "Krishna, Kruthi and Vijaykumar, Aditya and Ganguly, Apratim and Talbot, Colm and Biscoveanu, Sylvia and George, Richard N. and Williams, Natalie and Zimmerman, Aaron",
