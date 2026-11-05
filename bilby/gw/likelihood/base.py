@@ -158,7 +158,7 @@ class GravitationalWaveTransient(Likelihood):
         self.waveform_generator = waveform_generator
         super(GravitationalWaveTransient, self).__init__()
         self.interferometers = InterferometerList(interferometers)
-        self.interferometers.set_array_backend(interferometers.array_backend)
+        self.interferometers.array_backend = interferometers.array_backend
         self.time_marginalization = time_marginalization
         self.distance_marginalization = distance_marginalization
         self.phase_marginalization = phase_marginalization
@@ -171,7 +171,7 @@ class GravitationalWaveTransient(Likelihood):
         if "geocent" not in time_reference:
             self.time_reference = time_reference
             self.reference_ifo = get_empty_interferometer(self.time_reference)
-            self.reference_ifo.set_array_backend(self.interferometers.array_backend)
+            self.reference_ifo.array_backend = self.interferometers.array_backend
             if self.time_marginalization:
                 logger.info("Cannot marginalise over non-geocenter time.")
                 self.time_marginalization = False
@@ -1070,13 +1070,15 @@ class GravitationalWaveTransient(Likelihood):
     def _reference_frame_str(self):
         if isinstance(self.reference_frame, str):
             return self.reference_frame
+        elif self.reference_frame is None:
+            return "sky"
         else:
             return "".join([ifo.name for ifo in self.reference_frame])
 
     @reference_frame.setter
     def reference_frame(self, frame):
         if frame == "sky":
-            self._reference_frame = frame
+            self._reference_frame = None
         elif isinstance(frame, InterferometerList):
             self._reference_frame = frame[:2]
         elif isinstance(frame, list):
@@ -1086,7 +1088,7 @@ class GravitationalWaveTransient(Likelihood):
         else:
             raise ValueError("Unable to parse reference frame {}".format(frame))
         if isinstance(self._reference_frame, InterferometerList):
-            self._reference_frame.set_array_backend(self.interferometers.array_backend)
+            self._reference_frame.array_backend = self.interferometers.array_backend
 
     def get_sky_frame_parameters(self, parameters):
         """
@@ -1110,7 +1112,7 @@ class GravitationalWaveTransient(Likelihood):
                 f"Cannot find {self.time_reference}_time in parameters. "
                 "Falling back to geocent time"
             )
-        if not self.reference_frame == "sky":
+        if self.reference_frame is not None:
             try:
                 ra, dec = zenith_azimuth_to_ra_dec(
                     parameters['zenith'], parameters['azimuth'],

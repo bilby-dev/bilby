@@ -113,6 +113,28 @@ class TestSampler(unittest.TestCase):
     def test_get_random_draw(self):
         self.assertEqual(self.sampler.get_random_draw_from_prior(), np.array([0.5]))
 
+    def test_initial_points_with_random_state(self):
+        global_rng = bilby.core.utils.random.rng
+        global_state = copy.deepcopy(global_rng.bit_generator.state)
+        with patch.object(self.sampler, "check_draw", return_value=True), patch.object(
+            self.sampler, "prior_transform", side_effect=lambda unit: unit
+        ):
+            points, _, _ = self.sampler.get_initial_points_from_prior(
+                5, random_state=np.random.default_rng(1234)
+            )
+        expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
+        np.testing.assert_array_equal(points, expected)
+        self.assertEqual(global_rng.bit_generator.state, global_state)
+
+    def test_initial_points_default_random_state(self):
+        rng = np.random.default_rng(1234)
+        with patch.object(bilby.core.utils.random.Generator, "rng", rng), patch.object(
+            self.sampler, "check_draw", return_value=True
+        ), patch.object(self.sampler, "prior_transform", side_effect=lambda unit: unit):
+            points, _, _ = self.sampler.get_initial_points_from_prior(5)
+        expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
+        np.testing.assert_array_equal(points, expected)
+
     def test_base_run_sampler(self):
         sampler_copy = copy.copy(self.sampler)
         self.sampler.run_sampler()
