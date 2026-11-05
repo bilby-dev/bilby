@@ -127,40 +127,51 @@ def bilby_to_lalsimulation_spins(
     phase,
 ):
     """
-    Convert from Bilby spin parameters to lalsimulation ones.
+    Convert Bilby spin parameters to the Cartesian representation used by
+    lalsimulation.
 
-    All parameters are defined at the reference frequency and in SI units.
+    The definitions follow Table E1 of Romero-Shaw et al. (2020),
+    https://arxiv.org/abs/2006.00714, and the corresponding lalsimulation
+    transformation.
 
     Parameters
     ==========
-    theta_jn: float
-        Inclination angle
-    phi_jl: float
-        Spin phase angle
-    tilt_1: float
-        Primary object tilt
-    tilt_2: float
-        Secondary object tilt
-    phi_12: float
-        Relative spin azimuthal angle
-    a_1: float
-        Primary dimensionless spin magnitude
-    a_2: float
-        Secondary dimensionless spin magnitude
-    mass_1: float
-        Primary mass in SI units
-    mass_2: float
-        Secondary mass in SI units
-    reference_frequency: float
-    phase: float
-        Orbital phase
+    theta_jn : float
+        Zenith angle between the total angular momentum and the line of sight,
+        in radians.
+    phi_jl : float
+        Azimuthal angle of the Newtonian orbital angular momentum on its cone
+        about the total angular momentum, in radians.
+    tilt_1 : float
+        Zenith angle between the primary spin and the Newtonian orbital
+        angular momentum, in radians.
+    tilt_2 : float
+        Zenith angle between the secondary spin and the Newtonian orbital
+        angular momentum, in radians.
+    phi_12 : float
+        Difference between the azimuthal angles of the two spin vectors, in
+        radians.
+    a_1 : float
+        Primary dimensionless spin magnitude, between 0 and 1.
+    a_2 : float
+        Secondary dimensionless spin magnitude, between 0 and 1.
+    mass_1 : float
+        Detector-frame primary mass, in kilograms.
+    mass_2 : float
+        Detector-frame secondary mass, in kilograms.
+    reference_frequency : float
+        Non-zero reference gravitational-wave frequency, in Hz.
+    phase : float
+        Orbital phase at ``reference_frequency``, in radians.
 
     Returns
     =======
-    iota: float
-        Transformed inclination
-    spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z: float
-        Cartesian spin components
+    iota : float
+        Zenith angle between the Newtonian orbital angular momentum and the
+        line of sight, in radians.
+    spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z : float
+        Dimensionless Cartesian spin components in the frame used by
+        lalsimulation waveform generators.
     """
     if (a_1 == 0 or tilt_1 in [0, np.pi]) and (a_2 == 0 or tilt_2 in [0, np.pi]):
         spin_1x = 0
@@ -714,14 +725,15 @@ def log_pressure_reparameterization_conversion(
 ):
     """
     Converts the reparameterization joining pressures from
-        (scaled_pressure_ratio,scaled_pressure_2) to (log10_pressure_1,log10_pressure_2).
-    This reparameterization with a triangular prior (with mode = max)  on scaled_pressure_2
-        and a uniform prior on scaled_pressure_ratio
-        mimics identical uniform priors on log10_pressure_1 and log10_pressure_2
-        where samples with log10_pressure_2 > log10_pressure_1 are rejected.
+    (scaled_pressure_ratio, scaled_pressure_2) to (log10_pressure_1, log10_pressure_2).
+
+    This reparameterization with a triangular prior (with mode = max) on scaled_pressure_2
+    and a uniform prior on scaled_pressure_ratio
+    mimics identical uniform priors on log10_pressure_1 and log10_pressure_2
+    where samples with log10_pressure_2 > log10_pressure_1 are rejected.
     This reparameterization allows for a faster initialization.
     A minimum log10_pressure of 33 (in cgs units) is chosen to be slightly higher than the low-density crust EOS
-        that is stitched to the dynamic polytrope EOS model in LALSimulation.
+    that is stitched to the dynamic polytrope EOS model in LALSimulation.
 
     Parameters
     ----------
@@ -744,12 +756,13 @@ def log_pressure_reparameterization_conversion(
 def spectral_pca_to_spectral(gamma_pca_0, gamma_pca_1, gamma_pca_2, gamma_pca_3):
     """
     Change of basis on parameter space
-        from an efficient space to sample in (sample space)
-        to the space used in spectral eos model (model space).
-    Uses principle component analysis (PCA) to sample spectral gamma parameters more efficiently.
-    See arxiv:2001.01747 for the PCA conversion transformation matrix, mean, and standard deviation.
+    from an efficient space to sample in (sample space)
+    to the space used in spectral EOS model (model space).
+
+    Uses principal component analysis (PCA) to sample spectral gamma parameters more efficiently.
+    See arXiv:2001.01747 for the PCA conversion transformation matrix, mean, and standard deviation.
     (Note that this transformation matrix is the inverse of the one referenced
-        in order to perform the inverse transformation.)
+    in order to perform the inverse transformation.)
 
     Parameters
     ----------
@@ -848,11 +861,12 @@ def polytrope_or_causal_params_to_lambda_1_lambda_2(
 ):
     """
     Converts parameters from sampled dynamic piecewise polytrope parameters
-        to component tidal deformablity parameters.
+    to component tidal deformability parameters.
+
     Enforces log10_pressure1_cgs < log10_pressure2_cgs.
     Checks number of points in the equation of state for viability.
     Note that subtracting 1 from the log10 pressure in cgs converts it to
-        log10 pressure in si units.
+    log10 pressure in SI units.
 
     Parameters
     ----------
@@ -1488,7 +1502,7 @@ def lambda_1_lambda_2_to_lambda_symmetric(lambda_1, lambda_2):
         Tidal parameter of less massive neutron star.
 
     Returns
-    ======
+    =======
     lambda_symmetric: float
         Symmetric tidal parameter.
     """
@@ -1510,7 +1524,7 @@ def lambda_1_lambda_2_to_lambda_antisymmetric(lambda_1, lambda_2):
         Tidal parameter of less massive neutron star.
 
     Returns
-    ======
+    =======
     lambda_antisymmetric: float
         Antisymmetric tidal parameter.
     """
@@ -1534,7 +1548,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_1(
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     """
@@ -1558,7 +1572,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_2(
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_2: float
         Tidal parameter of less massive neutron star.
     """
@@ -1582,7 +1596,7 @@ def lambda_symmetric_lambda_antisymmetric_to_lambda_1_lambda_2(
         Antisymmetric tidal parameter.
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -1622,7 +1636,7 @@ def binary_love_fit_lambda_symmetric_mass_ratio_to_lambda_antisymmetric(
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_antisymmetric: float
         Antisymmetric tidal parameter.
     """
@@ -1708,7 +1722,7 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_manual_marginalisation(
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -1862,7 +1876,7 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
         Mass ratio (mass_2/mass_1, with mass_2 < mass_1) of the binary
 
     Returns
-    ======
+    =======
     lambda_1: float
         Tidal parameter of more massive neutron star.
     lambda_2: float
@@ -2114,15 +2128,14 @@ def fill_from_fixed_priors(sample, priors):
 
 
 def generate_component_masses(sample, require_add=False, source=False):
-    """ "
-    Add the component masses to the dataframe/dictionary
-    We add:
-        mass_1, mass_2
-    Or if source=True
-        mass_1_source, mass_2_source
+    """
+    Add the component masses to the dataframe/dictionary.
+
+    We add :code:`mass_1, mass_2`, or if :code:`source=True`,
+    :code:`mass_1_source, mass_2_source`.
     We also add any other masses which may be necessary for
-    intermediate steps, i.e. typically the  total mass is necessary, along
-    with the mass ratio, so these will usually be added to the dictionary
+    intermediate steps, i.e., typically the total mass is necessary, along
+    with the mass ratio, so these will usually be added to the dictionary.
 
     If `require_add` is True, then having an incomplete set of mass
     parameters (so that the component mass parameters cannot be added)
@@ -2130,7 +2143,7 @@ def generate_component_masses(sample, require_add=False, source=False):
     dictionary.
 
     Parameters
-    =========
+    ==========
     sample : dict
         The input dictionary with at least one
         component with overall mass scaling (i.e.
@@ -2384,19 +2397,50 @@ def generate_spin_parameters(sample):
 
 def generate_component_spins(sample):
     """
-    Add the component spins to the data frame/dictionary.
+    Add Cartesian component spins to a copy of a sample.
 
-    This function uses a lalsimulation function to transform the spins.
+    For a precessing-spin sample, this function converts Bilby's angular spin
+    parameterisation with
+    :func:`bilby.gw.conversion.bilby_to_lalsimulation_spins`. For an
+    aligned-spin sample, it maps ``chi_1`` and ``chi_2`` directly onto the
+    z-components and sets the in-plane components to zero.
 
     Parameters
     ==========
-    sample: A dictionary with the necessary spin conversion parameters:
-    'theta_jn', 'phi_jl', 'tilt_1', 'tilt_2', 'phi_12', 'a_1', 'a_2', 'mass_1',
-    'mass_2', 'reference_frequency', 'phase'
+    sample : dict or pandas.DataFrame
+        Sample containing either ``chi_1`` and ``chi_2`` for aligned spins, or
+        all of the following parameters for a precessing-spin conversion:
+
+        - ``theta_jn``: zenith angle between the total angular momentum and
+          the line of sight, in radians;
+        - ``phi_jl``: azimuthal angle of the Newtonian orbital angular
+          momentum on its cone about the total angular momentum, in radians;
+        - ``tilt_1``, ``tilt_2``: zenith angles between each spin and the
+          Newtonian orbital angular momentum, in radians;
+        - ``phi_12``: difference between the spin azimuthal angles, in radians;
+        - ``a_1``, ``a_2``: dimensionless spin magnitudes;
+        - ``mass_1``, ``mass_2``: detector-frame component masses, in solar
+          masses;
+        - ``reference_frequency``: non-zero reference gravitational-wave
+          frequency, in Hz;
+        - ``phase``: orbital phase at ``reference_frequency``, in radians.
 
     Returns
     =======
-    dict: The updated dictionary
+    output_sample : dict or pandas.DataFrame
+        A copy of ``sample``. The precessing-spin conversion adds:
+
+        - ``iota``: zenith angle between the Newtonian orbital angular
+          momentum and the line of sight, in radians;
+        - ``spin_1x``, ``spin_1y``, ``spin_1z``, ``spin_2x``, ``spin_2y``, and
+          ``spin_2z``: dimensionless Cartesian spin components in the frame
+          used by lalsimulation waveform generators;
+        - ``phi_1`` and ``phi_2``: azimuthal angles of the spin projections
+          onto the Cartesian x-y plane, in radians.
+
+        The aligned-spin conversion adds only the six Cartesian spin
+        components. If neither required parameter set is present, the copy is
+        returned unchanged.
 
     """
     output_sample = sample.copy()
@@ -2733,7 +2777,7 @@ def generate_posterior_samples_from_marginalized_likelihood(
     block: int, (default=10)
         Size of the blocks to use in multiprocessing
     use_cache: bool, (default=True)
-        If true, cache the generation so that reconstuction can begin from the
+        If true, cache the generation so that reconstruction can begin from the
         cache on restart.
 
     Returns
