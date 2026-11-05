@@ -16,7 +16,6 @@ class _ToyClassNoVariableNames:
 
 
 class _ToyClassVariableNames:
-
     variable_names = ["a", "b", "c"]
 
     def __call__(self, **kwargs):
@@ -57,11 +56,13 @@ class TestHyperLikelihood(unittest.TestCase):
         )
         self.assertTrue(np.isnan(like.evidence_factor))
 
-    @parameterized.expand([
-        ("func", _toy_function),
-        ("class_no_names", _ToyClassNoVariableNames()),
-        ("class_with_names", _ToyClassVariableNames()),
-    ])
+    @parameterized.expand(
+        [
+            ("func", _toy_function),
+            ("class_no_names", _ToyClassNoVariableNames()),
+            ("class_with_names", _ToyClassVariableNames()),
+        ]
+    )
     def test_get_function_parameters(self, _, model):
         expected = dict(a=1, b=2, c=3)
         model = hyp.model.Model([model])

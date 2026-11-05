@@ -66,9 +66,7 @@ class TestPriorInstantiationWithoutOptionalPriors(unittest.TestCase):
             (np.float32(0.0), np.float32(1.0)),
             (np.int64(0), np.int64(10)),
         ]:
-            prior = bilby.core.prior.Uniform(
-                minimum=minimum, maximum=maximum, name="x"
-            )
+            prior = bilby.core.prior.Uniform(minimum=minimum, maximum=maximum, name="x")
             self.assertNotIn("np.", repr(prior))
             reconstructed = bilby.core.prior.PriorDict({"x": repr(prior)})["x"]
             self.assertEqual(prior, reconstructed)
@@ -171,19 +169,28 @@ class TestConstraintPriorNormalisation(unittest.TestCase):
         )
 
         def conversion_func(parameters):
-            return dict(a=parameters["a"], b=parameters["b"], c=parameters["a"] / parameters["b"])
-        self.priors = bilby.core.prior.PriorDict(self.priors, conversion_function=conversion_func)
+            return dict(
+                a=parameters["a"],
+                b=parameters["b"],
+                c=parameters["a"] / parameters["b"],
+            )
+
+        self.priors = bilby.core.prior.PriorDict(
+            self.priors, conversion_function=conversion_func
+        )
 
     def test_prob_integrate_to_one(self):
         keys = ["a", "b", "c"]
         n_samples = 1000000
-        samples = self.priors.sample_subset(keys=keys, size=n_samples, random_state=self.rng)
+        samples = self.priors.sample_subset(
+            keys=keys, size=n_samples, random_state=self.rng
+        )
         prob = self.priors.prob(samples, axis=0)
         self.assertEqual(aac.get_namespace(prob), self.xp)
         prob = np.asarray(prob)
         dm1 = self.priors["a"].maximum - self.priors["a"].minimum
         dm2 = self.priors["b"].maximum - self.priors["b"].minimum
-        prior_volume = (dm1 * dm2)
+        prior_volume = dm1 * dm2
         n_accepted = np.sum(prob)
         integral = prior_volume * n_accepted / n_samples
         # binomial random distribution

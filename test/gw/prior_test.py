@@ -173,8 +173,10 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertFalse(self.bbh_prior_dict.test_has_redundant_keys())
 
     def test_is_cosmological_true(self):
-        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
+        self.bbh_prior_dict["luminosity_distance"] = (
+            bilby.gw.prior.UniformComovingVolume(
+                minimum=10, maximum=10000, name="luminosity_distance"
+            )
         )
         self.assertTrue(self.bbh_prior_dict.is_cosmological)
 
@@ -183,17 +185,27 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertFalse(self.bbh_prior_dict.is_cosmological)
 
     def test_check_valid_cosmology(self):
-        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
+        self.bbh_prior_dict["luminosity_distance"] = (
+            bilby.gw.prior.UniformComovingVolume(
+                minimum=10, maximum=10000, name="luminosity_distance"
+            )
         )
         self.assertTrue(self.bbh_prior_dict.check_valid_cosmology())
 
     def test_check_valid_cosmology_raises_error(self):
-        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance", cosmology="Planck15",
+        self.bbh_prior_dict["luminosity_distance"] = (
+            bilby.gw.prior.UniformComovingVolume(
+                minimum=10,
+                maximum=10000,
+                name="luminosity_distance",
+                cosmology="Planck15",
+            )
         )
         self.bbh_prior_dict["redshift"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=0.1, maximum=1, name="redshift", cosmology="Planck15_LAL",
+            minimum=0.1,
+            maximum=1,
+            name="redshift",
+            cosmology="Planck15_LAL",
         )
         self.assertEqual(
             self.bbh_prior_dict._cosmological_priors,
@@ -202,8 +214,10 @@ class TestBBHPriorDict(unittest.TestCase):
         self.assertRaises(ValueError, self.bbh_prior_dict.check_valid_cosmology)
 
     def test_cosmology(self):
-        self.bbh_prior_dict["luminosity_distance"] = bilby.gw.prior.UniformComovingVolume(
-            minimum=10, maximum=10000, name="luminosity_distance"
+        self.bbh_prior_dict["luminosity_distance"] = (
+            bilby.gw.prior.UniformComovingVolume(
+                minimum=10, maximum=10000, name="luminosity_distance"
+            )
         )
         self.assertEqual(
             self.bbh_prior_dict.cosmology,
@@ -316,7 +330,7 @@ class TestPriorConversion(unittest.TestCase):
 
 
 class TestPackagedPriors(unittest.TestCase):
-    """ Test that the prepackaged priors load """
+    """Test that the prepackaged priors load"""
 
     def test_aligned(self):
         filename = "aligned_spins_bbh.prior"
@@ -579,11 +593,17 @@ class TestAlignedSpin(unittest.TestCase):
         self.assertAlmostEqual(max_difference, 0, 2)
 
     def test_non_analytic_form_has_correct_statistics(self):
-        a_prior = bilby.core.prior.TruncatedGaussian(mu=0, sigma=0.1, minimum=0, maximum=1)
-        z_prior = bilby.core.prior.TruncatedGaussian(mu=0.4, sigma=0.2, minimum=-1, maximum=1)
+        a_prior = bilby.core.prior.TruncatedGaussian(
+            mu=0, sigma=0.1, minimum=0, maximum=1
+        )
+        z_prior = bilby.core.prior.TruncatedGaussian(
+            mu=0.4, sigma=0.2, minimum=-1, maximum=1
+        )
         chi_prior = bilby.gw.prior.AlignedSpin(a_prior, z_prior)
         chis = chi_prior.sample(100000, random_state=self.rng)
-        alts = a_prior.sample(100000, random_state=self.rng) * z_prior.sample(100000, random_state=self.rng)
+        alts = a_prior.sample(100000, random_state=self.rng) * z_prior.sample(
+            100000, random_state=self.rng
+        )
         self.assertAlmostEqual(np.mean(chis), np.mean(alts), 2)
         self.assertAlmostEqual(np.std(chis), np.std(alts), 2)
         self.assertEqual(aac.get_namespace(chis), self.xp)
@@ -592,7 +612,6 @@ class TestAlignedSpin(unittest.TestCase):
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestConditionalChiUniformSpinMagnitude(unittest.TestCase):
-
     def setUp(self):
         if aac.is_torch_namespace(self.xp):
             self.skipTest("Torch doesn't support interpolated priors.")

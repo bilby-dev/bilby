@@ -30,6 +30,7 @@ Note - the code uses a course 100-point estimation for speed, results can be
 improved by increasing this to say 500 or 1000.
 
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np
@@ -94,8 +95,7 @@ class Polynomial(bilby.Likelihood):
     def log_likelihood(self, parameters):
         res = self.y - self.polynomial(self.x, parameters)
         return -0.5 * (
-            np.sum((res / self.sigma) ** 2)
-            + self.N * np.log(2 * np.pi * self.sigma**2)
+            np.sum((res / self.sigma) ** 2) + self.N * np.log(2 * np.pi * self.sigma**2)
         )
 
 
