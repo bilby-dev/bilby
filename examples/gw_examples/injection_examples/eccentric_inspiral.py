@@ -12,6 +12,12 @@ import bilby
 import numpy as np
 from bilby.core.utils.random import seed
 
+if "pymultinest" not in bilby.core.sampler.IMPLEMENTED_SAMPLERS:
+    raise ImportError(
+        "pymultinest is required to run this example. See pymultinest-bilby for installation instructions:"
+        "https://github.com/bilby-dev/pymultinest-bilby"
+    )
+
 # Sets bilby's random number generator seed to ensure reproducibility
 seed(123)
 
@@ -32,8 +38,8 @@ injection_parameters = dict(
     psi=0.1,
     phase=1.2,
     geocent_time=1180002601.0,
-    ra=45,
-    dec=5.73,
+    ra=0.7854,
+    dec=0.1,
 )
 
 waveform_arguments = dict(

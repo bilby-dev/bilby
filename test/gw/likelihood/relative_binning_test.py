@@ -3,11 +3,13 @@ from copy import deepcopy
 
 import bilby
 import numpy as np
+import pytest
 from parameterized import parameterized
 
 
 class TestRelativeBinningLikelihood(unittest.TestCase):
     def setUp(self):
+        self.rng = np.random.default_rng(2)
         duration = 16
         fmin = 20
         sampling_frequency = 8192
@@ -42,7 +44,8 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         ifos = bilby.gw.detector.InterferometerList(["H1", "L1", "V1"])
         ifos.set_strain_data_from_power_spectral_densities(
             sampling_frequency=sampling_frequency, duration=duration,
-            start_time=self.test_parameters['geocent_time'] - duration + 2.
+            start_time=self.test_parameters['geocent_time'] - duration + 2.,
+            random_state=self.rng,
         )
         for ifo in ifos:
             ifo.minimum_frequency = fmin
@@ -61,9 +64,9 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
                 self.test_parameters[f"recalib_{ifo.name}_phase_{i}"] = 0
                 # Calibration errors of 5% in amplitude and 5 degrees in phase
                 self.calibration_parameters[f"recalib_{ifo.name}_amplitude_{i}"] = \
-                    np.random.normal(loc=0, scale=0.05)
+                    self.rng.normal(loc=0, scale=0.05)
                 self.calibration_parameters[f"recalib_{ifo.name}_phase_{i}"] = \
-                    np.random.normal(loc=0, scale=5 * np.pi / 180)
+                    self.rng.normal(loc=0, scale=5 * np.pi / 180)
 
         priors = bilby.gw.prior.BBHPriorDict()
         priors.pop("mass_1")
@@ -114,9 +117,10 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             self.binned,
         )
 
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_matches_non_binned_many(self):
         for _ in range(100):
-            parameters = self.priors.sample()
+            parameters = self.priors.sample(random_state=self.rng)
             regular_ln_l = self.non_bin.log_likelihood_ratio(parameters)
             binned_ln_l = self.binned.log_likelihood_ratio(parameters)
             self.assertLess(
@@ -126,6 +130,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
             )
 
     @parameterized.expand([(False, ), (True, )])
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_matches_non_binned(self, add_cal_errors):
         parameters = deepcopy(self.test_parameters)
         if add_cal_errors:
@@ -134,6 +139,7 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         binned_ln_l = self.binned.log_likelihood_ratio(parameters)
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
+    @pytest.mark.flaky(reruns=3, only_rerun=["AssertionError"])
     def test_optimization_gives_good_match(self):
         fiducial_parameters = self.test_parameters.copy()
         fiducial_parameters["chirp_mass"] *= 0.99

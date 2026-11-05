@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = python -msphinx
+SPHINXBUILD   = pixi run -e documentation python -m sphinx
 SPHINXPROJ    = bilby
 SOURCEDIR     = .
 BUILDDIR      = _build

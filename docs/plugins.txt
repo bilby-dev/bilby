@@ -27,6 +27,7 @@ Currently :code:`bilby` allows for the following plugin groups:
 
 - :code:`"bilby.samplers"`: group for adding samplers to :code:`bilby`. See :ref:`Sampler plugins` for more details.
 
+.. _sampler-plugins:
 
 ---------------
 Sampler plugins

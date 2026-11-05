@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import sys
 import threading
 import time
 from signal import SIGINT
@@ -9,16 +8,17 @@ multiprocessing.set_start_method("fork")  # noqa
 
 import unittest
 import pytest
-from parameterized import parameterized
 import shutil
+from parameterized import parameterized
 
 import bilby
 import numpy as np
+from bilby.core.sampler.base_sampler import initialize_global_variables
+from schwimmbad import SerialPool
 
 
 _sampler_kwargs = dict(
     bilby_mcmc=dict(nsamples=200, printdt=1),
-    cpnest=dict(nlive=100),
     dynesty=dict(nlive=10, sample="acceptance-walk", nact=5, proposals=["diff"]),
     dynamic_dynesty=dict(
         nlive_init=10,
@@ -29,25 +29,6 @@ _sampler_kwargs = dict(
         sample="act-walk",
     ),
     emcee=dict(iterations=1000, nwalkers=10),
-    kombine=dict(iterations=200, nwalkers=10, autoburnin=False),
-    nessai=dict(
-        nlive=100,
-        poolsize=100,
-        max_iteration=500,
-    ),
-    nestle=dict(nlive=100),
-    ptemcee=dict(
-        nsamples=100,
-        nwalkers=50,
-        burn_in_act=1,
-        ntemps=1,
-        frac_threshold=0.5,
-    ),
-    PTMCMCSampler=dict(Niter=101, burn=100, covUpdate=100, isave=100),
-    pymc=dict(draws=50, tune=50, n_init=250),
-    pymultinest=dict(nlive=100),
-    ultranest=dict(nlive=100, temporary_directory=False),
-    zeus=dict(nwalkers=10, iterations=100)
 )
 
 sampler_imports = dict(
@@ -55,9 +36,11 @@ sampler_imports = dict(
     dynamic_dynesty="dynesty"
 )
 
-no_pool_test = ["pymultinest", "nestle", "ptmcmcsampler", "ultranest", "pymc"]
-
-loaded_samplers = {k: v.load() for k, v in bilby.core.sampler.IMPLEMENTED_SAMPLERS.items()}
+# Only load the native samplers
+loaded_samplers = {
+    k: bilby.core.sampler.IMPLEMENTED_SAMPLERS[k].load()
+    for k in bilby.core.sampler.IMPLEMENTED_SAMPLERS.native_keys()
+}
 
 
 def slow_func(x, m, c):
@@ -91,7 +74,7 @@ class TestRunningSamplers(unittest.TestCase):
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
 
     @staticmethod
-    def conversion_function(parameters, likelihood, prior):
+    def conversion_function(parameters, likelihood, priors):
         converted = parameters.copy()
         if "derived" not in converted:
             converted["derived"] = converted["m"] * converted["c"]
@@ -114,13 +97,17 @@ class TestRunningSamplers(unittest.TestCase):
         self._run_sampler(sampler, pool_size=1)
 
     @parameterized.expand(_sampler_kwargs.keys())
+    def test_run_sampler_schwimmbad(self, sampler):
+        pool = SerialPool()
+        initialize_global_variables(self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0})
+        self._run_sampler(sampler, pool_size=1, pool=pool)
+
+    @parameterized.expand(_sampler_kwargs.keys())
     def test_run_sampler_pool(self, sampler):
         self._run_sampler(sampler, pool_size=2)
 
     def _run_sampler(self, sampler, pool_size, **extra_kwargs):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
-        if pool_size > 1 and sampler.lower() in no_pool_test:
-            pytest.skip(f"{sampler} cannot be parallelized")
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
         kwargs = _sampler_kwargs[sampler]
         res = bilby.run_sampler(
@@ -140,23 +127,25 @@ class TestRunningSamplers(unittest.TestCase):
         self._run_with_signal_handling(sampler, pool_size=1)
 
     @parameterized.expand(_sampler_kwargs.keys())
+    def test_interrupt_sampler_schwimmbad(self, sampler):
+        pool = SerialPool()
+        initialize_global_variables(self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0})
+        self._run_with_signal_handling(sampler, pool_size=1, pool=pool)
+
+    @parameterized.expand(_sampler_kwargs.keys())
     def test_interrupt_sampler_pool(self, sampler):
         self._run_with_signal_handling(sampler, pool_size=2)
 
-    def _run_with_signal_handling(self, sampler, pool_size=1):
+    def _run_with_signal_handling(self, sampler, pool_size=1, **kwargs):
         pytest.importorskip(sampler_imports.get(sampler, sampler))
         if loaded_samplers[sampler.lower()].hard_exit:
             pytest.skip(f"{sampler} hard exits, can't test signal handling.")
-        if pool_size > 1 and sampler.lower() in no_pool_test:
-            pytest.skip(f"{sampler} cannot be parallelized")
-        if sys.version_info.minor == 8 and sampler.lower == "cpnest":
-            pytest.skip("Pool interrupting broken for cpnest with py3.8")
         pid = os.getpid()
         print(sampler)
 
         def trigger_signal():
             # You could do something more robust, e.g. wait until port is listening
-            time.sleep(4)
+            time.sleep(10)
             os.kill(pid, SIGINT)
 
         thread = threading.Thread(target=trigger_signal)
@@ -168,7 +157,7 @@ class TestRunningSamplers(unittest.TestCase):
         with self.assertRaises((SystemExit, KeyboardInterrupt)):
             try:
                 while True:
-                    self._run_sampler(sampler=sampler, pool_size=pool_size, exit_code=5)
+                    self._run_sampler(sampler=sampler, pool_size=pool_size, exit_code=5, **kwargs)
             except SystemExit as error:
                 self.assertEqual(error.code, 5)
                 raise

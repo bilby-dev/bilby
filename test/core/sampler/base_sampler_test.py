@@ -2,7 +2,7 @@ import copy
 import os
 import shutil
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from parameterized import parameterized
 
 import numpy as np
@@ -113,6 +113,28 @@ class TestSampler(unittest.TestCase):
     def test_get_random_draw(self):
         self.assertEqual(self.sampler.get_random_draw_from_prior(), np.array([0.5]))
 
+    def test_initial_points_with_random_state(self):
+        global_rng = bilby.core.utils.random.rng
+        global_state = copy.deepcopy(global_rng.bit_generator.state)
+        with patch.object(self.sampler, "check_draw", return_value=True), patch.object(
+            self.sampler, "prior_transform", side_effect=lambda unit: unit
+        ):
+            points, _, _ = self.sampler.get_initial_points_from_prior(
+                5, random_state=np.random.default_rng(1234)
+            )
+        expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
+        np.testing.assert_array_equal(points, expected)
+        self.assertEqual(global_rng.bit_generator.state, global_state)
+
+    def test_initial_points_default_random_state(self):
+        rng = np.random.default_rng(1234)
+        with patch.object(bilby.core.utils.random.Generator, "rng", rng), patch.object(
+            self.sampler, "check_draw", return_value=True
+        ), patch.object(self.sampler, "prior_transform", side_effect=lambda unit: unit):
+            points, _, _ = self.sampler.get_initial_points_from_prior(5)
+        expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
+        np.testing.assert_array_equal(points, expected)
+
     def test_base_run_sampler(self):
         sampler_copy = copy.copy(self.sampler)
         self.sampler.run_sampler()
@@ -149,6 +171,35 @@ class TestSampler(unittest.TestCase):
             val=np.nan_to_num(-np.inf), warning=False, theta=None, label=None
         )
 
+    def test_raise_if_interrupted(self):
+        error = RuntimeError("plotting failed")
+        self.sampler._interrupted = True
+
+        with self.assertRaises(SystemExit) as context:
+            self.sampler._raise_if_interrupted(error)
+
+        self.assertEqual(context.exception.code, self.sampler.exit_code)
+        self.assertIs(context.exception.__cause__, error)
+
+    def test_write_current_state_and_exit_records_interruption(self):
+        self.sampler.pool = None
+
+        with (
+            patch.object(self.sampler, "write_current_state"),
+            patch.object(self.sampler, "_close_pool"),
+            self.assertRaises(SystemExit),
+        ):
+            self.sampler.write_current_state_and_exit(signum=14)
+
+        self.assertTrue(self.sampler._interrupted)
+        self.assertEqual(self.sampler._interruption_signum, 14)
+
+    def test_raise_if_interrupted_not_interrupted(self):
+        self.sampler._interrupted = False
+
+        # This should return normally.
+        self.sampler._raise_if_interrupted(RuntimeError("plotting failed"))
+
 
 def test_get_expected_outputs():
     outdir = os.path.join("some", "bilby_pipe", "dir")
@@ -179,9 +230,6 @@ samplers = [
     "dynamic_dynesty",
     "dynesty",
     "emcee",
-    "kombine",
-    "ptemcee",
-    "zeus",
 ]
 
 
@@ -200,13 +248,7 @@ class GenericSamplerTest(unittest.TestCase):
     def test_pool_creates_properly_no_pool(self, sampler_name):
         sampler = loaded_samplers[sampler_name](self.likelihood, self.priors)
         sampler._setup_pool()
-        if sampler_name == "kombine":
-            from kombine import SerialPool
-
-            self.assertIsInstance(sampler.pool, SerialPool)
-            pass
-        else:
-            self.assertIsNone(sampler.pool)
+        self.assertIsNone(sampler.pool)
 
     @parameterized.expand(samplers)
     def test_pool_creates_properly_pool(self, sampler):

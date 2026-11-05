@@ -1,8 +1,22 @@
 import functools
 import os
 import shutil
+from contextlib import contextmanager
 
 from .log import logger
+
+
+@contextmanager
+def _close_new_figures():
+    """Close figures created in this context, preserving existing figures."""
+    import matplotlib.pyplot as plt
+
+    existing_figures = set(plt.get_fignums())
+    try:
+        yield
+    finally:
+        for figure_number in set(plt.get_fignums()) - existing_figures:
+            plt.close(figure_number)
 
 
 def latex_plot_format(func):

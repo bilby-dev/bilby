@@ -1,26 +1,20 @@
+import datetime
 import os
 import shutil
 import unittest
 from copy import deepcopy
+from unittest import mock
 
 import bilby
 import bilby.core.sampler.dynesty
+import dynesty
 import numpy as np
 import parameterized
-import pytest
 from attr import define
 from scipy.stats import gamma, ks_1samp, uniform, powerlaw
+from unittest.mock import Mock, patch
 
-
-try:
-    import dynesty.internal_samplers  # noqa
-    from bilby.core.sampler import dynesty3_utils as dynesty_utils  # noqa
-
-    NEW_DYNESTY_API = True
-except ImportError:
-    from bilby.core.sampler import dynesty_utils  # noqa
-
-    NEW_DYNESTY_API = False
+from bilby.core.sampler import dynesty_utils
 
 
 @define
@@ -70,27 +64,85 @@ class TestDynesty(unittest.TestCase):
             skip_import_verification=True,
             **kwargs,
         )
-        if NEW_DYNESTY_API:
-            bilby.core.sampler.base_sampler._initialize_global_variables(
-                self.likelihood,
-                self.priors,
-                self.priors.keys(),
-                False,
-                self.priors.sample(),
-            )
-            self.dysampler = self.sampler.sampler_init(
-                loglikelihood=bilby.core.sampler.dynesty._log_likelihood_wrapper,
-                prior_transform=bilby.core.sampler.dynesty._prior_transform_wrapper,
-                ndim=self.sampler.ndim,
-                **self.sampler.sampler_init_kwargs,
-            )
+        bilby.core.sampler.base_sampler.initialize_global_variables(
+            self.likelihood,
+            self.priors,
+            self.priors.keys(),
+            False,
+            self.priors.sample(),
+        )
+        self.dysampler = self.sampler.sampler_init(
+            loglikelihood=bilby.core.sampler.dynesty._log_likelihood_wrapper,
+            prior_transform=bilby.core.sampler.dynesty._prior_transform_wrapper,
+            ndim=self.sampler.ndim,
+            **self.sampler.sampler_init_kwargs,
+        )
 
     def tearDown(self):
         del self.likelihood
         del self.priors
         del self.sampler
-        if NEW_DYNESTY_API:
-            del self.dysampler
+        del self.dysampler
+
+    def read_mock_checkpoint(self, metadata):
+        checkpoint = mock.MagicMock(added_live=False)
+        versions = dict(bilby=bilby.__version__, dynesty=dynesty.__version__)
+        self.sampler.pool = None
+        with (
+            mock.patch("os.path.isfile", return_value=True),
+            mock.patch("os.stat", return_value=mock.MagicMock(st_size=1)),
+            mock.patch("builtins.open", mock.mock_open()),
+            mock.patch(
+                "dill.load", return_value=(checkpoint, versions, metadata.copy())
+            ),
+        ):
+            return self.sampler.read_saved_state(continuing=True)
+
+    def test_write_current_state_stores_search_parameter_keys(self):
+        self.sampler.sampler = self.dysampler
+        self.sampler.pool = None
+        with (
+            mock.patch("dill.pickles", return_value=True),
+            mock.patch.object(
+                bilby.core.sampler.dynesty, "safe_file_dump"
+            ) as safe_file_dump,
+        ):
+            self.sampler.write_current_state()
+
+        checkpoint = safe_file_dump.call_args.args[0]
+        assert checkpoint[2]["search_parameter_keys"] == ["a", "b"]
+
+    def test_read_saved_state_accepts_matching_search_parameter_keys(self):
+        metadata = dict(
+            search_parameter_keys=["a", "b"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        assert self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_rejects_changed_search_parameter_order(self):
+        metadata = dict(
+            search_parameter_keys=["b", "a"],
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with self.assertRaisesRegex(
+            bilby.core.sampler.base_sampler.ResumeError,
+            "search parameter order differs",
+        ):
+            self.read_mock_checkpoint(metadata)
+
+    def test_read_saved_state_allows_legacy_checkpoint(self):
+        metadata = dict(
+            sampling_time=datetime.timedelta(),
+            start_time=datetime.datetime.now(),
+        )
+        with mock.patch.object(bilby.core.sampler.dynesty.logger, "warning") as warning:
+            assert self.read_mock_checkpoint(metadata)
+        assert (
+            "does not contain search parameter order metadata"
+            in warning.call_args_list[0].args[0]
+        )
 
     def test_default_kwargs(self):
         """Only test the kwargs where we specify different defaults to dynesty"""
@@ -121,61 +173,90 @@ class TestDynesty(unittest.TestCase):
         self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
         self.init_sampler()
-        if NEW_DYNESTY_API:
-            self.assertEqual(
-                [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
-            )
-            self.assertEqual(
-                [1, 3],
-                self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
-            )
-        else:
-            self.assertEqual([0, 4], self.sampler.kwargs["periodic"])
-            self.assertEqual([1, 3], self.sampler.kwargs["reflective"])
+        self.assertEqual(
+            [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
+        )
+        self.assertEqual(
+            [1, 3],
+            self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
+        )
 
     def test_sampler_kwargs_act(self):
         self.init_sampler(sample="act-walk", nact=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next,
-                dynesty_utils.ACTTrackingEnsembleWalk,
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.thin, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200 * 50)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "act-walk")
-            self.assertEqual(self.sampler.nact, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next,
+            dynesty_utils.ACTTrackingEnsembleWalk,
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.thin, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200 * 50)
 
     def test_sampler_kwargs_rwalk(self):
         self.init_sampler(sample="rwalk", nact=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next,
-                dynesty_utils.AcceptanceTrackingRWalk,
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.nact, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "rwalk")
-            self.assertEqual(self.sampler.nact, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next,
+            dynesty_utils.AcceptanceTrackingRWalk,
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.nact, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
 
     def test_sampler_kwargs_acceptance_walk(self):
         self.init_sampler(sample="acceptance-walk", naccept=5, maxmcmc=200)
-        if NEW_DYNESTY_API:
-            self.assertIsInstance(
-                self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler
-            )
-            self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
-            self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
-        else:
-            self.assertEqual(self.sampler.kwargs["sample"], "acceptance-walk")
-            self.assertEqual(self.sampler.naccept, 5)
-            self.assertEqual(self.sampler.maxmcmc, 200)
+        self.assertIsInstance(
+            self.dysampler.internal_sampler_next, dynesty_utils.EnsembleWalkSampler
+        )
+        self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
+        self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
 
     def test_run_test_runs(self):
         self.sampler._run_test()
+
+    def test_plot_current_state_only_closes_figures_it_creates(self):
+        import matplotlib.pyplot as plt
+
+        user_figure = plt.figure()
+        self.addCleanup(plt.close, user_figure)
+        user_figure_number = user_figure.number
+        created_figures = []
+
+        def make_plot(*args, **kwargs):
+            self.assertEqual(set(plt.get_fignums()), {user_figure_number})
+            figure = plt.figure()
+            created_figures.append(figure)
+            return figure, None
+
+        trace_plot_calls = 0
+
+        def make_trace_plot(*args, **kwargs):
+            nonlocal trace_plot_calls
+            trace_plot_calls += 1
+            plot = make_plot()
+            if trace_plot_calls == 1:
+                raise ValueError("Failed after creating a figure")
+            return plot
+
+        self.sampler.sampler = mock.Mock(
+            results={"samples_u": np.zeros((1, self.sampler.ndim))}
+        )
+        with (
+            mock.patch("dynesty.plotting.traceplot", side_effect=make_trace_plot),
+            mock.patch("dynesty.plotting.runplot", side_effect=make_plot),
+            mock.patch(
+                "dynesty.utils.results_substitute",
+                side_effect=lambda results, substitutions: results,
+            ),
+            mock.patch.object(
+                bilby.core.sampler.dynesty,
+                "dynesty_stats_plot",
+                side_effect=make_plot,
+            ),
+            mock.patch("matplotlib.figure.Figure.savefig"),
+        ):
+            self.sampler.plot_current_state()
+
+        self.assertTrue(plt.fignum_exists(user_figure_number))
+        self.assertTrue(
+            all(not plt.fignum_exists(figure.number) for figure in created_figures)
+        )
 
     @parameterized.parameterized.expand((
         ("unif", "single"),
@@ -189,6 +270,22 @@ class TestDynesty(unittest.TestCase):
         This is not an exhaustive test.
         """
         self.init_sampler(sample=sample, bound=bound)
+
+    def test_plotting_exception_does_not_swallow_interruption(self):
+        # Emulate error reported in https://github.com/bilby-dev/bilby/issues/758
+        error = SystemError(
+            "numpy.ndarray.__deepcopy__ returned a result with an error set"
+        )
+
+        self.sampler.sampler = Mock()
+        self.sampler._interrupted = True
+
+        with patch("dynesty.plotting.traceplot", side_effect=error):
+            with self.assertRaises(SystemExit) as context:
+                self.sampler.plot_current_state()
+
+        self.assertEqual(context.exception.code, self.sampler.exit_code)
+        self.assertIs(context.exception.__cause__, error)
 
 
 def test_get_expected_outputs():
@@ -283,11 +380,8 @@ class ProposalsTest(unittest.TestCase):
 
     def test_get_proposal_kwargs_diff(self):
         args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
-        if NEW_DYNESTY_API:
-            args.kwargs["proposals"] = ["diff"]
-            args.kwargs["ncdim"] = 2
-        else:
-            dynesty_utils._SamplingContainer.proposals = ["diff"]
+        args.kwargs["proposals"] = ["diff"]
+        args.kwargs["ncdim"] = 2
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
@@ -300,11 +394,8 @@ class ProposalsTest(unittest.TestCase):
 
     def test_get_proposal_kwargs_volumetric(self):
         args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
-        if NEW_DYNESTY_API:
-            args.kwargs["proposals"] = ["volumetric"]
-            args.live_points = np.zeros((2, 2))
-        else:
-            dynesty_utils._SamplingContainer.proposals = ["volumetric"]
+        args.kwargs["proposals"] = ["volumetric"]
+        args.live_points = np.zeros((2, 2))
         proposals, common, specific = dynesty_utils._get_proposal_kwargs(args)
         del common["rstate"]
         self.assertTrue(
@@ -315,26 +406,11 @@ class ProposalsTest(unittest.TestCase):
             specific, dict(volumetric=dict(axes=args.axes, scale=args.scale))
         )
 
-    @pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
-    def test_proposal_functions_run_old(self):
-        args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
-        args.kwargs["live"][0] += 1
-        for proposals in [
-            ["diff"],
-            ["volumetric"],
-            ["diff", "volumetric"],
-            {"diff": 5, "volumetric": 1},
-        ]:
-            dynesty_utils._SamplingContainer.proposals = proposals
-            dynesty_utils.FixedRWalk()(args)
-            dynesty_utils.AcceptanceTrackingRWalk()(args)
-            dynesty_utils.ACTTrackingRWalk()(args)
-
-    @pytest.mark.skipif(not NEW_DYNESTY_API, reason="Invalid for old dynesty API")
     def test_proposal_functions_run_new(self):
         args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
         args.live_points[0] += 1
         args.kwargs["ncdim"] = 2
+        args.kwargs["target"] = 1
         # args.kwargs["live"][0] += 1
         for proposals in [
             ["diff"],
@@ -348,69 +424,6 @@ class ProposalsTest(unittest.TestCase):
             dynesty_utils.ACTTrackingEnsembleWalk().sample(args)
 
 
-@pytest.mark.skipif(NEW_DYNESTY_API, reason="Invalid for new dynesty API")
-@parameterized.parameterized_class(("kind",), [("live",), ("live-multi",)])
-class TestCustomSampler(unittest.TestCase):
-    def setUp(self):
-        if self.kind == "live":
-            cls = dynesty_utils.LivePointSampler
-        elif self.kind == "live-multi":
-            cls = dynesty_utils.MultiEllipsoidLivePointSampler
-        else:
-            raise ValueError(f"Unknown sampler class {self.kind}")
-
-        self.sampler = cls(
-            loglikelihood=lambda x: 1,
-            prior_transform=lambda x: x,
-            ndim=4,
-            live_points=(np.zeros((1000, 4)), np.zeros((1000, 4)), np.zeros(1000)),
-            update_interval=None,
-            first_update=dict(),
-            queue_size=1,
-            pool=None,
-            use_pool=dict(),
-            ncdim=2,
-            method="rwalk",
-            rstate=np.random.default_rng(1234),
-            kwargs=dict(walks=100),
-        )
-        self.blob = dict(accept=5, reject=35, scale=1)
-
-    def tearDown(self):
-        dynesty_utils._SamplingContainer.proposals = None
-
-    def test_update_with_update(self):
-        """
-        If there is only one element left in the cache for ACT tracking we
-        need to add the flag to rebuild the cache. After rebuilding, this is
-        then reset to False.
-        """
-        self.sampler.rebuild = False
-        self.blob["remaining"] = 1
-        self.sampler.update_user(blob=self.blob, update=True)
-        self.assertEqual(self.sampler.kwargs["rebuild"], True)
-        self.blob["remaining"] = 2
-        self.sampler.update_user(blob=self.blob, update=True)
-        self.assertEqual(self.sampler.kwargs["rebuild"], False)
-
-    def test_diff_update(self):
-        """
-        Sampler updates do different things depending on whether ellipsoid
-        bounding is used. For the `live-multi` case we reproduce the dynesty
-        behaviour. For the `live` case, we overwrite the scale attribute to
-        store acceptance information.
-        """
-        dynesty_utils._SamplingContainer.proposals = ["diff"]
-        dynesty_utils._SamplingContainer.maxmcmc = 10000
-        dynesty_utils._SamplingContainer.naccept = 10
-        self.sampler.update_user(blob=self.blob, update=False)
-        if self.kind == "live":
-            self.assertEqual(self.sampler.scale, self.blob["accept"])
-        else:
-            self.assertEqual(self.sampler.scale, self.blob["scale"])
-        self.assertEqual(self.sampler.walks, 101)
-
-
 class TestEstimateNMCMC(unittest.TestCase):
     def test_converges_to_correct_value(self):
         """
@@ -419,9 +432,12 @@ class TestEstimateNMCMC(unittest.TestCase):
         """
         sampler = dynesty_utils.AcceptanceTrackingRWalk()
         dynesty_utils.AcceptanceTrackingRWalk.old_act = None
+        rng = np.random.default_rng(1234)
         for _ in range(10):
-            accept_ratio = np.random.uniform()
-            safety = np.random.randint(2, 8)
+            # keep accept_ratio large enough that the expected value stays
+            # below the default maxmcmc=5000 cap
+            accept_ratio = rng.uniform(0.01, 1)
+            safety = rng.integers(2, 8)
             expected = safety * (2 / accept_ratio - 1)
             for _ in range(1000):
                 estimated = sampler.estimate_nmcmc(
@@ -474,7 +490,6 @@ class TestReproducibility(unittest.TestCase):
             pass
 
     def _run_sampler(self, **kwargs):
-        bilby.core.utils.random.seed(42)
         return bilby.run_sampler(
             likelihood=self.likelihood,
             priors=self.priors,
@@ -483,26 +498,48 @@ class TestReproducibility(unittest.TestCase):
             resume=False,
             dlogz=1.0,
             nlive=20,
+            sample="acceptance-walk",
+            check_point=False,
+            check_point_plot=False,
+            print_progress=False,
             **kwargs,
         )
 
-    def test_reproducibility_seed(self):
-        res0 = self._run_sampler(seed=1234)
-        res1 = self._run_sampler(seed=1234)
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_seed(self, rejection_sample_posterior):
+        res0 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         rstate = np.random.default_rng(1234)
-        res1 = self._run_sampler(rstate=rstate)
+        res1 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state_and_seed(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state_and_seed(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
-        res1 = self._run_sampler(seed=1234)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
 
 if __name__ == "__main__":

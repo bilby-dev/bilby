@@ -2,7 +2,9 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
+import array_api_compat as aac
 import numpy as np
+import pytest
 
 import bilby
 
@@ -22,6 +24,8 @@ class FakeJointPriorDist(bilby.core.prior.BaseJointPriorDist):
 setattr(bilby.core.prior, "FakeJointPriorDist", FakeJointPriorDist)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
 class TestPriorDict(unittest.TestCase):
 
     def setUp(self):
@@ -74,6 +78,11 @@ class TestPriorDict(unittest.TestCase):
 
     def test_prior_set_has_expected_priors(self):
         self.assertDictEqual(self.priors, dict(self.prior_set_from_dict))
+
+    def test_assignment_rejects_invalid_prior_value(self):
+        expected_error = "Unable to parse prior, bad entry"
+        with self.assertRaisesRegex(TypeError, expected_error):
+            self.prior_set_from_dict["Om0"] = np.array(0.30966)
 
     def test_read_from_file(self):
         expected = dict(
@@ -180,7 +189,6 @@ class TestPriorDict(unittest.TestCase):
     def test_convert_floats_to_delta_functions(self):
         self.prior_set_from_dict["d"] = 5
         self.prior_set_from_dict["e"] = 7.3
-        self.prior_set_from_dict["f"] = "unconvertable"
         self.prior_set_from_dict.convert_floats_to_delta_functions()
         expected = dict(
             mass=bilby.core.prior.Uniform(
@@ -192,7 +200,6 @@ class TestPriorDict(unittest.TestCase):
             length=bilby.core.prior.DeltaFunction(name="c", peak=42, unit="m"),
             d=bilby.core.prior.DeltaFunction(peak=5),
             e=bilby.core.prior.DeltaFunction(peak=7.3),
-            f="unconvertable",
         )
         self.assertDictEqual(expected, self.prior_set_from_dict)
 
@@ -268,30 +275,30 @@ class TestPriorDict(unittest.TestCase):
     def test_sample_subset_correct_size(self):
         size = 7
         samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys(), size=size
+            keys=self.prior_set_from_dict.keys(), size=size,
+            random_state=self.rng,
         )
         self.assertEqual(len(self.prior_set_from_dict), len(samples))
         for key in samples:
             self.assertEqual(size, len(samples[key]))
-
-    def test_sample_subset_correct_size_when_non_priors_in_dict(self):
-        self.prior_set_from_dict["asdf"] = "not_a_prior"
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=self.prior_set_from_dict.keys()
-        )
-        self.assertEqual(len(self.prior_set_from_dict) - 1, len(samples))
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_sample_subset_with_actual_subset(self):
         size = 3
-        samples = self.prior_set_from_dict.sample_subset(keys=["length"], size=size)
-        expected = dict(length=np.array([42.0, 42.0, 42.0]))
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=["length"], size=size, random_state=self.rng
+        )
+        expected = dict(length=self.xp.asarray([42.0, 42.0, 42.0]))
         self.assertTrue(np.array_equal(expected["length"], samples["length"]))
+        self.assertEqual(aac.get_namespace(samples["length"]), self.xp)
 
     def test_sample_subset_constrained_as_array(self):
         size = 3
         keys = ["mass", "speed"]
-        out = self.prior_set_from_dict.sample_subset_constrained_as_array(keys, size)
-        self.assertTrue(isinstance(out, np.ndarray))
+        out = self.prior_set_from_dict.sample_subset_constrained_as_array(
+            keys, size, random_state=self.rng
+        )
+        self.assertEqual(aac.get_namespace(out), self.xp)
         self.assertTrue(out.shape == (len(keys), size))
 
     def test_sample_subset_constrained(self):
@@ -312,7 +319,7 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples1 = priors1.sample_subset_constrained(
-                keys=list(priors1.keys()), size=N
+                keys=list(priors1.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors1) - 1, len(samples1))
             for key in samples1:
@@ -325,14 +332,17 @@ class TestPriorDict(unittest.TestCase):
 
         with patch("bilby.core.prior.logger.warning") as mock_warning:
             samples2 = priors2.sample_subset_constrained(
-                keys=list(priors2.keys()), size=N
+                keys=list(priors2.keys()), size=N, random_state=self.rng
             )
             self.assertEqual(len(priors2), len(samples2))
             for key in samples2:
                 self.assertEqual(N, len(samples2[key]))
             mock_warning.assert_not_called()
 
-    def test_sample(self):
+    def test_sample_with_random_seed(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
         size = 7
         bilby.core.utils.random.seed(42)
         samples1 = self.prior_set_from_dict.sample_subset(
@@ -342,21 +352,34 @@ class TestPriorDict(unittest.TestCase):
         samples2 = self.prior_set_from_dict.sample(size=size)
         self.assertEqual(set(samples1.keys()), set(samples2.keys()))
         for key in samples1:
-            self.assertTrue(np.array_equal(samples1[key], samples2[key]))
+            np.testing.assert_array_equal(samples1[key], samples2[key])
+
+    def test_sample_returns_correct_type(self):
+        """
+        This test uses the default RNG, so don't specify random_state.
+        """
+        size = 7
+        samples = self.prior_set_from_dict.sample_subset(
+            keys=self.prior_set_from_dict.keys(), size=size, random_state=self.rng
+        )
+        for key in samples:
+            self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
         self.assertEqual(expected, self.prior_set_from_dict.prob(samples))
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"])
+        samples = self.prior_set_from_dict.sample_subset(keys=["mass", "speed"], random_state=self.rng)
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
+        self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]
@@ -380,13 +403,14 @@ class TestPriorDict(unittest.TestCase):
 
         Note that the format of inputs/outputs is different between the two methods.
         """
-        sample = self.prior_set_from_dict.sample()
-        original = np.array(list(sample.values()))
-        new = np.array(self.prior_set_from_dict.rescale(
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        original = self.xp.asarray(list(sample.values()))
+        new = self.xp.asarray(self.prior_set_from_dict.rescale(
             sample.keys(),
             self.prior_set_from_dict.cdf(sample=sample).values()
         ))
         self.assertLess(max(abs(original - new)), 1e-10)
+        self.assertEqual(aac.get_namespace(new), self.xp)
 
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():
@@ -573,6 +597,112 @@ class TestLoadPrior(unittest.TestCase):
         self.assertTrue("mass_2" in prior)
         samples = prior.sample(10000)
         self.assertTrue(all(samples["mass_1"] > samples["mass_2"]))
+
+
+@pytest.fixture
+def positive_uniform_prior():
+    def conversion(sample):
+        return dict(sample, positive=sample["x"])
+
+    priors = bilby.core.prior.PriorDict(
+        dict(
+            x=bilby.core.prior.Uniform(-1, 1),
+            positive=bilby.core.prior.Constraint(0, 1),
+        ),
+        conversion_function=conversion,
+    )
+    priors._cached_normalizations[("x",)] = np.float64(2)
+    return priors
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("normalized", [True, False])
+@pytest.mark.parametrize("values", [0.5, [-0.5, 0.5], [0.25, 0.5]])
+def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, values):
+    values = xp.asarray(values)
+    expected = xp.where(values > 0, 0.0 if normalized else -np.log(2), -xp.inf)
+    with patch.object(
+        positive_uniform_prior, "normalize_constraint_factor",
+        wraps=positive_uniform_prior.normalize_constraint_factor,
+    ) as normalization:
+        actual = positive_uniform_prior.ln_prob({"x": values}, axis=0, normalized=normalized)
+        assert normalization.call_count == int(normalized)
+    assert xp.asarray(actual).shape == values.shape
+    assert xp.allclose(actual, expected)
+    assert xp.allclose(
+        positive_uniform_prior.prob({"x": values}, axis=0, normalized=normalized),
+        xp.exp(actual),
+    )
+
+
+@pytest.mark.array_backend
+def test_uniform_ln_prob_out_of_bounds(xp):
+    priors = bilby.core.prior.PriorDict(dict(x=bilby.core.prior.Uniform(-1, 1)))
+    sample = {"x": xp.asarray([0.0, 2.0])}
+    actual = priors.ln_prob(sample, axis=0)
+    assert xp.allclose(actual, xp.asarray([-np.log(2), -xp.inf]))
+    assert xp.allclose(priors.prob(sample, axis=0), xp.exp(actual))
+
+
+@pytest.mark.parametrize("value", [-0.5, 0.5])
+def test_constrained_uniform_scalar_ln_prob(positive_uniform_prior, value):
+    expected = 0.0 if value > 0 else -np.inf
+    actual = positive_uniform_prior.ln_prob({"x": value})
+    assert isinstance(actual, float)
+    assert actual == pytest.approx(expected)
+
+
+@pytest.mark.array_backend
+def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
+    if not aac.is_jax_namespace(xp):
+        pytest.skip("Requires the JAX backend")
+    import jax
+
+    values = xp.asarray([-0.5, 0.5])
+
+    @jax.jit
+    def log_probability(ln_density):
+        return positive_uniform_prior.check_ln_prob(
+            {"x": values}, ln_density, xp=xp,
+        )
+
+    ln_density = xp.full_like(values, -np.log(2))
+    actual = log_probability(ln_density)
+    expected = xp.asarray([-xp.inf, 0.0])
+    assert xp.allclose(actual, expected)
+    gradient = jax.grad(lambda density: xp.sum(log_probability(density)))(ln_density)
+    assert xp.allclose(gradient, xp.asarray([0.0, 1.0]))
+    joint_ln_prob = jax.jit(
+        lambda values: positive_uniform_prior.ln_prob({"x": values}, axis=0)
+    )(values)
+    assert xp.allclose(joint_ln_prob, expected)
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("values", [0.5, [-0.5, 0.5]])
+def test_check_ln_prob_torch_preserves_tensor(
+    positive_uniform_prior, dtype, device, values,
+):
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    values = torch.tensor(values, dtype=getattr(torch, dtype), device=device)
+    ln_density = torch.full_like(values, -np.log(2), requires_grad=True)
+    xp = aac.get_namespace(ln_density)
+    actual = positive_uniform_prior.check_ln_prob(
+        {"x": values}, ln_density, xp=xp,
+    )
+    expected = torch.where(
+        values > 0, torch.zeros_like(values), -torch.inf,
+    )
+    torch.testing.assert_close(actual, expected)
+    assert actual.dtype == ln_density.dtype
+    assert actual.device == ln_density.device
+    assert actual.shape == ln_density.shape
+    actual.sum().backward()
+    torch.testing.assert_close(ln_density.grad, (values > 0).to(ln_density.dtype))
 
 
 class TestCreateDefaultPrior(unittest.TestCase):

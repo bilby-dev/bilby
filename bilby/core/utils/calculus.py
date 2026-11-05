@@ -1,10 +1,12 @@
 import math
 
+import array_api_compat as aac
 import numpy as np
-from scipy.interpolate import interp1d, RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, interp1d as _interp1d
 from scipy.special import logsumexp
 
 from .log import logger
+from ...compat.utils import array_module, xp_wrap, BILBY_ARRAY_API
 
 
 def derivatives(
@@ -152,7 +154,8 @@ def derivatives(
     return grads
 
 
-def logtrapzexp(lnf, dx):
+@xp_wrap
+def logtrapzexp(lnf, dx, *, xp=np):
     """
     Perform trapezium rule integration for the logarithm of a function on a grid.
 
@@ -171,22 +174,51 @@ def logtrapzexp(lnf, dx):
 
     lnfdx1 = lnf[:-1]
     lnfdx2 = lnf[1:]
-    if isinstance(dx, (int, float)):
-        C = np.log(dx / 2.0)
-    elif isinstance(dx, (list, np.ndarray)):
-        if len(dx) != len(lnf) - 1:
-            raise ValueError(
-                "Step size array must have length one less than the function length"
-            )
 
-        lndx = np.log(dx)
-        lnfdx1 = lnfdx1.copy() + lndx
-        lnfdx2 = lnfdx2.copy() + lndx
-        C = -np.log(2.0)
+    try:
+        dx = xp.asarray(dx)
+    except TypeError:
+        raise TypeError(f"Step size dx={dx} could not be converted to an array")
+
+    if dx.ndim > 0 and len(dx) != len(lnf) - 1:
+        raise ValueError(
+            "Step size array must have length one less than the function length"
+        )
+    lnfdx1 = lnfdx1 + xp.log(dx)
+    lnfdx2 = lnfdx2 + xp.log(dx)
+
+    return logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)])) - np.log(2)
+
+
+def interp1d(x, y, kind="linear", axis=-1, bounds_error=None, fill_value=np.nan):
+    if not BILBY_ARRAY_API:
+        return WrappedInterp1d(
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
+        )
+
+    if aac.is_jax_array(x):
+        from interpax import Interpolator1D
+
+        return Interpolator1D(
+            x=x,
+            f=y,
+            method=kind,
+            extrap=fill_value,
+        )
     else:
-        raise TypeError("Step size must be a single value or array-like")
-
-    return C + logsumexp([logsumexp(lnfdx1), logsumexp(lnfdx2)])
+        return WrappedInterp1d(
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
+        )
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
@@ -202,9 +234,23 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         if self.y_max is None:
             self.y_max = max(y)
         self.fill_value = fill_value
+        self.x = x
+        self.y = y
+        self.z = z
         super().__init__(x=x, y=y, z=z, bbox=bbox, kx=kx, ky=ky, s=s)
 
     def __call__(self, x, y, dx=0, dy=0, grid=False):
+        xp = array_module([x, y])
+        if aac.is_numpy_namespace(xp):
+            return self._call_scipy(x, y, dx=dx, dy=dy, grid=grid)
+        elif aac.is_jax_namespace(xp):
+            return self._call_jax(x, y)
+        else:
+            raise NotImplementedError(
+                f"BoundedRectBivariateSpline not implemented for {xp.__name__} backend"
+            )
+
+    def _call_scipy(self, x, y, dx=0, dy=0, grid=False):
         result = super().__call__(x=x, y=y, dx=dx, dy=dy, grid=grid)
         out_of_bounds_x = (x < self.x_min) | (x > self.x_max)
         out_of_bounds_y = (y < self.y_min) | (y > self.y_max)
@@ -218,17 +264,39 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         else:
             return result
 
+    def _call_jax(self, x, y):
+        import jax.numpy as jnp
+        from interpax import interp2d
 
-class WrappedInterp1d(interp1d):
+        return interp2d(
+            jnp.asarray(x),
+            jnp.asarray(y),
+            jnp.asarray(self.x),
+            jnp.asarray(self.y),
+            jnp.asarray(self.z),
+            extrap=self.fill_value if self.fill_value is not None else False,
+            method="cubic2",
+        )
+
+
+class WrappedInterp1d(_interp1d):
     """
     A wrapper around scipy interp1d which sets equality-by-instantiation and
     makes sure that the output is a float if the input is a float or int.
     """
+
+    def __init__(self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan):
+        super().__init__(
+            x=x, y=y, kind=kind, axis=axis, bounds_error=bounds_error, fill_value=fill_value
+        )
+        self.kind = kind
+
     def __call__(self, x):
+        # some backends, e.g., torch don't support interpolation, add an explicit
+        # cast to make it not crash
         output = super().__call__(x)
-        if isinstance(x, (float, int)):
-            output = output.item()
-        return output
+        xp = array_module(x)
+        return xp.asarray(output)
 
     def __eq__(self, other):
         for key in self.__dict__:

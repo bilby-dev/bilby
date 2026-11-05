@@ -1,3 +1,4 @@
+import array_api_compat as aac
 import numpy as np
 
 from ..core import utils
@@ -24,7 +25,8 @@ class WaveformGenerator(object):
     def __init__(self, duration=None, sampling_frequency=None, start_time=0, frequency_domain_source_model=None,
                  time_domain_source_model=None, parameters=None,
                  parameter_conversion=None,
-                 waveform_arguments=None):
+                 waveform_arguments=None, use_cache=True,
+                 ):
         """
         The base waveform generator class.
 
@@ -44,8 +46,9 @@ class WaveformGenerator(object):
             A python function taking some arguments and returning the time
             domain strain. Note the first argument must be the times at
             which to compute the strain
-        parameters: dict, optional
-            Initial values for the parameters
+        parameters: DEPRECATED
+            Passing parameters via the waveform generator init is deprecated
+            and will be removed in a future release.
         parameter_conversion: func, optional
             Function to convert from sampled parameters to parameters of the
             waveform generator. Default value is the identity, i.e. it leaves
@@ -57,6 +60,10 @@ class WaveformGenerator(object):
             Note: the arguments of frequency_domain_source_model (except the first,
             which is the frequencies at which to compute the strain) will be added to
             the WaveformGenerator object and initialised to `None`.
+        use_cache: bool
+            Whether to attempt caching the waveform between subsequent calls.
+            This is :code:`True` by default but must be disabled for JIT compilation
+            with :code:`JAX`.
 
         """
         self._times_and_frequencies = CoupledTimeAndFrequencySeries(duration=duration,
@@ -73,9 +80,13 @@ class WaveformGenerator(object):
             self.waveform_arguments = waveform_arguments
         else:
             self.waveform_arguments = dict()
-        if isinstance(parameters, dict):
-            self.parameters = parameters
+        if parameters is not None:
+            logger.warning(
+                "Setting initial parameters via the 'parameters' argument is "
+                "deprecated and will be removed in a future release."
+            )
         self._cache = dict(parameters=None, waveform=None, model=None)
+        self.use_cache = use_cache
         logger.info(f"Waveform generator instantiated: {self}")
 
     def __repr__(self):
@@ -99,18 +110,18 @@ class WaveformGenerator(object):
             .format(self.duration, self.sampling_frequency, self.start_time, fdsm_name, tdsm_name,
                     param_conv_name, self.waveform_arguments)
 
-    def frequency_domain_strain(self, parameters=None):
+    def frequency_domain_strain(self, parameters=None, *, xp=None):
         """ Wrapper to source_model.
 
-        Converts self.parameters with self.parameter_conversion before handing it off to the source model.
+        Converts parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the time_domain_source model via NFFT if no frequency_domain_source_model is given.
 
         Parameters
         ==========
         parameters: dict, optional
-            Parameters to evaluate the waveform for, this overwrites
-            `self.parameters`.
-            If not provided will fall back to `self.parameters`.
+            Parameters to evaluate the waveform for.
+            If not passed and the generator has been called previously,
+            the last used parameters will be used.
 
         Returns
         =======
@@ -126,21 +137,26 @@ class WaveformGenerator(object):
                                       parameters=parameters,
                                       transformation_function=utils.nfft,
                                       transformed_model=self.time_domain_source_model,
-                                      transformed_model_data_points=self.time_array)
+                                      transformed_model_data_points=self.time_array,
+                                      xp=xp)
 
-    def time_domain_strain(self, parameters=None):
+    def time_domain_strain(self, parameters=None, *, xp=None):
         """ Wrapper to source_model.
 
-        Converts self.parameters with self.parameter_conversion before handing it off to the source model.
+        Converts parameters with self.parameter_conversion before handing it off to the source model.
         Automatically refers to the frequency_domain_source model via INFFT if no frequency_domain_source_model is
         given.
 
         Parameters
         ==========
         parameters: dict, optional
-            Parameters to evaluate the waveform for, this overwrites
-            `self.parameters`.
-            If not provided will fall back to `self.parameters`.
+            Parameters to evaluate the waveform for.
+            If not passed and the generator has been called previously,
+            the last used parameters will be used.
+        xp: array module, optional
+            The array module to use when evaluating the source model, e.g., :code:`numpy`.
+            This can be used to override the :code:`time_array` stored in the generator.
+            If :code:`None`, the default will be used.
 
         Returns
         =======
@@ -156,41 +172,62 @@ class WaveformGenerator(object):
                                       parameters=parameters,
                                       transformation_function=utils.infft,
                                       transformed_model=self.frequency_domain_source_model,
-                                      transformed_model_data_points=self.frequency_array)
+                                      transformed_model_data_points=self.frequency_array,
+                                      xp=xp)
 
     def _calculate_strain(self, model, model_data_points, transformation_function, transformed_model,
-                          transformed_model_data_points, parameters):
+                          transformed_model_data_points, parameters, *, xp=None):
         if parameters is None:
-            parameters = self.parameters
-        if parameters == self._cache['parameters'] and self._cache['model'] == model and \
-                self._cache['transformed_model'] == transformed_model:
+            parameters = self._cache.get('parameters', None)
+        if parameters is None:
+            raise ValueError("No parameters given to generate waveform.")
+        if (
+            self.use_cache
+            and parameters == self._cache.get('parameters', None)
+            and self._cache['model'] == model
+            and self._cache['transformed_model'] == transformed_model
+        ):
             return self._cache['waveform']
-        else:
+        elif self.use_cache:
             self._cache['parameters'] = parameters.copy()
             self._cache['model'] = model
             self._cache['transformed_model'] = transformed_model
         parameters = self._format_parameters(parameters)
         if model is not None:
-            model_strain = self._strain_from_model(model_data_points, model, parameters)
+            model_strain = self._strain_from_model(model_data_points, model, parameters, xp=xp)
         elif transformed_model is not None:
-            model_strain = self._strain_from_transformed_model(transformed_model_data_points, transformed_model,
-                                                               transformation_function, parameters)
+            model_strain = self._strain_from_transformed_model(
+                transformed_model_data_points,
+                transformed_model,
+                transformation_function,
+                parameters,
+                xp=xp,
+            )
         else:
             raise RuntimeError("No source model given")
-        self._cache['waveform'] = model_strain
+        if self.use_cache:
+            self._cache['waveform'] = model_strain
         return model_strain
 
-    def _strain_from_model(self, model_data_points, model, parameters):
+    def _strain_from_model(self, model_data_points, model, parameters, *, xp=None):
+        if xp is not None:
+            model_data_points = xp.asarray(model_data_points)
         return model(model_data_points, **parameters)
 
     def _strain_from_transformed_model(
-        self, transformed_model_data_points, transformed_model, transformation_function, parameters
+        self,
+        transformed_model_data_points,
+        transformed_model,
+        transformation_function,
+        parameters,
+        *,
+        xp=None,
     ):
         transformed_model_strain = self._strain_from_model(
-            transformed_model_data_points, transformed_model, parameters
+            transformed_model_data_points, transformed_model, parameters, xp=xp
         )
 
-        if isinstance(transformed_model_strain, np.ndarray):
+        if aac.is_array_api_obj(transformed_model_strain):
             return transformation_function(transformed_model_strain, self.sampling_frequency)
 
         model_strain = dict()
@@ -210,28 +247,16 @@ class WaveformGenerator(object):
         =======
         dict: The dictionary of parameter key-value pairs
 
+        Raises
+        ======
+        AttributeError: If :code:`parameters` is not present in the internal cache.
         """
-        if hasattr(self, "_parameters"):
-            return self._parameters
+        if self._cache.get("parameters", None) is not None:
+            return self._cache["parameters"]
         else:
-            return self._cache.get("parameters", None)
-
-    @parameters.setter
-    def parameters(self, parameters):
-        """
-        Set parameters, this applies the conversion function and then removes
-        any parameters which aren't required by the source function.
-
-        (set.symmetric_difference is the opposite of set.intersection)
-
-        Parameters
-        ==========
-        parameters: dict
-            Input parameter dictionary, this is copied, passed to the conversion
-            function and has self.waveform_arguments added to it.
-        """
-        new_parameters = self._format_parameters(parameters)
-        self._parameters = new_parameters
+            raise AttributeError(
+                "Parameters not available in the WaveformGenerator cache."
+            )
 
     def _format_parameters(self, parameters):
         if not isinstance(parameters, dict):
@@ -315,8 +340,9 @@ class GWSignalWaveformGenerator(WaveformGenerator):
         Time duration of data
     start_time: float, optional
         Starting time of the time array
-    parameters: dict, optional
-        Initial values for the parameters
+    parameters: DEPRECATED
+        Passing parameters via the waveform generator init is deprecated
+        and will be removed in a future release.
     parameter_conversion: func, optional
         Function to convert from sampled parameters to parameters of the
         waveform generator. The default value is the identity, i.e., it leaves
@@ -397,6 +423,23 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
         output = {key: 0.0 for key in keys}
         return output
+
+    @property
+    def _disabled_parameters(self):
+        return set(self.defaults.keys())
+
+    def _format_parameters(self, parameters):
+        self._warn_about_disabled_parameters(parameters)
+        return super()._format_parameters(parameters)
+
+    def _warn_about_disabled_parameters(self, parameters):
+        diff = set(parameters.keys()).intersection(self._disabled_parameters)
+        if len(diff) > 0:
+            logger.warning(
+                f"The following parameters are set but will be ignored since "
+                f"spinning={self.spinning}, eccentric={self.eccentric} and "
+                f"tidal={self.tidal}: {sorted(diff)}"
+            )
 
     def _from_bilby_parameters(self, **parameters):
         from .conversion import bilby_to_lalsimulation_spins
@@ -506,9 +549,6 @@ class GWSignalWaveformGenerator(WaveformGenerator):
     def frequency_domain_strain(self, parameters):
         from lalsimulation.gwsignal import GenerateFDWaveform
 
-        if parameters is None:
-            parameters = self.parameters
-
         hpc = _try_waveform_call(
             GenerateFDWaveform,
             self._from_bilby_parameters(**parameters),
@@ -539,9 +579,6 @@ class GWSignalWaveformGenerator(WaveformGenerator):
 
     def time_domain_strain(self, parameters):
         from lalsimulation.gwsignal import GenerateTDWaveform
-
-        if parameters is None:
-            parameters = self.parameters
 
         hpc = _try_waveform_call(
             GenerateTDWaveform,

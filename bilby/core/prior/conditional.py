@@ -1,13 +1,22 @@
+import numpy as np
+
 from .base import Prior, PriorException
 from .interpolated import Interped
 from .analytical import DeltaFunction, PowerLaw, Uniform, LogUniform, \
     SymmetricLogUniform, Cosine, Sine, Gaussian, TruncatedGaussian, HalfGaussian, \
     LogNormal, Exponential, StudentT, Beta, Logistic, Cauchy, Gamma, ChiSquared, FermiDirac
 from ..utils import infer_args_from_method, infer_parameters_from_function
+from ...compat.utils import xp_wrap
 
 
 def conditional_prior_factory(prior_class):
     class ConditionalPrior(prior_class):
+
+        _leaves = prior_class._leaves
+
+        __name__ = 'Conditional{}'.format(prior_class.__name__)
+        __qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
+
         def __init__(self, condition_func, name=None, latex_label=None, unit=None,
                      boundary=None, **reference_params):
             """
@@ -56,10 +65,8 @@ def conditional_prior_factory(prior_class):
             self._required_variables = None
             self.condition_func = condition_func
             self._reference_params = reference_params
-            self.__class__.__name__ = 'Conditional{}'.format(prior_class.__name__)
-            self.__class__.__qualname__ = 'Conditional{}'.format(prior_class.__qualname__)
 
-        def sample(self, size=None, **required_variables):
+        def sample(self, size=None, *, random_state=None, **required_variables):
             """Draw a sample from the prior
 
             Parameters
@@ -75,11 +82,18 @@ def conditional_prior_factory(prior_class):
 
             """
             from ..utils import random
+            rng = random.resolve_random_state(random_state)
 
-            self.least_recently_sampled = self.rescale(random.rng.uniform(0, 1, size), **required_variables)
+            if isinstance(size, int | np.integer):
+                size = (size,)
+
+            self.least_recently_sampled = self.rescale(
+                rng.uniform(0, 1, size), **required_variables
+            )
             return self.least_recently_sampled
 
-        def rescale(self, val, **required_variables):
+        @xp_wrap
+        def rescale(self, val, *, xp=None, **required_variables):
             """
             'Rescale' a sample from the unit line element to the prior.
 
@@ -93,9 +107,10 @@ def conditional_prior_factory(prior_class):
 
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).rescale(val)
+            return super(ConditionalPrior, self).rescale(val, xp=xp)
 
-        def prob(self, val, **required_variables):
+        @xp_wrap
+        def prob(self, val, *, xp=None, **required_variables):
             """Return the prior probability of val.
 
             Parameters
@@ -111,9 +126,10 @@ def conditional_prior_factory(prior_class):
             float: Prior probability of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).prob(val)
+            return super(ConditionalPrior, self).prob(val, xp=xp)
 
-        def ln_prob(self, val, **required_variables):
+        @xp_wrap
+        def ln_prob(self, val, *, xp=None, **required_variables):
             """Return the natural log prior probability of val.
 
             Parameters
@@ -129,9 +145,10 @@ def conditional_prior_factory(prior_class):
             float: Natural log prior probability of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).ln_prob(val)
+            return super(ConditionalPrior, self).ln_prob(val, xp=xp)
 
-        def cdf(self, val, **required_variables):
+        @xp_wrap
+        def cdf(self, val, *, xp=None, **required_variables):
             """Return the cdf of val.
 
             Parameters
@@ -147,7 +164,7 @@ def conditional_prior_factory(prior_class):
             float: CDF of val
             """
             self.update_conditions(**required_variables)
-            return super(ConditionalPrior, self).cdf(val)
+            return super(ConditionalPrior, self).cdf(val, xp=xp)
 
         def update_conditions(self, **required_variables):
             """
@@ -164,6 +181,7 @@ def conditional_prior_factory(prior_class):
                 self.reference_params will be used.
 
             """
+            required_variables.pop("xp", None)
             if sorted(list(required_variables)) == sorted(self.required_variables):
                 parameters = self.condition_func(self.reference_params.copy(), **required_variables)
                 for key, value in parameters.items():
@@ -367,6 +385,8 @@ class DirichletElement(ConditionalBeta):
         This should be the same for all elements.
     """
 
+    _leaves = []
+
     def __init__(self, order, n_dimensions, label):
         """ """
         super(DirichletElement, self).__init__(
@@ -394,6 +414,16 @@ class DirichletElement(ConditionalBeta):
 
     def get_instantiation_dict(self):
         return Prior.get_instantiation_dict(self)
+
+    def pytree_flatten(self):
+        children = ()
+        aux_data = (self.order, self.n_dimensions, self.label)
+        return children, aux_data
+
+    @classmethod
+    def pytree_unflatten(cls, aux_data, children):
+        print(aux_data, children)
+        return cls(*aux_data)
 
 
 class ConditionalPriorException(PriorException):

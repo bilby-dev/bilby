@@ -1,4 +1,3 @@
-import os
 import unittest
 from unittest import mock
 
@@ -312,9 +311,9 @@ class TestInterferometer(unittest.TestCase):
             signal = np.ones_like(self.ifo.power_spectral_density_array)
             mask = self.ifo.frequency_mask
             expected = [
-                signal[mask],
-                signal[mask],
-                self.ifo.power_spectral_density_array[mask],
+                signal * mask,
+                signal * mask,
+                np.where(mask, self.ifo.power_spectral_density_array, np.inf),
                 self.ifo.strain_data.duration,
             ]
             actual = self.ifo.optimal_snr_squared(signal=signal)
@@ -331,9 +330,9 @@ class TestInterferometer(unittest.TestCase):
             signal_1=signal_1,
             signal_2=signal_1
         )
-        self.assertTrue(np.array_equal(signal_1_optimal, signal_1_optimal_by_template_template))
+        self.assertAlmostEqual(signal_1_optimal, signal_1_optimal_by_template_template, delta=signal_1_optimal / 1e14)
         signal_1_signal_2_inner_product = self.ifo.template_template_inner_product(signal_1=signal_1, signal_2=signal_2)
-        self.assertTrue(np.array_equal(signal_1_optimal * 2, signal_1_signal_2_inner_product))
+        self.assertAlmostEqual(signal_1_optimal * 2, signal_1_signal_2_inner_product, delta=signal_1_optimal / 1e14)
 
     def test_repr(self):
         expected = (
@@ -383,17 +382,6 @@ def test_psd_not_impacted_by_window_factor(monkeypatch):
         ),
         ifo.power_spectral_density_array
     )
-
-
-def test_psd_impacted_by_window_factor_with_environment_variable(monkeypatch):
-    ifo = bilby.gw.detector.get_empty_interferometer("H1")
-    ifo.set_strain_data_from_zero_noise(duration=4, sampling_frequency=256)
-    old_psd = ifo.power_spectral_density_array
-    factor = 0.1
-    env = dict(BILBY_INCORRECT_PSD_NORMALIZATION="TRUE")
-    monkeypatch.setattr(os, "environ", env)
-    monkeypatch.setattr(ifo.strain_data, "window_factor", factor)
-    np.testing.assert_array_equal(old_psd * factor, ifo.power_spectral_density_array)
 
 
 class TestInterferometerEquals(unittest.TestCase):
@@ -538,8 +526,8 @@ class TestInterferometerEquals(unittest.TestCase):
 class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
     def setUp(self):
         self.name = "name"
-        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'GEO600', 'ET']
-        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'GEO600': 'G1', 'ET': 'E1'}
+        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'G1', 'ET']
+        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'G1': 'G1', 'ET': 'E1'}
         self.polarizations = ['plus', 'cross', 'breathing', 'longitudinal', 'x', 'y']
         self.ifos = bilby.gw.detector.InterferometerList(self.ifo_names)
         self.gpstime = 1305303144

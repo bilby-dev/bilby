@@ -5,6 +5,58 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Changes
+
+- Rename the `GEO600` detector identifier to `G1` so that channel names of the form `G1:...` in GEO frame files are recognised; `GEO600` is kept working as a deprecated alias for `get_empty_interferometer`/`InterferometerList` (https://github.com/bilby-dev/bilby/pull/935)
+
+### Fixes
+* Corrected incorrect docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (closes #731)
+
+## [2.8.2]
+
+### Fixes
+
+* BUG: Make sure the ROQ likelihood switches basis consistently by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1120 and backported in https://github.com/bilby-dev/bilby/pull/1122
+
+## [2.8.1]
+
+### Fixes
+
+* BUG: Fix 0-dimensional array in priors by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/886 and backported https://github.com/bilby-dev/bilby/pull/1103
+* BUG: Fix typo in interferometer.py to_pickle method by @AlexandreGoettel in https://github.com/bilby-dev/bilby/pull/1081 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
+### Changes
+
+* MAINT: Relax tolerance for log noise evidence comparison by @mattpitkin in https://github.com/bilby-dev/bilby/pull/1087 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
+## [2.8.0]
+
+This is our last planned minor version increase before Bilby version 3.
+The main changes are explicit deprecation warnings for functionality that will be removed in version 3 in addition to a number of bug fixes.
+
+### Fixes
+* BUG: Fix handling of contour-kwargs for multiple corner plots by @JasperMartins in https://github.com/bilby-dev/bilby/pull/1022
+* BUG: Exclude infinite values from gradient check tau list by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1035
+* BUG: fix triangular interferometer coordinates by @filippo-santoliquido in https://github.com/bilby-dev/bilby/pull/1016
+* BUG: Fix path for LinAlgError in exception handling by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1038
+* BUG: inhomogeneous rescaling with Categorical Priors by @Hen42rik in https://github.com/bilby-dev/bilby/pull/1037
+* BUG: Fix GWSignalWaveformGenerator reconstruction in waveform posterior plots by @lorenzopompili00 in https://github.com/bilby-dev/bilby/pull/1029
+* BUG: Fix sampler_kwargs mutation in dynesty3_utils by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1045
+
+### Changes
+* MAINT: Change probability initialization to use np.ones_like by @vivienr in https://github.com/bilby-dev/bilby/pull/1028
+* REFACTOR: make multiband likelihood call Interferometer.get_detector_response by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/847
+* MAINT: move LikePriorEvaluator to base sampler by @mj-will in https://github.com/bilby-dev/bilby/pull/1041
+* MAINT: Advance deprecations before bilby v3 by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1040
+
+### New Contributors
+* @Dsantra92 made their first contribution in https://github.com/bilby-dev/bilby/pull/1013
+* @vivienr made their first contribution in https://github.com/bilby-dev/bilby/pull/1028
+* @Qazalbash made their first contribution in https://github.com/bilby-dev/bilby/pull/1000
+* @filippo-santoliquido made their first contribution in https://github.com/bilby-dev/bilby/pull/1016
+
+**Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
+
 ## [2.7.1]
 
 ### Fixes
@@ -1247,7 +1299,10 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.7.1...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.2...main
+[2.8.2]: https://github.com/bilby-dev/bilby/compare/v2.8.1...v2.8.2
+[2.8.1]: https://github.com/bilby-dev/bilby/compare/v2.8.0...v2.8.1
+[2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/bilby-dev/bilby/compare/v2.5.2...v2.6.0

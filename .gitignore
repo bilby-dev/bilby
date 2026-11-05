@@ -16,3 +16,6 @@ MANIFEST
 **/outdir
 .idea/*
 bilby/_version.py
+uv.lock
+.pixi/
+.venv/

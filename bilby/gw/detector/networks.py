@@ -1,12 +1,15 @@
 import os
 
-import numpy as np
 import math
+from scipy.spatial.transform import Rotation
 
+from ...compat.utils import xp_wrap
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
+from ..geometry import zenith_azimuth_to_theta_phi
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
+from ..utils import get_vertex_position_geocentric, get_vertex_position_ellipsoid
 
 
 class InterferometerList(list):
@@ -84,7 +87,7 @@ class InterferometerList(list):
                     logger.warning(e)
 
     def set_strain_data_from_power_spectral_densities(
-        self, sampling_frequency, duration, start_time=0
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
     ):
         """Set the `Interferometer.strain_data` from the power spectral densities of the detectors
 
@@ -107,6 +110,7 @@ class InterferometerList(list):
                 sampling_frequency=sampling_frequency,
                 duration=duration,
                 start_time=start_time,
+                random_state=random_state,
             )
 
     def set_strain_data_from_zero_noise(
@@ -341,6 +345,15 @@ class InterferometerList(list):
     )
     from_pickle.__doc__ = _load_docstring.format(format="pickle")
 
+    @property
+    def array_backend(self):
+        return self[0].array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        for ifo in self:
+            ifo.array_backend = xp
+
 
 class TriangularInterferometer(InterferometerList):
     def __init__(
@@ -368,9 +381,8 @@ class TriangularInterferometer(InterferometerList):
         if isinstance(maximum_frequency, float) or isinstance(maximum_frequency, int):
             maximum_frequency = [maximum_frequency] * 3
 
-        brng = 90 - xarm_azimuth
-
         for ii in range(3):
+
             self.append(
                 Interferometer(
                     "{}{}".format(name, ii + 1),
@@ -388,23 +400,92 @@ class TriangularInterferometer(InterferometerList):
                 )
             )
 
-            phi1 = np.radians(latitude)
-            phi2 = np.arcsin(
-                np.sin(phi1) * np.cos(length * 1e3 / utils.radius_of_earth) +
-                np.cos(phi1) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(np.radians(brng))
-            )
-            latitude = np.degrees(phi2)
+            latitude, longitude, elevation, xarm_azimuth, \
+                yarm_azimuth, xarm_tilt, yarm_tilt = self._get_next_vertex_parameters(ii)
 
-            lam1 = np.radians(longitude)
-            lam2 = lam1 + np.arctan2(
-                np.sin(np.radians(brng)) * np.sin(length * 1e3 / utils.radius_of_earth) * np.cos(phi1),
-                np.cos(length * 1e3 / utils.radius_of_earth) - np.sin(phi1) * np.sin(phi2)
-            )
-            longitude = np.degrees(lam2)
+    @xp_wrap
+    def _get_next_vertex_parameters(self, current_index, *, xp):
+        """
+        Get the parameters for the next vertex (counterclockwise) in the triangular interferometer.
+        The location of the next vertex is calculated by moving along the x-arm of the current
+        interferometer in geocentric coordinates. The new latitude, longitude, and elevation are
+        calculated through a coordinate transformation from geocentric to ellipsoidal coordinates.
+        The new unit vectors for the x and y arms are calculated by rotating the current unit vectors
+        by 120 degrees around the normal vector. The new azimuths and tilts are calculated by projecting
+        the new unit vectors onto the local normal, north, and east vectors.
 
-            brng += 240
-            xarm_azimuth += 240
-            yarm_azimuth += 240
+        Parameters
+        ==========
+        current_index: int
+            The index of the current interferometer in the list.
+
+        Returns
+        =======
+        latitude: float
+            The latitude of the next vertex in degrees.
+        longitude: float
+            The longitude of the next vertex in degrees.
+        elevation: float
+            The elevation of the next vertex in meters.
+        xarm_azimuth: float
+            The azimuth of the x-arm of the next interferometer in degrees.
+        yarm_azimuth: float
+            The azimuth of the y-arm of the next interferometer in degrees.
+        xarm_tilt: float
+            The tilt of the x-arm of the next interferometer in radians.
+        yarm_tilt: float
+            The tilt of the y-arm of the next interferometer in radians.
+
+        """
+        current_ifo = self[current_index]
+        unit_vector_x = current_ifo.geometry.unit_vector_along_arm("x")
+        unit_vector_y = current_ifo.geometry.unit_vector_along_arm("y")
+
+        vertex_geocentric = get_vertex_position_geocentric(xp.asarray([current_ifo.latitude_radians,
+                                                                       current_ifo.longitude_radians,
+                                                                       current_ifo.elevation]))
+        next_vertex_geocentric = vertex_geocentric + current_ifo.length * 1000 * unit_vector_x
+        next_vertex_ellipsoid = get_vertex_position_ellipsoid(next_vertex_geocentric)
+        next_latitude_rad, next_longitude_rad, next_elevation = next_vertex_ellipsoid
+
+        rotation_vector = xp.cross(unit_vector_x, unit_vector_y)
+        rotation_vector /= xp.linalg.norm(rotation_vector)
+        rotation_angle = 2 / 3 * xp.pi
+        rotation = Rotation.from_rotvec(rotation_angle * rotation_vector)
+        next_unit_vector_x = rotation.apply(unit_vector_x)
+        next_unit_vector_y = rotation.apply(unit_vector_y)
+
+        next_local_normal_vector = xp.asarray([xp.cos(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                               xp.cos(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                               xp.sin(next_latitude_rad)])
+        next_local_north_vector = xp.asarray([-xp.sin(next_latitude_rad) * xp.cos(next_longitude_rad),
+                                              -xp.sin(next_latitude_rad) * xp.sin(next_longitude_rad),
+                                              xp.cos(next_latitude_rad)])
+        next_local_east_vector = xp.asarray([-xp.sin(next_longitude_rad),
+                                             xp.cos(next_longitude_rad), 0])
+
+        next_xarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_x, next_local_normal_vector))
+        next_yarm_tilt_rad = xp.arcsin(xp.dot(next_unit_vector_y, next_local_normal_vector))
+        next_xarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_x, next_local_north_vector),
+                                           xp.dot(next_unit_vector_x, next_local_east_vector))
+        next_yarm_azimuth_rad = xp.arctan2(xp.dot(next_unit_vector_y, next_local_north_vector),
+                                           xp.dot(next_unit_vector_y, next_local_east_vector))
+
+        return (xp.rad2deg(next_latitude_rad),
+                xp.rad2deg(next_longitude_rad),
+                next_elevation,
+                xp.rad2deg(next_xarm_azimuth_rad),
+                xp.rad2deg(next_yarm_azimuth_rad),
+                next_xarm_tilt_rad,
+                next_yarm_tilt_rad)
+
+
+_LEGACY_DETECTOR_NAMES = {
+    # GEO600 was renamed to its LAL/channel-name prefix, G1, so that
+    # InterferometerList(["G1"]) matches the "G1:..." channel names found
+    # in GEO frame files. This alias keeps the old identifier working.
+    "GEO600": "G1",
+}
 
 
 def get_empty_interferometer(name):
@@ -414,16 +495,18 @@ def get_empty_interferometer(name):
     These objects do not have any noise instantiated.
 
     The available instruments are:
-        H1, L1, V1, GEO600, CE
+        H1, L1, V1, G1, CE
+
+    ``GEO600`` is accepted as a deprecated alias for ``G1``.
 
     Detector positions taken from:
         L1/H1: LIGO-T980044-10
-        V1/GEO600: arXiv:gr-qc/0008066 [45]
+        V1/G1: arXiv:gr-qc/0008066 [45]
         CE: located at the site of H1
 
     Detector sensitivities:
         H1/L1/V1: https://dcc.ligo.org/LIGO-P1200087-v42/public
-        GEO600: http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
+        G1: http://www.geo600.org/1032083/GEO600_Sensitivity_Curves
         CE: https://dcc.ligo.org/LIGO-P1600143/public
 
 
@@ -437,6 +520,14 @@ def get_empty_interferometer(name):
     interferometer: Interferometer
         Interferometer instance
     """
+    if name in _LEGACY_DETECTOR_NAMES:
+        new_name = _LEGACY_DETECTOR_NAMES[name]
+        logger.warning(
+            "Interferometer name '{}' is deprecated, use '{}' instead.".format(
+                name, new_name
+            )
+        )
+        name = new_name
     filename = os.path.join(
         os.path.dirname(__file__), "detectors", "{}.interferometer".format(name)
     )
@@ -472,3 +563,9 @@ def load_interferometer(filename):
             "{} could not be loaded. Invalid parameter 'shape'.".format(filename)
         )
     return ifo
+
+
+@zenith_azimuth_to_theta_phi.dispatch
+def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)

@@ -1,11 +1,29 @@
+import array_api_compat as aac
+import array_api_extra as xpx
 import numpy as np
 from scipy.integrate import trapezoid
 
 from .base import Prior
-from ..utils import logger, WrappedInterp1d as interp1d
+from ..utils import logger
+from ..utils.calculus import interp1d
+from ...compat.utils import xp_wrap
 
 
 class Interped(Prior):
+
+    _leaves = [
+        "xx",
+        "_yy",
+        "YY",
+        "_minimum",
+        "_maximum",
+        "min_limit",
+        "max_limit",
+        "probability_density",
+        "cumulative_distribution",
+        "inverse_cumulative_distribution",
+        "_all_interpolated",
+    ]
 
     def __init__(self, xx, yy, minimum=np.nan, maximum=np.nan, name=None,
                  latex_label=None, unit=None, boundary=None):
@@ -50,7 +68,7 @@ class Interped(Prior):
         self.probability_density = None
         self.cumulative_distribution = None
         self.inverse_cumulative_distribution = None
-        self.__all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
+        self._all_interpolated = interp1d(x=xx, y=yy, bounds_error=False, fill_value=0)
         minimum = float(np.nanmax(np.array((min(xx), minimum))))
         maximum = float(np.nanmin(np.array((max(xx), maximum))))
         super(Interped, self).__init__(name=name, latex_label=latex_label, unit=unit,
@@ -64,7 +82,8 @@ class Interped(Prior):
             return True
         return False
 
-    def prob(self, val):
+    @xp_wrap
+    def prob(self, val, *, xp=None):
         """Return the prior probability of val.
 
         Parameters
@@ -75,18 +94,20 @@ class Interped(Prior):
         =======
          Union[float, array_like]: Prior probability of val
         """
-        return self.probability_density(val)
+        return self.probability_density(val)[()]
 
-    def cdf(self, val):
-        return self.cumulative_distribution(val)
+    @xp_wrap
+    def cdf(self, val, *, xp=None):
+        return self.cumulative_distribution(val)[()]
 
-    def rescale(self, val):
+    @xp_wrap
+    def rescale(self, val, *, xp=None):
         """
         'Rescale' a sample from the unit line element to the prior.
 
         This maps to the inverse CDF. This is done using interpolation.
         """
-        return self.inverse_cumulative_distribution(val)
+        return self.inverse_cumulative_distribution(val)[()]
 
     @property
     def minimum(self):
@@ -150,12 +171,13 @@ class Interped(Prior):
     @yy.setter
     def yy(self, yy):
         self._yy = yy
-        self.__all_interpolated = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
+        self._all_interpolated = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
         self._update_instance()
 
     def _update_instance(self):
-        self.xx = np.linspace(self.minimum, self.maximum, len(self.xx))
-        self._yy = self.__all_interpolated(self.xx)
+        xp = aac.array_namespace(self.xx)
+        self.xx = xp.linspace(self.minimum, self.maximum, len(self.xx))
+        self._yy = self._all_interpolated(self.xx)
         self._initialize_attributes()
 
     def _initialize_attributes(self):
@@ -165,7 +187,7 @@ class Interped(Prior):
         self._yy /= trapezoid(self._yy, self.xx)
         self.YY = cumulative_trapezoid(self._yy, self.xx, initial=0)
         # Need last element of cumulative distribution to be exactly one.
-        self.YY[-1] = 1
+        self.YY = xpx.at(self.YY, -1).set(1)
         self.probability_density = interp1d(x=self.xx, y=self._yy, bounds_error=False, fill_value=0)
         self.cumulative_distribution = interp1d(x=self.xx, y=self.YY, bounds_error=False, fill_value=(0, 1))
         self.inverse_cumulative_distribution = interp1d(x=self.YY, y=self.xx, bounds_error=True)
