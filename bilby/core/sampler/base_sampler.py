@@ -623,7 +623,7 @@ class Sampler(object):
         """
         TODO: Implement this method
         Raises
-        =======
+        ======
         ValueError: in any case
         """
         raise ValueError("Method not yet implemented")

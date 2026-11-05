@@ -78,12 +78,15 @@ class MBGravitationalWaveTransient(GravitationalWaveTransient):
         '.distance_marginalization_lookup_dmin{}_dmax{}_n{}.npz'
     reference_frame: (str, bilby.gw.detector.InterferometerList, list), optional
         Definition of the reference frame for the sky location.
+
         - "sky": sample in RA/dec, this is the default
         - e.g., "H1L1", ["H1", "L1"], InterferometerList(["H1", "L1"]):
-          sample in azimuth and zenith, `azimuth` and `zenith` defined in the frame where the z-axis is aligned the the
+          sample in azimuth and zenith, `azimuth` and `zenith` defined in the frame where the z-axis is aligned with the
           vector connecting H1 and L1.
+
     time_reference: str, optional
         Name of the reference for the sampled time parameter.
+
         - "geocent"/"geocenter": sample in the time at the Earth's center, this is the default
         - e.g., "H1": sample in the time of arrival at H1
 

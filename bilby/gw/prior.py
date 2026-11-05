@@ -1819,7 +1819,7 @@ class HealPixMapPriorDist(BaseJointPriorDist):
     @staticmethod
     def _check_norm(array):
         """
-        static method to check if array is properlly normalized and if not to normalize it.
+        static method to check if array is properly normalized and if not to normalize it.
 
         Parameters
         ==========
