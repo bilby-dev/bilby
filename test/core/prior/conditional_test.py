@@ -545,5 +545,71 @@ class TestDirichletPrior(unittest.TestCase):
         pickle.dumps(self.priors)
 
 
+@pytest.fixture
+def conditional_uniform_prior():
+    def condition(reference_parameters, x):
+        return dict(maximum=x)
+
+    return bilby.core.prior.ConditionalPriorDict(
+        dict(
+            x=bilby.core.prior.Uniform(0, 2),
+            y=bilby.core.prior.ConditionalUniform(condition, minimum=0, maximum=2),
+            z=bilby.core.prior.Uniform(0, 1),
+        )
+    )
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("method", ["prob", "ln_prob", "prob_subset", "ln_prob_subset"])
+def test_conditional_probability_batch(xp, conditional_uniform_prior, method):
+    x = xp.asarray([1.0, 1.5])
+    sample = dict(x=x, y=xp.asarray([0.25, 0.5]))
+    if not method.endswith("_subset"):
+        sample["z"] = xp.asarray([0.5, 0.5])
+    expected = 0.5 / x
+    if method.startswith("ln_"):
+        expected = xp.log(expected)
+    actual = getattr(conditional_uniform_prior, method)(sample, axis=0)
+    assert aac.get_namespace(actual) == xp
+    assert actual.shape == x.shape
+    assert xp.allclose(actual, expected)
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("method", ["prob", "ln_prob", "prob_subset", "ln_prob_subset"])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("batched", [False, True])
+def test_conditional_probability_torch_gradients(
+    conditional_uniform_prior,
+    method,
+    device,
+    batched,
+):
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    x = torch.tensor(
+        [1.0, 1.5] if batched else 1.0,
+        dtype=torch.get_default_dtype(),
+        device=device,
+        requires_grad=True,
+    )
+    sample = dict(x=x, y=torch.full_like(x, 0.25))
+    if not method.endswith("_subset"):
+        sample["z"] = torch.full_like(x, 0.5)
+    actual = getattr(conditional_uniform_prior, method)(sample, axis=0)
+    expected = 0.5 / x
+    expected_gradient = -0.5 / x**2
+    if method.startswith("ln_"):
+        expected = torch.log(expected)
+        expected_gradient = -1 / x
+    torch.testing.assert_close(actual, expected)
+    assert actual.dtype == x.dtype
+    assert actual.device == x.device
+    assert actual.shape == x.shape
+    actual.sum().backward()
+    torch.testing.assert_close(x.grad, expected_gradient)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -963,7 +963,7 @@ class ConditionalPriorDict(PriorDict):
         self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
-        res = xp.asarray(
+        res = xp.stack(
             [
                 self[key].prob(sample[key], **self.get_required_variables(key), xp=xp)
                 for key in sample
@@ -978,7 +978,7 @@ class ConditionalPriorDict(PriorDict):
         self._prepare_subset_evaluation(sample)
         if xp is None:
             xp = array_module(sample.values())
-        res = xp.asarray(
+        res = xp.stack(
             [
                 self[key].ln_prob(
                     sample[key], **self.get_required_variables(key), xp=xp
