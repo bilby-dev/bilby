@@ -620,6 +620,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.25.0-py313h54dd161_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/accessible-pygments-0.0.5-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiobotocore-3.8.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiohappyeyeballs-2.7.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aioitertools-0.13.0-pyhd8ed1ab_0.conda
@@ -679,6 +680,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/fonts-conda-forge-1-hc364b38_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/fqdn-1.5.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/fsspec-2026.6.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/furo-2025.12.19-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/future-1.0.0-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gast-0.7.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/glasflow-0.4.1-pyhd8ed1ab_1.conda
@@ -821,14 +823,14 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/spherical-1.1.4-pyhf2fb0c9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/spherical_functions-2023.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-8.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-basic-ng-1.0.0b2-pyhd8ed1ab_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-copybutton-0.5.2-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-design-0.7.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-last-updated-by-git-0.3.8-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-sitemap-2.9.0-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx_rtd_theme-3.1.0-pyhcf101f3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-applehelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-devhelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-htmlhelp-2.1.0-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jquery-4.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jsmath-1.0.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-2.0.0-pyhd8ed1ab_0.conda
@@ -893,6 +895,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/f1/f9/41c72d0b5fb511fdf23cf62ed50da6c73d4497f03ed1cad04f214dc477c8/dynesty-3.1.0-py3-none-any.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/accessible-pygments-0.0.5-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiobotocore-3.8.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiohappyeyeballs-2.7.1-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aioitertools-0.13.0-pyhd8ed1ab_0.conda
@@ -946,6 +949,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/filelock-3.32.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/fqdn-1.5.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/fsspec-2026.6.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/furo-2025.12.19-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/future-1.0.0-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gast-0.7.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/glasflow-0.4.1-pyhd8ed1ab_1.conda
@@ -1087,14 +1091,14 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/spherical-1.1.4-pyhf2fb0c9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/spherical_functions-2023.0.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-8.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-basic-ng-1.0.0b2-pyhd8ed1ab_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-copybutton-0.5.2-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-design-0.7.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-last-updated-by-git-0.3.8-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-sitemap-2.9.0-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx_rtd_theme-3.1.0-pyhcf101f3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-applehelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-devhelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-htmlhelp-2.1.0-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jquery-4.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jsmath-1.0.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-2.0.0-pyhd8ed1ab_0.conda
@@ -8969,7 +8973,7 @@ packages:
   - python_abi 3.13.* *_cp313
   license: Apache-2.0
   purls:
-  - pkg:pypi/coverage?source=compressed-mapping
+  - pkg:pypi/coverage?source=hash-mapping
   run_exports: {}
   size: 423474
   timestamp: 1786292729866
@@ -17387,6 +17391,19 @@ packages:
   run_exports: {}
   size: 8144
   timestamp: 1784221492234
+- conda: https://conda.anaconda.org/conda-forge/noarch/accessible-pygments-0.0.5-pyhd8ed1ab_1.conda
+  sha256: 1307719f0d8ee694fc923579a39c0621c23fdaa14ccdf9278a5aac5665ac58e9
+  md5: 74ac5069774cdbc53910ec4d631a3999
+  depends:
+  - pygments
+  - python >=3.9
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/accessible-pygments?source=hash-mapping
+  run_exports: {}
+  size: 1326096
+  timestamp: 1734956217254
 - conda: https://conda.anaconda.org/conda-forge/noarch/aiobotocore-3.8.0-pyhcf101f3_0.conda
   sha256: 779a50b5a085754052b461c3bd5b4db7c1944cf0b1ec12a40856eb238238a668
   md5: 6bfccb9c0112fe285b61815fb7d41fc2
@@ -18278,6 +18295,23 @@ packages:
   run_exports: {}
   size: 149709
   timestamp: 1781615868173
+- conda: https://conda.anaconda.org/conda-forge/noarch/furo-2025.12.19-pyhd8ed1ab_1.conda
+  sha256: 0b6c349fb314515b6d0bda4973edeab83366e4ebe6d57a435c028193ebe1e6f6
+  md5: a119df8b5f08fe7b185f5923ab8c4c0e
+  depends:
+  - accessible-pygments >=0.0.5
+  - beautifulsoup4
+  - pygments >=2.7
+  - python >=3.10
+  - sphinx >=7.0,<10.0
+  - sphinx-basic-ng
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/furo?source=hash-mapping
+  run_exports: {}
+  size: 83092
+  timestamp: 1772974091117
 - conda: https://conda.anaconda.org/conda-forge/noarch/future-1.0.0-pyhd8ed1ab_2.conda
   sha256: 45dfd037889b7075c5eb46394f93172de0be0b1624c7f802dd3ecc94b814d8e0
   md5: 1054c53c95d85e35b88143a3eda66373
@@ -19405,7 +19439,7 @@ packages:
   - python
   license: BSD-3-Clause
   purls:
-  - pkg:pypi/nbformat?source=compressed-mapping
+  - pkg:pypi/nbformat?source=hash-mapping
   run_exports: {}
   size: 107583
   timestamp: 1786372859684
@@ -19669,7 +19703,7 @@ packages:
   - python
   license: MIT
   purls:
-  - pkg:pypi/platformdirs?source=compressed-mapping
+  - pkg:pypi/platformdirs?source=hash-mapping
   run_exports: {}
   size: 26869
   timestamp: 1786390868223
@@ -20575,6 +20609,32 @@ packages:
   run_exports: {}
   size: 1424416
   timestamp: 1740956642838
+- conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-basic-ng-1.0.0b2-pyhd8ed1ab_3.conda
+  sha256: 90d900d31afe0bd6f42cf1e529e23e6eac4284b48bc64e5e942f19f5bf8ef0f2
+  md5: a090580065b21d9c56662ebe68f6e7a6
+  depends:
+  - python >=3.9
+  - sphinx >=4.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/sphinx-basic-ng?source=hash-mapping
+  run_exports: {}
+  size: 20495
+  timestamp: 1737748706101
+- conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-copybutton-0.5.2-pyhd8ed1ab_1.conda
+  sha256: 8cd892e49cb4d00501bc4439fb0c73ca44905f01a65b2b7fa05ba0e8f3924f19
+  md5: bf22cb9c439572760316ce0748af3713
+  depends:
+  - python >=3.9
+  - sphinx >=1.8
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/sphinx-copybutton?source=hash-mapping
+  run_exports: {}
+  size: 17893
+  timestamp: 1734573117732
 - conda: https://conda.anaconda.org/conda-forge/noarch/sphinx-design-0.7.0-pyhd8ed1ab_0.conda
   sha256: 7f8437a97e6311bebf230cfd2ae3c5bdb2230e681c41daebdb894280bf8b4ab6
   md5: 28eddfb8b9ecdd044a6f609f985398a7
@@ -20616,22 +20676,6 @@ packages:
   run_exports: {}
   size: 13441
   timestamp: 1759753011102
-- conda: https://conda.anaconda.org/conda-forge/noarch/sphinx_rtd_theme-3.1.0-pyhcf101f3_2.conda
-  sha256: 3581a8335a0da4de41f4344c4f1113a11fcbbb7933577ace813602e263842b02
-  md5: 787507b1d0f5c00c186b2f66adacc3ab
-  depends:
-  - python >=3.10
-  - sphinx >=6,<10
-  - docutils >0.18,<0.23
-  - sphinxcontrib-jquery >=4,<5
-  - python
-  license: MIT
-  license_family: MIT
-  purls:
-  - pkg:pypi/sphinx-rtd-theme?source=hash-mapping
-  run_exports: {}
-  size: 6616185
-  timestamp: 1785314437148
 - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-applehelp-2.0.0-pyhd8ed1ab_1.conda
   sha256: d7433a344a9ad32a680b881c81b0034bc61618d12c39dd6e3309abeffa9577ba
   md5: 16e3f039c0aa6446513e94ab18a8784b
@@ -20671,18 +20715,6 @@ packages:
   run_exports: {}
   size: 32895
   timestamp: 1733754385092
-- conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jquery-4.1-pyhd8ed1ab_1.conda
-  sha256: 69c08d18663b57ebc8e4187c64c8d29b10996bb465a515cd288d87b6f2f52a5e
-  md5: 403185829255321ea427333f7773dd1f
-  depends:
-  - python >=3.9
-  - sphinx >=1.8
-  license: 0BSD AND MIT
-  purls:
-  - pkg:pypi/sphinxcontrib-jquery?source=hash-mapping
-  run_exports: {}
-  size: 112964
-  timestamp: 1734344603903
 - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-jsmath-1.0.1-pyhd8ed1ab_1.conda
   sha256: 578bef5ec630e5b2b8810d898bbbf79b9ae66d49b7938bcc3efc364e679f2a62
   md5: fa839b5ff59e192f411ccc7dae6588bb
@@ -22329,7 +22361,7 @@ packages:
   - python_abi 3.13.* *_cp313
   license: Apache-2.0
   purls:
-  - pkg:pypi/coverage?source=compressed-mapping
+  - pkg:pypi/coverage?source=hash-mapping
   run_exports: {}
   size: 422790
   timestamp: 1786292809548
@@ -26867,7 +26899,7 @@ packages:
   license: BSD-3-Clause
   license_family: BSD
   purls:
-  - pkg:pypi/torch?source=compressed-mapping
+  - pkg:pypi/torch?source=hash-mapping
   run_exports:
     weak:
     - pytorch >=2.13.0,<2.14.0a0
@@ -26881,8 +26913,7 @@ packages:
   - pytorch 2.13.0 cpu_generic*2
   license: BSD-3-Clause
   license_family: BSD
-  purls:
-  - pkg:pypi/torch?source=compressed-mapping
+  purls: []
   run_exports: {}
   size: 57375
   timestamp: 1786374200643

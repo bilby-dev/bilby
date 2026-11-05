@@ -29,15 +29,16 @@ torch = ["py313", "gw", "test", "array_api", "torch"]
 orng = ">=0.1"
 
 [feature.doc.dependencies]
+furo = "*"
 jupyter = "*"
 nbconvert = "*"
 nbsphinx = "*"
 numpydoc = "*"
 pandoc = "*"
 sphinx = "<9"
+sphinx-copybutton = "*"
 sphinx-design = "*"
 sphinx-sitemap = "*"
-sphinx_rtd_theme = "*"
 
 [feature.doc.pypi-dependencies]
 autodoc = "*"

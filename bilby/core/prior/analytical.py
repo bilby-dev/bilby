@@ -1758,7 +1758,7 @@ class WeightedDiscreteValues(Prior):
         sorter = xp.argsort(values)
         self._values_array = values[sorter]
 
-        # inititialization of priors from repr only supports
+        # initialization of priors from repr only supports
         # python buildins
         self.values = self._values_array.tolist()
 
@@ -1985,6 +1985,7 @@ class Categorical(DiscreteValues):
         self, ncategories, name=None, latex_label=None, unit=None, boundary="periodic"
     ):
         """An equal-weighted Categorical prior
+
         Parameters
         ==========
         ncategories: int
