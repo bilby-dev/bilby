@@ -1,15 +1,15 @@
-import unittest
-import numpy as np
-import pandas as pd
-import shutil
-import os
 import json
-import parameterized
-import pytest
+import os
+import shutil
+import unittest
 from unittest.mock import patch
 
 import bilby
-from bilby.core.result import ResultError, FileLoadError
+import numpy as np
+import pandas as pd
+import parameterized
+import pytest
+from bilby.core.result import FileLoadError, ResultError
 from bilby.core.utils import logger
 
 
@@ -494,6 +494,15 @@ class TestResult(unittest.TestCase):
     def test_get_credible_levels(self):
         levels = self.result.get_all_injection_credible_levels()
         self.assertDictEqual(levels, dict(x=0.68, y=0.72))
+
+    def test_get_one_dimensional_median_and_error_bar(self):
+        summary = self.result.get_one_dimensional_median_and_error_bar("x")
+        self.assertIsInstance(summary, tuple)
+        self.assertEqual(summary._fields, ("median", "lower", "upper", "string"))
+        quants = np.percentile(self.result.posterior["x"], [16, 50, 84])
+        self.assertAlmostEqual(summary.median, quants[1])
+        self.assertAlmostEqual(summary.lower, quants[1] - quants[0])
+        self.assertAlmostEqual(summary.upper, quants[2] - quants[1])
 
     def test_get_credible_levels_raises_error_if_no_injection_parameters(self):
         self.result.injection_parameters = None
