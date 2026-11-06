@@ -165,21 +165,27 @@ def gwsignal_binary_black_hole(
         frequency_array <= maximum_frequency
     )
 
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-        bilby_to_lalsimulation_spins(
-            theta_jn=theta_jn,
-            phi_jl=phi_jl,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_12=phi_12,
-            a_1=a_1,
-            a_2=a_2,
-            mass_1=mass_1 * utils.solar_mass,
-            mass_2=mass_2 * utils.solar_mass,
-            reference_frequency=reference_frequency,
-            phase=phase,
+    try:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+            bilby_to_lalsimulation_spins(
+                theta_jn=theta_jn,
+                phi_jl=phi_jl,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_12=phi_12,
+                a_1=a_1,
+                a_2=a_2,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                reference_frequency=reference_frequency,
+                phase=phase,
+            )
         )
-    )
+    except ZeroDivisionError:
+        if catch_waveform_errors:
+            return None
+        else:
+            raise
 
     eccentricity = 0.0
     longitude_ascending_nodes = 0.0
@@ -766,24 +772,31 @@ def _base_lal_cbc_fd_waveform(
     )
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+
+    try:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+            bilby_to_lalsimulation_spins(
+                theta_jn=theta_jn,
+                phi_jl=phi_jl,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_12=phi_12,
+                a_1=a_1,
+                a_2=a_2,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                reference_frequency=reference_frequency,
+                phase=phase,
+            )
+        )
+    except ZeroDivisionError:
+        if catch_waveform_errors:
+            return None
+        else:
+            raise
+
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
-
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-        bilby_to_lalsimulation_spins(
-            theta_jn=theta_jn,
-            phi_jl=phi_jl,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_12=phi_12,
-            a_1=a_1,
-            a_2=a_2,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            reference_frequency=reference_frequency,
-            phase=phase,
-        )
-    )
 
     longitude_ascending_nodes = 0.0
     mean_per_ano = 0.0
@@ -1548,24 +1561,31 @@ def _base_waveform_frequency_sequence(
     approximant = lalsim_GetApproximantFromString(approximant)
 
     luminosity_distance = luminosity_distance * 1e6 * utils.parsec
+
+    try:
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+            bilby_to_lalsimulation_spins(
+                theta_jn=theta_jn,
+                phi_jl=phi_jl,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_12=phi_12,
+                a_1=a_1,
+                a_2=a_2,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                reference_frequency=reference_frequency,
+                phase=phase,
+            )
+        )
+    except ZeroDivisionError:
+        if catch_waveform_errors:
+            return None
+        else:
+            raise
+
     mass_1 = mass_1 * utils.solar_mass
     mass_2 = mass_2 * utils.solar_mass
-
-    iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-        bilby_to_lalsimulation_spins(
-            theta_jn=theta_jn,
-            phi_jl=phi_jl,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_12=phi_12,
-            a_1=a_1,
-            a_2=a_2,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            reference_frequency=reference_frequency,
-            phase=phase,
-        )
-    )
 
     try:
         h_plus, h_cross = lalsim_SimInspiralChooseFDWaveformSequence(

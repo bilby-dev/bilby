@@ -11,6 +11,9 @@ import numpy as np
 from pandas import DataFrame, Series
 from scipy.stats import norm
 
+from .eos.eos import IntegrateTOV
+from .cosmology import get_cosmology, z_at_value
+from .geometry import transform_precessing_spins
 from .utils import (
     lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
     lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition,
@@ -26,9 +29,10 @@ from .utils import (
     lalsim_SimNeutronStarRadius,
     lalsim_SimNeutronStarLoveNumberK2,
 )
-
 from ..compat.utils import array_module
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
+from ..core.utils.parallel import bilby_pool, sampling_convenience_dump
+from ..core.prior import DeltaFunction
 from ..core.utils import (
     logger,
     solar_mass,
@@ -37,11 +41,6 @@ from ..core.utils import (
     command_line_args,
     safe_file_dump,
 )
-from ..core.utils.parallel import bilby_pool, sampling_convenience_dump
-from ..core.prior import DeltaFunction
-from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
-from .eos.eos import IntegrateTOV
-from .cosmology import get_cosmology, z_at_value
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -183,9 +182,8 @@ def bilby_to_lalsimulation_spins(
         spin_2z = a_2 * np.cos(tilt_2)
         iota = theta_jn
     else:
-        from numbers import Number
-
-        args = (
+        func = transform_precessing_spins
+        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = func(
             theta_jn,
             phi_jl,
             tilt_1,
@@ -198,26 +196,7 @@ def bilby_to_lalsimulation_spins(
             reference_frequency,
             phase,
         )
-        float_inputs = all([isinstance(arg, Number) for arg in args])
-        if float_inputs:
-            func = lalsim_SimInspiralTransformPrecessingNewInitialConditions
-        else:
-            func = transform_precessing_spins
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = func(*args)
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
-
-
-@np.vectorize
-def transform_precessing_spins(*args):
-    """
-    Vectorized wrapper for
-    lalsimulation.SimInspiralTransformPrecessingNewInitialConditions
-
-    For detailed documentation see
-    :code:`bilby.gw.conversion.bilby_to_lalsimulation_spins`.
-    This will be removed from the public API in a future release.
-    """
-    return lalsim_SimInspiralTransformPrecessingNewInitialConditions(*args)
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters):
