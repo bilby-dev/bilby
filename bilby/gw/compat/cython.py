@@ -66,3 +66,9 @@ def time_delay_from_geocenter(
 def zenith_azimuth_to_theta_phi(zenith: Real, azimuth: Real, delta_x: np.ndarray):
     theta, phi = _geometry.zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
     return theta, phi % (2 * np.pi)
+
+
+@dispatch(precedence=1)
+def theta_phi_to_zenith_azimuth(theta: Real, phi: Real, delta_x: np.ndarray):
+    zenith, azimuth = _geometry.theta_phi_to_zenith_azimuth(theta, phi, delta_x)
+    return zenith, azimuth % (2 * np.pi)
