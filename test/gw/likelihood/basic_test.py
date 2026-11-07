@@ -34,7 +34,7 @@ class TestBasicGWTransient(unittest.TestCase):
         self.interferometers.set_strain_data_from_power_spectral_densities(
             sampling_frequency=self.xp.asarray(2048.0), duration=self.xp.asarray(4.0)
         )
-        self.interferometers.set_array_backend(self.xp)
+        self.interferometers.array_backend = self.xp
         base_wfg = bilby.gw.waveform_generator.GWSignalWaveformGenerator(
             duration=self.xp.asarray(4.0),
             sampling_frequency=self.xp.asarray(2048.0),
@@ -56,9 +56,7 @@ class TestBasicGWTransient(unittest.TestCase):
     def test_noise_log_likelihood(self):
         """Test noise log likelihood matches precomputed value"""
         nll = self.likelihood.noise_log_likelihood()
-        self.assertAlmostEqual(
-            -4014.1787704539474, float(nll), 3
-        )
+        self.assertAlmostEqual(-4014.1787704539474, float(nll), 3)
         self.assertEqual(aac.get_namespace(nll), self.xp)
 
     def test_log_likelihood(self):
@@ -71,7 +69,8 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test log likelihood ratio returns the correct value"""
         llr = self.likelihood.log_likelihood_ratio(self.parameters)
         self.assertAlmostEqual(
-            self.likelihood.log_likelihood(self.parameters) - self.likelihood.noise_log_likelihood(),
+            self.likelihood.log_likelihood(self.parameters)
+            - self.likelihood.noise_log_likelihood(),
             llr,
             3,
         )
@@ -81,7 +80,10 @@ class TestBasicGWTransient(unittest.TestCase):
         """Test log likelihood returns np.nan_to_num(-np.inf) when the
         waveform is None"""
         self.likelihood.waveform_generator.frequency_domain_strain = lambda x: None
-        self.assertEqual(self.likelihood.log_likelihood_ratio(self.parameters), np.nan_to_num(-np.inf))
+        self.assertEqual(
+            self.likelihood.log_likelihood_ratio(self.parameters),
+            np.nan_to_num(-np.inf),
+        )
 
     def test_repr(self):
         expected = "BasicGravitationalWaveTransient(interferometers={},\n\twaveform_generator={})".format(

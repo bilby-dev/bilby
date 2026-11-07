@@ -2,6 +2,7 @@
 """
 A script to demonstrate how to use your own source model
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed

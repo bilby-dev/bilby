@@ -8,7 +8,7 @@ the built-in ``multiprocessing`` module to parallelize over multiple cores on a
 single machine, or using MPI to parallelize over multiple nodes on a computing cluster.
 This page specifically describes how to use parallelisation of likelihood calls across
 multiple processes, rather than parallelisation inside likelihood calls, e.g., using
-GPUs via the `Python array API <array_api.rst>`__.
+GPUs via the :doc:`Python array API <array_api>`.
 
 Parallelisation in Bilby relies on global storage of the likelihood and priors inside
 ``bilby.core.utils.parallel.sampling_convenience_dump``, which must be initialized in

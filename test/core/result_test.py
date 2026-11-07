@@ -1,22 +1,21 @@
-import unittest
-import numpy as np
-import pandas as pd
-import shutil
-import os
 import json
-import parameterized
-import pytest
+import os
+import shutil
+import unittest
 from unittest.mock import patch
 
 import bilby
-from bilby.core.result import ResultError, FileLoadError
+import numpy as np
+import pandas as pd
+import parameterized
+import pytest
+from bilby.core.result import FileLoadError, ResultError
 from bilby.core.utils import logger
 
 
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestJson(unittest.TestCase):
-
     def setUp(self):
         self.encoder = bilby.core.utils.BilbyJsonEncoder
         self.decoder = bilby.core.utils.decode_bilby_json
@@ -56,7 +55,6 @@ class TestJson(unittest.TestCase):
 
 
 class TestResult(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -143,9 +141,7 @@ class TestResult(unittest.TestCase):
         )
 
     def test_fail_save_and_load_missing_inputs(self):
-        with self.assertRaises(
-            ValueError, msg="No information given to load file"
-        ):
+        with self.assertRaises(ValueError, msg="No information given to load file"):
             bilby.core.result.read_in_result()
 
     def test_fail_save_and_load_no_extension(self):
@@ -239,21 +235,24 @@ class TestResult(unittest.TestCase):
             _ = self.result.posterior
 
     def test_save_and_load_json(self):
-        self._save_and_load_test(extension='json')
+        self._save_and_load_test(extension="json")
 
     def test_save_and_load_json_gzip(self):
-        self._save_and_load_test(extension='json', gzip=True)
+        self._save_and_load_test(extension="json", gzip=True)
 
     def test_save_and_load_pkl(self):
-        self._save_and_load_test(extension='pkl')
+        self._save_and_load_test(extension="pkl")
 
     def test_save_and_load_hdf5(self):
-        self._save_and_load_test(extension='hdf5')
+        self._save_and_load_test(extension="hdf5")
 
     def _save_and_load_test(self, extension, gzip=False):
         self.result.save_to_file(extension=extension, gzip=gzip)
         loaded_result = bilby.core.result.read_in_result(
-            outdir=self.result.outdir, label=self.result.label, extension=extension, gzip=gzip
+            outdir=self.result.outdir,
+            label=self.result.label,
+            extension=extension,
+            gzip=gzip,
         )
         self.assertTrue(
             np.array_equal(
@@ -284,26 +283,34 @@ class TestResult(unittest.TestCase):
         self.assertEqual(self.result.sampling_time, loaded_result.sampling_time)
 
     def test_save_and_dont_overwrite_json(self):
-        self._save_and_dont_overwrite_test(extension='json')
+        self._save_and_dont_overwrite_test(extension="json")
 
     def test_save_and_dont_overwrite_pkl(self):
-        self._save_and_dont_overwrite_test(extension='pkl')
+        self._save_and_dont_overwrite_test(extension="pkl")
 
     def test_save_and_dont_overwrite_hdf5(self):
-        self._save_and_dont_overwrite_test(extension='hdf5')
+        self._save_and_dont_overwrite_test(extension="hdf5")
 
     def _save_and_dont_overwrite_test(self, extension):
         self.result.save_to_file(overwrite=False, extension=extension)
         self.result.save_to_file(overwrite=False, extension=extension)
-        self.assertTrue(os.path.isfile(f"{self.result.outdir}/{self.result.label}_result.{extension}.old"))
+        self.assertTrue(
+            os.path.isfile(
+                f"{self.result.outdir}/{self.result.label}_result.{extension}.old"
+            )
+        )
 
     def _save_with_outdir_and_filename(self, filename, outdir, template):
-        self.result.save_to_file(filename=filename, outdir=outdir, extension="json", gzip=False)
+        self.result.save_to_file(
+            filename=filename, outdir=outdir, extension="json", gzip=False
+        )
         self.assertTrue(os.path.isfile(template))
 
     def test_save_with_outdir_and_filename_different_outdir(self):
         self._save_with_outdir_and_filename(
-            f"{self.other_outdir}/result", self.other_outdir2, f"{self.other_outdir2}/result"
+            f"{self.other_outdir}/result",
+            self.other_outdir2,
+            f"{self.other_outdir2}/result",
         )
 
     def test_save_with_outdir_and_filename_same_outdir(self):
@@ -323,27 +330,35 @@ class TestResult(unittest.TestCase):
 
     def test_save_with_outdir_no_filename(self):
         self._save_with_outdir_and_filename(
-            None, self.other_outdir, os.path.join(self.other_outdir, f"{self.result.label}_result.json")
+            None,
+            self.other_outdir,
+            os.path.join(self.other_outdir, f"{self.result.label}_result.json"),
         )
 
     def test_save_no_filename_or_outdir(self):
         self._save_with_outdir_and_filename(
-            None, None, os.path.join(self.result.outdir, f"{self.result.label}_result.json")
+            None,
+            None,
+            os.path.join(self.result.outdir, f"{self.result.label}_result.json"),
         )
 
     def test_save_and_overwrite_json(self):
-        self._save_and_overwrite_test(extension='json')
+        self._save_and_overwrite_test(extension="json")
 
     def test_save_and_overwrite_pkl(self):
-        self._save_and_overwrite_test(extension='pkl')
+        self._save_and_overwrite_test(extension="pkl")
 
     def test_save_and_overwrite_hdf5(self):
-        self._save_and_overwrite_test(extension='hdf5')
+        self._save_and_overwrite_test(extension="hdf5")
 
     def _save_and_overwrite_test(self, extension):
         self.result.save_to_file(overwrite=True, extension=extension)
         self.result.save_to_file(overwrite=True, extension=extension)
-        self.assertFalse(os.path.isfile(f"{self.result.outdir}/{self.result.label}_result.{extension}.old"))
+        self.assertFalse(
+            os.path.isfile(
+                f"{self.result.outdir}/{self.result.label}_result.{extension}.old"
+            )
+        )
 
     def test_save_samples(self):
         self.result.save_posterior_samples()
@@ -480,6 +495,15 @@ class TestResult(unittest.TestCase):
         levels = self.result.get_all_injection_credible_levels()
         self.assertDictEqual(levels, dict(x=0.68, y=0.72))
 
+    def test_get_one_dimensional_median_and_error_bar(self):
+        summary = self.result.get_one_dimensional_median_and_error_bar("x")
+        self.assertIsInstance(summary, tuple)
+        self.assertEqual(summary._fields, ("median", "lower", "upper", "string"))
+        quants = np.percentile(self.result.posterior["x"], [16, 50, 84])
+        self.assertAlmostEqual(summary.median, quants[1])
+        self.assertAlmostEqual(summary.lower, quants[1] - quants[0])
+        self.assertAlmostEqual(summary.upper, quants[2] - quants[1])
+
     def test_get_credible_levels_raises_error_if_no_injection_parameters(self):
         self.result.injection_parameters = None
         with self.assertRaises(TypeError) as error_context:
@@ -530,17 +554,23 @@ class TestResult(unittest.TestCase):
 
         self.assertTrue("x" in az.posterior and "y" in az.posterior)
         for var in ["x", "y"]:
-            self.assertTrue(np.array_equal(az.posterior[var].values.squeeze(),
-                                           self.result.posterior[var].values))
+            self.assertTrue(
+                np.array_equal(
+                    az.posterior[var].values.squeeze(),
+                    self.result.posterior[var].values,
+                )
+            )
             self.assertTrue(len(np.squeeze(az.prior[var])) == Nprior)
 
-        self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
-                                       log_likelihood))
+        self.assertTrue(
+            np.array_equal(
+                az.log_likelihood["log_likelihood"].values.squeeze(), log_likelihood
+            )
+        )
 
         self.assertTrue(
-            az.posterior.attrs["inference_library"] == "bilby: {}".format(
-                self.result.sampler
-            )
+            az.posterior.attrs["inference_library"]
+            == "bilby: {}".format(self.result.sampler)
         )
         self.assertTrue(
             az.posterior.attrs["inference_library_version"]
@@ -551,12 +581,14 @@ class TestResult(unittest.TestCase):
         del az
         self.result.posterior["log_likelihood"] = log_likelihood
         az = self.result.to_arviz()
-        self.assertTrue(np.array_equal(az.log_likelihood["log_likelihood"].values.squeeze(),
-                                       log_likelihood))
+        self.assertTrue(
+            np.array_equal(
+                az.log_likelihood["log_likelihood"].values.squeeze(), log_likelihood
+            )
+        )
 
     @patch("builtins.__import__")
     def test_to_arviz_not_installed(self, mock_import):
-
         def import_side_effect(name, *args):
             if name == "arviz":
                 raise ImportError
@@ -569,17 +601,16 @@ class TestResult(unittest.TestCase):
 
         self.assertEqual(
             str(excinfo.exception),
-            "ArviZ is not installed, so cannot convert to InferenceData."
+            "ArviZ is not installed, so cannot convert to InferenceData.",
         )
 
     def test_result_caching(self):
-
         class SimpleLikelihood(bilby.Likelihood):
             def __init__(self):
                 super().__init__()
 
             def log_likelihood(self, parameters):
-                return -parameters["x"]**2
+                return -(parameters["x"] ** 2)
 
         likelihood = SimpleLikelihood()
         priors = dict(x=bilby.core.prior.Uniform(-5, 5, "x"))
@@ -592,14 +623,14 @@ class TestResult(unittest.TestCase):
         result = bilby.run_sampler(
             likelihood,
             priors,
-            sampler='bilby_mcmc',
+            sampler="bilby_mcmc",
             outdir=self.outdir,
             nsamples=10,
             L1steps=1,
             proposal_cycle="default_noGMnoKD",
             printdt=1,
             check_point_plot=False,
-            result_class=NotAResult
+            result_class=NotAResult,
         )
         assert isinstance(result, NotAResult)
 
@@ -609,7 +640,7 @@ class TestResult(unittest.TestCase):
             cached_result = bilby.run_sampler(
                 likelihood,
                 priors,
-                sampler='bilby_mcmc',
+                sampler="bilby_mcmc",
                 outdir=self.outdir,
                 nsamples=10,
                 L1steps=1,
@@ -645,9 +676,7 @@ class TestResultWithLalDict(unittest.TestCase):
         np.random.seed(7)
         lal_dict = lal.CreateDict()
         lal.DictInsertREAL8Value(lal_dict, "test_value", 1.23)
-        priors = bilby.prior.PriorDict(
-            dict(x=bilby.prior.Uniform(0, 1, "x"))
-        )
+        priors = bilby.prior.PriorDict(dict(x=bilby.prior.Uniform(0, 1, "x")))
         result = bilby.core.result.Result(
             label="label",
             outdir=self.outdir,
@@ -888,17 +917,18 @@ class TestMiscResults(unittest.TestCase):
 
 
 class TestPPPlots(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
         self.outdir = str(tmp_path / "test_pp_plots")
 
     def setUp(self):
-        priors = bilby.core.prior.PriorDict(dict(
-            a=bilby.core.prior.Uniform(0, 1, latex_label="$a$"),
-            b=bilby.core.prior.Uniform(0, 1, latex_label="$b$"),
-        ))
+        priors = bilby.core.prior.PriorDict(
+            dict(
+                a=bilby.core.prior.Uniform(0, 1, latex_label="$a$"),
+                b=bilby.core.prior.Uniform(0, 1, latex_label="$b$"),
+            )
+        )
         self.results = [
             bilby.core.result.Result(
                 label=str(ii),
@@ -931,6 +961,7 @@ class SimpleGaussianLikelihood(bilby.core.likelihood.Likelihood):
         A very simple Gaussian likelihood for testing
         """
         from scipy.stats import norm
+
         super().__init__()
         self.mean = mean
         self.sigma = sigma
@@ -941,11 +972,12 @@ class SimpleGaussianLikelihood(bilby.core.likelihood.Likelihood):
 
 
 class TestReweight(unittest.TestCase):
-
     def setUp(self):
-        self.priors = bilby.core.prior.PriorDict(dict(
-            mu=bilby.core.prior.TruncatedNormal(0, 1, minimum=-5, maximum=5),
-        ))
+        self.priors = bilby.core.prior.PriorDict(
+            dict(
+                mu=bilby.core.prior.TruncatedNormal(0, 1, minimum=-5, maximum=5),
+            )
+        )
         self.result = bilby.core.result.Result(
             search_parameter_keys=list(self.priors.keys()),
             priors=self.priors,
@@ -992,11 +1024,11 @@ class TestReweight(unittest.TestCase):
         should be close to the original evidence within statistical error.
         """
         from scipy.stats import norm
+
         new, weights, _, _, _, _ = self._run_reweighting(sigma=0.5)
-        expected_weights = (
-            norm(0, 0.5).pdf(self.result.posterior["mu"])
-            / norm(0, 1).pdf(self.result.posterior["mu"])
-        )
+        expected_weights = norm(0, 0.5).pdf(self.result.posterior["mu"]) / norm(
+            0, 1
+        ).pdf(self.result.posterior["mu"])
         self.assertLess(min(abs(weights - expected_weights)), 1e-10)
         self.assertLess(abs(new.log_evidence - self.result.log_evidence), 0.05)
         self.assertNotEqual(new.log_evidence, self.result.log_evidence)
@@ -1005,7 +1037,6 @@ class TestReweight(unittest.TestCase):
 @pytest.mark.array_backend
 @pytest.mark.usefixtures("xp_class")
 class TestResultSaveAndRead(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -1050,9 +1081,15 @@ class TestResultSaveAndRead(unittest.TestCase):
         result.log_noise_evidence = 13
         self.result = result
 
-    @parameterized.parameterized.expand([
-        ".h5", ".hdf5", ".json", ".pkl", ".pickle",
-    ])
+    @parameterized.parameterized.expand(
+        [
+            ".h5",
+            ".hdf5",
+            ".json",
+            ".pkl",
+            ".pickle",
+        ]
+    )
     def test_save_and_read_filename_with_extension_and_extension_none(self, ext):
         # Should use the extension from filename
         filename = os.path.join(self.result.outdir, f"custom_name.{ext}")
@@ -1061,17 +1098,19 @@ class TestResultSaveAndRead(unittest.TestCase):
         bilby.core.result.read_in_result(filename=filename)
         os.remove(filename)
 
-    @parameterized.parameterized.expand([
-        ("json",),
-        ("pkl",),
-        ("pickle",),
-        (True,),
-    ])
+    @parameterized.parameterized.expand(
+        [
+            ("json",),
+            ("pkl",),
+            ("pickle",),
+            (True,),
+        ]
+    )
     def test_save_and_read_filename_with_extension_and_extension(self, extension):
         """Test all the extensions that are support when the filename is provided"""
         filename = os.path.join(self.result.outdir, "custom_name.hdf5")
         expected = filename
-        with self.assertLogs(logger, level='WARNING') as cm:
+        with self.assertLogs(logger, level="WARNING") as cm:
             self.result.save_to_file(filename=filename, extension=extension)
         self.assertIn("does not match the provided extension", cm.output[0])
         self.assertTrue(os.path.isfile(expected))
@@ -1099,14 +1138,16 @@ class TestResultSaveAndRead(unittest.TestCase):
         bilby.core.result.read_in_result(filename=expected)
         os.remove(expected)
 
-    @parameterized.parameterized.expand([
-        ("json", "hdf5"),
-        ("json", "pkl"),
-        ("hdf5", "json"),
-        ("pkl", "json"),
-        ("json", "pkl"),
-        ("hdf5", "pkl"),
-    ])
+    @parameterized.parameterized.expand(
+        [
+            ("json", "hdf5"),
+            ("json", "pkl"),
+            ("hdf5", "json"),
+            ("pkl", "json"),
+            ("json", "pkl"),
+            ("hdf5", "pkl"),
+        ]
+    )
     def test_save_and_read_incorrect_extension(self, save_extension, read_extension):
         """Test that an incorrect extension raises a somewhat helpful error"""
         filename = os.path.join(self.result.outdir, "my_result")
@@ -1114,7 +1155,9 @@ class TestResultSaveAndRead(unittest.TestCase):
         with self.assertRaises(
             (FileLoadError, IOError), msg=f"Failed to read in file {filename}"
         ):
-            bilby.core.result.read_in_result(filename=filename, extension=read_extension)
+            bilby.core.result.read_in_result(
+                filename=filename, extension=read_extension
+            )
         os.remove(filename)
 
 

@@ -9,6 +9,7 @@ between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 
 We optionally use ripple waveforms and a JIT-compiled likelihood.
 """
+
 import os
 
 # Set OMP_NUM_THREADS to stop lalsimulation taking over my computer
@@ -181,7 +182,7 @@ def main():
         parameters=injection_parameters,
         raise_error=False,
     )
-    ifos.set_array_backend(jnp)
+    ifos.array_backend = jnp
 
     # Initialise the likelihood by passing in the interferometer data (ifos) and
     # the waveform generator
