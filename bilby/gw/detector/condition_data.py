@@ -1,5 +1,7 @@
 import numpy as np
 
+__all__ = ["condition_strain_data"]
+
 
 def condition_strain_data(strain_data, sampling_frequency, start_time, duration,
                           preserve_time=None, trim=0.25, taper_and_trim=True,
@@ -79,6 +81,3 @@ def condition_strain_data(strain_data, sampling_frequency, start_time, duration,
     strain_data.set_from_time_domain_strain(
         strain, sampling_frequency=sampling_frequency, duration=len(strain) / sampling_frequency,
         start_time=times[0])
-
-
-__all__ = ["condition_strain_data"]

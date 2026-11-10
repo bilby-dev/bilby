@@ -98,7 +98,6 @@ class Interferometer(object):
         self.analysis_start_time = None
         self.analysis_duration = None
         self.analysis_cut_time = None
-        self._autocovariance_function = None
         self.gohberg_semencul_vectors = None
 
     def __eq__(self, other):
@@ -289,7 +288,8 @@ class Interferometer(object):
         self.analysis_cut_time = cut_time
         self.meta_data["analysis_window"] = dict(
             start_time=self.analysis_start_time, duration=self.analysis_duration, cut_time=cut_time)
-        self.autocovariance_function = None
+        self.gohberg_semencul_vectors = None
+        self.meta_data.pop("autocovariance_function", None)
 
     def condition_strain_data(self, sampling_frequency, trim=0.25, taper_and_trim=True,
                               remove_mean=True):
@@ -335,45 +335,15 @@ class Interferometer(object):
         """ The time-domain strain data in the analysis window """
         return self.time_domain_strain[self.analysis_slice]
 
-    @property
-    def autocovariance_function(self):
-        """ The noise autocovariance function (:code:`bilby.gw.detector.AutoCovarianceFunction`)
-
-        Setting it computes :code:`gohberg_semencul_vectors`, which give products with
-        the inverse noise covariance matrix of the analysis window.
-        """
-        return self._autocovariance_function
-
-    @autocovariance_function.setter
-    def autocovariance_function(self, autocovariance_function):
-        self._autocovariance_function = autocovariance_function
-        self.gohberg_semencul_vectors = None
-        self.meta_data.pop("autocovariance_function", None)
-        if autocovariance_function is None:
-            return
-        if self.analysis_duration is None:
-            raise ValueError(f"{self.name}: set the analysis window first (set_analysis_window)")
-        if self.strain_data.sampling_frequency is not None and not np.isclose(
-                autocovariance_function.sampling_frequency, self.strain_data.sampling_frequency,
-                rtol=1e-9, atol=0):
-            raise ValueError(
-                f"{self.name}: the sampling frequency of the autocovariance function "
-                f"({autocovariance_function.sampling_frequency:g} Hz) differs from that of the strain data "
-                f"({self.strain_data.sampling_frequency:g} Hz)")
-        self.meta_data["autocovariance_function"] = autocovariance_function.meta_data
-        self.gohberg_semencul_vectors = gohberg_semencul_vectors(autocovariance_function.get_acf_array(
-            int(round(self.analysis_duration * autocovariance_function.sampling_frequency))))
-
     def set_autocovariance_function_from_power_spectral_density(
             self, minimum_frequency=None, maximum_frequency=None, sampling_frequency=None,
             duration_factor=16, fill_value=None, fill_multiplier=1e4):
-        """ Set the autocovariance function from the power spectral density
+        """ Set the noise covariance from the power spectral density
 
-        See :code:`bilby.gw.detector.AutoCovarianceFunction.from_power_spectral_density_array`.
-        The power spectral density is evaluated on the frequency grid of the next
-        power of two at or above `duration_factor` x the number of samples in the
-        analysis window, so that the ACF has the sampling frequency of the data (as
-        in ringdown).
+        Computes the autocovariance function (ACF) from the PSD using
+        :code:`PowerSpectralDensity.get_autocovariance_array`, then builds
+        the Gohberg-Semencul vectors for fast products with the inverse
+        noise covariance matrix.
 
         Parameters
         ==========
@@ -390,7 +360,6 @@ class Interferometer(object):
         fill_multiplier: float
             The multiple of the maximum in-band PSD used outside the band
         """
-        from .acf import AutoCovarianceFunction
         if self.analysis_duration is None:
             raise ValueError(f"{self.name}: set the analysis window first (set_analysis_window)")
         if sampling_frequency is None:
@@ -399,15 +368,27 @@ class Interferometer(object):
             minimum_frequency = self.minimum_frequency
         if maximum_frequency is None:
             maximum_frequency = self.maximum_frequency
+        if self.strain_data.sampling_frequency is not None and not np.isclose(
+                sampling_frequency, self.strain_data.sampling_frequency,
+                rtol=1e-9, atol=0):
+            raise ValueError(
+                f"{self.name}: the sampling frequency of the autocovariance function "
+                f"({sampling_frequency:g} Hz) differs from that of the strain data "
+                f"({self.strain_data.sampling_frequency:g} Hz)")
         number_of_samples = int(round(self.analysis_duration * sampling_frequency))
-        fft_length = 2 ** int(np.ceil(np.log2(duration_factor * number_of_samples)))
-        frequency_array = np.fft.rfftfreq(fft_length, 1 / sampling_frequency)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            psd_array = self.power_spectral_density.get_power_spectral_density_array(frequency_array)
-        self.autocovariance_function = AutoCovarianceFunction.from_power_spectral_density_array(
-            frequency_array, psd_array, minimum_frequency=minimum_frequency,
-            maximum_frequency=maximum_frequency, sampling_frequency=sampling_frequency,
-            fill_value=fill_value, fill_multiplier=fill_multiplier)
+        acf_array, fill_value, fill_multiplier = \
+            self.power_spectral_density.get_autocovariance_array(
+                number_of_samples, sampling_frequency, minimum_frequency,
+                maximum_frequency, duration_factor=duration_factor,
+                fill_value=fill_value, fill_multiplier=fill_multiplier)
+        self.gohberg_semencul_vectors = gohberg_semencul_vectors(acf_array)
+        self.meta_data["autocovariance_function"] = dict(
+            sampling_frequency=sampling_frequency,
+            minimum_frequency=minimum_frequency,
+            maximum_frequency=maximum_frequency,
+            fill_value=fill_value,
+            fill_multiplier=fill_multiplier,
+        )
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -445,8 +426,37 @@ class Interferometer(object):
         else:
             return 0
 
-    def get_detector_response(self, waveform_polarizations, parameters, frequencies=None):
-        """ Get the detector response for a particular waveform
+    def get_detector_response(self, waveform_polarizations, parameters,
+                              domain="frequency", **kwargs):
+        """ Get the detector response for a particular waveform.
+
+        Parameters
+        ==========
+        waveform_polarizations: dict
+            polarizations of the waveform
+        parameters: dict
+            parameters describing position and time of arrival of the signal
+        domain: str
+            The domain of the waveform: ``"frequency"`` (default) or ``"time"``.
+            Frequency-domain responses accept `frequencies` as a keyword argument.
+            Time-domain responses accept `placement` and `times` as keyword
+            arguments.
+
+        Returns
+        =======
+        array_like: The detector response (signal observed in the interferometer)
+        """
+        if domain == "frequency":
+            return self.get_detector_response_frequency_domain(
+                waveform_polarizations, parameters, **kwargs)
+        elif domain == "time":
+            return self.get_time_domain_detector_response(
+                waveform_polarizations, parameters, **kwargs)
+        raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
+
+    def get_detector_response_frequency_domain(self, waveform_polarizations, parameters,
+                                                frequencies=None):
+        """ Get the frequency-domain detector response for a particular waveform
 
         Parameters
         ==========
@@ -748,11 +758,58 @@ class Interferometer(object):
                 logger.warning(msg)
 
     def inject_signal(self, parameters, injection_polarizations=None,
-                      waveform_generator=None, raise_error=True):
+                      waveform_generator=None, domain="frequency", **kwargs):
         """ General signal injection method.
         Provide the injection parameters and either the injection polarizations
         or the waveform generator to inject a signal into the detector.
-        Defaults to the injection polarizations is both are given.
+        Defaults to the injection polarizations if both are given.
+
+        Parameters
+        ==========
+        parameters: dict
+            Parameters of the injection.
+        injection_polarizations: dict, optional
+           Polarizations of waveform to inject. If `waveform_generator` is also
+           given, the injection_polarizations will be calculated directly and
+           this argument can be ignored.
+        waveform_generator: bilby.gw.waveform_generator.WaveformGenerator, optional
+            A WaveformGenerator instance using the source model to inject. If
+            `injection_polarizations` is given, this will be ignored.
+        domain: str
+            The domain of the injection: ``"frequency"`` (default) or ``"time"``.
+            Frequency-domain injections accept `raise_error` as a keyword argument.
+            Time-domain injections accept `placement` as a keyword argument.
+
+        Notes
+        =====
+        if your signal takes a substantial amount of time to generate, or
+        you experience buggy behaviour. It is preferable to provide the
+        injection_polarizations directly.
+
+        Returns
+        =======
+        injection_polarizations: dict
+            The injected polarizations. This is the same as the
+            injection_polarizations parameter if it was passed in. Otherwise it
+            is the return value of the waveform generator.
+
+        """
+        if domain == "frequency":
+            return self.inject_signal_frequency_domain(
+                parameters, injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator, **kwargs)
+        elif domain == "time":
+            return self.inject_signal_time_domain(
+                parameters, injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator, **kwargs)
+        raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
+
+    def inject_signal_frequency_domain(self, parameters, injection_polarizations=None,
+                                       waveform_generator=None, raise_error=True):
+        """ Frequency-domain signal injection method.
+        Provide the injection parameters and either the injection polarizations
+        or the waveform generator to inject a signal into the detector.
+        Defaults to the injection polarizations if both are given.
 
         Parameters
         ==========
@@ -770,12 +827,6 @@ class Interferometer(object):
             If true, raise an error if the injected signal has a duration
             longer than the data duration. If False, a warning will be printed
             instead.
-
-        Notes
-        =====
-        if your signal takes a substantial amount of time to generate, or
-        you experience buggy behaviour. It is preferable to provide the
-        injection_polarizations directly.
 
         Returns
         =======

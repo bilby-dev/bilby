@@ -147,25 +147,26 @@ class InterferometerList(list):
         parameters=None,
         injection_polarizations=None,
         waveform_generator=None,
-        raise_error=True,
+        domain="frequency",
+        **kwargs,
     ):
-        """ Inject a signal into noise in each of the three detectors.
+        """ Inject a signal into noise in each of the interferometers.
 
         Parameters
         ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict
-           Polarizations of waveform to inject, output of
-           `waveform_generator.frequency_domain_strain()`. If
-           `waveform_generator` is also given, the injection_polarizations will
-           be calculated directly and this argument can be ignored.
+           Polarizations of waveform to inject. If `waveform_generator` is also
+           given, the injection_polarizations will be calculated directly and
+           this argument can be ignored.
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
-        raise_error: bool
-            Whether to raise an error if the injected signal does not fit in
-            the segment.
+        domain: str
+            The domain of the injection: ``"frequency"`` (default) or ``"time"``.
+            Frequency-domain injections accept `raise_error` as a keyword argument.
+            Time-domain injections accept `placement` as a keyword argument.
 
         Notes
         =====
@@ -178,28 +179,39 @@ class InterferometerList(list):
         injection_polarizations: dict
 
         """
-        if injection_polarizations is None:
-            if waveform_generator is not None:
-                injection_polarizations = waveform_generator.frequency_domain_strain(
-                    parameters
-                )
-            else:
-                raise ValueError(
-                    "inject_signal needs one of waveform_generator or "
-                    "injection_polarizations."
-                )
+        if domain == "frequency":
+            if injection_polarizations is None:
+                if waveform_generator is not None:
+                    injection_polarizations = waveform_generator.frequency_domain_strain(
+                        parameters
+                    )
+                else:
+                    raise ValueError(
+                        "inject_signal needs one of waveform_generator or "
+                        "injection_polarizations."
+                    )
 
-        all_injection_polarizations = list()
-        for interferometer in self:
-            all_injection_polarizations.append(
-                interferometer.inject_signal(
-                    parameters=parameters,
-                    injection_polarizations=injection_polarizations,
-                    raise_error=raise_error,
+            all_injection_polarizations = list()
+            for interferometer in self:
+                all_injection_polarizations.append(
+                    interferometer.inject_signal(
+                        parameters=parameters,
+                        injection_polarizations=injection_polarizations,
+                        domain="frequency",
+                        **kwargs,
+                    )
                 )
+            return all_injection_polarizations
+
+        elif domain == "time":
+            return self.inject_signal_time_domain(
+                parameters=parameters,
+                injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator,
+                **kwargs,
             )
 
-        return all_injection_polarizations
+        raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
 
     def set_analysis_windows(self, duration, start_time=None, analysis_segment="imr",
                              segment_cut_time=None, cut_reference_parameters=None):

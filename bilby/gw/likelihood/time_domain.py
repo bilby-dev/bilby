@@ -1,5 +1,3 @@
-import copy
-
 import numpy as np
 
 from ...core.utils import logger
@@ -93,7 +91,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             raise ValueError(
                 f"placement must be 'nearest', 'fd_shift' or 'model_time', not {placement!r}")
 
-        super(TimeDomainGravitationalWaveTransient, self).__init__(
+        super().__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator,
             time_marginalization=False,
@@ -121,15 +119,10 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         self._data_times_inverse_covariance = dict()
         self._data_inverse_covariance_data = dict()
         for interferometer in self.interferometers:
-            acf = interferometer.autocovariance_function
-            if acf is None or acf.acf_array is None:
-                raise ValueError(f"{interferometer.name}: no autocovariance_function set")
-            if not np.isclose(acf.sampling_frequency, interferometer.sampling_frequency,
-                              rtol=1e-9, atol=0):
+            if interferometer.gohberg_semencul_vectors is None:
                 raise ValueError(
-                    f"{interferometer.name}: autocovariance function sampling frequency "
-                    f"{acf.sampling_frequency:g} Hz differs from the data's "
-                    f"{interferometer.sampling_frequency:g} Hz")
+                    f"{interferometer.name}: no noise covariance set "
+                    "(call set_autocovariance_function_from_power_spectral_density)")
             nyquist_frequency = interferometer.sampling_frequency / 2
             if interferometer.maximum_frequency < nyquist_frequency and not np.isclose(
                     interferometer.maximum_frequency, nyquist_frequency, rtol=1e-9, atol=0):
@@ -141,8 +134,8 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             data_times_inverse_covariance = gohberg_semencul_product(
                 *interferometer.gohberg_semencul_vectors, data)
             self._data_times_inverse_covariance[interferometer.name] = data_times_inverse_covariance
-            self._data_inverse_covariance_data[interferometer.name] = float(
-                np.dot(data_times_inverse_covariance, data))
+            self._data_inverse_covariance_data[interferometer.name] = np.dot(
+                data_times_inverse_covariance, data)
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
         """ Project the waveform polarizations onto the interferometer and place them
@@ -186,17 +179,14 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         )
         if signal is None:
             return None
-        d_inner_h = float(np.dot(self._data_times_inverse_covariance[interferometer.name], signal))
-        optimal_snr_squared = float(np.dot(
-            signal, gohberg_semencul_product(*interferometer.gohberg_semencul_vectors, signal)))
-        if optimal_snr_squared > 0:
-            matched_filter_snr = d_inner_h / optimal_snr_squared ** 0.5
-        else:
-            matched_filter_snr = 0.0
+        d_inner_h = np.dot(self._data_times_inverse_covariance[interferometer.name], signal)
+        optimal_snr_squared = np.dot(
+            signal, gohberg_semencul_product(*interferometer.gohberg_semencul_vectors, signal))
+        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
             optimal_snr_squared=optimal_snr_squared,
-            complex_matched_filter_snr=matched_filter_snr,
+            complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_array=None,
             optimal_snr_squared_array=None,
         )
@@ -204,84 +194,9 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     def _calculate_noise_log_likelihood(self):
         return -0.5 * sum(self._data_inverse_covariance_data.values())
 
-    def log_likelihood_ratio(self, parameters):
-        parameters = copy.deepcopy(parameters)
-        parameters.update(self.get_sky_frame_parameters(parameters))
-        waveform_polarizations = self.waveform_generator.time_domain_strain(parameters)
-        if waveform_polarizations is None:
-            return np.nan_to_num(-np.inf)
-
-        total_snrs = self._CalculatedSNRs()
-        for interferometer in self.interferometers:
-            snrs = self.calculate_snrs(
-                waveform_polarizations=waveform_polarizations,
-                interferometer=interferometer,
-                parameters=parameters,
-            )
-            if snrs is None:
-                return np.nan_to_num(-np.inf)
-            total_snrs += snrs
-        log_l = self.compute_log_likelihood_from_snrs(total_snrs, parameters=parameters)
-        return float(np.real(log_l))
-
-    def compute_per_detector_log_likelihood(self, parameters):
-        parameters.update(self.get_sky_frame_parameters(parameters))
-        waveform_polarizations = self.waveform_generator.time_domain_strain(parameters)
-        for interferometer in self.interferometers:
-            per_detector_snr = self.calculate_snrs(
-                waveform_polarizations=waveform_polarizations,
-                interferometer=interferometer,
-                parameters=parameters,
-            )
-            parameters['{}_log_likelihood'.format(interferometer.name)] = (
-                np.nan_to_num(-np.inf) if per_detector_snr is None else
-                self.compute_log_likelihood_from_snrs(per_detector_snr, parameters=parameters))
-        return parameters.copy()
-
-    def generate_posterior_sample_from_marginalized_likelihood(self, parameters):
-        """ Reconstruct the distance posterior from a run which used a likelihood
-        which explicitly marginalised over distance.
-
-        See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
-
-        Returns
-        =======
-        sample: dict
-            Returns the parameters with new samples.
-        """
-        if not self.distance_marginalization:
-            return parameters
-        parameters['luminosity_distance'] = self.generate_distance_sample_from_marginalized_likelihood(
-            parameters=parameters)
-        return parameters.copy()
-
-    def generate_distance_sample_from_marginalized_likelihood(
-            self, signal_polarizations=None, *, parameters):
-        """ Generate a single sample from the posterior distribution for luminosity
-        distance when using a likelihood which explicitly marginalises over
-        distance.
-
-        See Eq. (C29-C32) of https://arxiv.org/abs/1809.02293
-
-        Parameters
-        ==========
-        signal_polarizations: dict, optional
-            Polarizations modes of the template.
-            Note: These are rescaled in place after the distance sample is
-            generated to allow further parameter reconstruction to occur.
-
-        Returns
-        =======
-        new_distance: float
-            Sample from the distance posterior.
-        """
-        if signal_polarizations is None:
-            parameters.update(self.get_sky_frame_parameters(parameters))
-            signal_polarizations = copy.deepcopy(
-                self.waveform_generator.time_domain_strain(parameters))
-        return super(TimeDomainGravitationalWaveTransient, self).\
-            generate_distance_sample_from_marginalized_likelihood(
-                signal_polarizations=signal_polarizations, parameters=parameters)
+    def waveform_polarizations(self, parameters):
+        """Return the time-domain waveform polarizations for the given parameters."""
+        return self.waveform_generator.time_domain_strain(parameters)
 
     def _rescale_signal(self, signal, new_distance):
         factor = self._ref_dist / new_distance
@@ -302,6 +217,6 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
     @property
     def meta_data(self):
-        meta_data = super(TimeDomainGravitationalWaveTransient, self).meta_data
+        meta_data = super().meta_data
         meta_data.update(likelihood_domain=self.likelihood_domain, placement=self.placement)
         return meta_data

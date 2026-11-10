@@ -251,6 +251,59 @@ class PowerSpectralDensity(object):
             self._update_cache(frequency_array=frequency_array)
         return self._cache['psd_array']
 
+    def get_autocovariance_array(
+            self, number_of_samples, sampling_frequency, minimum_frequency,
+            maximum_frequency, duration_factor=16, fill_value=None,
+            fill_multiplier=1e4):
+        """ Compute the autocovariance function (ACF) from this PSD.
+
+        The ACF is the inverse Fourier transform of the (one-sided) PSD
+        (Wiener-Khinchin theorem). The PSD is evaluated on a frequency grid
+        whose length is the next power of two at or above
+        ``duration_factor * number_of_samples``, so that the ACF has the
+        correct sampling frequency.
+
+        Parameters
+        ==========
+        number_of_samples: int
+            The number of samples in the analysis window
+        sampling_frequency: float
+            The sampling frequency of the data (in Hz)
+        minimum_frequency: float
+            The lower edge of the frequency band (in Hz)
+        maximum_frequency: float
+            The upper edge of the frequency band (in Hz)
+        duration_factor: float
+            The minimum ratio of the ACF length to the analysis window length
+        fill_value: float, optional
+            The PSD value used outside the band; overrides `fill_multiplier`
+        fill_multiplier: float
+            The multiple of the maximum in-band PSD used outside the band
+
+        Returns
+        =======
+        acf_array: numpy.ndarray
+            The first `number_of_samples` lags of the ACF
+        fill_value: float
+            The PSD value used outside the band
+        fill_multiplier: float or None
+            The multiplier used (None if `fill_value` was given explicitly)
+
+        """
+        fft_length = 2 ** int(np.ceil(np.log2(duration_factor * number_of_samples)))
+        frequency_array = np.fft.rfftfreq(fft_length, 1 / sampling_frequency)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            psd_array = self.get_power_spectral_density_array(frequency_array)
+        acf_array, fill_value, fill_multiplier = power_spectral_density_to_autocovariance(
+            frequency_array, psd_array, minimum_frequency, maximum_frequency,
+            sampling_frequency=sampling_frequency, fill_value=fill_value,
+            fill_multiplier=fill_multiplier)
+        if number_of_samples > len(acf_array):
+            raise ValueError(
+                f"The analysis segment ({number_of_samples} samples) is longer "
+                f"than the ACF ({len(acf_array)} samples)")
+        return acf_array[:number_of_samples], fill_value, fill_multiplier
+
     def get_amplitude_spectral_density_array(self, frequency_array):
         if aac.is_jax_array(frequency_array):
             return self.power_spectral_density_interpolated(frequency_array)**0.5
@@ -392,3 +445,70 @@ class PowerSpectralDensity(object):
         self._cache['psd_array'] = xp.asarray(self._cache['psd_array'])
         self._cache['asd_array'] = xp.asarray(self._cache['asd_array'])
         self._interpolate_power_spectral_density()
+
+
+def power_spectral_density_to_autocovariance(
+        frequency_array, psd_array, minimum_frequency, maximum_frequency,
+        sampling_frequency=None, fill_value=None, fill_multiplier=1e4):
+    """ Compute the autocovariance function from a one-sided power spectral density.
+
+    The PSD outside [`minimum_frequency`, `maximum_frequency`] is set to
+    `fill_value`, or to `fill_multiplier` times its maximum in the band, and
+    the ACF is its inverse Fourier transform (Wiener-Khinchin theorem).
+
+    Parameters
+    ==========
+    frequency_array: array_like
+        Uniformly spaced frequencies (in Hz) up to the Nyquist frequency
+    psd_array: array_like
+        The one-sided PSD at `frequency_array`
+    minimum_frequency: float
+        The lower edge of the frequency band (in Hz)
+    maximum_frequency: float
+        The upper edge of the frequency band (in Hz)
+    sampling_frequency: float, optional
+        The sampling frequency of the data (in Hz); a warning is logged if it
+        is not twice the highest frequency in `frequency_array`
+    fill_value: float, optional
+        The PSD value used outside the band; overrides `fill_multiplier`
+    fill_multiplier: float
+        The multiple of the maximum in-band PSD used outside the band
+
+    Returns
+    =======
+    acf_array: numpy.ndarray
+        The autocovariance function at lags 0, 1/f_s, 2/f_s, ...
+    fill_value: float
+        The PSD value used outside the band
+    fill_multiplier: float or None
+        The multiplier used (None if `fill_value` was given explicitly)
+
+    """
+    frequency_array = np.asarray(frequency_array, dtype=float)
+    psd_array = np.asarray(psd_array, dtype=float)
+    delta_f = frequency_array[1] - frequency_array[0]
+    frequency_values_missing = int(round(frequency_array[0] / delta_f))
+    if frequency_values_missing > 0:
+        frequency_array = np.concatenate(
+            [np.arange(frequency_values_missing) * delta_f, frequency_array])
+        psd_array = np.concatenate([np.zeros(frequency_values_missing), psd_array])
+
+    psd_sampling_frequency = 2 * frequency_array[-1]
+    if sampling_frequency is not None and not np.isclose(
+            sampling_frequency, psd_sampling_frequency, rtol=1e-9, atol=0):
+        logger.warning(
+            f"The sampling frequency given ({sampling_frequency:g} Hz) is not equal to the one "
+            f"computed from the PSD ({psd_sampling_frequency:g} Hz); using "
+            f"{psd_sampling_frequency:g} Hz. An ACF computed with {sampling_frequency:g} Hz "
+            "would be wrongly scaled and its lags wrongly spaced, giving wrong likelihood "
+            "and SNR values.")
+
+    band = (frequency_array >= minimum_frequency) & (frequency_array <= maximum_frequency)
+    if fill_value is None:
+        fill_value = fill_multiplier * np.max(psd_array[band])
+    else:
+        fill_multiplier = None
+    psd_array = psd_array.copy()
+    psd_array[~band] = fill_value
+    acf_array = 0.5 * np.fft.irfft(psd_array) * psd_sampling_frequency
+    return acf_array, float(fill_value), fill_multiplier

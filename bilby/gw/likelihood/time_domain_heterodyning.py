@@ -107,7 +107,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                  fiducial_minimum_frequency=None,
                  time_marginalization=False, phase_marginalization=False,
                  calibration_marginalization=False, use_float32=False):
-        super(TimeDomainHeterodyningGravitationalWaveTransient, self).__init__(
+        super().__init__(
             interferometers=interferometers,
             waveform_generator=waveform_generator,
             distance_marginalization=distance_marginalization,
@@ -245,7 +245,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         while True:
             self._set_fiducial()
             modes_and_harmonics = self._modes_and_harmonics_at_combined_bin_edges(
-                self.waveform_generator.time_domain_strain(parameters),
+                self.waveform_polarizations(parameters),
                 [self._fiducial_times[interferometer.name] for interferometer in self.interferometers])
             self._unset_fiducial()
             if modes_and_harmonics is None:
@@ -368,7 +368,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             # a = V^T C^-1 d: basis times C^-1 d, summed over the samples of each bin
             a = np.add.reduceat(basis * self._data_times_inverse_covariance[name], edges[:-1], axis=1)
 
-            # S = V^T C^-1 V without the terms quadratic in the slopes r_tilde_1 (p = p' = 1, odd i):
+            # S = V^T C^-1 V:
             # C^-1 times each column (i, b) of V, then times basis[j], summed over the samples of
             # each bin b'; S is symmetric, so only j >= i is computed
             x, y = interferometer.gohberg_semencul_vectors
@@ -439,7 +439,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     def log_likelihood_ratio(self, parameters):
         parameters = copy.deepcopy(parameters)
         parameters.update(self.get_sky_frame_parameters(parameters))
-        signal = self.waveform_generator.time_domain_strain(parameters)
+        signal = self.waveform_polarizations(parameters)
         r_tilde = None if signal is None else self._r_tilde_coefficients(signal, self.interferometers, parameters)
         if r_tilde is None:
             return np.nan_to_num(-np.inf)
@@ -641,7 +641,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
 
     @property
     def meta_data(self):
-        meta_data = super(TimeDomainHeterodyningGravitationalWaveTransient, self).meta_data
+        meta_data = super().meta_data
         meta_data.update(
             fiducial_parameters=self.fiducial_parameters,
             parameters_to_be_updated=getattr(self, "parameters_to_be_updated", None),
