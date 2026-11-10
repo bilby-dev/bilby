@@ -1,7 +1,6 @@
 import os
 
 import array_api_compat as aac
-import array_api_extra as xpx
 import numpy as np
 
 from ...compat.utils import array_module
@@ -449,7 +448,7 @@ class PowerSpectralDensity(object):
         out_of_bounds = (frequencies < self.frequency_array.min()) | (
             frequencies > self.frequency_array.max()
         )
-        frequency_domain_strain = xpx.at(frequency_domain_strain, out_of_bounds).set(0j)
+        frequency_domain_strain = xp.where(out_of_bounds, 0j, frequency_domain_strain)
         return xp.nan_to_num(frequency_domain_strain), xp.asarray(frequencies)
 
     @property
