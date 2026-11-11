@@ -351,6 +351,9 @@ class CompactBinaryCoalescenceResult(CoreResult):
         waveforms to have ~4000 entries. This should be sufficient for decent
         resolution.
         """
+        if self.meta_data.get("likelihood", {}).get("likelihood_domain") == "time":
+            raise NotImplementedError(
+                "plot_interferometer_waveform_posterior is not implemented for time-domain likelihoods")
 
         DATA_COLOR = "#ff7f0e"
         WAVEFORM_COLOR = "#1f77b4"

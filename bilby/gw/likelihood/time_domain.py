@@ -15,6 +15,8 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     noise covariance matrix use the Gohberg-Semencul formula. See Sharma et al.
     arXiv:2601.11239.
 
+    Calibration uncertainty is not included.
+
     Parameters
     ==========
     interferometers: list, bilby.gw.detector.InterferometerList
@@ -55,9 +57,15 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         - e.g., :code:`H1`: sample in the time of arrival at H1
 
     placement: str, optional
-        How the waveform is placed on the data samples: "nearest" (default),
-        "fd_shift" or "model_time"; see
-        :code:`bilby.gw.detector.Interferometer.get_time_domain_detector_response`
+        How the waveform is placed on the data samples, since its arrival time at
+        each detector generally falls between samples:
+        "fd_shift" (default): shifted by whole samples and by the remaining
+        fraction of a sample with a Fourier phase shift (any time-domain source model);
+        "nearest": shifted by the nearest whole number of samples (off by up to
+        half a sample, which biases the likelihood);
+        "model_time": evaluated at the data sample times, for a model-time source
+        model such as :code:`bilby.gw.source.lal_binary_black_hole_model_time`.
+        Use the same placement for the injection.
     time_marginalization, phase_marginalization, calibration_marginalization: bool, optional
         Not implemented for this likelihood; must be False
 
@@ -66,6 +74,31 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     Likelihood: `bilby.core.likelihood.Likelihood`
         A likelihood object, able to compute the likelihood of the data given
         some model parameters
+
+    Examples
+    ========
+    A post-inspiral analysis of the 0.5 s after a cut at `segment_cut_time`
+    relative to the merger, with a model-time waveform:
+
+    .. code-block:: python
+
+        >>> ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        >>> ifos.set_analysis_windows(
+        ...     duration=0.5, analysis_segment="post_inspiral",
+        ...     segment_cut_time=segment_cut_time, cut_reference_parameters=parameters)
+        >>> ifos.set_strain_data_from_power_spectral_densities(
+        ...     sampling_frequency=2048, duration=4, start_time=start_time)
+        >>> ifos.set_autocovariance_functions_from_power_spectral_densities()
+        >>> waveform_generator = bilby.gw.WaveformGenerator(
+        ...     duration=4, sampling_frequency=2048, start_time=start_time,
+        ...     time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
+        ...     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+        ...     waveform_arguments=dict(waveform_approximant="IMRPhenomTPHM", minimum_frequency=10))
+        >>> likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
+        ...     ifos, waveform_generator, placement="model_time")
+
+    The autocovariance functions are set after the analysis windows, the data
+    and the power spectral densities, and are not updated if these change.
     """
 
     likelihood_domain = "time"
@@ -73,7 +106,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     def __init__(
             self, interferometers, waveform_generator, distance_marginalization=False,
             priors=None, distance_marginalization_lookup_table=None, reference_frame="sky",
-            time_reference="geocenter", placement="nearest", time_marginalization=False,
+            time_reference="geocenter", placement="fd_shift", time_marginalization=False,
             phase_marginalization=False, calibration_marginalization=False,
     ):
         for name, value in dict(
@@ -123,6 +156,11 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
                 raise ValueError(
                     f"{interferometer.name}: no noise covariance set "
                     "(call set_autocovariance_function_from_power_spectral_density)")
+            injection_placement = interferometer.meta_data.get("injection_placement")
+            if injection_placement is not None and injection_placement != self.placement:
+                logger.warning(
+                    f"{interferometer.name}: the signal was injected with placement "
+                    f"{injection_placement!r}, but the likelihood uses {self.placement!r}")
             nyquist_frequency = interferometer.sampling_frequency / 2
             if interferometer.maximum_frequency < nyquist_frequency and not np.isclose(
                     interferometer.maximum_frequency, nyquist_frequency, rtol=1e-9, atol=0):
@@ -150,7 +188,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         parameters: dict
             The parameters of the signal
         """
-        return interferometer.get_time_domain_detector_response(
+        return interferometer.get_detector_response_time_domain(
             signal_polarizations, parameters, placement=self.placement)
 
     def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
@@ -195,7 +233,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         return -0.5 * sum(self._data_inverse_covariance_data.values())
 
     def waveform_polarizations(self, parameters):
-        """Return the time-domain waveform polarizations for the given parameters."""
+        """ The time-domain waveform polarizations for the given parameters """
         return self.waveform_generator.time_domain_strain(parameters)
 
     def _rescale_signal(self, signal, new_distance):

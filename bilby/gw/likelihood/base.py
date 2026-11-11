@@ -417,13 +417,8 @@ class GravitationalWaveTransient(Likelihood):
         return self._noise_log_likelihood_value
 
     def waveform_polarizations(self, parameters):
-        """Return the waveform polarizations for the given parameters.
-
-        In the base class this returns the frequency-domain strain. Subclasses
-        that work in the time domain override this to return the time-domain
-        strain, so that generic methods such as :meth:`log_likelihood_ratio` and
-        :meth:`compute_per_detector_log_likelihood` work in both domains.
-        """
+        """ The waveform polarizations for the given parameters: the frequency-domain
+        strain, or the time-domain strain for time-domain likelihoods """
         return self.waveform_generator.frequency_domain_strain(parameters)
 
     def log_likelihood_ratio(self, parameters):
@@ -444,6 +439,8 @@ class GravitationalWaveTransient(Likelihood):
                 interferometer=interferometer,
                 parameters=parameters,
             )
+            if per_detector_snr is None:
+                return np.nan_to_num(-np.inf)
 
             total_snrs += per_detector_snr
 

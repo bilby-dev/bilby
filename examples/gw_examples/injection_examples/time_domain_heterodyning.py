@@ -8,11 +8,17 @@ This is the heterodyning analysis done in the time domain, with zero
 noise and the IMRPhenomTPHM waveform. The heterodyned likelihood evaluates the
 waveform only at the edges of time bins; the posterior samples are then
 compared with the exact time-domain likelihood (placement "model_time").
+
+Set the interferometers' frequency band and power spectral densities, the
+analysis windows and the strain data first, then the autocovariance functions,
+which are not updated if any of these change, and then inject the signal and
+create the likelihood.
 """
 
 import bilby
 from bilby.core.utils import random
 
+# Sets seed of bilby's generator "rng" to "123" to ensure reproducibility
 random.seed(123)
 
 # Set the duration and sampling frequency of the data segment that we're
@@ -26,6 +32,10 @@ outdir = "outdir"
 label = "time_domain_heterodyning"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
+# We are going to inject a binary black hole waveform.  We first establish a
+# dictionary of parameters that includes all of the different waveform
+# parameters, including masses of the two black holes (mass_1, mass_2),
+# spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(
     mass_1=36.0,
     mass_2=29.0,
@@ -45,24 +55,22 @@ injection_parameters = dict(
 )
 start_time = injection_parameters["geocent_time"] - 2
 
-"""
-Fixed arguments passed into the source model.
-
-There are two different minimum frequencies:
-- ifo.minimum_frequency (20 Hz): the lowest frequency used in the analysis.
-- minimum_frequency below (10 Hz): the frequency at which the waveform starts.
-
-The waveform starts at 10 Hz, below 20 Hz, for two reasons:
-1. Higher modes. Higher modes oscillate faster than the main (2, 2) mode
-   (the (4, 4) mode at twice its frequency). If the (2, 2) mode starts at
-   10 Hz, all modes are already present at 20 Hz.
-2. The start of the waveform must not be in the data. The waveform switches
-   on suddenly, and this sudden start disturbs the analysis even above 20 Hz.
-   Starting at 10 Hz, every waveform in the prior begins before the analysis
-   window, so its start is never in the data. With a wider prior or a longer
-   window, use a lower value.
-"""
-
+# Fixed arguments passed into the source model.
+# There are two minimum frequencies. The minimum_frequency of the
+# interferometers (20 Hz) is the lower edge of the analysis band, as in a
+# frequency-domain analysis. The minimum_frequency of the waveform (10 Hz) is
+# the frequency at which the waveform starts. In the time domain, every
+# waveform must start before the analysis window: a waveform that switches on
+# inside the window has a sharp edge, whose power is spread over all
+# frequencies, including the analysis band. From 20 Hz, the waveforms in this
+# prior would start only about 1 s before the merger, inside the window, which
+# starts 2 s before it; from 10 Hz, they start 5 to 8 s before the merger.
+# Use a lower minimum_frequency for lighter binaries or longer windows. The
+# fiducial waveform of the heterodyned likelihood starts at an even lower
+# frequency, chosen automatically (see fiducial_minimum_frequency).
+# fiducial=1 makes the source model also return the polarizations, so that this
+# waveform generator can be used for the injection; the likelihood sets it
+# itself.
 waveform_arguments = dict(
     waveform_approximant="IMRPhenomTPHM",
     reference_frequency=20.0,
@@ -95,12 +103,23 @@ ifos.set_strain_data_from_zero_noise(
     start_time=start_time,
 )
 ifos.set_autocovariance_functions_from_power_spectral_densities()
-ifos.inject_signal_time_domain(
+ifos.inject_signal(
     waveform_generator=waveform_generator,
     parameters=injection_parameters,
+    domain="time",
     placement="model_time",
 )
 
+# Set up a PriorDict, which inherits from dict.
+# By default we will sample all terms in the signal models.  However, this will
+# take a long time for the calculation, so for this example we will set almost
+# all of the priors to be equal to their injected values.  This implies the
+# prior is a delta function at the true, injected value.  In reality, the
+# sampler implementation is smart enough to not sample any parameter that has
+# a delta-function prior.
+# The above list does *not* include the masses, theta_jn and luminosity
+# distance, which means those are the parameters that will be included in the
+# sampler, with a narrower chirp-mass prior than the default.
 priors = bilby.gw.prior.BBHPriorDict()
 for key in [
     "a_1",
@@ -124,6 +143,9 @@ priors["chirp_mass"] = bilby.gw.prior.UniformInComponentsChirpMass(
 # Perform a check that the prior does not extend to a parameter space longer than the data
 priors.validate_prior(duration, minimum_frequency)
 
+# Set up the fiducial parameters for the heterodyned likelihood to be the
+# injected parameters. Note that because we sample in chirp mass and mass ratio
+# but injected with mass_1 and mass_2, we need to convert the mass parameters
 fiducial_parameters = injection_parameters.copy()
 m1 = fiducial_parameters.pop("mass_1")
 m2 = fiducial_parameters.pop("mass_2")
@@ -132,6 +154,8 @@ fiducial_parameters["chirp_mass"] = bilby.gw.conversion.component_masses_to_chir
 )
 fiducial_parameters["mass_ratio"] = m2 / m1
 
+# Initialise the likelihood by passing in the interferometer data (ifos) and
+# the waveform generator
 likelihood = bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient(
     interferometers=ifos,
     waveform_generator=waveform_generator,
@@ -140,6 +164,7 @@ likelihood = bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransien
     fiducial_parameters=fiducial_parameters,
 )
 
+# Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
@@ -154,6 +179,9 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
+# Make a corner plot.
 result.plot_corner()
 
+# Compare the heterodyned likelihood with the exact time-domain likelihood at
+# the posterior samples
 likelihood.compare_with_exact_likelihood(result.posterior, outdir=outdir, label=label)

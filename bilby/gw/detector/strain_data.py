@@ -209,6 +209,13 @@ class InterferometerStrainData(object):
         else:
             raise ValueError("time domain strain data not yet set")
 
+    @time_domain_strain.setter
+    def time_domain_strain(self, time_domain_strain):
+        if not len(self.time_array) == len(time_domain_strain):
+            raise ValueError("The time_array and the set strain have different lengths")
+        self._time_domain_strain = time_domain_strain
+        self._frequency_domain_strain = None
+
     @property
     def frequency_domain_strain(self):
         """ Returns the frequency domain strain
@@ -620,6 +627,7 @@ class InterferometerStrainData(object):
         logger.debug('Setting data using provided frequency_domain_strain')
         if np.shape(frequency_domain_strain) == np.shape(self.frequency_array):
             self._frequency_domain_strain = frequency_domain_strain
+            self._time_domain_strain = None
             self.window_factor = 1
         else:
             raise ValueError("Data frequencies do not match frequency_array")
@@ -658,6 +666,7 @@ class InterferometerStrainData(object):
 
         if self.duration == duration and frequency_array.shape == self.frequency_array.shape:
             self._frequency_domain_strain = frequency_domain_strain
+            self._time_domain_strain = None
         else:
             raise ValueError("Data frequencies do not match frequency_array")
 
@@ -686,6 +695,7 @@ class InterferometerStrainData(object):
         xp = aac.get_namespace(self.frequency_array)
         self._frequency_domain_strain = xp.zeros_like(self.frequency_array,
                                                       dtype=complex)
+        self._time_domain_strain = None
 
     def set_from_frame_file(
             self, frame_file, sampling_frequency, duration, start_time=0,

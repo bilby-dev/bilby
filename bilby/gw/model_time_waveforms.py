@@ -143,8 +143,7 @@ def heterodyning_terms_at_model_times(
     """ The modes and harmonic factors used by
     :code:`bilby.gw.likelihood.TimeDomainHeterodyningGravitationalWaveTransient`
     at given model times: the modes with m > 0 for IMRPhenomT and IMRPhenomTHM,
-    the co-precessing modes with m >= 0 for IMRPhenomTP and IMRPhenomTPHM. See
-    Sharma et al. arXiv:2601.11239.
+    the co-precessing modes with m >= 0 for IMRPhenomTP and IMRPhenomTPHM.
 
     Parameters are as in :code:`polarizations_at_model_times`.
 

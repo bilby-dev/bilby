@@ -5,6 +5,7 @@ from scipy.optimize import differential_evolution
 
 from ...core.utils import gravitational_constant, logger, solar_mass, speed_of_light
 from ..conversion import component_masses_to_chirp_mass
+from ..model_time_waveforms import PRECESSING_APPROXIMANTS
 from ..time_domain_utils import gohberg_semencul_product, times_from_merger
 from .relative import RelativeBinningGravitationalWaveTransient
 from .time_domain import TimeDomainGravitationalWaveTransient
@@ -32,10 +33,10 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         as its time-domain source model
     fiducial_parameters: dict, optional
         A starting guess for initial parameters of the event for finding the
-        maximum likelihood (fiducial) waveform. These should be specified in
-        the same parameter basis as the one that sampling is carried out in.
-        If no fiducial parameters are passed, a random point will be drawn from
-        the prior.
+        maximum likelihood (fiducial) waveform. If no fiducial parameters are
+        passed, a random point will be drawn from the prior. An equal-mass
+        fiducial, without odd-m modes, is changed to the mass ratio 0.99 at the
+        same chirp mass.
     maximization_kwargs: dict, optional
         Keyword arguments for :code:`scipy.optimize.differential_evolution`
     update_fiducial_parameters: bool
@@ -65,25 +66,43 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         Name of the reference for the sampled time parameter, as in
         :code:`GravitationalWaveTransient`.
     epsilon: tuple, optional
-        The bin width in the phase proxy before and after `time_split`;
-        smaller values give more bins (see :code:`time_domain_bin_edges`)
+        Tunable parameters which limit the differential phase change in each bin
+        when setting up the bins before the merger: (before `time_split`, from
+        `time_split` to the merger). Smaller values give more bins and a more
+        accurate likelihood. Default: (0.5, 0.1). See
+        https://arxiv.org/abs/1806.08792, https://arxiv.org/abs/2601.11239 and
+        :code:`time_domain_bin_edges`.
     time_split: float, optional
-        The time relative to the merger (in s) at which `epsilon` changes
+        The time relative to the merger (in s) at which `epsilon` changes from
+        `epsilon[0]` to `epsilon[1]`, so that the late inspiral, where the
+        frequency changes fastest, gets narrower bins. Default: -0.02 [s].
     spacing: tuple, optional
-        The number of samples per bin after the merger: before
-        `spacing_times[0]`, before `spacing_times[1]` and after
+        The number of data samples per bin after the merger: (up to
+        `spacing_times[0]`, up to `spacing_times[1]`, after that). Default:
+        (2, 10, 100). After the end of the fiducial waveform, a single bin runs to
+        the end of the analysis window.
     spacing_times: tuple, optional
-        The times relative to the merger (in s) at which `spacing` changes
+        The times relative to the merger (in s) at which `spacing` changes.
+        Default: (0.02, 0.1).
     chi: float, optional
-        Tunable parameter of the phase proxy. See https://arxiv.org/abs/1806.08792.
+        Tunable parameter which limits the perturbation of alpha when setting
+        up the bins before the merger. Default: 1. See
+        https://arxiv.org/abs/1806.08792 and https://arxiv.org/abs/2601.11239.
     fiducial_minimum_frequency: float, optional
-        The minimum frequency (in Hz) of the fiducial waveform, default: chosen
-        so that it starts before the analysis window
+        The starting frequency (in Hz) of the fiducial waveform, which must start
+        before the analysis window. By default, it is chosen so that the fiducial
+        waveform starts about 1.5 times as early as the window, relative to the
+        merger (e.g. 3 s before the merger for a window starting 2 s before it),
+        and is at most the `minimum_frequency` of the waveform generator. A larger
+        value raises an error.
     time_marginalization, phase_marginalization, calibration_marginalization: bool, optional
         Not implemented for this likelihood; must be False
     use_float32: bool, optional
-        If true, the summary data are stored and multiplied in single precision.
-        Default is :code:`False`.
+        If true, the eigenvectors of the summary matrix are stored, and multiplied
+        by the heterodyning coefficients, in single precision. This is faster and
+        uses less memory for many modes and bins, with a relative error of about
+        1e-7 in <s, s>; <d, s> is always computed in double precision.
+        Default: False.
 
     Returns
     =======
@@ -95,6 +114,10 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
     =====
     The time-domain heterodyning likelihood does not currently support time,
     phase or calibration marginalization.
+
+    The summary data include a matrix of size (4 x modes x bins) squared per
+    interferometer, so the set-up time and memory grow quickly for long analysis
+    windows or small `epsilon`.
     """
 
     def __init__(self, interferometers, waveform_generator, fiducial_parameters=None,
@@ -120,6 +143,13 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             phase_marginalization=phase_marginalization,
             calibration_marginalization=calibration_marginalization,
         )
+        from ..source import lal_binary_black_hole_time_domain_heterodyning
+        if waveform_generator.time_domain_source_model is not lal_binary_black_hole_time_domain_heterodyning:
+            raise ValueError(
+                f"{self.__class__.__name__} needs a waveform generator with "
+                "bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning as its time-domain source model")
+        if priors is None and (fiducial_parameters is None or update_fiducial_parameters):
+            raise ValueError("priors are needed to draw or to update the fiducial parameters")
         self.epsilon = epsilon
         self.time_split = time_split
         self.spacing = spacing
@@ -147,6 +177,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
         if self.distance_marginalization:
             self.fiducial_parameters["luminosity_distance"] = self._ref_dist
         self.set_fiducial_waveforms(self.fiducial_parameters)
+        self._check_fiducial_modes()
         logger.info("Fiducial waveforms set up")
         self.setup_bins()
         self.compute_summary_data()
@@ -194,7 +225,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             return None
         r_tilde = list()
         for interferometer, (modes, harmonics) in zip(interferometers, modes_and_harmonics):
-            # as in Interferometer.get_time_domain_detector_response
+            # as in Interferometer.get_detector_response_time_domain
             antenna_time = parameters["geocent_time"] if interferometer.reference_time is None \
                 else interferometer.reference_time
             antenna_factor = (  # F = F_+ + i F_x
@@ -272,7 +303,39 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 ends.append(nonzero[-1])
             self._fiducial_end[interferometer.name] = max(ends)
         self.mode_keys = sorted({key for modes in self.fiducial_modes.values() for key in modes})
-        logger.debug(f"Modes of the heterodyning basis: {self.mode_keys}")
+
+    def _check_fiducial_modes(self):
+        """ Make sure that the fiducial waveform has all the modes of the waveform model: a fiducial
+        waveform without odd-m modes (equal masses) gets the mass ratio 0.99 at the same chirp mass """
+        mass_parameters = ("mass_1", "mass_2", "total_mass", "symmetric_mass_ratio", "chirp_mass", "mass_ratio")
+        converted = self.waveform_generator.parameter_conversion(dict(self.fiducial_parameters))[0]
+        chirp_mass = component_masses_to_chirp_mass(converted["mass_1"], converted["mass_2"])
+        other_parameters = {key: value for key, value in self.fiducial_parameters.items()
+                            if key not in mass_parameters}
+
+        # the modes of the waveform model, from a waveform with unequal masses
+        parameters = dict(other_parameters, chirp_mass=chirp_mass, mass_ratio=0.8)
+        parameters.update(self.get_sky_frame_parameters(parameters))
+        signal = self.waveform_polarizations(parameters)
+        terms = None if signal is None else signal["heterodyning_terms_at"](
+            self._fiducial_times[self.interferometers[0].name])
+        model_modes = self.mode_keys if terms is None else sorted(terms[0])
+
+        missing = [mode for mode in model_modes if mode not in self.mode_keys]
+        if len(missing) > 0:
+            logger.info(
+                f"The fiducial waveform has no {missing} modes (mass ratio "
+                f"{converted['mass_2'] / converted['mass_1']:.3f}); using the fiducial mass ratio 0.99 at the "
+                "same chirp mass so that they are in the heterodyned likelihood")
+            self.fiducial_parameters = dict(other_parameters, chirp_mass=chirp_mass, mass_ratio=0.99)
+            self.set_fiducial_waveforms(self.fiducial_parameters)
+            missing = [mode for mode in model_modes if mode not in self.mode_keys]
+            if len(missing) > 0:
+                logger.warning(f"The modes {missing} of the waveform model are not in the heterodyned likelihood")
+
+        precessing = self.waveform_generator.waveform_arguments.get("waveform_approximant") in PRECESSING_APPROXIMANTS
+        logger.info(f"{'Co-precessing modes' if precessing else 'Modes'} in the heterodyned likelihood: "
+                    f"{self.mode_keys}")
 
     @staticmethod
     def time_domain_bin_edges(times, epsilon=(0.5, 0.1), time_split=-0.02, spacing=(2, 10, 100),
@@ -385,7 +448,8 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             # S = sum_n lambda_n e_n e_n^T, keeping the eigenvalues above 1e-12 of the largest
             size = number_of_basis * number_of_bins
             eigenvalues, eigenvectors = np.linalg.eigh(S.reshape(size, size))
-            keep = np.abs(eigenvalues) > 1e-12 * np.max(np.abs(eigenvalues))
+            # was: keep = np.abs(eigenvalues) > 1e-12 * np.max(np.abs(eigenvalues))
+            keep = eigenvalues > 1e-12 * np.max(eigenvalues)
 
             self.summary_data[name] = dict(
                 a=a.ravel(), S_eigenvalues=eigenvalues[keep],
@@ -424,14 +488,14 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             r_tilde = r_tilde[0]
         summary = self.summary_data[interferometer.name]
         v = np.concatenate([r_tilde.real.ravel(), r_tilde.imag.ravel()])
-        d_inner_s = float(summary["a"] @ v)
+        d_inner_s = summary["a"] @ v
         # e_n . v in the precision of the stored eigenvectors (see use_float32)
         projections = summary["S_eigenvectors"] @ v.astype(summary["S_eigenvectors"].dtype, copy=False)
-        s_inner_s = float(summary["S_eigenvalues"] @ projections.astype(np.float64) ** 2)
+        s_inner_s = summary["S_eigenvalues"] @ projections.astype(np.float64) ** 2
         return self._CalculatedSNRs(
             d_inner_h=d_inner_s,
             optimal_snr_squared=s_inner_s,
-            complex_matched_filter_snr=d_inner_s / s_inner_s ** 0.5 if s_inner_s > 0 else 0.0,
+            complex_matched_filter_snr=d_inner_s / (s_inner_s ** 0.5),
             d_inner_h_array=None,
             optimal_snr_squared_array=None,
         )
@@ -448,7 +512,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
             total_snrs += self.calculate_snrs(
                 signal, interferometer, parameters=parameters, r_tilde=interferometer_r_tilde)
         log_l = self.compute_log_likelihood_from_snrs(total_snrs, parameters=parameters)
-        return float(np.real(log_l))
+        return log_l.real
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
         """ The heterodyned template at the samples of the analysis window """
@@ -528,7 +592,7 @@ class TimeDomainHeterodyningGravitationalWaveTransient(TimeDomainGravitationalWa
                 parameter_conversion=self.waveform_generator.parameter_conversion,
                 waveform_arguments=waveform_arguments),
             distance_marginalization=self.distance_marginalization,
-            priors=self.priors,
+            priors=None if self.priors is None else self.priors.copy(),
             distance_marginalization_lookup_table=(
                 self.cached_lookup_table_filename if self.distance_marginalization else None),
             reference_frame=self.reference_frame,

@@ -769,5 +769,213 @@ class TestRelbinBNS(unittest.TestCase):
             )
 
 
+class TestLalBBHTimeDomain(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            tilt_1=0.2,
+            phi_12=1.0,
+            a_2=0.8,
+            tilt_2=2.7,
+            phi_jl=2.9,
+            theta_jn=0.3,
+            phase=0.0,
+        )
+        self.waveform_kwargs = dict(
+            waveform_approximant="IMRPhenomTPHM",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+        )
+        self.time_array = bilby.core.utils.create_time_series(2048, 4)
+        self.bad_parameters = copy(self.parameters)
+        self.bad_parameters["mass_1"] = -30.0
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs
+        del self.time_array
+        del self.bad_parameters
+
+    def test_lal_bbh_time_domain_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs)
+        waveform = bilby.gw.source.lal_binary_black_hole_time_domain(
+            self.time_array, **self.parameters
+        )
+        self.assertEqual(set(waveform), {"plus", "cross", "epoch"})
+        self.assertEqual(len(waveform["plus"]), len(waveform["cross"]))
+        self.assertLess(waveform["epoch"], 0)
+
+    def test_waveform_error_catching(self):
+        self.bad_parameters.update(self.waveform_kwargs)
+        self.assertIsNone(
+            bilby.gw.source.lal_binary_black_hole_time_domain(
+                self.time_array, **self.bad_parameters
+            )
+        )
+
+    def test_waveform_error_raising(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs)
+        raise_error_parameters["catch_waveform_errors"] = False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole_time_domain(
+                self.time_array, **raise_error_parameters
+            )
+
+    def test_unused_waveform_kwargs_message(self):
+        raise_error_parameters = copy(self.parameters)
+        raise_error_parameters.update(self.waveform_kwargs)
+        raise_error_parameters["unused_waveform_parameter"] = 1.0
+        with self.assertRaises(ValueError):
+            bilby.gw.source.lal_binary_black_hole_time_domain(
+                self.time_array, **raise_error_parameters
+            )
+
+    def test_frequency_domain_approximant_warns(self):
+        bilby.gw.source._warn_if_frequency_domain_approximant.cache_clear()
+        with self.assertLogs("bilby", level="WARNING"):
+            bilby.gw.source._warn_if_frequency_domain_approximant(
+                lalsimulation.GetApproximantFromString("IMRPhenomPv2_NRTidal"))
+        with self.assertNoLogs("bilby", level="WARNING"):
+            bilby.gw.source._warn_if_frequency_domain_approximant(
+                lalsimulation.GetApproximantFromString("IMRPhenomT"))
+
+
+class TestLalBNSTimeDomain(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=1.4,
+            mass_2=1.4,
+            luminosity_distance=400.0,
+            a_1=0.0,
+            a_2=0.0,
+            tilt_1=0.0,
+            tilt_2=0.0,
+            phi_jl=0.0,
+            phi_12=0.0,
+            theta_jn=1.7,
+            phase=0.0,
+            lambda_1=100.0,
+            lambda_2=100.0,
+        )
+        self.waveform_kwargs = dict(
+            waveform_approximant="TaylorT4",
+            reference_frequency=50.0,
+            minimum_frequency=40.0,
+        )
+        self.time_array = bilby.core.utils.create_time_series(2048, 4)
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs
+        del self.time_array
+
+    def test_lal_bns_time_domain_runs_with_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs)
+        waveform = bilby.gw.source.lal_binary_neutron_star_time_domain(
+            self.time_array, **self.parameters
+        )
+        self.assertEqual(set(waveform), {"plus", "cross", "epoch"})
+
+    def test_fails_without_tidal_parameters(self):
+        self.parameters.pop("lambda_1")
+        self.parameters.pop("lambda_2")
+        self.parameters.update(self.waveform_kwargs)
+        with self.assertRaises(TypeError):
+            bilby.gw.source.lal_binary_neutron_star_time_domain(
+                self.time_array, **self.parameters
+            )
+
+
+@pytest.mark.skipif(
+    not hasattr(lalsimulation, "SimIMRPhenomTModelTimesTruncated"),
+    reason="lalsimulation without the IMRPhenomT model-time functions",
+)
+class TestLalBBHModelTime(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=30.0,
+            mass_2=25.0,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            tilt_1=0.2,
+            phi_12=1.0,
+            a_2=0.6,
+            tilt_2=2.7,
+            phi_jl=2.9,
+            theta_jn=0.3,
+            phase=0.0,
+        )
+        self.waveform_kwargs = dict(
+            waveform_approximant="IMRPhenomTPHM",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+        )
+        self.time_array = bilby.core.utils.create_time_series(2048, 4)
+        self.times = np.linspace(-0.2, 0.02, 100)
+        self.bad_parameters = copy(self.parameters)
+        self.bad_parameters["mass_1"] = -30.0
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs
+        del self.time_array
+        del self.times
+        del self.bad_parameters
+
+    def test_lal_bbh_model_time_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs)
+        waveform = bilby.gw.source.lal_binary_black_hole_model_time(
+            self.time_array, **self.parameters
+        )
+        polarizations = waveform["polarizations_at"](self.times)
+        self.assertEqual(set(polarizations), {"plus", "cross"})
+        self.assertEqual(len(polarizations["plus"]), len(self.times))
+
+    def test_heterodyning_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs)
+        waveform = bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning(
+            self.time_array, **self.parameters
+        )
+        self.assertEqual(set(waveform), {"heterodyning_terms_at"})
+        modes, harmonics = waveform["heterodyning_terms_at"](self.times)
+        self.assertEqual(set(modes), set(harmonics))
+        self.assertIn((2, 2), modes)
+        waveform = bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning(
+            self.time_array, fiducial=1, fiducial_minimum_frequency=15.0, **self.parameters
+        )
+        self.assertEqual(set(waveform), {"heterodyning_terms_at", "polarizations_at"})
+
+    def test_waveform_error_catching(self):
+        self.bad_parameters.update(self.waveform_kwargs)
+        waveform = bilby.gw.source.lal_binary_black_hole_model_time(
+            self.time_array, **self.bad_parameters
+        )
+        self.assertIsNone(waveform["polarizations_at"](self.times))
+
+    def test_waveform_error_raising(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs)
+        raise_error_parameters["catch_waveform_errors"] = False
+        waveform = bilby.gw.source.lal_binary_black_hole_model_time(
+            self.time_array, **raise_error_parameters
+        )
+        with self.assertRaises(Exception):
+            waveform["polarizations_at"](self.times)
+
+    def test_unused_waveform_kwargs_message(self):
+        raise_error_parameters = copy(self.parameters)
+        raise_error_parameters["unused_waveform_parameter"] = 1.0
+        with self.assertRaises(ValueError):
+            bilby.gw.source.lal_binary_black_hole_model_time(
+                self.time_array, **raise_error_parameters
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

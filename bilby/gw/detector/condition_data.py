@@ -3,79 +3,134 @@ import numpy as np
 __all__ = ["condition_strain_data"]
 
 
-def condition_strain_data(strain_data, sampling_frequency, start_time, duration,
-                          preserve_time=None, trim=0.25, taper_and_trim=True,
-                          remove_mean=True):
-    """ Downsample time-domain strain data around an analysis window
+def butterworth_filter(sampling_frequency, highpass_frequency=None, lowpass_frequency=None):
+    """ The Butterworth filter of :code:`condition_strain_data` (order 4)
 
-    By default, the data in the window plus a buffer of
-    `trim` / (1 - 2 `trim`) x `duration` on each side are tapered with a Tukey
-    window (alpha = `trim`), low-passed below the new Nyquist frequency,
-    downsampled, and the buffer is removed. The samples are aligned so that the
-    sample nearest `preserve_time` is kept. With `taper_and_trim` = False,
-    :code:`scipy.signal.decimate` is used instead. The result replaces the
-    data in `strain_data`.
+    Parameters
+    ==========
+    sampling_frequency: float
+        The sampling frequency (in Hz) of the data to be filtered
+    highpass_frequency, lowpass_frequency: float, optional
+        The corner frequencies (in Hz); a band-pass filter if both are given
+
+    Returns
+    =======
+    tuple: The filter coefficients (b, a), or None if neither frequency is given
+    """
+    from scipy.signal import butter
+    order = 4
+    nyquist_frequency = sampling_frequency / 2
+    if highpass_frequency and lowpass_frequency:
+        return butter(order, (highpass_frequency / nyquist_frequency, lowpass_frequency / nyquist_frequency),
+                      btype="bandpass", output="ba")
+    elif highpass_frequency:
+        return butter(order, highpass_frequency / nyquist_frequency, btype="highpass", output="ba")
+    elif lowpass_frequency:
+        return butter(order, lowpass_frequency / nyquist_frequency, btype="lowpass", output="ba")
+    return None
+
+
+def filter_amplitude_response(frequency_array, sampling_frequency, highpass_frequency=None,
+                              lowpass_frequency=None):
+    """ The factor by which :code:`condition_strain_data` multiplies the amplitude of the
+    data at each frequency: |H(f)|^2, as the filter is applied forwards and backwards
+
+    Parameters
+    ==========
+    frequency_array: array_like
+        The frequencies (in Hz)
+    sampling_frequency: float
+        The sampling frequency (in Hz) of the data when filtered
+    highpass_frequency, lowpass_frequency: float, optional
+        The corner frequencies (in Hz)
+
+    Returns
+    =======
+    array_like: The amplitude response (1 if no filter)
+    """
+    from scipy.signal import freqz
+    frequency_array = np.asarray(frequency_array, dtype=float)
+    coefficients = butterworth_filter(sampling_frequency, highpass_frequency, lowpass_frequency)
+    if coefficients is None:
+        return np.ones(len(frequency_array))
+    _, response = freqz(*coefficients, worN=frequency_array, fs=sampling_frequency)
+    return abs(response) ** 2
+
+
+def condition_strain_data(strain_data, sampling_frequency, preserve_time=None,
+                          highpass_frequency=None, lowpass_frequency=None, trim=0.25,
+                          remove_mean=True):
+    """ Filter, downsample and trim time-domain strain data
+
+    Adapted from :code:`ringdown.data.Data.condition` (ringdown v1.1.0, Isi & Farr
+    arXiv:2107.05609, MIT licence). The data are rolled so that the sample nearest
+    `preserve_time` is kept, optionally filtered with an order-4 Butterworth filter
+    (:code:`scipy.signal.filtfilt`), tapered, low-passed at the new Nyquist
+    frequency, downsampled and trimmed by `trim` at each end. The result replaces
+    the data in `strain_data`.
+
+    The filter is applied to the data only, not to the waveform or the noise model:
+    use a `highpass_frequency` of at most half the minimum frequency of the analysis,
+    and no `lowpass_frequency` inside the band.
 
     Parameters
     ==========
     strain_data: bilby.gw.detector.InterferometerStrainData
         The strain data, modified in place
     sampling_frequency: float
-        The new sampling frequency (in Hz); must divide the current one
-    start_time: float
-        The GPS start time of the analysis window
-    duration: float
-        The duration of the analysis window (in s)
+        The new sampling frequency (in Hz)
     preserve_time: float, optional
-        GPS time whose nearest sample is kept (default: `start_time`)
+        GPS time whose nearest sample is kept
+    highpass_frequency: float, optional
+        The corner frequency (in Hz) of the high-pass filter (default: none)
+    lowpass_frequency: float, optional
+        The corner frequency (in Hz) of the low-pass filter (default: none)
     trim: float
         The fraction of the data removed at each end
-    taper_and_trim: bool
-        If True, taper, low-pass and trim; if False, use :code:`scipy.signal.decimate`
     remove_mean: bool
         If True, subtract the mean of the result
-
     """
-    from scipy.signal import decimate
+    from scipy.signal import filtfilt
     from scipy.signal.windows import tukey
 
-    factor = int(round(strain_data.sampling_frequency / sampling_frequency))
-    strain = np.asarray(strain_data.time_domain_strain, dtype=float)
-    times = np.asarray(strain_data.time_array, dtype=float)
-    if taper_and_trim:
-        # step 1: the window and a buffer on each side
-        buffer = duration * trim / (1 - 2 * trim)
-        first, last = start_time - buffer, start_time + duration + buffer
-        data_end = strain_data.start_time + strain_data.duration
-        if (strain_data.start_time > first + 1 / strain_data.sampling_frequency
-                or data_end < last - 1 / strain_data.sampling_frequency):
+    original_sampling_frequency = strain_data.sampling_frequency
+    factor = int(round(original_sampling_frequency / sampling_frequency))
+    if factor < 1 or not np.isclose(factor * sampling_frequency, original_sampling_frequency, rtol=1e-9, atol=0):
+        raise ValueError(
+            f"The new sampling frequency ({sampling_frequency:g} Hz) must divide the current one "
+            f"({original_sampling_frequency:g} Hz)")
+    strain = np.array(strain_data.time_domain_strain, dtype=float)
+    times = np.array(strain_data.time_array, dtype=float)
+
+    # 1. roll, so that the sample nearest preserve_time is kept by the downsampling
+    if preserve_time is not None:
+        if not times[0] <= preserve_time <= times[-1]:
             raise ValueError(
-                f"The data ({strain_data.start_time:.6f} - {data_end:.6f}) must cover {first:.6f} - {last:.6f}: "
-                f"the analysis window plus {buffer:g} s on each side")
-        keep = slice(max(int(round((first - strain_data.start_time) * strain_data.sampling_frequency)), 0),
-                     int(round((last - strain_data.start_time) * strain_data.sampling_frequency)))
-        strain, times = strain[keep], times[keep]
-
-    # step 2: keep the sample nearest preserve_time
-    shift = int(np.argmin(abs(times - (start_time if preserve_time is None else preserve_time)))) % factor
-    if taper_and_trim and trim > 0:  # the wrapped samples are at the end and are removed in step 4
+                f"preserve_time ({preserve_time:.6f}) must be within the data ({times[0]:.6f} - {times[-1]:.6f})")
+        shift = int(np.argmin(abs(times - preserve_time))) % factor
         strain, times = np.roll(strain, -shift), np.roll(times, -shift)
-    else:
-        strain, times = strain[shift:], times[shift:]
 
-    if taper_and_trim:
-        # step 3: taper, low-pass and downsample
+    # 2. Butterworth filter, forwards and backwards
+    coefficients = butterworth_filter(original_sampling_frequency, highpass_frequency, lowpass_frequency)
+    if coefficients is not None:
+        strain = filtfilt(*coefficients, strain)
+
+    # 3. downsample
+    if factor > 1:
         strain_fd = np.fft.rfft(strain * tukey(len(strain), trim))
-        strain_fd[np.fft.rfftfreq(len(strain), 1 / strain_data.sampling_frequency) > sampling_frequency / 2] = 0
-        strain, times = np.fft.irfft(strain_fd, n=len(strain))[::factor], times[::factor]
-        # step 4: remove the fraction trim at each end, but always keep the analysis samples
-        window = int(np.argmin(abs(times - start_time)))  # first sample of the analysis window
-        keep = slice(min(int(round(trim * len(strain))), window),
-                     max(int(round((1 - trim) * len(strain))), window + int(round(duration * sampling_frequency))))
-        strain, times = strain[keep], times[keep]
-    else:
-        strain, times = decimate(strain, factor, zero_phase=True), times[::factor]
+        strain_fd[np.fft.rfftfreq(len(strain), 1 / original_sampling_frequency) > sampling_frequency / 2] = 0
+        strain = np.fft.irfft(strain_fd, n=len(strain))[::factor]
+        times = times[::factor]
 
+    # 4. trim
+    number_of_samples = len(strain)
+    keep = slice(int(round(trim * number_of_samples)), int(round((1 - trim) * number_of_samples)))
+    strain, times = strain[keep], times[keep]
+    out_of_order = np.flatnonzero(np.diff(times) <= 0)
+    if len(out_of_order) > 0:  # rolled samples left at the end
+        strain, times = strain[:out_of_order[0] + 1], times[:out_of_order[0] + 1]
+
+    # 5. remove the mean
     if remove_mean:
         strain = strain - np.mean(strain)
     strain_data.set_from_time_domain_strain(

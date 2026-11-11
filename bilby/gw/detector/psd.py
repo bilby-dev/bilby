@@ -12,6 +12,10 @@ from .strain_data import InterferometerStrainData
 
 class PowerSpectralDensity(object):
 
+    # A precomputed autocovariance function, see from_autocovariance_array
+    autocovariance_array = None
+    autocovariance_sampling_frequency = None
+
     def __init__(self, frequency_array=None, psd_array=None, asd_array=None,
                  psd_file=None, asd_file=None):
         """
@@ -201,6 +205,31 @@ class PowerSpectralDensity(object):
         return PowerSpectralDensity(frequency_array=frequency_array, psd_array=psd_array)
 
     @staticmethod
+    def from_autocovariance_array(autocovariance_array, sampling_frequency):
+        """ A noise model given by a precomputed autocovariance function (ACF), for
+        time-domain likelihoods. It has no power spectral density.
+
+        Parameters
+        ==========
+        autocovariance_array: array_like
+            The ACF at lags 0, 1 / sampling_frequency, 2 / sampling_frequency, ...
+        sampling_frequency: float
+            The sampling frequency (in Hz) of the lags
+
+        Examples
+        ========
+        .. code-block:: python
+
+            >>> ifo.power_spectral_density = PowerSpectralDensity.from_autocovariance_array(
+            ...     np.loadtxt("acf_H1.txt"), 2048)
+            >>> ifo.set_autocovariance_function_from_power_spectral_density()
+        """
+        psd = PowerSpectralDensity()
+        psd.autocovariance_array = np.asarray(autocovariance_array, dtype=float)
+        psd.autocovariance_sampling_frequency = float(sampling_frequency)
+        return psd
+
+    @staticmethod
     def from_aligo():
         logger.info("No power spectral density provided, using aLIGO,"
                     "zero detuning, high power.")
@@ -254,14 +283,16 @@ class PowerSpectralDensity(object):
     def get_autocovariance_array(
             self, number_of_samples, sampling_frequency, minimum_frequency,
             maximum_frequency, duration_factor=16, fill_value=None,
-            fill_multiplier=1e4):
+            fill_multiplier=100):
         """ Compute the autocovariance function (ACF) from this PSD.
 
         The ACF is the inverse Fourier transform of the (one-sided) PSD
         (Wiener-Khinchin theorem). The PSD is evaluated on a frequency grid
         whose length is the next power of two at or above
         ``duration_factor * number_of_samples``, so that the ACF has the
-        correct sampling frequency.
+        correct sampling frequency. If the PSD was created with
+        :code:`from_autocovariance_array`, its first `number_of_samples` lags are
+        returned and the band and fill arguments are not used.
 
         Parameters
         ==========
@@ -275,29 +306,39 @@ class PowerSpectralDensity(object):
             The upper edge of the frequency band (in Hz)
         duration_factor: float
             The minimum ratio of the ACF length to the analysis window length
-        fill_value: float, optional
-            The PSD value used outside the band; overrides `fill_multiplier`
+        fill_value: float or tuple, optional
+            The PSD value used outside the band, or the values (below, above) the band;
+            overrides `fill_multiplier`
         fill_multiplier: float
-            The multiple of the maximum in-band PSD used outside the band
+            The PSD below (above) the band is set to this multiple of its maximum there;
+            see :code:`power_spectral_density_to_autocovariance`
 
         Returns
         =======
         acf_array: numpy.ndarray
             The first `number_of_samples` lags of the ACF
-        fill_value: float
-            The PSD value used outside the band
+        fill_value: tuple or None
+            The PSD values used (below, above) the band (None for a precomputed ACF)
         fill_multiplier: float or None
-            The multiplier used (None if `fill_value` was given explicitly)
+            The multiplier used (None if `fill_value` was given explicitly or for a
+            precomputed ACF)
 
         """
-        fft_length = 2 ** int(np.ceil(np.log2(duration_factor * number_of_samples)))
-        frequency_array = np.fft.rfftfreq(fft_length, 1 / sampling_frequency)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            psd_array = self.get_power_spectral_density_array(frequency_array)
-        acf_array, fill_value, fill_multiplier = power_spectral_density_to_autocovariance(
-            frequency_array, psd_array, minimum_frequency, maximum_frequency,
-            sampling_frequency=sampling_frequency, fill_value=fill_value,
-            fill_multiplier=fill_multiplier)
+        if self.autocovariance_array is not None:
+            if not np.isclose(sampling_frequency, self.autocovariance_sampling_frequency, rtol=1e-9, atol=0):
+                raise ValueError(
+                    f"The sampling frequency of the autocovariance function "
+                    f"({self.autocovariance_sampling_frequency:g} Hz) differs from {sampling_frequency:g} Hz")
+            acf_array, fill_value, fill_multiplier = self.autocovariance_array, None, None
+        else:
+            fft_length = 2 ** int(np.ceil(np.log2(duration_factor * number_of_samples)))
+            frequency_array = np.fft.rfftfreq(fft_length, 1 / sampling_frequency)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                psd_array = self.get_power_spectral_density_array(frequency_array)
+            acf_array, fill_value, fill_multiplier = power_spectral_density_to_autocovariance(
+                frequency_array, psd_array, minimum_frequency, maximum_frequency,
+                sampling_frequency=sampling_frequency, fill_value=fill_value,
+                fill_multiplier=fill_multiplier)
         if number_of_samples > len(acf_array):
             raise ValueError(
                 f"The analysis segment ({number_of_samples} samples) is longer "
@@ -449,12 +490,14 @@ class PowerSpectralDensity(object):
 
 def power_spectral_density_to_autocovariance(
         frequency_array, psd_array, minimum_frequency, maximum_frequency,
-        sampling_frequency=None, fill_value=None, fill_multiplier=1e4):
+        sampling_frequency=None, fill_value=None, fill_multiplier=100):
     """ Compute the autocovariance function from a one-sided power spectral density.
 
-    The PSD outside [`minimum_frequency`, `maximum_frequency`] is set to
-    `fill_value`, or to `fill_multiplier` times its maximum in the band, and
-    the ACF is its inverse Fourier transform (Wiener-Khinchin theorem).
+    The PSD below and above [`minimum_frequency`, `maximum_frequency`], and where
+    it is not defined, is replaced by a constant, and the ACF is its inverse Fourier
+    transform (Wiener-Khinchin theorem). By default, the PSD below (above) the band
+    is set to `fill_multiplier` times the maximum of the PSD below (above) the band,
+    or times the maximum of the whole PSD if it is not defined there.
 
     Parameters
     ==========
@@ -469,17 +512,18 @@ def power_spectral_density_to_autocovariance(
     sampling_frequency: float, optional
         The sampling frequency of the data (in Hz); a warning is logged if it
         is not twice the highest frequency in `frequency_array`
-    fill_value: float, optional
-        The PSD value used outside the band; overrides `fill_multiplier`
+    fill_value: float or tuple, optional
+        The PSD value used outside the band, or the values (below, above) the band;
+        overrides `fill_multiplier`
     fill_multiplier: float
-        The multiple of the maximum in-band PSD used outside the band
+        The PSD below (above) the band is set to this multiple of its maximum there
 
     Returns
     =======
     acf_array: numpy.ndarray
         The autocovariance function at lags 0, 1/f_s, 2/f_s, ...
-    fill_value: float
-        The PSD value used outside the band
+    fill_value: tuple
+        The PSD values used (below, above) the band
     fill_multiplier: float or None
         The multiplier used (None if `fill_value` was given explicitly)
 
@@ -503,12 +547,47 @@ def power_spectral_density_to_autocovariance(
             "would be wrongly scaled and its lags wrongly spaced, giving wrong likelihood "
             "and SNR values.")
 
-    band = (frequency_array >= minimum_frequency) & (frequency_array <= maximum_frequency)
+    requested = (frequency_array >= minimum_frequency) & (frequency_array <= maximum_frequency)
+    with np.errstate(invalid="ignore"):
+        defined = np.isfinite(psd_array) & (psd_array > 0)
+    band = requested & defined
+    if not band.any():
+        raise ValueError(
+            f"The PSD is not defined anywhere in the band {minimum_frequency:g} - {maximum_frequency:g} Hz")
+    if (requested & ~defined).any():
+        logger.warning(
+            f"The PSD is not defined at {np.sum(requested & ~defined)} frequencies in the band "
+            f"{minimum_frequency:g} - {maximum_frequency:g} Hz (e.g. outside its range); these are "
+            "filled like the frequencies outside the band, so the band used is effectively "
+            f"{frequency_array[band].min():g} - {frequency_array[band].max():g} Hz")
+    regions = dict(below=frequency_array < frequency_array[band].min(),
+                   above=frequency_array > frequency_array[band].max())
     if fill_value is None:
-        fill_value = fill_multiplier * np.max(psd_array[band])
+        fill_value = list()
+        for name, region in regions.items():
+            measured = region & defined & (frequency_array > 0)
+            if measured.any():
+                fill_value.append(fill_multiplier * np.max(psd_array[measured]))
+            else:
+                fill_value.append(fill_multiplier * np.max(psd_array[defined & (frequency_array > 0)]))
+                if (region & (frequency_array > 0)).any():
+                    logger.warning(
+                        f"The PSD is not defined {name} the band, so the fill value cannot be checked "
+                        f"against the noise there; it must exceed the noise in the data {name} the band")
     else:
         fill_multiplier = None
+        fill_value = np.broadcast_to(fill_value, 2)
+        for (name, region), value in zip(regions.items(), fill_value):
+            measured = region & defined & (frequency_array > 0)
+            if measured.any() and value < np.max(psd_array[measured]):
+                logger.warning(
+                    f"The fill value {name} the band ({value:.2e}) is below the PSD there (maximum "
+                    f"{np.max(psd_array[measured]):.2e}): the noise model underestimates the noise "
+                    "there. This mainly biases the noise log-likelihood and evidences.")
+    fill_value = tuple(float(value) for value in fill_value)
     psd_array = psd_array.copy()
-    psd_array[~band] = fill_value
+    psd_array[regions["below"]] = fill_value[0]
+    psd_array[regions["above"]] = fill_value[1]
+    psd_array[~band & ~regions["below"] & ~regions["above"]] = max(fill_value)  # not defined inside the band
     acf_array = 0.5 * np.fft.irfft(psd_array) * psd_sampling_frequency
-    return acf_array, float(fill_value), fill_multiplier
+    return acf_array, fill_value, fill_multiplier

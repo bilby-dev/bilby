@@ -7,6 +7,11 @@ The analysis window ends at segment_cut_time relative to the merger, in each
 detector (the arrival of the cut at that detector). The data are zero noise and
 the IMRPhenomTPHM waveform is evaluated at the data samples (placement
 "model_time"). See time_domain_post_inspiral.py for the post-inspiral analysis.
+
+Set the interferometers' frequency band and power spectral densities, the
+analysis windows and the strain data first, then the autocovariance functions,
+which are not updated if any of these change, and then inject the signal and
+create the likelihood.
 """
 
 import bilby
@@ -26,8 +31,13 @@ outdir = "outdir"
 label = "time_domain_inspiral"
 bilby.core.utils.setup_logger(outdir=outdir, label=label)
 
+# Set up a random seed for result reproducibility.  This is optional!
 bilby.core.utils.random.seed(88170235)
 
+# We are going to inject a binary black hole waveform.  We first establish a
+# dictionary of parameters that includes all of the different waveform
+# parameters, including masses of the two black holes (mass_1, mass_2),
+# spins of both black holes (a, tilt, phi), etc.
 injection_parameters = dict(
     mass_1=36.0,
     mass_2=29.0,
@@ -55,24 +65,18 @@ segment_cut_time = (
     * lal.MTSUN_SI
 )
 
-"""
-Fixed arguments passed into the source model.
-
-There are two different minimum frequencies:
-- ifo.minimum_frequency (20 Hz): the lowest frequency used in the analysis.
-- minimum_frequency below (10 Hz): the frequency at which the waveform starts.
-
-The waveform starts at 10 Hz, below 20 Hz, for two reasons:
-1. Higher modes. Higher modes oscillate faster than the main (2, 2) mode
-   (the (4, 4) mode at twice its frequency). If the (2, 2) mode starts at
-   10 Hz, all modes are already present at 20 Hz.
-2. The start of the waveform must not be in the data. The waveform switches
-   on suddenly, and this sudden start disturbs the analysis even above 20 Hz.
-   Starting at 10 Hz, every waveform in the prior begins before the analysis
-   window, so its start is never in the data. With a wider prior or a longer
-   window, use a lower value.
-"""
-
+# Fixed arguments passed into the source model.
+# There are two minimum frequencies. The minimum_frequency of the
+# interferometers (20 Hz) is the lower edge of the analysis band, as in a
+# frequency-domain analysis. The minimum_frequency of the waveform (10 Hz) is
+# the frequency at which the waveform starts. In the time domain, every
+# waveform must start before the analysis window: a waveform that switches on
+# inside the window has a sharp edge, whose power is spread over all
+# frequencies, including the analysis band. From 20 Hz, the waveforms in this
+# prior would start only about 1 s before the merger, inside the window, which
+# starts about 2 s before it (and ends 20 M before it); from 10 Hz, they start
+# 5 to 8 s before the merger.
+# Use a lower minimum_frequency for lighter binaries or longer windows.
 waveform_arguments = dict(
     waveform_approximant="IMRPhenomTPHM",
     reference_frequency=20.0,
@@ -90,6 +94,16 @@ waveform_generator = bilby.gw.WaveformGenerator(
     waveform_arguments=waveform_arguments,
 )
 
+# Set up a PriorDict, which inherits from dict.
+# By default we will sample all terms in the signal models.  However, this will
+# take a long time for the calculation, so for this example we will set almost
+# all of the priors to be equal to their injected values.  This implies the
+# prior is a delta function at the true, injected value.  In reality, the
+# sampler implementation is smart enough to not sample any parameter that has
+# a delta-function prior.
+# The above list does *not* include the masses, theta_jn and luminosity
+# distance, which means those are the parameters that will be included in the
+# sampler, with a narrower chirp-mass prior than the default.
 priors = bilby.gw.prior.BBHPriorDict()
 for key in [
     "a_1",
@@ -133,15 +147,19 @@ ifos.set_strain_data_from_zero_noise(
     start_time=start_time,
 )
 ifos.set_autocovariance_functions_from_power_spectral_densities()
-ifos.inject_signal_time_domain(
+ifos.inject_signal(
     waveform_generator=waveform_generator,
     parameters=injection_parameters,
+    domain="time",
     placement="model_time",
 )
 
+# Initialise the likelihood by passing in the interferometer data (ifos) and
+# the waveform generator
 likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
     interferometers=ifos, waveform_generator=waveform_generator, placement="model_time"
 )
+# Run sampler.  In this case we're going to use the `dynesty` sampler
 result = bilby.run_sampler(
     likelihood=likelihood,
     priors=priors,
@@ -155,4 +173,5 @@ result = bilby.run_sampler(
     result_class=bilby.gw.result.CBCResult,
 )
 
+# Make a corner plot.
 result.plot_corner()

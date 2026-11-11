@@ -73,7 +73,7 @@ def fractional_time_shift(signal, fraction, pad=32):
     fraction: float
         The delay in samples (positive values delay the signal)
     pad: int
-        The number of zeros added before and after the signal, so that nothing wraps around
+        The number of zeros added before and after the signal
 
     Returns
     =======
@@ -124,7 +124,7 @@ def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent
 
 
 def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samples,
-                             placement="nearest"):
+                             placement="fd_shift"):
     """ Place a time-domain signal, sampled at the sampling frequency of the data,
     on the data samples
 
@@ -142,9 +142,10 @@ def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samp
     number_of_samples: int
         The number of data samples
     placement: str
-        "nearest": shift by the whole number of samples nearest to the delay;
-        "fd_shift": shift by whole samples and the remaining fraction of a
-        sample with :code:`fractional_time_shift`
+        "fd_shift" (default): shift by whole samples and the remaining fraction
+        of a sample with :code:`fractional_time_shift`;
+        "nearest": shift by the whole number of samples nearest to the delay
+        (off by up to half a sample)
 
     Returns
     =======
