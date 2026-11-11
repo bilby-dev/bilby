@@ -6,7 +6,7 @@ from .base import GravitationalWaveTransient
 
 
 class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
-    """ A gravitational-wave transient likelihood object evaluated in the time domain
+    """A gravitational-wave transient likelihood object evaluated in the time domain
 
     It computes the log-likelihood of the data in the analysis window of each
     interferometer, assuming stationary colored Gaussian noise described by an
@@ -104,25 +104,37 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     likelihood_domain = "time"
 
     def __init__(
-            self, interferometers, waveform_generator, distance_marginalization=False,
-            priors=None, distance_marginalization_lookup_table=None, reference_frame="sky",
-            time_reference="geocenter", placement="fd_shift", time_marginalization=False,
-            phase_marginalization=False, calibration_marginalization=False,
+        self,
+        interferometers,
+        waveform_generator,
+        distance_marginalization=False,
+        priors=None,
+        distance_marginalization_lookup_table=None,
+        reference_frame="sky",
+        time_reference="geocenter",
+        placement="fd_shift",
+        time_marginalization=False,
+        phase_marginalization=False,
+        calibration_marginalization=False,
     ):
         for name, value in dict(
-                time_marginalization=time_marginalization,
-                phase_marginalization=phase_marginalization,
-                calibration_marginalization=calibration_marginalization).items():
+            time_marginalization=time_marginalization,
+            phase_marginalization=phase_marginalization,
+            calibration_marginalization=calibration_marginalization,
+        ).items():
             if value:
                 raise NotImplementedError(
-                    f"{name} is not implemented for {self.__class__.__name__}")
+                    f"{name} is not implemented for {self.__class__.__name__}"
+                )
         if getattr(waveform_generator, "time_domain_source_model", None) is None:
             raise ValueError(
                 f"{self.__class__.__name__} needs a waveform generator with a "
-                "time_domain_source_model, e.g. bilby.gw.source.lal_binary_black_hole_time_domain")
+                "time_domain_source_model, e.g. bilby.gw.source.lal_binary_black_hole_time_domain"
+            )
         if placement not in ("nearest", "fd_shift", "model_time"):
             raise ValueError(
-                f"placement must be 'nearest', 'fd_shift' or 'model_time', not {placement!r}")
+                f"placement must be 'nearest', 'fd_shift' or 'model_time', not {placement!r}"
+            )
 
         super().__init__(
             interferometers=interferometers,
@@ -142,41 +154,57 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
     def __repr__(self):
         return self.__class__.__name__ + (
-            '(interferometers={},\n\twaveform_generator={},\n\tdistance_marginalization={}, '
-            'priors={}, placement={})'.format(
-                self.interferometers, self.waveform_generator, self.distance_marginalization,
-                self.priors, self.placement))
+            "(interferometers={},\n\twaveform_generator={},\n\tdistance_marginalization={}, "
+            "priors={}, placement={})".format(
+                self.interferometers,
+                self.waveform_generator,
+                self.distance_marginalization,
+                self.priors,
+                self.placement,
+            )
+        )
 
     def _setup_noise_model(self):
-        """ Compute and store C^-1 d and d^T C^-1 d for each interferometer """
+        """Compute and store C^-1 d and d^T C^-1 d for each interferometer"""
         self._data_times_inverse_covariance = dict()
         self._data_inverse_covariance_data = dict()
         for interferometer in self.interferometers:
             if interferometer.gohberg_semencul_vectors is None:
                 raise ValueError(
                     f"{interferometer.name}: no noise covariance set "
-                    "(call set_autocovariance_function_from_power_spectral_density)")
+                    "(call set_autocovariance_function_from_power_spectral_density)"
+                )
             injection_placement = interferometer.meta_data.get("injection_placement")
-            if injection_placement is not None and injection_placement != self.placement:
+            if (
+                injection_placement is not None
+                and injection_placement != self.placement
+            ):
                 logger.warning(
                     f"{interferometer.name}: the signal was injected with placement "
-                    f"{injection_placement!r}, but the likelihood uses {self.placement!r}")
+                    f"{injection_placement!r}, but the likelihood uses {self.placement!r}"
+                )
             nyquist_frequency = interferometer.sampling_frequency / 2
             if interferometer.maximum_frequency < nyquist_frequency and not np.isclose(
-                    interferometer.maximum_frequency, nyquist_frequency, rtol=1e-9, atol=0):
+                interferometer.maximum_frequency, nyquist_frequency, rtol=1e-9, atol=0
+            ):
                 logger.warning(
                     f"{interferometer.name}: {interferometer.maximum_frequency:g} - {nyquist_frequency:g} Hz "
                     "is outside the band and filled in the autocovariance function (consider downsampling "
-                    f"the data to {2 * interferometer.maximum_frequency:g} Hz with condition_strain_data)")
+                    f"the data to {2 * interferometer.maximum_frequency:g} Hz with condition_strain_data)"
+                )
             data = interferometer.analysis_data
             data_times_inverse_covariance = gohberg_semencul_product(
-                *interferometer.gohberg_semencul_vectors, data)
-            self._data_times_inverse_covariance[interferometer.name] = data_times_inverse_covariance
+                *interferometer.gohberg_semencul_vectors, data
+            )
+            self._data_times_inverse_covariance[interferometer.name] = (
+                data_times_inverse_covariance
+            )
             self._data_inverse_covariance_data[interferometer.name] = np.dot(
-                data_times_inverse_covariance, data)
+                data_times_inverse_covariance, data
+            )
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
-        """ Project the waveform polarizations onto the interferometer and place them
+        """Project the waveform polarizations onto the interferometer and place them
         on the samples of its analysis window.
 
         Parameters
@@ -189,10 +217,13 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
             The parameters of the signal
         """
         return interferometer.get_detector_response_time_domain(
-            signal_polarizations, parameters, placement=self.placement)
+            signal_polarizations, parameters, placement=self.placement
+        )
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
-        """ Compute the snrs
+    def calculate_snrs(
+        self, waveform_polarizations, interferometer, *, return_array=True, parameters
+    ):
+        """Compute the snrs
 
         Parameters
         ==========
@@ -217,10 +248,14 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         )
         if signal is None:
             return None
-        d_inner_h = np.dot(self._data_times_inverse_covariance[interferometer.name], signal)
+        d_inner_h = np.dot(
+            self._data_times_inverse_covariance[interferometer.name], signal
+        )
         optimal_snr_squared = np.dot(
-            signal, gohberg_semencul_product(*interferometer.gohberg_semencul_vectors, signal))
-        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
+            signal,
+            gohberg_semencul_product(*interferometer.gohberg_semencul_vectors, signal),
+        )
+        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
             optimal_snr_squared=optimal_snr_squared,
@@ -233,7 +268,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
         return -0.5 * sum(self._data_inverse_covariance_data.values())
 
     def waveform_polarizations(self, parameters):
-        """ The time-domain waveform polarizations for the given parameters """
+        """The time-domain waveform polarizations for the given parameters"""
         return self.waveform_generator.time_domain_strain(parameters)
 
     def _rescale_signal(self, signal, new_distance):
@@ -256,5 +291,7 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
     @property
     def meta_data(self):
         meta_data = super().meta_data
-        meta_data.update(likelihood_domain=self.likelihood_domain, placement=self.placement)
+        meta_data.update(
+            likelihood_domain=self.likelihood_domain, placement=self.placement
+        )
         return meta_data

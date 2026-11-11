@@ -1,0 +1,40 @@
+{#- Add a site header, in the style of bilby-dev.github.io, above furo's page
+    layout on wide screens. Narrow screens keep furo's own mobile header. -#}
+{% extends "!page.html" %}
+
+{% block body -%}
+<header class="bilby-header">
+  <div class="bilby-header-inner">
+    <a class="bilby-brand" href="{{ pathto(master_doc) }}">
+      {%- if logo_url %}<img src="{{ logo_url }}" alt="" width="34" height="34">{% endif -%}
+      <span class="bilby-wordmark">{{ project }}</span>
+    </a>
+    <a class="bilby-version" href="https://github.com/bilby-dev/bilby/releases"
+       title="bilby {{ release }} release notes">{{ version }}</a>
+    <nav class="bilby-nav" aria-label="Main">
+      <ul>
+        {%- for link in bilby_header_links %}
+        <li><a href="{{ link.url }}"
+               {%- if link.active %} class="active" aria-current="page"{% endif %}
+               {%- if link.external %} class="external"{% endif %}>
+          {{- link.title -}}
+          {%- if link.external %}<svg class="bilby-external-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>{% endif -%}
+        </a></li>
+        {%- endfor %}
+      </ul>
+    </nav>
+    <div class="bilby-header-icons">
+      <a href="https://github.com/bilby-dev/bilby" title="bilby on GitHub" aria-label="bilby on GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.1-1.3-.3-2.5-1-3.5.3-1.2.3-2.4 0-3.5 0 0-1 0-3 1.5a10.4 10.4 0 0 0-5.5 0C7.5 2 6.5 2 6.5 2c-.3 1.1-.3 2.3 0 3.5A5.4 5.4 0 0 0 5.5 9c0 3.5 3 5.5 6 5.5-.4.5-.7 1-.8 1.6-.2.6-.3 1.3-.2 1.9v4"/><path d="M9 18c-4.5 2-5-2-7-2"/></svg>
+      </a>
+      <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+        <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+        <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+        <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+        <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+      </button>
+    </div>
+  </div>
+</header>
+{{ super() }}
+{%- endblock %}

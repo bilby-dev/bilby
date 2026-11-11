@@ -36,10 +36,11 @@ class TestInterferometerStrainData(unittest.TestCase):
 
     def test_frequency_mask_2(self):
         strain_data = bilby.gw.detector.InterferometerStrainData(
-            minimum_frequency=20, maximum_frequency=512)
+            minimum_frequency=20, maximum_frequency=512
+        )
         strain_data.set_from_time_domain_strain(
             time_domain_strain=np.random.normal(0, 1, 4096),
-            time_array=np.arange(0, 4, 4 / 4096)
+            time_array=np.arange(0, 4, 4 / 4096),
         )
 
         # Test from init
@@ -56,10 +57,11 @@ class TestInterferometerStrainData(unittest.TestCase):
 
     def test_notches_frequency_mask(self):
         strain_data = bilby.gw.detector.InterferometerStrainData(
-            minimum_frequency=20, maximum_frequency=512, notch_list=[(100, 101)])
+            minimum_frequency=20, maximum_frequency=512, notch_list=[(100, 101)]
+        )
         strain_data.set_from_time_domain_strain(
             time_domain_strain=np.random.normal(0, 1, 4096),
-            time_array=np.arange(0, 4, 4 / 4096)
+            time_array=np.arange(0, 4, 4 / 4096),
         )
 
         # Test from init
@@ -173,7 +175,7 @@ class TestInterferometerStrainData(unittest.TestCase):
             len(self.ifosd._time_domain_strain), alpha=self.ifosd.alpha
         )
         self.assertEqual(expected_window, self.ifosd.time_domain_window())
-        self.assertEqual(np.mean(expected_window ** 2), self.ifosd.window_factor)
+        self.assertEqual(np.mean(expected_window**2), self.ifosd.window_factor)
 
     def test_time_domain_window_sets_roll_off_directly(self):
         self.ifosd._time_domain_strain = np.array([3])
@@ -364,7 +366,9 @@ class TestNotch(unittest.TestCase):
         self.maximum_frequency = 1024
 
     def test_init(self):
-        notch = bilby.gw.detector.strain_data.Notch(self.minimum_frequency, self.maximum_frequency)
+        notch = bilby.gw.detector.strain_data.Notch(
+            self.minimum_frequency, self.maximum_frequency
+        )
         self.assertEqual(notch.minimum_frequency, self.minimum_frequency)
         self.assertEqual(notch.maximum_frequency, self.maximum_frequency)
 
@@ -384,7 +388,9 @@ class TestNotch(unittest.TestCase):
             bilby.gw.detector.strain_data.Notch(30, 20)
 
     def test_idxs(self):
-        notch = bilby.gw.detector.strain_data.Notch(self.minimum_frequency, self.maximum_frequency)
+        notch = bilby.gw.detector.strain_data.Notch(
+            self.minimum_frequency, self.maximum_frequency
+        )
         freqs = np.linspace(0, 2048, 100)
         idxs = notch.get_idxs(freqs)
         self.assertEqual(len(idxs), len(freqs))
@@ -394,7 +400,6 @@ class TestNotch(unittest.TestCase):
 
 
 class TestNotchList(unittest.TestCase):
-
     def test_init_single(self):
         notch_list_of_tuples = [(32, 34)]
         notch_list = bilby.gw.detector.strain_data.NotchList(notch_list_of_tuples)
@@ -423,7 +428,9 @@ class TestNotchList(unittest.TestCase):
 class TestInterferometerStrainDataTimeDomainStrain(unittest.TestCase):
     def setUp(self):
         self.strain_data = bilby.gw.detector.InterferometerStrainData()
-        self.strain_data.set_from_zero_noise(sampling_frequency=1024, duration=4, start_time=0)
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=1024, duration=4, start_time=0
+        )
 
     def tearDown(self):
         del self.strain_data
@@ -440,26 +447,38 @@ class TestInterferometerStrainDataTimeDomainStrain(unittest.TestCase):
 
     def test_new_noise_realisation_updates_time_domain_strain(self):
         psd = bilby.gw.detector.PowerSpectralDensity.from_aligo()
-        self.strain_data.set_from_power_spectral_density(psd, sampling_frequency=1024, duration=4)
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
         first = self.strain_data.time_domain_strain.copy()
-        self.strain_data.set_from_power_spectral_density(psd, sampling_frequency=1024, duration=4)
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
         self.assertFalse(np.array_equal(first, self.strain_data.time_domain_strain))
 
     def test_zero_noise_updates_time_domain_strain(self):
         psd = bilby.gw.detector.PowerSpectralDensity.from_aligo()
-        self.strain_data.set_from_power_spectral_density(psd, sampling_frequency=1024, duration=4)
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
         _ = self.strain_data.time_domain_strain
-        self.strain_data.set_from_zero_noise(sampling_frequency=1024, duration=4, start_time=0)
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=1024, duration=4, start_time=0
+        )
         np.testing.assert_array_equal(self.strain_data.time_domain_strain, 0)
 
     def test_frequency_domain_strain_updates_time_domain_strain(self):
         _ = self.strain_data.time_domain_strain
-        frequency_domain_strain = np.ones(len(self.strain_data.frequency_array), dtype=complex)
+        frequency_domain_strain = np.ones(
+            len(self.strain_data.frequency_array), dtype=complex
+        )
         self.strain_data.set_from_frequency_domain_strain(
-            frequency_domain_strain, sampling_frequency=1024, duration=4)
+            frequency_domain_strain, sampling_frequency=1024, duration=4
+        )
         np.testing.assert_allclose(
             self.strain_data.time_domain_strain,
-            bilby.core.utils.infft(frequency_domain_strain, 1024))
+            bilby.core.utils.infft(frequency_domain_strain, 1024),
+        )
 
 
 if __name__ == "__main__":

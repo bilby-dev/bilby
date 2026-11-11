@@ -16,6 +16,7 @@ then create the likelihood.
 
 [1] https://gwosc.org/eventapi/html/GWTC-2.1-confident/GW150914/v4/
 """
+
 import bilby
 import h5py
 from gwpy.timeseries import TimeSeries

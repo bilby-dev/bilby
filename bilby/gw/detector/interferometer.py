@@ -15,38 +15,42 @@ from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
 from ..time_domain_utils import (
-    gohberg_semencul_product, gohberg_semencul_vectors, place_time_domain_signal, times_from_merger)
+    gohberg_semencul_product,
+    gohberg_semencul_vectors,
+    place_time_domain_signal,
+    times_from_merger,
+)
 from ..conversion import generate_all_bbh_parameters
 
 
 class Interferometer(object):
-    """Class for the Interferometer """
+    """Class for the Interferometer"""
 
-    length = PropertyAccessor('geometry', 'length')
-    latitude = PropertyAccessor('geometry', 'latitude')
-    latitude_radians = PropertyAccessor('geometry', 'latitude_radians')
-    longitude = PropertyAccessor('geometry', 'longitude')
-    longitude_radians = PropertyAccessor('geometry', 'longitude_radians')
-    elevation = PropertyAccessor('geometry', 'elevation')
-    x = PropertyAccessor('geometry', 'x')
-    y = PropertyAccessor('geometry', 'y')
-    xarm_azimuth = PropertyAccessor('geometry', 'xarm_azimuth')
-    yarm_azimuth = PropertyAccessor('geometry', 'yarm_azimuth')
-    xarm_tilt = PropertyAccessor('geometry', 'xarm_tilt')
-    yarm_tilt = PropertyAccessor('geometry', 'yarm_tilt')
-    vertex = PropertyAccessor('geometry', 'vertex')
-    detector_tensor = PropertyAccessor('geometry', 'detector_tensor')
+    length = PropertyAccessor("geometry", "length")
+    latitude = PropertyAccessor("geometry", "latitude")
+    latitude_radians = PropertyAccessor("geometry", "latitude_radians")
+    longitude = PropertyAccessor("geometry", "longitude")
+    longitude_radians = PropertyAccessor("geometry", "longitude_radians")
+    elevation = PropertyAccessor("geometry", "elevation")
+    x = PropertyAccessor("geometry", "x")
+    y = PropertyAccessor("geometry", "y")
+    xarm_azimuth = PropertyAccessor("geometry", "xarm_azimuth")
+    yarm_azimuth = PropertyAccessor("geometry", "yarm_azimuth")
+    xarm_tilt = PropertyAccessor("geometry", "xarm_tilt")
+    yarm_tilt = PropertyAccessor("geometry", "yarm_tilt")
+    vertex = PropertyAccessor("geometry", "vertex")
+    detector_tensor = PropertyAccessor("geometry", "detector_tensor")
 
-    duration = PropertyAccessor('strain_data', 'duration')
-    sampling_frequency = PropertyAccessor('strain_data', 'sampling_frequency')
-    start_time = PropertyAccessor('strain_data', 'start_time')
-    frequency_array = PropertyAccessor('strain_data', 'frequency_array')
-    time_array = PropertyAccessor('strain_data', 'time_array')
-    minimum_frequency = PropertyAccessor('strain_data', 'minimum_frequency')
-    maximum_frequency = PropertyAccessor('strain_data', 'maximum_frequency')
-    frequency_mask = PropertyAccessor('strain_data', 'frequency_mask')
-    frequency_domain_strain = PropertyAccessor('strain_data', 'frequency_domain_strain')
-    time_domain_strain = PropertyAccessor('strain_data', 'time_domain_strain')
+    duration = PropertyAccessor("strain_data", "duration")
+    sampling_frequency = PropertyAccessor("strain_data", "sampling_frequency")
+    start_time = PropertyAccessor("strain_data", "start_time")
+    frequency_array = PropertyAccessor("strain_data", "frequency_array")
+    time_array = PropertyAccessor("strain_data", "time_array")
+    minimum_frequency = PropertyAccessor("strain_data", "minimum_frequency")
+    maximum_frequency = PropertyAccessor("strain_data", "maximum_frequency")
+    frequency_mask = PropertyAccessor("strain_data", "frequency_mask")
+    frequency_domain_strain = PropertyAccessor("strain_data", "frequency_domain_strain")
+    time_domain_strain = PropertyAccessor("strain_data", "time_domain_strain")
 
     # Time-domain analysis attributes, with defaults for interferometers created without them
     analysis_start_time = None
@@ -54,8 +58,22 @@ class Interferometer(object):
     analysis_cut_time = None
     gohberg_semencul_vectors = None
 
-    def __init__(self, name, power_spectral_density, minimum_frequency, maximum_frequency, length, latitude, longitude,
-                 elevation, xarm_azimuth, yarm_azimuth, xarm_tilt=0., yarm_tilt=0., calibration_model=Recalibrate()):
+    def __init__(
+        self,
+        name,
+        power_spectral_density,
+        minimum_frequency,
+        maximum_frequency,
+        length,
+        latitude,
+        longitude,
+        elevation,
+        xarm_azimuth,
+        yarm_azimuth,
+        xarm_tilt=0.0,
+        yarm_tilt=0.0,
+        calibration_model=Recalibrate(),
+    ):
         """
         Instantiate an Interferometer object.
 
@@ -90,15 +108,23 @@ class Interferometer(object):
             Calibration model, this applies the calibration correction to the
             template, the default model applies no correction.
         """
-        self.geometry = InterferometerGeometry(length, latitude, longitude, elevation,
-                                               xarm_azimuth, yarm_azimuth, xarm_tilt, yarm_tilt)
+        self.geometry = InterferometerGeometry(
+            length,
+            latitude,
+            longitude,
+            elevation,
+            xarm_azimuth,
+            yarm_azimuth,
+            xarm_tilt,
+            yarm_tilt,
+        )
 
         self.name = name
         self.power_spectral_density = power_spectral_density
         self.calibration_model = calibration_model
         self.strain_data = InterferometerStrainData(
-            minimum_frequency=minimum_frequency,
-            maximum_frequency=maximum_frequency)
+            minimum_frequency=minimum_frequency, maximum_frequency=maximum_frequency
+        )
         self.meta_data = dict(name=name)
         self.reference_time = None
         self.analysis_start_time = None
@@ -107,27 +133,39 @@ class Interferometer(object):
         self.gohberg_semencul_vectors = None
 
     def __eq__(self, other):
-        if self.name == other.name and \
-                self.geometry == other.geometry and \
-                self.power_spectral_density.__eq__(other.power_spectral_density) and \
-                self.calibration_model == other.calibration_model and \
-                self.strain_data == other.strain_data:
+        if (
+            self.name == other.name
+            and self.geometry == other.geometry
+            and self.power_spectral_density.__eq__(other.power_spectral_density)
+            and self.calibration_model == other.calibration_model
+            and self.strain_data == other.strain_data
+        ):
             return True
         return False
 
     def __repr__(self):
-        return self.__class__.__name__ + '(name=\'{}\', power_spectral_density={}, minimum_frequency={}, ' \
-                                         'maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, ' \
-                                         'xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})' \
-            .format(self.name, self.power_spectral_density, float(self.strain_data.minimum_frequency),
-                    float(self.strain_data.maximum_frequency), float(self.geometry.length),
-                    float(self.geometry.latitude), float(self.geometry.longitude),
-                    float(self.geometry.elevation), float(self.geometry.xarm_azimuth),
-                    float(self.geometry.yarm_azimuth), float(self.geometry.xarm_tilt),
-                    float(self.geometry.yarm_tilt))
+        return (
+            self.__class__.__name__
+            + "(name='{}', power_spectral_density={}, minimum_frequency={}, "
+            "maximum_frequency={}, length={}, latitude={}, longitude={}, elevation={}, "
+            "xarm_azimuth={}, yarm_azimuth={}, xarm_tilt={}, yarm_tilt={})".format(
+                self.name,
+                self.power_spectral_density,
+                float(self.strain_data.minimum_frequency),
+                float(self.strain_data.maximum_frequency),
+                float(self.geometry.length),
+                float(self.geometry.latitude),
+                float(self.geometry.longitude),
+                float(self.geometry.elevation),
+                float(self.geometry.xarm_azimuth),
+                float(self.geometry.yarm_azimuth),
+                float(self.geometry.xarm_tilt),
+                float(self.geometry.yarm_tilt),
+            )
+        )
 
     def set_strain_data_from_gwpy_timeseries(self, time_series, *, xp=None):
-        """ Set the `Interferometer.strain_data` from a gwpy TimeSeries
+        """Set the `Interferometer.strain_data` from a gwpy TimeSeries
 
         Parameters
         ==========
@@ -141,9 +179,14 @@ class Interferometer(object):
         self.strain_data.set_from_gwpy_timeseries(time_series=time_series, xp=xp)
 
     def set_strain_data_from_frequency_domain_strain(
-            self, frequency_domain_strain, sampling_frequency=None,
-            duration=None, start_time=0, frequency_array=None):
-        """ Set the `Interferometer.strain_data` from a numpy array
+        self,
+        frequency_domain_strain,
+        sampling_frequency=None,
+        duration=None,
+        start_time=0,
+        frequency_array=None,
+    ):
+        """Set the `Interferometer.strain_data` from a numpy array
 
         Parameters
         ==========
@@ -162,12 +205,16 @@ class Interferometer(object):
         """
         self.strain_data.set_from_frequency_domain_strain(
             frequency_domain_strain=frequency_domain_strain,
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time, frequency_array=frequency_array)
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=start_time,
+            frequency_array=frequency_array,
+        )
 
     def set_strain_data_from_power_spectral_density(
-            self, sampling_frequency, duration, start_time=0, *, random_state=None):
-        """ Set the `Interferometer.strain_data` from a power spectal density
+        self, sampling_frequency, duration, start_time=0, *, random_state=None
+    ):
+        """Set the `Interferometer.strain_data` from a power spectal density
 
         This uses the `interferometer.power_spectral_density` object to set
         the `strain_data` to a noise realization. See
@@ -184,13 +231,25 @@ class Interferometer(object):
 
         """
         self.strain_data.set_from_power_spectral_density(
-            self.power_spectral_density, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time, random_state=random_state)
+            self.power_spectral_density,
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=start_time,
+            random_state=random_state,
+        )
 
     def set_strain_data_from_frame_file(
-            self, frame_file, sampling_frequency, duration, start_time=0,
-            channel=None, buffer_time=1, *, xp=None):
-        """ Set the `Interferometer.strain_data` from a frame file
+        self,
+        frame_file,
+        sampling_frequency,
+        duration,
+        start_time=0,
+        channel=None,
+        buffer_time=1,
+        *,
+        xp=None,
+    ):
+        """Set the `Interferometer.strain_data` from a frame file
 
         Parameters
         ==========
@@ -213,12 +272,18 @@ class Interferometer(object):
 
         """
         self.strain_data.set_from_frame_file(
-            frame_file=frame_file, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time,
-            channel=channel, buffer_time=buffer_time, xp=xp)
+            frame_file=frame_file,
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=start_time,
+            channel=channel,
+            buffer_time=buffer_time,
+            xp=xp,
+        )
 
     def set_strain_data_from_channel_name(
-            self, channel, sampling_frequency, duration, start_time=0, *, xp=None):
+        self, channel, sampling_frequency, duration, start_time=0, *, xp=None
+    ):
         """
         Set the `Interferometer.strain_data` by fetching from given channel
         using strain_data.set_from_channel_name()
@@ -239,11 +304,15 @@ class Interferometer(object):
 
         """
         self.strain_data.set_from_channel_name(
-            channel=channel, sampling_frequency=sampling_frequency,
-            duration=duration, start_time=start_time, xp=xp)
+            channel=channel,
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=start_time,
+            xp=xp,
+        )
 
     def set_strain_data_from_csv(self, filename, *, xp=None):
-        """ Set the `Interferometer.strain_data` from a csv file
+        """Set the `Interferometer.strain_data` from a csv file
 
         Parameters
         ==========
@@ -257,8 +326,9 @@ class Interferometer(object):
         self.strain_data.set_from_csv(filename, xp=xp)
 
     def set_strain_data_from_zero_noise(
-            self, sampling_frequency, duration, start_time=0):
-        """ Set the `Interferometer.strain_data` to zero noise
+        self, sampling_frequency, duration, start_time=0
+    ):
+        """Set the `Interferometer.strain_data` to zero noise
 
         Parameters
         ==========
@@ -272,11 +342,13 @@ class Interferometer(object):
         """
 
         self.strain_data.set_from_zero_noise(
-            sampling_frequency=sampling_frequency, duration=duration,
-            start_time=start_time)
+            sampling_frequency=sampling_frequency,
+            duration=duration,
+            start_time=start_time,
+        )
 
     def set_analysis_window(self, start_time, duration, cut_time=None):
-        """ Set the analysis window used by time-domain likelihoods
+        """Set the analysis window used by time-domain likelihoods
 
         Parameters
         ==========
@@ -291,13 +363,22 @@ class Interferometer(object):
         self.analysis_duration = float(duration)
         self.analysis_cut_time = cut_time
         self.meta_data["analysis_window"] = dict(
-            start_time=self.analysis_start_time, duration=self.analysis_duration, cut_time=cut_time)
+            start_time=self.analysis_start_time,
+            duration=self.analysis_duration,
+            cut_time=cut_time,
+        )
         self.gohberg_semencul_vectors = None
         self.meta_data.pop("autocovariance_function", None)
 
-    def condition_strain_data(self, sampling_frequency, highpass_frequency=None,
-                              lowpass_frequency=None, trim=0.25, remove_mean=True):
-        """ Filter, downsample and trim the time-domain strain data
+    def condition_strain_data(
+        self,
+        sampling_frequency,
+        highpass_frequency=None,
+        lowpass_frequency=None,
+        trim=0.25,
+        remove_mean=True,
+    ):
+        """Filter, downsample and trim the time-domain strain data
 
         See :code:`bilby.gw.detector.condition_data.condition_strain_data`; the sample
         nearest the cut time (or the window start) is kept. The analysis window must
@@ -330,18 +411,28 @@ class Interferometer(object):
             >>> ifo.set_autocovariance_function_from_power_spectral_density()
         """
         from .condition_data import condition_strain_data
+
         original_sampling_frequency = self.strain_data.sampling_frequency
         preserve_time = self.analysis_cut_time
         if preserve_time is None:
             preserve_time = self.analysis_start_time
         condition_strain_data(
-            self.strain_data, sampling_frequency, preserve_time=preserve_time,
-            highpass_frequency=highpass_frequency, lowpass_frequency=lowpass_frequency,
-            trim=trim, remove_mean=remove_mean)
+            self.strain_data,
+            sampling_frequency,
+            preserve_time=preserve_time,
+            highpass_frequency=highpass_frequency,
+            lowpass_frequency=lowpass_frequency,
+            trim=trim,
+            remove_mean=remove_mean,
+        )
         self.meta_data["conditioning"] = dict(
             original_sampling_frequency=original_sampling_frequency,
-            sampling_frequency=sampling_frequency, highpass_frequency=highpass_frequency,
-            lowpass_frequency=lowpass_frequency, trim=trim, remove_mean=remove_mean)
+            sampling_frequency=sampling_frequency,
+            highpass_frequency=highpass_frequency,
+            lowpass_frequency=lowpass_frequency,
+            trim=trim,
+            remove_mean=remove_mean,
+        )
         self.gohberg_semencul_vectors = None
         self.meta_data.pop("autocovariance_function", None)
         if self.analysis_duration is not None:
@@ -351,31 +442,44 @@ class Interferometer(object):
                 raise ValueError(
                     f"{self.name}: after conditioning, the analysis window is not inside the data "
                     f"kept ({self.start_time:.6f} + {self.duration:g} s, the central {1 - 2 * trim:g} "
-                    "of the data); use more data around the window") from None
+                    "of the data); use more data around the window"
+                ) from None
 
     @property
     def analysis_slice(self):
-        """ The slice of the time-domain strain data in the analysis window """
+        """The slice of the time-domain strain data in the analysis window"""
         if self.analysis_duration is None:
-            raise ValueError(f"{self.name}: set the analysis window first (set_analysis_window)")
+            raise ValueError(
+                f"{self.name}: set the analysis window first (set_analysis_window)"
+            )
         first = int(np.argmin(abs(self.time_array - self.analysis_start_time)))
         last = first + int(round(self.analysis_duration * self.sampling_frequency))
-        if (last > len(self.time_array)
-                or abs(self.time_array[first] - self.analysis_start_time) > 0.5 / self.sampling_frequency + 1e-6):
+        if (
+            last > len(self.time_array)
+            or abs(self.time_array[first] - self.analysis_start_time)
+            > 0.5 / self.sampling_frequency + 1e-6
+        ):
             raise ValueError(
                 f"{self.name}: the analysis window ({self.analysis_start_time:.6f} + {self.analysis_duration:g} s) "
-                f"is not inside the data ({self.start_time:.6f} + {self.duration:g} s)")
+                f"is not inside the data ({self.start_time:.6f} + {self.duration:g} s)"
+            )
         return slice(first, last)
 
     @property
     def analysis_data(self):
-        """ The time-domain strain data in the analysis window """
+        """The time-domain strain data in the analysis window"""
         return self.time_domain_strain[self.analysis_slice]
 
     def set_autocovariance_function_from_power_spectral_density(
-            self, minimum_frequency=None, maximum_frequency=None, sampling_frequency=None,
-            duration_factor=16, fill_value=None, fill_multiplier=100):
-        """ Set the noise covariance from the power spectral density
+        self,
+        minimum_frequency=None,
+        maximum_frequency=None,
+        sampling_frequency=None,
+        duration_factor=16,
+        fill_value=None,
+        fill_multiplier=100,
+    ):
+        """Set the noise covariance from the power spectral density
 
         Computes the autocovariance function (ACF) from the PSD using
         :code:`PowerSpectralDensity.get_autocovariance_array` (or takes the ACF of
@@ -400,28 +504,39 @@ class Interferometer(object):
             The PSD below (above) the band is set to this multiple of its maximum there
         """
         if self.analysis_duration is None:
-            raise ValueError(f"{self.name}: set the analysis window first (set_analysis_window)")
+            raise ValueError(
+                f"{self.name}: set the analysis window first (set_analysis_window)"
+            )
         if sampling_frequency is None:
             sampling_frequency = self.strain_data.sampling_frequency
             if sampling_frequency is None:
-                raise ValueError(f"{self.name}: set the strain data first, or give sampling_frequency")
+                raise ValueError(
+                    f"{self.name}: set the strain data first, or give sampling_frequency"
+                )
         if minimum_frequency is None:
             minimum_frequency = self.minimum_frequency
         if maximum_frequency is None:
             maximum_frequency = self.maximum_frequency
         if self.strain_data.sampling_frequency is not None and not np.isclose(
-                sampling_frequency, self.strain_data.sampling_frequency,
-                rtol=1e-9, atol=0):
+            sampling_frequency, self.strain_data.sampling_frequency, rtol=1e-9, atol=0
+        ):
             raise ValueError(
                 f"{self.name}: the sampling frequency of the autocovariance function "
                 f"({sampling_frequency:g} Hz) differs from that of the strain data "
-                f"({self.strain_data.sampling_frequency:g} Hz)")
+                f"({self.strain_data.sampling_frequency:g} Hz)"
+            )
         number_of_samples = int(round(self.analysis_duration * sampling_frequency))
-        acf_array, fill_value, fill_multiplier = \
+        acf_array, fill_value, fill_multiplier = (
             self.power_spectral_density.get_autocovariance_array(
-                number_of_samples, sampling_frequency, minimum_frequency,
-                maximum_frequency, duration_factor=duration_factor,
-                fill_value=fill_value, fill_multiplier=fill_multiplier)
+                number_of_samples,
+                sampling_frequency,
+                minimum_frequency,
+                maximum_frequency,
+                duration_factor=duration_factor,
+                fill_value=fill_value,
+                fill_multiplier=fill_multiplier,
+            )
+        )
         self._check_conditioning_filter(minimum_frequency, maximum_frequency)
         self.gohberg_semencul_vectors = gohberg_semencul_vectors(acf_array)
         self.meta_data["autocovariance_function"] = dict(
@@ -433,17 +548,22 @@ class Interferometer(object):
         )
 
     def _check_conditioning_filter(self, minimum_frequency, maximum_frequency):
-        """ Warn if the filter of condition_strain_data, which is applied to the data but
+        """Warn if the filter of condition_strain_data, which is applied to the data but
         not to the waveform and noise models, changes the signal amplitude in the band by
-        more than 1% """
+        more than 1%"""
         from .condition_data import filter_amplitude_response
+
         conditioning = self.meta_data.get("conditioning")
-        if not conditioning or not (conditioning["highpass_frequency"] or conditioning["lowpass_frequency"]):
+        if not conditioning or not (
+            conditioning["highpass_frequency"] or conditioning["lowpass_frequency"]
+        ):
             return
         response = filter_amplitude_response(
             np.array([minimum_frequency, maximum_frequency], dtype=float),
             conditioning["original_sampling_frequency"],
-            conditioning["highpass_frequency"], conditioning["lowpass_frequency"])
+            conditioning["highpass_frequency"],
+            conditioning["lowpass_frequency"],
+        )
         if np.min(response) < 0.99:
             logger.warning(
                 f"{self.name}: the filter applied to the data (high-pass "
@@ -451,7 +571,8 @@ class Interferometer(object):
                 f"keeps only {100 * np.min(response):.1f}% of the signal amplitude in the band "
                 f"{minimum_frequency:g} - {maximum_frequency:g} Hz, but is not applied to the waveform "
                 f"or noise models, which biases the analysis; use a high-pass at most "
-                f"{0.5 * minimum_frequency:g} Hz and no low-pass inside the band")
+                f"{0.5 * minimum_frequency:g} Hz and no low-pass inside the band"
+            )
 
     def antenna_response(self, ra, dec, time, psi, mode):
         """
@@ -483,15 +604,25 @@ class Interferometer(object):
         """
         if mode in ["plus", "cross", "x", "y", "breathing", "longitudinal"]:
             polarization_tensor = get_polarization_tensor(ra, dec, time, psi, mode)
-            return three_by_three_matrix_contraction(self.geometry.detector_tensor, polarization_tensor)
+            return three_by_three_matrix_contraction(
+                self.geometry.detector_tensor, polarization_tensor
+            )
         elif mode == self.name:
             return 1
         else:
             return 0
 
-    def get_detector_response(self, waveform_polarizations, parameters, frequencies=None, *,
-                              domain="frequency", placement=None, times=None):
-        """ Get the detector response for a particular waveform.
+    def get_detector_response(
+        self,
+        waveform_polarizations,
+        parameters,
+        frequencies=None,
+        *,
+        domain="frequency",
+        placement=None,
+        times=None,
+    ):
+        """Get the detector response for a particular waveform.
 
         Parameters
         ==========
@@ -513,20 +644,29 @@ class Interferometer(object):
         """
         if domain == "frequency":
             if placement is not None or times is not None:
-                raise ValueError("placement and times can only be given with domain='time'")
+                raise ValueError(
+                    "placement and times can only be given with domain='time'"
+                )
             return self.get_detector_response_frequency_domain(
-                waveform_polarizations, parameters, frequencies=frequencies)
+                waveform_polarizations, parameters, frequencies=frequencies
+            )
         elif domain == "time":
             if frequencies is not None:
                 raise ValueError("frequencies can only be given for domain='frequency'")
-            kwargs = dict(times=times) if placement is None else dict(times=times, placement=placement)
+            kwargs = (
+                dict(times=times)
+                if placement is None
+                else dict(times=times, placement=placement)
+            )
             return self.get_detector_response_time_domain(
-                waveform_polarizations, parameters, **kwargs)
+                waveform_polarizations, parameters, **kwargs
+            )
         raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
 
-    def get_detector_response_frequency_domain(self, waveform_polarizations, parameters,
-                                                frequencies=None):
-        """ Get the frequency-domain detector response for a particular waveform
+    def get_detector_response_frequency_domain(
+        self, waveform_polarizations, parameters, frequencies=None
+    ):
+        """Get the frequency-domain detector response for a particular waveform
 
         Parameters
         ==========
@@ -566,20 +706,23 @@ class Interferometer(object):
         signal = {}
         for mode in waveform_polarizations.keys():
             det_response = self.antenna_response(
-                parameters['ra'],
-                parameters['dec'],
+                parameters["ra"],
+                parameters["dec"],
                 antenna_time,
-                parameters['psi'], mode)
+                parameters["psi"],
+                mode,
+            )
 
             signal[mode] = waveform_polarizations[mode] * mask * det_response
         signal_ifo = sum(signal.values())
 
         time_shift = self.time_delay_from_geocenter(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+            parameters["ra"], parameters["dec"], parameters["geocent_time"]
+        )
 
         # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
-        dt_geocent = parameters['geocent_time'] - self.strain_data.start_time
+        dt_geocent = parameters["geocent_time"] - self.strain_data.start_time
         dt = dt_geocent + time_shift
 
         xp = array_module(signal_ifo)
@@ -587,14 +730,15 @@ class Interferometer(object):
         signal_ifo = signal_ifo * xp.exp(-1j * 2 * np.pi * dt * frequencies)
 
         signal_ifo *= self.calibration_model.get_calibration_factor(
-            frequencies, prefix=f'recalib_{self.name}_', xp=xp, **parameters
+            frequencies, prefix=f"recalib_{self.name}_", xp=xp, **parameters
         )
 
         return signal_ifo
 
-    def get_detector_response_time_domain(self, waveform_polarizations, parameters,
-                                          placement="fd_shift", times=None):
-        """ Get the time-domain detector response for a particular waveform
+    def get_detector_response_time_domain(
+        self, waveform_polarizations, parameters, placement="fd_shift", times=None
+    ):
+        """Get the time-domain detector response for a particular waveform
 
         Parameters
         ==========
@@ -627,15 +771,17 @@ class Interferometer(object):
             raise NotImplementedError(
                 f"{self.name}: time-domain responses do not apply a calibration model "
                 f"(got {type(self.calibration_model).__name__}); use the default "
-                "Recalibrate() for time-domain analyses")
+                "Recalibrate() for time-domain analyses"
+            )
         if times is None:
             times = self.time_array[self.analysis_slice]
         model_time = "polarizations_at" in waveform_polarizations
         if model_time != (placement == "model_time"):
             raise ValueError(
                 'placement="model_time" needs a model-time source model (e.g. '
-                'bilby.gw.source.lal_binary_black_hole_model_time), and a model-time source '
-                f'model needs placement="model_time"; got placement={placement!r}')
+                "bilby.gw.source.lal_binary_black_hole_model_time), and a model-time source "
+                f'model needs placement="model_time"; got placement={placement!r}'
+            )
 
         if self.reference_time is None:
             antenna_time = parameters["geocent_time"]
@@ -643,21 +789,37 @@ class Interferometer(object):
             antenna_time = self.reference_time
 
         time_shift = self.time_delay_from_geocenter(
-            parameters['ra'], parameters['dec'], parameters['geocent_time'])
+            parameters["ra"], parameters["dec"], parameters["geocent_time"]
+        )
 
         if model_time:
-            polarizations = waveform_polarizations["polarizations_at"](times_from_merger(
-                times[0], len(times), self.sampling_frequency, parameters['geocent_time'], time_shift))
+            polarizations = waveform_polarizations["polarizations_at"](
+                times_from_merger(
+                    times[0],
+                    len(times),
+                    self.sampling_frequency,
+                    parameters["geocent_time"],
+                    time_shift,
+                )
+            )
             if polarizations is None:
                 return None
         else:
-            polarizations = {mode: value for mode, value in waveform_polarizations.items()
-                             if mode != "epoch"}
+            polarizations = {
+                mode: value
+                for mode, value in waveform_polarizations.items()
+                if mode != "epoch"
+            }
 
         signal_ifo = 0
         for mode, polarization in polarizations.items():
             det_response = self.antenna_response(
-                parameters['ra'], parameters['dec'], antenna_time, parameters['psi'], mode)
+                parameters["ra"],
+                parameters["dec"],
+                antenna_time,
+                parameters["psi"],
+                mode,
+            )
             signal_ifo = signal_ifo + polarization * det_response
 
         if model_time:
@@ -665,15 +827,23 @@ class Interferometer(object):
 
         # Be careful to first subtract the two GPS times which are ~1e9 sec.
         # And then add the time_shift which varies at ~1e-5 sec
-        dt_geocent = parameters['geocent_time'] - times[0]
+        dt_geocent = parameters["geocent_time"] - times[0]
         return place_time_domain_signal(
-            signal_ifo, merger_index=-waveform_polarizations["epoch"] * self.sampling_frequency,
+            signal_ifo,
+            merger_index=-waveform_polarizations["epoch"] * self.sampling_frequency,
             arrival_index=(dt_geocent + time_shift) * self.sampling_frequency,
-            number_of_samples=len(times), placement=placement)
+            number_of_samples=len(times),
+            placement=placement,
+        )
 
-    def inject_signal_time_domain(self, parameters, injection_polarizations=None,
-                                  waveform_generator=None, placement="fd_shift"):
-        """ Time-domain signal injection method.
+    def inject_signal_time_domain(
+        self,
+        parameters,
+        injection_polarizations=None,
+        waveform_generator=None,
+        placement="fd_shift",
+    ):
+        """Time-domain signal injection method.
         Provide the injection parameters and either the injection polarizations
         or the waveform generator to inject a signal into the time-domain strain
         data. Defaults to the injection polarizations if both are given.
@@ -703,18 +873,28 @@ class Interferometer(object):
         if injection_polarizations is None and waveform_generator is None:
             raise ValueError(
                 "inject_signal_time_domain needs one of waveform_generator or "
-                "injection_polarizations.")
+                "injection_polarizations."
+            )
         elif injection_polarizations is not None:
             self.inject_signal_time_domain_from_waveform_polarizations(
-                parameters=parameters, injection_polarizations=injection_polarizations, placement=placement)
+                parameters=parameters,
+                injection_polarizations=injection_polarizations,
+                placement=placement,
+            )
         elif waveform_generator is not None:
-            injection_polarizations = self.inject_signal_time_domain_from_waveform_generator(
-                parameters=parameters, waveform_generator=waveform_generator, placement=placement)
+            injection_polarizations = (
+                self.inject_signal_time_domain_from_waveform_generator(
+                    parameters=parameters,
+                    waveform_generator=waveform_generator,
+                    placement=placement,
+                )
+            )
         return injection_polarizations
 
-    def inject_signal_time_domain_from_waveform_generator(self, parameters, waveform_generator,
-                                                          placement="fd_shift"):
-        """ Inject a time-domain signal using a waveform generator and a set of parameters.
+    def inject_signal_time_domain_from_waveform_generator(
+        self, parameters, waveform_generator, placement="fd_shift"
+    ):
+        """Inject a time-domain signal using a waveform generator and a set of parameters.
         Alternative to `inject_signal_time_domain` and
         `inject_signal_time_domain_from_waveform_polarizations`
 
@@ -734,20 +914,28 @@ class Interferometer(object):
             The injected polarizations
         """
         if waveform_generator.sampling_frequency is not None and not np.isclose(
-                waveform_generator.sampling_frequency, self.sampling_frequency, rtol=1e-9, atol=0):
+            waveform_generator.sampling_frequency,
+            self.sampling_frequency,
+            rtol=1e-9,
+            atol=0,
+        ):
             raise ValueError(
                 f"{self.name}: the sampling frequency of the waveform generator "
                 f"({waveform_generator.sampling_frequency:g} Hz) differs from that of the strain data "
-                f"({self.sampling_frequency:g} Hz)")
-        injection_polarizations = \
-            waveform_generator.time_domain_strain(parameters)
+                f"({self.sampling_frequency:g} Hz)"
+            )
+        injection_polarizations = waveform_generator.time_domain_strain(parameters)
         self.inject_signal_time_domain_from_waveform_polarizations(
-            parameters=parameters, injection_polarizations=injection_polarizations, placement=placement)
+            parameters=parameters,
+            injection_polarizations=injection_polarizations,
+            placement=placement,
+        )
         return injection_polarizations
 
-    def inject_signal_time_domain_from_waveform_polarizations(self, parameters, injection_polarizations,
-                                                              placement="fd_shift"):
-        """ Inject a time-domain signal into the detector from a dict of waveform polarizations.
+    def inject_signal_time_domain_from_waveform_polarizations(
+        self, parameters, injection_polarizations, placement="fd_shift"
+    ):
+        """Inject a time-domain signal into the detector from a dict of waveform polarizations.
         Alternative to `inject_signal_time_domain` and
         `inject_signal_time_domain_from_waveform_generator`.
 
@@ -762,39 +950,58 @@ class Interferometer(object):
             "fd_shift" (default), "model_time" or "nearest"; see
             :code:`get_detector_response_time_domain`
         """
-        if "epoch" not in injection_polarizations and "polarizations_at" not in injection_polarizations:
-            raise ValueError("injection_polarizations must come from a time-domain source model "
-                             "(with an 'epoch' or 'polarizations_at' entry)")
+        if (
+            "epoch" not in injection_polarizations
+            and "polarizations_at" not in injection_polarizations
+        ):
+            raise ValueError(
+                "injection_polarizations must come from a time-domain source model "
+                "(with an 'epoch' or 'polarizations_at' entry)"
+            )
         if self.gohberg_semencul_vectors is None:
-            raise ValueError(f"{self.name}: set the autocovariance function before injecting")
-        if not self.strain_data.time_within_data(parameters['geocent_time']):
+            raise ValueError(
+                f"{self.name}: set the autocovariance function before injecting"
+            )
+        if not self.strain_data.time_within_data(parameters["geocent_time"]):
             logger.warning(
-                'Injecting signal outside segment, start_time={}, merger time={}.'
-                .format(self.strain_data.start_time, parameters['geocent_time']))
+                "Injecting signal outside segment, start_time={}, merger time={}.".format(
+                    self.strain_data.start_time, parameters["geocent_time"]
+                )
+            )
 
         signal_ifo = self.get_detector_response_time_domain(
-            injection_polarizations, parameters, placement=placement, times=self.time_array)
+            injection_polarizations,
+            parameters,
+            placement=placement,
+            times=self.time_array,
+        )
         if signal_ifo is None:
             raise ValueError(f"{self.name}: the injection waveform failed")
         self.strain_data.time_domain_strain = self.time_domain_strain + signal_ifo
 
         signal = signal_ifo[self.analysis_slice]
-        inverse_covariance_signal = gohberg_semencul_product(*self.gohberg_semencul_vectors, signal)
-        self.meta_data['optimal_SNR'] = np.dot(signal, inverse_covariance_signal) ** 0.5
-        self.meta_data['matched_filter_SNR'] = (
-            np.dot(self.analysis_data, inverse_covariance_signal) / self.meta_data['optimal_SNR'])
-        self.meta_data['parameters'] = parameters
-        self.meta_data['injection_domain'] = "time"
-        self.meta_data['injection_placement'] = placement
+        inverse_covariance_signal = gohberg_semencul_product(
+            *self.gohberg_semencul_vectors, signal
+        )
+        self.meta_data["optimal_SNR"] = np.dot(signal, inverse_covariance_signal) ** 0.5
+        self.meta_data["matched_filter_SNR"] = (
+            np.dot(self.analysis_data, inverse_covariance_signal)
+            / self.meta_data["optimal_SNR"]
+        )
+        self.meta_data["parameters"] = parameters
+        self.meta_data["injection_domain"] = "time"
+        self.meta_data["injection_placement"] = placement
 
         logger.info("Injected time-domain signal in {}:".format(self.name))
-        logger.info("  optimal SNR = {:.2f}".format(self.meta_data['optimal_SNR']))
-        logger.info("  matched filter SNR = {:.2f}".format(self.meta_data['matched_filter_SNR']))
+        logger.info("  optimal SNR = {:.2f}".format(self.meta_data["optimal_SNR"]))
+        logger.info(
+            "  matched filter SNR = {:.2f}".format(self.meta_data["matched_filter_SNR"])
+        )
         for key in parameters:
-            logger.info('  {} = {}'.format(key, parameters[key]))
+            logger.info("  {} = {}".format(key, parameters[key]))
 
     def check_signal_duration(self, parameters, raise_error=True):
-        """ Check that the signal with the given parameters fits in the data
+        """Check that the signal with the given parameters fits in the data
 
         Parameters
         ==========
@@ -814,7 +1021,9 @@ class Interferometer(object):
 
         if ("mass_1" not in parameters) and ("mass_2" not in parameters):
             if raise_error:
-                raise AttributeError("Unable to check signal duration as mass not given")
+                raise AttributeError(
+                    "Unable to check signal duration as mass not given"
+                )
             else:
                 return
 
@@ -835,10 +1044,17 @@ class Interferometer(object):
             else:
                 logger.warning(msg)
 
-    def inject_signal(self, parameters, injection_polarizations=None,
-                      waveform_generator=None, raise_error=True, *, domain="frequency",
-                      placement=None):
-        """ General signal injection method.
+    def inject_signal(
+        self,
+        parameters,
+        injection_polarizations=None,
+        waveform_generator=None,
+        raise_error=True,
+        *,
+        domain="frequency",
+        placement=None,
+    ):
+        """General signal injection method.
         Provide the injection parameters and either the injection polarizations
         or the waveform generator to inject a signal into the detector.
         Defaults to the injection polarizations if both are given.
@@ -881,20 +1097,33 @@ class Interferometer(object):
             if placement is not None:
                 raise ValueError("placement can only be given with domain='time'")
             return self.inject_signal_frequency_domain(
-                parameters, injection_polarizations=injection_polarizations,
-                waveform_generator=waveform_generator, raise_error=raise_error)
+                parameters,
+                injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator,
+                raise_error=raise_error,
+            )
         elif domain == "time":
             if raise_error is not True:
-                raise ValueError("raise_error can only be given with domain='frequency'")
+                raise ValueError(
+                    "raise_error can only be given with domain='frequency'"
+                )
             kwargs = dict() if placement is None else dict(placement=placement)
             return self.inject_signal_time_domain(
-                parameters, injection_polarizations=injection_polarizations,
-                waveform_generator=waveform_generator, **kwargs)
+                parameters,
+                injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator,
+                **kwargs,
+            )
         raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
 
-    def inject_signal_frequency_domain(self, parameters, injection_polarizations=None,
-                                       waveform_generator=None, raise_error=True):
-        """ Frequency-domain signal injection method.
+    def inject_signal_frequency_domain(
+        self,
+        parameters,
+        injection_polarizations=None,
+        waveform_generator=None,
+        raise_error=True,
+    ):
+        """Frequency-domain signal injection method.
         Provide the injection parameters and either the injection polarizations
         or the waveform generator to inject a signal into the detector.
         Defaults to the injection polarizations if both are given.
@@ -928,17 +1157,20 @@ class Interferometer(object):
         if injection_polarizations is None and waveform_generator is None:
             raise ValueError(
                 "inject_signal needs one of waveform_generator or "
-                "injection_polarizations.")
+                "injection_polarizations."
+            )
         elif injection_polarizations is not None:
-            self.inject_signal_from_waveform_polarizations(parameters=parameters,
-                                                           injection_polarizations=injection_polarizations)
+            self.inject_signal_from_waveform_polarizations(
+                parameters=parameters, injection_polarizations=injection_polarizations
+            )
         elif waveform_generator is not None:
-            injection_polarizations = self.inject_signal_from_waveform_generator(parameters=parameters,
-                                                                                 waveform_generator=waveform_generator)
+            injection_polarizations = self.inject_signal_from_waveform_generator(
+                parameters=parameters, waveform_generator=waveform_generator
+            )
         return injection_polarizations
 
     def inject_signal_from_waveform_generator(self, parameters, waveform_generator):
-        """ Inject a signal using a waveform generator and a set of parameters.
+        """Inject a signal using a waveform generator and a set of parameters.
         Alternative to `inject_signal` and `inject_signal_from_waveform_polarizations`
 
         Parameters
@@ -960,14 +1192,16 @@ class Interferometer(object):
             The internally generated injection parameters
 
         """
-        injection_polarizations = \
-            waveform_generator.frequency_domain_strain(parameters)
-        self.inject_signal_from_waveform_polarizations(parameters=parameters,
-                                                       injection_polarizations=injection_polarizations)
+        injection_polarizations = waveform_generator.frequency_domain_strain(parameters)
+        self.inject_signal_from_waveform_polarizations(
+            parameters=parameters, injection_polarizations=injection_polarizations
+        )
         return injection_polarizations
 
-    def inject_signal_from_waveform_polarizations(self, parameters, injection_polarizations):
-        """ Inject a signal into the detector from a dict of waveform polarizations.
+    def inject_signal_from_waveform_polarizations(
+        self, parameters, injection_polarizations
+    ):
+        """Inject a signal into the detector from a dict of waveform polarizations.
         Alternative to `inject_signal` and `inject_signal_from_waveform_generator`.
 
         Parameters
@@ -979,29 +1213,35 @@ class Interferometer(object):
            `waveform_generator.frequency_domain_strain()`.
 
         """
-        if not self.strain_data.time_within_data(parameters['geocent_time']):
+        if not self.strain_data.time_within_data(parameters["geocent_time"]):
             logger.warning(
-                'Injecting signal outside segment, start_time={}, merger time={}.'
-                .format(self.strain_data.start_time, parameters['geocent_time']))
+                "Injecting signal outside segment, start_time={}, merger time={}.".format(
+                    self.strain_data.start_time, parameters["geocent_time"]
+                )
+            )
 
         signal_ifo = self.get_detector_response(injection_polarizations, parameters)
         self.strain_data.frequency_domain_strain += signal_ifo
 
-        self.meta_data['optimal_SNR'] = (
-            self.optimal_snr_squared(signal=signal_ifo)).real ** 0.5
-        self.meta_data['matched_filter_SNR'] = (
-            self.matched_filter_snr(signal=signal_ifo))
-        self.meta_data['parameters'] = parameters
+        self.meta_data["optimal_SNR"] = (
+            self.optimal_snr_squared(signal=signal_ifo)
+        ).real ** 0.5
+        self.meta_data["matched_filter_SNR"] = self.matched_filter_snr(
+            signal=signal_ifo
+        )
+        self.meta_data["parameters"] = parameters
 
         logger.info("Injected signal in {}:".format(self.name))
-        logger.info("  optimal SNR = {:.2f}".format(self.meta_data['optimal_SNR']))
-        logger.info("  matched filter SNR = {:.2f}".format(self.meta_data['matched_filter_SNR']))
+        logger.info("  optimal SNR = {:.2f}".format(self.meta_data["optimal_SNR"]))
+        logger.info(
+            "  matched filter SNR = {:.2f}".format(self.meta_data["matched_filter_SNR"])
+        )
         for key in parameters:
-            logger.info('  {} = {}'.format(key, parameters[key]))
+            logger.info("  {} = {}".format(key, parameters[key]))
 
     @property
     def amplitude_spectral_density_array(self):
-        """ Returns the amplitude spectral density (ASD) given we know a power spectral density (PSD)
+        """Returns the amplitude spectral density (ASD) given we know a power spectral density (PSD)
 
         Returns
         =======
@@ -1014,7 +1254,7 @@ class Interferometer(object):
 
     @property
     def power_spectral_density_array(self):
-        """ Returns the power spectral density (PSD)
+        """Returns the power spectral density (PSD)
 
         This accounts for whether the data in the interferometer has been windowed.
 
@@ -1028,8 +1268,10 @@ class Interferometer(object):
         )
 
     def unit_vector_along_arm(self, arm):
-        logger.warning("This method has been moved and will be removed in the future."
-                       "Use Interferometer.geometry.unit_vector_along_arm instead.")
+        logger.warning(
+            "This method has been moved and will be removed in the future."
+            "Use Interferometer.geometry.unit_vector_along_arm instead."
+        )
         return self.geometry.unit_vector_along_arm(arm)
 
     def time_delay_from_geocenter(self, ra, dec, time):
@@ -1064,9 +1306,17 @@ class Interferometer(object):
         =======
         array_like: A 3D array representation of the vertex
         """
-        return gwutils.get_vertex_position_geocentric(self.geometry.latitude_radians,
-                                                      self.geometry.longitude_radians,
-                                                      self.geometry.elevation)
+        xp = self.array_backend
+
+        return gwutils.get_vertex_position_geocentric(
+            xp.asarray(
+                [
+                    self.geometry.latitude_radians,
+                    self.geometry.longitude_radians,
+                    self.geometry.elevation,
+                ]
+            )
+        )
 
     def optimal_snr_squared(self, signal):
         """
@@ -1080,10 +1330,15 @@ class Interferometer(object):
         =======
         float: The optimal signal to noise ratio possible squared
         """
+        mask = self.strain_data.frequency_mask
+        xp = array_module(signal)
         return gwutils.optimal_snr_squared(
-            signal=signal[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+            signal=signal * mask,
+            power_spectral_density=xp.where(
+                mask, self.power_spectral_density_array, xp.inf
+            ),
+            duration=self.strain_data.duration,
+        )
 
     def inner_product(self, signal):
         """
@@ -1097,11 +1352,16 @@ class Interferometer(object):
         =======
         float: The optimal signal to noise ratio possible squared
         """
+        mask = self.strain_data.frequency_mask
+        xp = array_module(signal)
         return gwutils.noise_weighted_inner_product(
-            aa=signal[self.strain_data.frequency_mask],
-            bb=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+            aa=signal * mask,
+            bb=self.strain_data.frequency_domain_strain * mask,
+            power_spectral_density=xp.where(
+                mask, self.power_spectral_density_array, xp.inf
+            ),
+            duration=self.strain_data.duration,
+        )
 
     def template_template_inner_product(self, signal_1, signal_2):
         """A noise weighted inner product between two templates, using this ifo's PSD.
@@ -1120,8 +1380,11 @@ class Interferometer(object):
         return gwutils.noise_weighted_inner_product(
             aa=signal_1[self.strain_data.frequency_mask],
             bb=signal_2[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+            power_spectral_density=self.power_spectral_density_array[
+                self.strain_data.frequency_mask
+            ],
+            duration=self.strain_data.duration,
+        )
 
     def matched_filter_snr(self, signal):
         """
@@ -1138,11 +1401,16 @@ class Interferometer(object):
         """
         return gwutils.matched_filter_snr(
             signal=signal[self.strain_data.frequency_mask],
-            frequency_domain_strain=self.strain_data.frequency_domain_strain[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[self.strain_data.frequency_mask],
-            duration=self.strain_data.duration)
+            frequency_domain_strain=self.strain_data.frequency_domain_strain[
+                self.strain_data.frequency_mask
+            ],
+            power_spectral_density=self.power_spectral_density_array[
+                self.strain_data.frequency_mask
+            ],
+            duration=self.strain_data.duration,
+        )
 
-    def whiten_frequency_series(self, frequency_series : np.array) -> np.array:
+    def whiten_frequency_series(self, frequency_series: np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
 
         .. math::
@@ -1161,11 +1429,12 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        return frequency_series / (self.amplitude_spectral_density_array * (self.duration / 4)**0.5)
+        return frequency_series / (
+            self.amplitude_spectral_density_array * (self.duration / 4) ** 0.5
+        )
 
     def get_whitened_time_series_from_whitened_frequency_series(
-        self,
-        whitened_frequency_series : np.array
+        self, whitened_frequency_series: np.array
     ) -> np.array:
         """Gets the whitened time series from a whitened frequency series.
 
@@ -1198,7 +1467,8 @@ class Interferometer(object):
 
         whitened_time_series = (
             xp.fft.irfft(whitened_frequency_series)
-            * self.frequency_mask.sum()**0.5 / frequency_window_factor
+            * self.frequency_mask.sum() ** 0.5
+            / frequency_window_factor
         )
 
         return whitened_time_series
@@ -1229,15 +1499,17 @@ class Interferometer(object):
         array_like
             The whitened data in the time domain
         """
-        return self.get_whitened_time_series_from_whitened_frequency_series(self.whitened_frequency_domain_strain)
+        return self.get_whitened_time_series_from_whitened_frequency_series(
+            self.whitened_frequency_domain_strain
+        )
 
     def save_data(self, outdir, label=None):
-        """ Creates save files for interferometer data in plain text format.
+        """Creates save files for interferometer data in plain text format.
 
         Saves two files: the frequency domain strain data with three columns [f, real part of h(f),
         imaginary part of h(f)], and the amplitude spectral density with two columns [f, ASD(f)].
 
-        Note that in v1.3.0 and below, the ASD was saved in a file called *_psd.dat.
+        Note that in v1.3.0 and below, the ASD was saved in a file called :code:`*_psd.dat`.
 
         Parameters
         ==========
@@ -1248,65 +1520,92 @@ class Interferometer(object):
         """
 
         if label is None:
-            filename_asd = '{}/{}_asd.dat'.format(outdir, self.name)
-            filename_data = '{}/{}_frequency_domain_data.dat'.format(outdir, self.name)
+            filename_asd = "{}/{}_asd.dat".format(outdir, self.name)
+            filename_data = "{}/{}_frequency_domain_data.dat".format(outdir, self.name)
         else:
-            filename_asd = '{}/{}_{}_asd.dat'.format(outdir, self.name, label)
-            filename_data = '{}/{}_{}_frequency_domain_data.dat'.format(outdir, self.name, label)
-        np.savetxt(filename_data,
-                   np.array(
-                       [self.strain_data.frequency_array,
-                        self.strain_data.frequency_domain_strain.real,
-                        self.strain_data.frequency_domain_strain.imag]).T,
-                   header='f real_h(f) imag_h(f)')
-        np.savetxt(filename_asd,
-                   np.array(
-                       [self.strain_data.frequency_array,
-                        self.amplitude_spectral_density_array]).T,
-                   header='f h(f)')
+            filename_asd = "{}/{}_{}_asd.dat".format(outdir, self.name, label)
+            filename_data = "{}/{}_{}_frequency_domain_data.dat".format(
+                outdir, self.name, label
+            )
+        np.savetxt(
+            filename_data,
+            np.array(
+                [
+                    self.strain_data.frequency_array,
+                    self.strain_data.frequency_domain_strain.real,
+                    self.strain_data.frequency_domain_strain.imag,
+                ]
+            ).T,
+            header="f real_h(f) imag_h(f)",
+        )
+        np.savetxt(
+            filename_asd,
+            np.array(
+                [
+                    self.strain_data.frequency_array,
+                    self.amplitude_spectral_density_array,
+                ]
+            ).T,
+            header="f h(f)",
+        )
 
-    def plot_data(self, signal=None, outdir='.', label=None):
+    def plot_data(self, signal=None, outdir=".", label=None):
         import matplotlib.pyplot as plt
+
         if utils.command_line_args.bilby_test_mode:
             return
 
         fig, ax = plt.subplots()
         df = self.strain_data.frequency_array[1] - self.strain_data.frequency_array[0]
         asd = gwutils.asd_from_freq_series(
-            freq_data=self.strain_data.frequency_domain_strain, df=df)
+            freq_data=self.strain_data.frequency_domain_strain, df=df
+        )
 
-        ax.loglog(self.strain_data.frequency_array[self.strain_data.frequency_mask],
-                  asd[self.strain_data.frequency_mask],
-                  color='C0', label=self.name)
-        ax.loglog(self.strain_data.frequency_array[self.strain_data.frequency_mask],
-                  self.amplitude_spectral_density_array[self.strain_data.frequency_mask],
-                  color='C1', lw=1.0, label=self.name + ' ASD')
+        ax.loglog(
+            self.strain_data.frequency_array[self.strain_data.frequency_mask],
+            asd[self.strain_data.frequency_mask],
+            color="C0",
+            label=self.name,
+        )
+        ax.loglog(
+            self.strain_data.frequency_array[self.strain_data.frequency_mask],
+            self.amplitude_spectral_density_array[self.strain_data.frequency_mask],
+            color="C1",
+            lw=1.0,
+            label=self.name + " ASD",
+        )
         if signal is not None:
-            signal_asd = gwutils.asd_from_freq_series(
-                freq_data=signal, df=df)
+            signal_asd = gwutils.asd_from_freq_series(freq_data=signal, df=df)
 
-            ax.loglog(self.strain_data.frequency_array[self.strain_data.frequency_mask],
-                      signal_asd[self.strain_data.frequency_mask],
-                      color='C2',
-                      label='Signal')
+            ax.loglog(
+                self.strain_data.frequency_array[self.strain_data.frequency_mask],
+                signal_asd[self.strain_data.frequency_mask],
+                color="C2",
+                label="Signal",
+            )
         ax.grid(True)
-        ax.set_ylabel(r'Strain [strain/$\sqrt{\rm Hz}$]')
-        ax.set_xlabel(r'Frequency [Hz]')
-        ax.legend(loc='best')
+        ax.set_ylabel(r"Strain [strain/$\sqrt{\rm Hz}$]")
+        ax.set_xlabel(r"Frequency [Hz]")
+        ax.legend(loc="best")
         fig.tight_layout()
         if label is None:
-            fig.savefig(
-                '{}/{}_frequency_domain_data.png'.format(outdir, self.name))
+            fig.savefig("{}/{}_frequency_domain_data.png".format(outdir, self.name))
         else:
             fig.savefig(
-                '{}/{}_{}_frequency_domain_data.png'.format(
-                    outdir, self.name, label))
+                "{}/{}_{}_frequency_domain_data.png".format(outdir, self.name, label)
+            )
         plt.close(fig)
 
     def plot_time_domain_data(
-            self, outdir='.', label=None, bandpass_frequencies=(50, 250),
-            notches=None, start_end=None, t0=None):
-        """ Plots the strain data in the time domain
+        self,
+        outdir=".",
+        label=None,
+        bandpass_frequencies=(50, 250),
+        notches=None,
+        start_end=None,
+        t0=None,
+    ):
+        """Plots the strain data in the time domain
 
         Parameters
         ==========
@@ -1332,16 +1631,20 @@ class Interferometer(object):
         if notches is None:
             notches = list()
         timeseries = TimeSeries(
-            data=self.strain_data.time_domain_strain, times=self.strain_data.time_array)
+            data=self.strain_data.time_domain_strain, times=self.strain_data.time_array
+        )
         zpks = []
         if bandpass_frequencies is not None:
-            zpks.append(bandpass(
-                bandpass_frequencies[0], bandpass_frequencies[1],
-                self.strain_data.sampling_frequency))
+            zpks.append(
+                bandpass(
+                    bandpass_frequencies[0],
+                    bandpass_frequencies[1],
+                    self.strain_data.sampling_frequency,
+                )
+            )
         if notches is not None:
             for line in notches:
-                zpks.append(notch(
-                    line, self.strain_data.sampling_frequency))
+                zpks.append(notch(line, self.strain_data.sampling_frequency))
         if len(zpks) > 0:
             zpk = concatenate_zpks(*zpks)
             strain = timeseries.filter(zpk, filtfilt=False)
@@ -1352,14 +1655,14 @@ class Interferometer(object):
 
         if t0:
             x = self.strain_data.time_array - t0
-            xlabel = 'GPS time [s] - {}'.format(t0)
+            xlabel = "GPS time [s] - {}".format(t0)
         else:
             x = self.strain_data.time_array
-            xlabel = 'GPS time [s]'
+            xlabel = "GPS time [s]"
 
         ax.plot(x, strain)
         ax.set_xlabel(xlabel)
-        ax.set_ylabel('Strain')
+        ax.set_ylabel("Strain")
 
         if start_end is not None:
             ax.set_xlim(*start_end)
@@ -1367,16 +1670,16 @@ class Interferometer(object):
         fig.tight_layout()
 
         if label is None:
-            fig.savefig(
-                '{}/{}_time_domain_data.png'.format(outdir, self.name))
+            fig.savefig("{}/{}_time_domain_data.png".format(outdir, self.name))
         else:
             fig.savefig(
-                '{}/{}_{}_time_domain_data.png'.format(outdir, self.name, label))
+                "{}/{}_{}_time_domain_data.png".format(outdir, self.name, label)
+            )
         plt.close(fig)
 
     @staticmethod
     def _filename_from_outdir_label_extension(outdir, label, extension="h5"):
-        return os.path.join(outdir, label + f'.{extension}')
+        return os.path.join(outdir, label + f".{extension}")
 
     _save_ifo_docstring = """ Save the object to a {format} file
 
@@ -1399,28 +1702,32 @@ class Interferometer(object):
 
     """
 
-    @docstring(_save_ifo_docstring.format(
-        format="pickle", extra=".. versionadded:: 1.1.0"
-    ))
+    @docstring(
+        _save_ifo_docstring.format(format="pickle", extra=".. versionadded:: 1.1.0")
+    )
     def to_pickle(self, outdir="outdir", label=None):
         utils.check_directory_exists_and_if_not_mkdir(outdir)
-        filename = self._filename_from_outdir_label_extension(outdir, label, extension="pkl")
+        filename = self._filename_from_outdir_label_extension(
+            outdir, label, extension="pkl"
+        )
         safe_file_dump(self, filename, "dill")
 
     @classmethod
     @docstring(_load_docstring.format(format="pickle"))
     def from_pickle(cls, filename=None):
         import dill
+
         with open(filename, "rb") as ff:
             res = dill.load(ff)
         if res.__class__ != cls:
-            raise TypeError('The loaded object is not an Interferometer')
+            raise TypeError("The loaded object is not an Interferometer")
         return res
-
-    def set_array_backend(self, xp):
-        self.geometry.set_array_backend(xp=xp)
-        self.power_spectral_density.set_array_backend(xp=xp)
 
     @property
     def array_backend(self):
-        return array_module(self.geometry.length)
+        return self.geometry.array_backend
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        self.geometry.array_backend = xp
+        self.power_spectral_density.array_backend = xp

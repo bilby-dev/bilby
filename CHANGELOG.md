@@ -5,12 +5,101 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [3.0.0b1]
+
+This is the first beta release of Bilby version 3.
+The main changes are support for non-NumPy array backends and the removal of functionality deprecated in version 2.
+
+### Major changes
+
+* Add support for the Python Array API, including JAX and partial PyTorch support. Set `BILBY_ARRAY_API=1` and `SCIPY_ARRAY_API=1` before importing Bilby to enable this functionality (https://github.com/bilby-dev/bilby/pull/886).
+* Likelihood parameters must now be passed explicitly, e.g., `likelihood.log_likelihood(parameters)`, instead of setting `likelihood.parameters` (https://github.com/bilby-dev/bilby/pull/1050).
+* External sampler interfaces have been removed from Bilby and must be installed as separate plugins. The bundled samplers are `bilby_mcmc`, `dynesty`, `dynamic_dynesty`, and `emcee` (https://github.com/bilby-dev/bilby/pull/1090).
+* Require Python 3.11 or newer and `dynesty>=3.0.0` (https://github.com/bilby-dev/bilby/pull/886, https://github.com/bilby-dev/bilby/pull/1049).
+
+### Additions
+
+* Add the `bilby.compat` module, a JIT-compiled likelihood wrapper for JAX, and the `bilby[jax]` optional dependencies (https://github.com/bilby-dev/bilby/pull/886).
+* Add JAX pytree definitions for priors, likelihoods, interferometers, and waveform generators so they can be passed to JIT-compiled functions and other JAX transformations (https://github.com/bilby-dev/bilby/pull/1110).
+* Add a `random_state` argument to random sampling methods to support explicit random number generators and non-NumPy backends (https://github.com/bilby-dev/bilby/pull/886).
+* Support saving and loading `numpy.random.SeedSequence` objects (https://github.com/bilby-dev/bilby/pull/1097).
+* Add `Emcee.get_expected_outputs` to list sampler output files and directories (https://github.com/bilby-dev/bilby/pull/1131).
+* Add `get_vertex_position_ellipsoid` to convert geocentric detector positions to latitude, longitude, and elevation (https://github.com/bilby-dev/bilby/pull/894).
+
 ### Changes
 
-- Rename the `GEO600` detector identifier to `G1` so that channel names of the form `G1:...` in GEO frame files are recognised; `GEO600` is kept working as a deprecated alias for `get_empty_interferometer`/`InterferometerList` (https://github.com/bilby-dev/bilby/pull/935)
+* Switch to Ruff formatting (https://github.com/bilby-dev/bilby/pull/1172).
+* Select detector and power spectral density array backends by assigning to `array_backend` instead of calling `set_array_backend` (https://github.com/bilby-dev/bilby/pull/894).
+* Change the default `dynesty` bounding method to `none` and respect the requested bounding method for Bilby's sampling methods (https://github.com/bilby-dev/bilby/pull/1117).
+* Improve support for user-supplied pools and reuse the sampling pool for posterior conversion. Add the `bilby_pool` context manager for managing parallel work (https://github.com/bilby-dev/bilby/pull/1009).
+* Improve handling of sampling interruptions (https://github.com/bilby-dev/bilby/pull/1133).
+* Discard under-sampled `dynesty` MCMC proposals when too few steps are accepted, unless `maxmcmc` has been reached (https://github.com/bilby-dev/bilby/pull/1154).
+* Stop configuring the default logger when importing Bilby (https://github.com/bilby-dev/bilby/pull/1140).
+* Raise a `ValueError` for unused waveform keyword arguments (https://github.com/bilby-dev/bilby/pull/1059).
+* Warn when parameters passed to `GWSignalWaveformGenerator` are disabled by the waveform configuration (https://github.com/bilby-dev/bilby/pull/1085).
+* Deprecate the `WaveformGenerator` constructor's `parameters` argument, which is now ignored, and remove the `parameters` setter. Pass parameters to the strain methods instead (https://github.com/bilby-dev/bilby/pull/1050).
+* Rename the `GEO600` detector identifier to `G1` so that channel names of the form `G1:...` in GEO frame files are recognised; `GEO600` is kept working as a deprecated alias for `get_empty_interferometer`/`InterferometerList` (https://github.com/bilby-dev/bilby/pull/935).
 
 ### Fixes
-* Corrected incorrect docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (closes #731)
+
+* Align Einstein Telescope detector labels, vertex positions, and arm orientations with LAL, accounting for the curvature of the Earth and eliminating signal leakage into the null stream (https://github.com/bilby-dev/bilby/pull/894).
+* Pass user-specified proposals to Bilby's `dynesty` sampling methods (https://github.com/bilby-dev/bilby/pull/1117).
+* Fix ROQ likelihood incompatibility with NumPy 2.4 (https://github.com/bilby-dev/bilby/pull/1106).
+* Make `Prior.__repr__` round-trippable for NumPy scalar parameters (https://github.com/bilby-dev/bilby/pull/1108).
+* Validate values assigned to `PriorDict` (https://github.com/bilby-dev/bilby/pull/1116).
+* Fix conditional delta-function priors used in `ConditionalPriorDict` (https://github.com/bilby-dev/bilby/pull/1155).
+* Fix prior log-probability calculations with PyTorch (https://github.com/bilby-dev/bilby/pull/1167).
+* Fix parameter inference for bound methods and other callable objects (https://github.com/bilby-dev/bilby/pull/1129).
+* Fix the ordering of `emcee` log-likelihood and log-prior blobs (https://github.com/bilby-dev/bilby/pull/1136).
+* Check that parameter keys match when resuming `dynesty` (https://github.com/bilby-dev/bilby/pull/1138).
+* Only close figures created by `dynesty` checkpoint plotting (https://github.com/bilby-dev/bilby/pull/1132).
+* Update `least_recently_sampled` correctly when sampling batches from conditional priors (https://github.com/bilby-dev/bilby/pull/1150).
+* Prevent `dynesty` MCMC chains from overshooting the requested length (https://github.com/bilby-dev/bilby/pull/1153).
+* Use the `dynesty` random state for initial live points and posterior resampling, so that runs can be seeded without setting Bilby's global random state (https://github.com/bilby-dev/bilby/pull/1160).
+* Convert `LALDict` waveform arguments to Python dictionaries before saving (https://github.com/bilby-dev/bilby/pull/825).
+* Remove `frequency_bin_edges` when generating fiducial BNS relative-binning waveforms (https://github.com/bilby-dev/bilby/pull/1127).
+* Add missing time jitter when generating all CBC parameters (https://github.com/bilby-dev/bilby/pull/1137).
+* Remove the `weights` column before evaluating priors when reweighting samples (https://github.com/bilby-dev/bilby/pull/1113).
+* Support the new ArviZ API and specify sample dimensions when converting results (https://github.com/bilby-dev/bilby/pull/1091, https://github.com/bilby-dev/bilby/pull/1092).
+* Improve logging for missing priors in marginalized likelihoods (https://github.com/bilby-dev/bilby/pull/1095).
+* Correct the right ascension and declination units in the sky-map example (https://github.com/bilby-dev/bilby/pull/1134).
+* Correct docstrings for `matched_filter_snr` and `optimal_snr_squared` in `bilby/gw/utils.py` (https://github.com/bilby-dev/bilby/pull/1069).
+
+### Deprecations
+
+* Deprecate the three-argument syntax for `get_vertex_position_geocentric(latitude, longitude, elevation)`, which now logs a warning. Pass latitude, longitude, and elevation as a single array-like argument instead (https://github.com/bilby-dev/bilby/pull/894).
+
+### Removed
+
+* Remove the `BILBY_INCLUDE_GLOBAL_META_DATA` environment variable (https://github.com/bilby-dev/bilby/pull/1084).
+* Remove the `BILBY_INCORRECT_PSD_NORMALIZATION` environment variable used to restore the old, incorrect PSD normalization (https://github.com/bilby-dev/bilby/pull/1100).
+
+### New Contributors
+
+* @christianescamilla15-cell made their first contribution in https://github.com/bilby-dev/bilby/pull/1069
+* @raffienficiaud made their first contribution in https://github.com/bilby-dev/bilby/pull/1007
+* @Sanjays2402 made their first contribution in https://github.com/bilby-dev/bilby/pull/1116
+* @draghuram made their first contribution in https://github.com/bilby-dev/bilby/pull/1157
+* @milanwils made their first contribution in https://github.com/bilby-dev/bilby/pull/894
+
+**Full Changelog**: https://github.com/bilby-dev/bilby/compare/v2.8.2...v3.0.0b1
+
+## [2.8.2]
+
+### Fixes
+
+* BUG: Make sure the ROQ likelihood switches basis consistently by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/1120 and backported in https://github.com/bilby-dev/bilby/pull/1122
+
+## [2.8.1]
+
+### Fixes
+
+* BUG: Fix 0-dimensional array in priors by @ColmTalbot in https://github.com/bilby-dev/bilby/pull/886 and backported https://github.com/bilby-dev/bilby/pull/1103
+* BUG: Fix typo in interferometer.py to_pickle method by @AlexandreGoettel in https://github.com/bilby-dev/bilby/pull/1081 and backported in https://github.com/bilby-dev/bilby/pull/1103
+
+### Changes
+
+* MAINT: Relax tolerance for log noise evidence comparison by @mattpitkin in https://github.com/bilby-dev/bilby/pull/1087 and backported in https://github.com/bilby-dev/bilby/pull/1103
 
 ## [2.8.0]
 
@@ -1282,7 +1371,10 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.0...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v3.0.0b1...main
+[3.0.0b1]: https://github.com/bilby-dev/bilby/compare/v2.8.2...v3.0.0b1
+[2.8.2]: https://github.com/bilby-dev/bilby/compare/v2.8.1...v2.8.2
+[2.8.1]: https://github.com/bilby-dev/bilby/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
 [2.7.1]: https://github.com/bilby-dev/bilby/compare/v2.7.0...v2.7.1
 [2.7.0]: https://github.com/bilby-dev/bilby/compare/v2.6.0...v2.7.0

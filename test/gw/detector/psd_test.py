@@ -75,8 +75,10 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
     def test_from_power_spectral_density_array(self):
-        actual = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        actual = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
         self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
@@ -172,8 +174,10 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         self.assertAlmostEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(
-            asd_file=self.asd_file
+        psd = (
+            bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(
+                asd_file=self.asd_file
+            )
         )
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
@@ -248,11 +252,15 @@ class TestPowerSpectralDensityEquals(unittest.TestCase):
         self.psd_from_file_2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.frequency_array = np.linspace(1, 100)
         self.psd_array = np.linspace(1, 100)
-        self.psd_from_array_1 = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        self.psd_from_array_1 = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
-        self.psd_from_array_2 = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        self.psd_from_array_2 = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
 
     def tearDown(self):
@@ -309,54 +317,77 @@ class TestPowerSpectralDensityAutocovariance(unittest.TestCase):
         del self.aligo
 
     def test_white_psd_gives_a_diagonal_autocovariance(self):
-        """ A white one-sided PSD S0 up to Nyquist gives the ACF [S0 fs / 2, 0, 0, ...] """
+        """A white one-sided PSD S0 up to Nyquist gives the ACF [S0 fs / 2, 0, 0, ...]"""
         psd = bilby.gw.detector.PowerSpectralDensity(
-            frequency_array=self.frequency_array, psd_array=2 * np.ones_like(self.frequency_array))
-        acf, fill_value, fill_multiplier = psd.get_autocovariance_array(256, 1024.0, 0.0, 512.0)
+            frequency_array=self.frequency_array,
+            psd_array=2 * np.ones_like(self.frequency_array),
+        )
+        acf, fill_value, fill_multiplier = psd.get_autocovariance_array(
+            256, 1024.0, 0.0, 512.0
+        )
         np.testing.assert_allclose(acf[0], 2 * 1024 / 2, rtol=1e-12)
         np.testing.assert_allclose(acf[1:], 0, atol=1e-12 * acf[0])
         self.assertEqual(fill_multiplier, 100)
 
     def test_fill_below_and_above_the_band(self):
-        """ The PSD below (above) the band is replaced by 100 x its maximum there """
-        psd_array = np.where(self.frequency_array < 20, 1e6, np.where(self.frequency_array > 256, 1e-3, 1.0))
+        """The PSD below (above) the band is replaced by 100 x its maximum there"""
+        psd_array = np.where(
+            self.frequency_array < 20,
+            1e6,
+            np.where(self.frequency_array > 256, 1e-3, 1.0),
+        )
         acf, fill_value, fill_multiplier = power_spectral_density_to_autocovariance(
-            self.frequency_array, psd_array, 20.0, 256.0)
+            self.frequency_array, psd_array, 20.0, 256.0
+        )
         self.assertEqual(fill_value, (1e8, 0.1))
         self.assertEqual(fill_multiplier, 100)
-        filled = np.where(self.frequency_array < 20, 1e8, np.where(self.frequency_array > 256, 0.1, 1.0))
+        filled = np.where(
+            self.frequency_array < 20,
+            1e8,
+            np.where(self.frequency_array > 256, 0.1, 1.0),
+        )
         np.testing.assert_allclose(acf, 0.5 * np.fft.irfft(filled) * 1024)
 
     def test_fill_multiplier(self):
         psd_array = 1 + self.frequency_array
         _, fill_value, _ = power_spectral_density_to_autocovariance(
-            self.frequency_array, psd_array, 20.0, 100.0, fill_multiplier=10)
-        self.assertEqual(fill_value, (10 * psd_array[self.frequency_array < 20].max(), 10 * psd_array[-1]))
+            self.frequency_array, psd_array, 20.0, 100.0, fill_multiplier=10
+        )
+        self.assertEqual(
+            fill_value,
+            (10 * psd_array[self.frequency_array < 20].max(), 10 * psd_array[-1]),
+        )
 
     def test_explicit_fill_value(self):
         psd_array = np.ones_like(self.frequency_array)
         for given, expected in [(1e4, (1e4, 1e4)), ((1e4, 1e5), (1e4, 1e5))]:
             _, fill_value, fill_multiplier = power_spectral_density_to_autocovariance(
-                self.frequency_array, psd_array, 20.0, 100.0, fill_value=given)
+                self.frequency_array, psd_array, 20.0, 100.0, fill_value=given
+            )
             self.assertEqual((fill_value, fill_multiplier), (expected, None))
 
     def test_fill_value_below_the_psd_outside_the_band_warns(self):
         psd_array = np.where(self.frequency_array < 20, 1e6, 1.0)
         with self.assertLogs("bilby", level="WARNING") as logs:
             power_spectral_density_to_autocovariance(
-                self.frequency_array, psd_array, 20.0, 512.0, fill_value=1e4)
-        self.assertIn("The fill value below the band (1.00e+04) is below the PSD there", "".join(logs.output))
+                self.frequency_array, psd_array, 20.0, 512.0, fill_value=1e4
+            )
+        self.assertIn(
+            "The fill value below the band (1.00e+04) is below the PSD there",
+            "".join(logs.output),
+        )
 
     def test_psd_not_defined_outside_the_band_warns(self):
         psd_array = np.where(self.frequency_array < 20, np.inf, 1.0)
         with self.assertLogs("bilby", level="WARNING") as logs:
             _, fill_value, _ = power_spectral_density_to_autocovariance(
-                self.frequency_array, psd_array, 20.0, 512.0)
+                self.frequency_array, psd_array, 20.0, 512.0
+            )
         self.assertEqual(fill_value[0], 100)
         self.assertIn("not defined below the band", "".join(logs.output))
 
     def test_psd_not_defined_in_part_of_the_band_warns(self):
-        """ The aLIGO PSD is tabulated from 9 Hz: a band from 5 Hz is the band from 9 Hz """
+        """The aLIGO PSD is tabulated from 9 Hz: a band from 5 Hz is the band from 9 Hz"""
         with self.assertLogs("bilby", level="WARNING") as logs:
             acf, _, _ = self.aligo.get_autocovariance_array(1024, 1024.0, 5.0, 512.0)
         self.assertIn("not defined at", "".join(logs.output))
@@ -368,38 +399,63 @@ class TestPowerSpectralDensityAutocovariance(unittest.TestCase):
             self.aligo.get_autocovariance_array(1024, 1024.0, 1.0, 5.0)
 
     def test_frequencies_not_starting_at_zero(self):
-        """ Missing frequencies below the first one are treated as zeros """
+        """Missing frequencies below the first one are treated as zeros"""
         psd_array = np.ones_like(self.frequency_array)
         start = np.searchsorted(self.frequency_array, 10)
         expected = power_spectral_density_to_autocovariance(
-            self.frequency_array, np.where(self.frequency_array < 10, 0, psd_array), 20, 512)[0]
-        np.testing.assert_array_equal(power_spectral_density_to_autocovariance(
-            self.frequency_array[start:], psd_array[start:], 20, 512)[0], expected)
+            self.frequency_array,
+            np.where(self.frequency_array < 10, 0, psd_array),
+            20,
+            512,
+        )[0]
+        np.testing.assert_array_equal(
+            power_spectral_density_to_autocovariance(
+                self.frequency_array[start:], psd_array[start:], 20, 512
+            )[0],
+            expected,
+        )
 
     def test_sampling_frequency_different_from_the_psd_warns(self):
         with self.assertLogs("bilby", level="WARNING") as logs:
             power_spectral_density_to_autocovariance(
-                self.frequency_array, np.ones_like(self.frequency_array), 20, 512, sampling_frequency=2048)
-        self.assertIn("is not equal to the one computed from the PSD", "".join(logs.output))
+                self.frequency_array,
+                np.ones_like(self.frequency_array),
+                20,
+                512,
+                sampling_frequency=2048,
+            )
+        self.assertIn(
+            "is not equal to the one computed from the PSD", "".join(logs.output)
+        )
 
     def test_window_longer_than_the_autocovariance_raises(self):
         with self.assertRaises(ValueError):
-            self.aligo.get_autocovariance_array(1024, 1024.0, 20.0, 512.0, duration_factor=0.5)
+            self.aligo.get_autocovariance_array(
+                1024, 1024.0, 20.0, 512.0, duration_factor=0.5
+            )
 
     def test_from_autocovariance_array(self):
         acf, _, _ = self.aligo.get_autocovariance_array(1024, 1024.0, 20.0, 512.0)
-        precomputed = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(acf, 1024)
-        lags, fill_value, fill_multiplier = precomputed.get_autocovariance_array(512, 1024.0, 20.0, 512.0)
+        precomputed = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(
+            acf, 1024
+        )
+        lags, fill_value, fill_multiplier = precomputed.get_autocovariance_array(
+            512, 1024.0, 20.0, 512.0
+        )
         np.testing.assert_array_equal(lags, acf[:512])
         self.assertEqual((fill_value, fill_multiplier), (None, None))
 
     def test_from_autocovariance_array_wrong_sampling_frequency_raises(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(np.ones(100), 1024)
+        psd = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(
+            np.ones(100), 1024
+        )
         with self.assertRaises(ValueError):
             psd.get_autocovariance_array(20, 2048.0, 20.0, 512.0)
 
     def test_from_autocovariance_array_too_short_raises(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(np.ones(10), 1024)
+        psd = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(
+            np.ones(10), 1024
+        )
         with self.assertRaises(ValueError):
             psd.get_autocovariance_array(20, 1024.0, 20.0, 512.0)
 

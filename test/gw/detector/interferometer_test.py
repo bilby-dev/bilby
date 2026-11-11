@@ -61,8 +61,7 @@ class TestInterferometer(unittest.TestCase):
             lambda _: self.wg_polarizations
         )
         self.parameters = dict(
-            ra=0.0, dec=0.0, geocent_time=0.0, psi=0.0,
-            mass_1=100, mass_2=100
+            ra=0.0, dec=0.0, geocent_time=0.0, psi=0.0, mass_1=100, mass_2=100
         )
 
         bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
@@ -312,9 +311,9 @@ class TestInterferometer(unittest.TestCase):
             signal = np.ones_like(self.ifo.power_spectral_density_array)
             mask = self.ifo.frequency_mask
             expected = [
-                signal[mask],
-                signal[mask],
-                self.ifo.power_spectral_density_array[mask],
+                signal * mask,
+                signal * mask,
+                np.where(mask, self.ifo.power_spectral_density_array, np.inf),
                 self.ifo.strain_data.duration,
             ]
             actual = self.ifo.optimal_snr_squared(signal=signal)
@@ -327,13 +326,24 @@ class TestInterferometer(unittest.TestCase):
         signal_1 = np.ones_like(self.ifo.power_spectral_density_array)
         signal_2 = np.ones_like(self.ifo.power_spectral_density_array) * 2
         signal_1_optimal = self.ifo.optimal_snr_squared(signal=signal_1)
-        signal_1_optimal_by_template_template = self.ifo.template_template_inner_product(
-            signal_1=signal_1,
-            signal_2=signal_1
+        signal_1_optimal_by_template_template = (
+            self.ifo.template_template_inner_product(
+                signal_1=signal_1, signal_2=signal_1
+            )
         )
-        self.assertTrue(np.array_equal(signal_1_optimal, signal_1_optimal_by_template_template))
-        signal_1_signal_2_inner_product = self.ifo.template_template_inner_product(signal_1=signal_1, signal_2=signal_2)
-        self.assertTrue(np.array_equal(signal_1_optimal * 2, signal_1_signal_2_inner_product))
+        self.assertAlmostEqual(
+            signal_1_optimal,
+            signal_1_optimal_by_template_template,
+            delta=signal_1_optimal / 1e14,
+        )
+        signal_1_signal_2_inner_product = self.ifo.template_template_inner_product(
+            signal_1=signal_1, signal_2=signal_2
+        )
+        self.assertAlmostEqual(
+            signal_1_optimal * 2,
+            signal_1_signal_2_inner_product,
+            delta=signal_1_optimal / 1e14,
+        )
 
     def test_repr(self):
         expected = (
@@ -364,6 +374,7 @@ class TestInterferometer(unittest.TestCase):
 
     def test_to_and_from_pkl_wrong_class(self):
         import dill
+
         with open("./outdir/psd.pkl", "wb") as ff:
             dill.dump(self.ifo.power_spectral_density, ff)
         filename = self.ifo._filename_from_outdir_label_extension(
@@ -381,7 +392,7 @@ def test_psd_not_impacted_by_window_factor(monkeypatch):
         ifo.power_spectral_density.get_power_spectral_density_array(
             frequency_array=ifo.strain_data.frequency_array
         ),
-        ifo.power_spectral_density_array
+        ifo.power_spectral_density_array,
     )
 
 
@@ -527,9 +538,16 @@ class TestInterferometerEquals(unittest.TestCase):
 class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
     def setUp(self):
         self.name = "name"
-        self.ifo_names = ['H1', 'L1', 'V1', 'K1', 'G1', 'ET']
-        self.lal_prefixes = {'H1': 'H1', 'L1': 'L1', 'V1': 'V1', 'K1': 'K1', 'G1': 'G1', 'ET': 'E1'}
-        self.polarizations = ['plus', 'cross', 'breathing', 'longitudinal', 'x', 'y']
+        self.ifo_names = ["H1", "L1", "V1", "K1", "G1", "ET"]
+        self.lal_prefixes = {
+            "H1": "H1",
+            "L1": "L1",
+            "V1": "V1",
+            "K1": "K1",
+            "G1": "G1",
+            "ET": "E1",
+        }
+        self.polarizations = ["plus", "cross", "breathing", "longitudinal", "x", "y"]
         self.ifos = bilby.gw.detector.InterferometerList(self.ifo_names)
         self.gpstime = 1305303144
         self.trial = 100
@@ -549,19 +567,25 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
         f_lal = np.zeros((self.trial, 6))
 
         for n, ifo_name in enumerate(self.ifo_names):
-            response = lalsimulation.DetectorPrefixToLALDetector(self.lal_prefixes[ifo_name]).response
+            response = lalsimulation.DetectorPrefixToLALDetector(
+                self.lal_prefixes[ifo_name]
+            ).response
             ifo = self.ifos[n]
             for i in range(self.trial):
-                ra = 2. * np.pi * np.random.uniform()
-                dec = np.pi * np.random.uniform() - np.pi / 2.
+                ra = 2.0 * np.pi * np.random.uniform()
+                dec = np.pi * np.random.uniform() - np.pi / 2.0
                 psi = np.pi * np.random.uniform()
-                f_lal[i] = lal.ComputeDetAMResponseExtraModes(response, ra, dec, psi, gmst)
+                f_lal[i] = lal.ComputeDetAMResponseExtraModes(
+                    response, ra, dec, psi, gmst
+                )
                 for m, pol in enumerate(self.polarizations):
-                    f_bilby[i, m] = ifo.antenna_response(ra, dec, self.gpstime, psi, pol)
+                    f_bilby[i, m] = ifo.antenna_response(
+                        ra, dec, self.gpstime, psi, pol
+                    )
 
             std = np.std(f_bilby - f_lal, axis=0)
             for m, pol in enumerate(self.polarizations):
-                with self.subTest(':'.join((ifo_name, pol))):
+                with self.subTest(":".join((ifo_name, pol))):
                     self.assertAlmostEqual(std[m], 0.0, places=7)
 
     def test_time_delay_vs_lal(self):
@@ -572,12 +596,11 @@ class TestInterferometerAntennaPatternAgainstLAL(unittest.TestCase):
             det = lal.cached_detector_by_prefix[self.lal_prefixes[ifo_name]]
             for i in range(self.trial):
                 gpstime = np.random.uniform(1205303144, 1405303144)
-                ra = 2. * np.pi * np.random.uniform()
-                dec = np.pi * np.random.uniform() - np.pi / 2.
-                delays[i] = (
-                    lal.TimeDelayFromEarthCenter(det.location, ra, dec, gpstime)
-                    - ifo.time_delay_from_geocenter(ra, dec, gpstime)
-                )
+                ra = 2.0 * np.pi * np.random.uniform()
+                dec = np.pi * np.random.uniform() - np.pi / 2.0
+                delays[i] = lal.TimeDelayFromEarthCenter(
+                    det.location, ra, dec, gpstime
+                ) - ifo.time_delay_from_geocenter(ra, dec, gpstime)
 
             std = max(abs(delays))
             with self.subTest(ifo_name):
@@ -589,33 +612,33 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
     def setUp(self):
         self.duration = 64
         self.sampling_frequency = 4096
-        self.ifo = bilby.gw.detector.get_empty_interferometer('H1')
+        self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
         self.ifo.set_strain_data_from_power_spectral_density(
-            sampling_frequency=self.sampling_frequency, duration=self.duration)
+            sampling_frequency=self.sampling_frequency, duration=self.duration
+        )
         self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
             duration=self.duration,
             sampling_frequency=self.sampling_frequency,
             frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
-            waveform_arguments={
-                "waveform_approximant": "IMRPhenomXP"
-            })
+            waveform_arguments={"waveform_approximant": "IMRPhenomXP"},
+        )
 
         self.parameters = {
-            'mass_1': 10,
-            'mass_2': 10,
-            'a_1': 0,
-            'a_2': 0,
-            'tilt_1': 0,
-            'tilt_2': 0,
-            'phi_12': 0,
-            'phi_jl': 0,
-            'theta_jn': 0,
-            'luminosity_distance': 40,
-            'phase': 0,
-            'ra': 0,
-            'dec': 0,
-            'geocent_time': 62,
-            'psi': 0
+            "mass_1": 10,
+            "mass_2": 10,
+            "a_1": 0,
+            "a_2": 0,
+            "tilt_1": 0,
+            "tilt_2": 0,
+            "phi_12": 0,
+            "phi_jl": 0,
+            "theta_jn": 0,
+            "luminosity_distance": 40,
+            "phase": 0,
+            "ra": 0,
+            "dec": 0,
+            "geocent_time": 62,
+            "psi": 0,
         }
 
     def tearDown(self):
@@ -646,33 +669,43 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
 
     def test_frequency_domain_noise_and_signal_whitening(self):
         # Inject some (loud) signal
-        self.ifo.inject_signal(waveform_generator=self.waveform_generator, parameters=self.parameters)
+        self.ifo.inject_signal(
+            waveform_generator=self.waveform_generator, parameters=self.parameters
+        )
         # Make the template separately
-        waveform_polarizations = self.waveform_generator.frequency_domain_strain(parameters=self.parameters)
-        signal_ifo = self.ifo.get_detector_response(
-            waveform_polarizations=waveform_polarizations,
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters=self.parameters
+        )
+        signal_ifo = self.ifo.get_detector_response(
+            waveform_polarizations=waveform_polarizations, parameters=self.parameters
         )
         # Whiten the template
         whitened_signal_ifo = self.ifo.whiten_frequency_series(signal_ifo)
         mask = self.ifo.frequency_mask
-        white = self.ifo.whitened_frequency_domain_strain[mask] - whitened_signal_ifo[mask]
+        white = (
+            self.ifo.whitened_frequency_domain_strain[mask] - whitened_signal_ifo[mask]
+        )
         self._check_frequency_series_whiteness(white)
 
     def test_time_domain_noise_and_signal_whitening(self):
         # Inject some (loud) signal
-        self.ifo.inject_signal(waveform_generator=self.waveform_generator, parameters=self.parameters)
+        self.ifo.inject_signal(
+            waveform_generator=self.waveform_generator, parameters=self.parameters
+        )
         # Make the template separately
-        waveform_polarizations = self.waveform_generator.frequency_domain_strain(parameters=self.parameters)
-        signal_ifo = self.ifo.get_detector_response(
-            waveform_polarizations=waveform_polarizations,
+        waveform_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters=self.parameters
+        )
+        signal_ifo = self.ifo.get_detector_response(
+            waveform_polarizations=waveform_polarizations, parameters=self.parameters
         )
         # Whiten the template in FD
         whitened_signal_ifo_fd = self.ifo.whiten_frequency_series(signal_ifo)
         # Get whitened template in TD
-        whitened_signal_ifo_td = self.ifo.get_whitened_time_series_from_whitened_frequency_series(
-            whitened_signal_ifo_fd
+        whitened_signal_ifo_td = (
+            self.ifo.get_whitened_time_series_from_whitened_frequency_series(
+                whitened_signal_ifo_fd
+            )
         )
         whitened_td = self.ifo.whitened_time_domain_strain - whitened_signal_ifo_td
         self._check_time_series_whiteness(whitened_td)
@@ -683,27 +716,34 @@ SKY = dict(ra=1.375, dec=-1.2108, psi=2.659)
 
 
 def burst(times, amplitude=1e-21, phase=0.3, frequency=150.0, width=0.04):
-    """ A band-limited sine-Gaussian burst peaking at t = 0 """
-    envelope = amplitude * np.exp(-(times / width) ** 2)
-    return dict(plus=envelope * np.cos(2 * np.pi * frequency * times + phase),
-                cross=envelope * np.sin(2 * np.pi * frequency * times + phase))
+    """A band-limited sine-Gaussian burst peaking at t = 0"""
+    envelope = amplitude * np.exp(-((times / width) ** 2))
+    return dict(
+        plus=envelope * np.cos(2 * np.pi * frequency * times + phase),
+        cross=envelope * np.sin(2 * np.pi * frequency * times + phase),
+    )
 
 
 def burst_on_its_own_grid(sampling_frequency):
-    """ The burst in the format of a time-domain source model (waveform and epoch) """
-    times = np.arange(-int(0.4 * sampling_frequency), int(0.2 * sampling_frequency)) / sampling_frequency
+    """The burst in the format of a time-domain source model (waveform and epoch)"""
+    times = (
+        np.arange(-int(0.4 * sampling_frequency), int(0.2 * sampling_frequency))
+        / sampling_frequency
+    )
     return dict(burst(times), epoch=times[0])
 
 
 def burst_at_model_times():
-    """ The burst in the format of a model-time source model """
+    """The burst in the format of a model-time source model"""
     return dict(polarizations_at=lambda times: burst(np.asarray(times)))
 
 
 class TestInterferometerAnalysisWindow(unittest.TestCase):
     def setUp(self):
         self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
-        self.ifo.set_strain_data_from_zero_noise(sampling_frequency=1024, duration=8, start_time=GPS_START)
+        self.ifo.set_strain_data_from_zero_noise(
+            sampling_frequency=1024, duration=8, start_time=GPS_START
+        )
 
     def tearDown(self):
         del self.ifo
@@ -719,15 +759,21 @@ class TestInterferometerAnalysisWindow(unittest.TestCase):
         self.ifo.set_analysis_window(GPS_START + 2, 3, cut_time=GPS_START + 5)
         self.assertEqual(self.ifo.analysis_slice, slice(2048, 5120))
         np.testing.assert_array_equal(self.ifo.analysis_data, np.arange(2048.0, 5120.0))
-        self.assertEqual(self.ifo.meta_data["analysis_window"],
-                         dict(start_time=GPS_START + 2, duration=3, cut_time=GPS_START + 5))
+        self.assertEqual(
+            self.ifo.meta_data["analysis_window"],
+            dict(start_time=GPS_START + 2, duration=3, cut_time=GPS_START + 5),
+        )
 
     def test_analysis_slice_without_a_window_raises(self):
         with self.assertRaises(ValueError):
             _ = self.ifo.analysis_slice
 
     def test_window_outside_the_data_raises(self):
-        for start, duration in [(GPS_START + 6, 3), (GPS_START - 1, 2), (GPS_START - 0.7 / 1024, 2)]:
+        for start, duration in [
+            (GPS_START + 6, 3),
+            (GPS_START - 1, 2),
+            (GPS_START - 0.7 / 1024, 2),
+        ]:
             self.ifo.set_analysis_window(start, duration)
             with self.assertRaises(ValueError):
                 _ = self.ifo.analysis_slice
@@ -736,21 +782,30 @@ class TestInterferometerAnalysisWindow(unittest.TestCase):
         self.ifo.minimum_frequency, self.ifo.maximum_frequency = 20, 512
         self.ifo.set_analysis_window(GPS_START + 2, 1)
         self.ifo.set_autocovariance_function_from_power_spectral_density()
-        acf, fill_value, _ = self.ifo.power_spectral_density.get_autocovariance_array(1024, 1024.0, 20, 512)
+        acf, fill_value, _ = self.ifo.power_spectral_density.get_autocovariance_array(
+            1024, 1024.0, 20, 512
+        )
         x, y = self.ifo.gohberg_semencul_vectors
-        np.testing.assert_allclose(scipy.linalg.toeplitz(acf) @ x, np.eye(1024)[0], atol=1e-8 * np.max(abs(x)))
+        np.testing.assert_allclose(
+            scipy.linalg.toeplitz(acf) @ x, np.eye(1024)[0], atol=1e-8 * np.max(abs(x))
+        )
         np.testing.assert_array_equal(y, x[::-1])
         meta_data = self.ifo.meta_data["autocovariance_function"]
-        self.assertEqual((meta_data["fill_value"], meta_data["fill_multiplier"]), (fill_value, 100))
+        self.assertEqual(
+            (meta_data["fill_value"], meta_data["fill_multiplier"]), (fill_value, 100)
+        )
 
     def test_autocovariance_function_from_a_precomputed_autocovariance(self):
         self.ifo.minimum_frequency, self.ifo.maximum_frequency = 20, 512
         self.ifo.set_analysis_window(GPS_START + 2, 1)
         self.ifo.set_autocovariance_function_from_power_spectral_density()
         expected = self.ifo.gohberg_semencul_vectors
-        acf, _, _ = self.ifo.power_spectral_density.get_autocovariance_array(1024, 1024.0, 20, 512)
-        self.ifo.power_spectral_density = bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(
-            acf, 1024)
+        acf, _, _ = self.ifo.power_spectral_density.get_autocovariance_array(
+            1024, 1024.0, 20, 512
+        )
+        self.ifo.power_spectral_density = (
+            bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(acf, 1024)
+        )
         self.ifo.set_autocovariance_function_from_power_spectral_density()
         for vector, expected_vector in zip(self.ifo.gohberg_semencul_vectors, expected):
             np.testing.assert_array_equal(vector, expected_vector)
@@ -768,7 +823,9 @@ class TestInterferometerAnalysisWindow(unittest.TestCase):
     def test_autocovariance_function_sampling_frequency_must_match_the_data(self):
         self.ifo.set_analysis_window(GPS_START + 2, 3)
         with self.assertRaises(ValueError):
-            self.ifo.set_autocovariance_function_from_power_spectral_density(sampling_frequency=2048.0)
+            self.ifo.set_autocovariance_function_from_power_spectral_density(
+                sampling_frequency=2048.0
+            )
 
     def test_setting_a_window_clears_the_autocovariance_function(self):
         self.ifo.set_analysis_window(GPS_START + 2, 3)
@@ -781,7 +838,9 @@ class TestInterferometerAnalysisWindow(unittest.TestCase):
 class TestInterferometerTimeDomainResponse(unittest.TestCase):
     def setUp(self):
         self.sampling_frequency, self.duration = 1024.0, 8.0
-        self.parameters = dict(SKY, geocent_time=GPS_START + 4.3 + 0.37 / self.sampling_frequency)
+        self.parameters = dict(
+            SKY, geocent_time=GPS_START + 4.3 + 0.37 / self.sampling_frequency
+        )
         self.ifo = self._interferometer("H1")
 
     def tearDown(self):
@@ -790,93 +849,162 @@ class TestInterferometerTimeDomainResponse(unittest.TestCase):
 
     def _interferometer(self, name):
         ifo = bilby.gw.detector.get_empty_interferometer(name)
-        ifo.minimum_frequency, ifo.maximum_frequency = 0, self.sampling_frequency / 2  # no frequency mask
+        ifo.minimum_frequency, ifo.maximum_frequency = (
+            0,
+            self.sampling_frequency / 2,
+        )  # no frequency mask
         ifo.set_strain_data_from_zero_noise(
-            sampling_frequency=self.sampling_frequency, duration=self.duration, start_time=GPS_START)
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            start_time=GPS_START,
+        )
         ifo.set_analysis_window(GPS_START, self.duration)
         return ifo
 
     def test_matches_the_frequency_domain_response(self):
-        """ Antenna patterns, time delays, signs and reference_time agree with the
-        frequency-domain response applied to the same polarizations """
+        """Antenna patterns, time delays, signs and reference_time agree with the
+        frequency-domain response applied to the same polarizations"""
         number_of_samples = int(self.duration * self.sampling_frequency)
         k = np.arange(number_of_samples)
-        wrapped_times = np.where(k < number_of_samples // 2, k, k - number_of_samples) / self.sampling_frequency
+        wrapped_times = (
+            np.where(k < number_of_samples // 2, k, k - number_of_samples)
+            / self.sampling_frequency
+        )
         frequency_domain_polarizations = {
             mode: bilby.core.utils.nfft(value, self.sampling_frequency)[0]
-            for mode, value in burst(wrapped_times).items()}
-        for name, reference_time in [("H1", None), ("L1", None), ("V1", None), ("H1", GPS_START + 4)]:
+            for mode, value in burst(wrapped_times).items()
+        }
+        for name, reference_time in [
+            ("H1", None),
+            ("L1", None),
+            ("V1", None),
+            ("H1", GPS_START + 4),
+        ]:
             ifo = self._interferometer(name)
             ifo.reference_time = reference_time
             expected = bilby.core.utils.infft(
-                ifo.get_detector_response(frequency_domain_polarizations, self.parameters), self.sampling_frequency)
-            for placement, polarizations in [("fd_shift", burst_on_its_own_grid(self.sampling_frequency)),
-                                             ("model_time", burst_at_model_times())]:
+                ifo.get_detector_response(
+                    frequency_domain_polarizations, self.parameters
+                ),
+                self.sampling_frequency,
+            )
+            for placement, polarizations in [
+                ("fd_shift", burst_on_its_own_grid(self.sampling_frequency)),
+                ("model_time", burst_at_model_times()),
+            ]:
                 response = ifo.get_detector_response(
-                    polarizations, self.parameters, domain="time", placement=placement)
-                np.testing.assert_allclose(response, expected, atol=1e-8 * np.max(abs(expected)))
+                    polarizations, self.parameters, domain="time", placement=placement
+                )
+                np.testing.assert_allclose(
+                    response, expected, atol=1e-8 * np.max(abs(expected))
+                )
 
     def test_nearest_is_within_half_a_sample(self):
         nearest = self.ifo.get_detector_response(
-            burst_on_its_own_grid(self.sampling_frequency), self.parameters, domain="time", placement="nearest")
+            burst_on_its_own_grid(self.sampling_frequency),
+            self.parameters,
+            domain="time",
+            placement="nearest",
+        )
         for shift in [-0.5, 0.5]:
-            parameters = dict(self.parameters, geocent_time=self.parameters["geocent_time"] + shift / 1024)
+            parameters = dict(
+                self.parameters,
+                geocent_time=self.parameters["geocent_time"] + shift / 1024,
+            )
             shifted = self.ifo.get_detector_response(
-                burst_at_model_times(), parameters, domain="time", placement="model_time")
+                burst_at_model_times(),
+                parameters,
+                domain="time",
+                placement="model_time",
+            )
             self.assertLess(np.max(abs(nearest - shifted)), np.max(abs(nearest)))
 
     def test_model_time_waveform_failure_gives_none(self):
         failed = dict(polarizations_at=lambda times: None)
-        self.assertIsNone(self.ifo.get_detector_response_time_domain(failed, self.parameters, placement="model_time"))
+        self.assertIsNone(
+            self.ifo.get_detector_response_time_domain(
+                failed, self.parameters, placement="model_time"
+            )
+        )
 
     def test_placement_and_source_model_must_match(self):
         with self.assertRaises(ValueError):
-            self.ifo.get_detector_response_time_domain(burst_at_model_times(), self.parameters, placement="fd_shift")
+            self.ifo.get_detector_response_time_domain(
+                burst_at_model_times(), self.parameters, placement="fd_shift"
+            )
         with self.assertRaises(ValueError):
             self.ifo.get_detector_response_time_domain(
-                burst_on_its_own_grid(self.sampling_frequency), self.parameters, placement="model_time")
+                burst_on_its_own_grid(self.sampling_frequency),
+                self.parameters,
+                placement="model_time",
+            )
 
     def test_calibration_model_raises(self):
         self.ifo.calibration_model = bilby.gw.detector.calibration.CubicSpline(
-            prefix="recalib_H1_", minimum_frequency=20, maximum_frequency=1024, n_points=5)
+            prefix="recalib_H1_",
+            minimum_frequency=20,
+            maximum_frequency=1024,
+            n_points=5,
+        )
         with self.assertRaises(NotImplementedError):
             self.ifo.get_detector_response_time_domain(
-                burst_on_its_own_grid(self.sampling_frequency), self.parameters)
+                burst_on_its_own_grid(self.sampling_frequency), self.parameters
+            )
 
     def test_frequency_domain_is_the_default(self):
-        polarizations = dict(plus=np.ones_like(self.ifo.frequency_array, dtype=complex),
-                             cross=1j * np.ones_like(self.ifo.frequency_array))
+        polarizations = dict(
+            plus=np.ones_like(self.ifo.frequency_array, dtype=complex),
+            cross=1j * np.ones_like(self.ifo.frequency_array),
+        )
         np.testing.assert_array_equal(
             self.ifo.get_detector_response(polarizations, self.parameters),
-            self.ifo.get_detector_response_frequency_domain(polarizations, self.parameters))
+            self.ifo.get_detector_response_frequency_domain(
+                polarizations, self.parameters
+            ),
+        )
 
     def test_positional_frequencies(self):
         frequencies = self.ifo.frequency_array[::4]
         polarizations = dict(plus=np.ones_like(frequencies, dtype=complex))
         np.testing.assert_array_equal(
             self.ifo.get_detector_response(polarizations, self.parameters, frequencies),
-            self.ifo.get_detector_response(polarizations, self.parameters, frequencies=frequencies))
+            self.ifo.get_detector_response(
+                polarizations, self.parameters, frequencies=frequencies
+            ),
+        )
 
     def test_wrong_domain_arguments_raise(self):
-        polarizations = dict(plus=np.zeros(len(self.ifo.frequency_array), dtype=complex))
-        with self.assertRaises(ValueError):
-            self.ifo.get_detector_response(polarizations, self.parameters, placement="fd_shift")
+        polarizations = dict(
+            plus=np.zeros(len(self.ifo.frequency_array), dtype=complex)
+        )
         with self.assertRaises(ValueError):
             self.ifo.get_detector_response(
-                burst_at_model_times(), self.parameters, frequencies=self.ifo.frequency_array, domain="time")
+                polarizations, self.parameters, placement="fd_shift"
+            )
+        with self.assertRaises(ValueError):
+            self.ifo.get_detector_response(
+                burst_at_model_times(),
+                self.parameters,
+                frequencies=self.ifo.frequency_array,
+                domain="time",
+            )
         with self.assertRaises(ValueError):
             self.ifo.get_detector_response(dict(), self.parameters, domain="wavelet")
 
     def test_domain_is_keyword_only(self):
         with self.assertRaises(TypeError):
-            self.ifo.get_detector_response(burst_at_model_times(), self.parameters, None, "time")
+            self.ifo.get_detector_response(
+                burst_at_model_times(), self.parameters, None, "time"
+            )
 
 
 class TestInterferometerTimeDomainInjection(unittest.TestCase):
     def setUp(self):
         self.parameters = dict(SKY, geocent_time=GPS_START + 4.3)
         self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
-        self.ifo.set_strain_data_from_zero_noise(sampling_frequency=1024, duration=8, start_time=GPS_START)
+        self.ifo.set_strain_data_from_zero_noise(
+            sampling_frequency=1024, duration=8, start_time=GPS_START
+        )
         self.ifo.set_analysis_window(GPS_START + 2, 4)
         self.ifo.set_autocovariance_function_from_power_spectral_density()
 
@@ -885,44 +1013,81 @@ class TestInterferometerTimeDomainInjection(unittest.TestCase):
         del self.parameters
 
     def test_zero_noise_injection(self):
-        self.ifo.inject_signal(self.parameters, injection_polarizations=burst_at_model_times(),
-                               domain="time", placement="model_time")
+        self.ifo.inject_signal(
+            self.parameters,
+            injection_polarizations=burst_at_model_times(),
+            domain="time",
+            placement="model_time",
+        )
         signal = self.ifo.analysis_data
         self.assertGreater(np.max(abs(signal)), 0)
-        optimal_snr = np.sqrt(signal @ bilby.gw.time_domain_utils.gohberg_semencul_product(
-            *self.ifo.gohberg_semencul_vectors, signal))
+        optimal_snr = np.sqrt(
+            signal
+            @ bilby.gw.time_domain_utils.gohberg_semencul_product(
+                *self.ifo.gohberg_semencul_vectors, signal
+            )
+        )
         self.assertAlmostEqual(self.ifo.meta_data["optimal_SNR"], optimal_snr, places=8)
-        self.assertAlmostEqual(self.ifo.meta_data["matched_filter_SNR"], optimal_snr, places=8)
+        self.assertAlmostEqual(
+            self.ifo.meta_data["matched_filter_SNR"], optimal_snr, places=8
+        )
         self.assertEqual(self.ifo.meta_data["injection_domain"], "time")
         self.assertEqual(self.ifo.meta_data["injection_placement"], "model_time")
 
     def test_waveform_generator_matches_polarizations(self):
         other = bilby.gw.detector.get_empty_interferometer("H1")
-        other.set_strain_data_from_zero_noise(sampling_frequency=1024, duration=8, start_time=GPS_START)
+        other.set_strain_data_from_zero_noise(
+            sampling_frequency=1024, duration=8, start_time=GPS_START
+        )
         other.set_analysis_window(GPS_START + 2, 4)
         other.set_autocovariance_function_from_power_spectral_density()
         generator = bilby.gw.WaveformGenerator(
-            duration=8, sampling_frequency=1024, time_domain_source_model=lambda time_array: burst_at_model_times())
+            duration=8,
+            sampling_frequency=1024,
+            time_domain_source_model=lambda time_array: burst_at_model_times(),
+        )
         polarizations = self.ifo.inject_signal(
-            self.parameters, waveform_generator=generator, domain="time", placement="model_time")
+            self.parameters,
+            waveform_generator=generator,
+            domain="time",
+            placement="model_time",
+        )
         self.assertIn("polarizations_at", polarizations)
-        other.inject_signal(self.parameters, injection_polarizations=burst_at_model_times(), domain="time",
-                            placement="model_time")
-        np.testing.assert_array_equal(self.ifo.time_domain_strain, other.time_domain_strain)
+        other.inject_signal(
+            self.parameters,
+            injection_polarizations=burst_at_model_times(),
+            domain="time",
+            placement="model_time",
+        )
+        np.testing.assert_array_equal(
+            self.ifo.time_domain_strain, other.time_domain_strain
+        )
 
     def test_default_placement_is_fd_shift(self):
-        self.ifo.inject_signal(self.parameters, injection_polarizations=burst_on_its_own_grid(1024), domain="time")
+        self.ifo.inject_signal(
+            self.parameters,
+            injection_polarizations=burst_on_its_own_grid(1024),
+            domain="time",
+        )
         self.assertEqual(self.ifo.meta_data["injection_placement"], "fd_shift")
 
     def test_needs_the_autocovariance_function(self):
         self.ifo.set_analysis_window(GPS_START + 2, 4)
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=burst_at_model_times(),
-                                   domain="time", placement="model_time")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=burst_at_model_times(),
+                domain="time",
+                placement="model_time",
+            )
 
     def test_needs_time_domain_polarizations(self):
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=dict(plus=np.zeros(8)), domain="time")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=dict(plus=np.zeros(8)),
+                domain="time",
+            )
 
     def test_needs_polarizations_or_a_waveform_generator(self):
         with self.assertRaises(ValueError):
@@ -930,42 +1095,77 @@ class TestInterferometerTimeDomainInjection(unittest.TestCase):
 
     def test_waveform_generator_sampling_frequency_must_match(self):
         generator = bilby.gw.WaveformGenerator(
-            duration=8, sampling_frequency=2048, time_domain_source_model=lambda time_array: dict())
+            duration=8,
+            sampling_frequency=2048,
+            time_domain_source_model=lambda time_array: dict(),
+        )
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, waveform_generator=generator, domain="time")
+            self.ifo.inject_signal(
+                self.parameters, waveform_generator=generator, domain="time"
+            )
 
     def test_failed_waveform_raises(self):
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=dict(polarizations_at=lambda times: None),
-                                   domain="time", placement="model_time")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=dict(polarizations_at=lambda times: None),
+                domain="time",
+                placement="model_time",
+            )
 
     def test_injection_outside_the_data_warns(self):
-        with self.assertLogs("bilby", level="WARNING") as logs, np.errstate(invalid="ignore"):
-            self.ifo.inject_signal(dict(self.parameters, geocent_time=GPS_START + 20),
-                                   injection_polarizations=burst_at_model_times(), domain="time",
-                                   placement="model_time")
+        with (
+            self.assertLogs("bilby", level="WARNING") as logs,
+            np.errstate(invalid="ignore"),
+        ):
+            self.ifo.inject_signal(
+                dict(self.parameters, geocent_time=GPS_START + 20),
+                injection_polarizations=burst_at_model_times(),
+                domain="time",
+                placement="model_time",
+            )
         self.assertIn("Injecting signal outside segment", "".join(logs.output))
 
     def test_wrong_domain_arguments_raise(self):
-        polarizations = dict(plus=np.zeros(len(self.ifo.frequency_array), dtype=complex))
+        polarizations = dict(
+            plus=np.zeros(len(self.ifo.frequency_array), dtype=complex)
+        )
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=polarizations, placement="fd_shift")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=polarizations,
+                placement="fd_shift",
+            )
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=burst_at_model_times(),
-                                   raise_error=False, domain="time", placement="model_time")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=burst_at_model_times(),
+                raise_error=False,
+                domain="time",
+                placement="model_time",
+            )
         with self.assertRaises(ValueError):
-            self.ifo.inject_signal(self.parameters, injection_polarizations=burst_at_model_times(), domain="wavelet")
+            self.ifo.inject_signal(
+                self.parameters,
+                injection_polarizations=burst_at_model_times(),
+                domain="wavelet",
+            )
 
     def test_domain_is_keyword_only(self):
         with self.assertRaises(TypeError):
-            self.ifo.inject_signal(self.parameters, burst_at_model_times(), None, True, "time")
+            self.ifo.inject_signal(
+                self.parameters, burst_at_model_times(), None, True, "time"
+            )
 
 
 class TestInterferometerConditionStrainData(unittest.TestCase):
     def setUp(self):
         self.sampling_frequency = 4096.0
         self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
-        self.times = GPS_START + np.arange(int(16 * self.sampling_frequency)) / self.sampling_frequency
+        self.times = (
+            GPS_START
+            + np.arange(int(16 * self.sampling_frequency)) / self.sampling_frequency
+        )
         self._set_data(self._cosine(100) + self._cosine(1500))
 
     def tearDown(self):
@@ -978,16 +1178,24 @@ class TestInterferometerConditionStrainData(unittest.TestCase):
 
     def _set_data(self, strain):
         self.ifo.strain_data.set_from_time_domain_strain(
-            strain, sampling_frequency=self.sampling_frequency, duration=16, start_time=GPS_START)
+            strain,
+            sampling_frequency=self.sampling_frequency,
+            duration=16,
+            start_time=GPS_START,
+        )
 
     def test_downsamples_and_keeps_the_window_start(self):
-        start = GPS_START + 6 + 3 / self.sampling_frequency  # not on the new sample grid
+        start = (
+            GPS_START + 6 + 3 / self.sampling_frequency
+        )  # not on the new sample grid
         self.ifo.set_analysis_window(start, 4)
         self.ifo.condition_strain_data(512.0, remove_mean=False)
         self.assertEqual(self.ifo.sampling_frequency, 512.0)
         self.assertLess(np.min(abs(self.ifo.time_array - start)), 1e-6)
         window_times = self.ifo.time_array[self.ifo.analysis_slice]
-        np.testing.assert_allclose(self.ifo.analysis_data, self._cosine(100, window_times), atol=1e-3)
+        np.testing.assert_allclose(
+            self.ifo.analysis_data, self._cosine(100, window_times), atol=1e-3
+        )
 
     def test_keeps_the_sample_nearest_the_cut_time(self):
         cut = GPS_START + 8 + 5 / self.sampling_frequency
@@ -1005,15 +1213,25 @@ class TestInterferometerConditionStrainData(unittest.TestCase):
         self.ifo.set_analysis_window(GPS_START + 6, 4)
         self.ifo.condition_strain_data(512.0, highpass_frequency=10, remove_mean=False)
         window_times = self.ifo.time_array[self.ifo.analysis_slice]
-        np.testing.assert_allclose(self.ifo.analysis_data, self._cosine(100, window_times), atol=1e-2)
+        np.testing.assert_allclose(
+            self.ifo.analysis_data, self._cosine(100, window_times), atol=1e-2
+        )
 
     def test_meta_data_and_autocovariance_function_cleared(self):
         self.ifo.set_analysis_window(GPS_START + 6, 4)
         self.ifo.set_autocovariance_function_from_power_spectral_density()
         self.ifo.condition_strain_data(512.0, highpass_frequency=10)
-        self.assertEqual(self.ifo.meta_data["conditioning"], dict(
-            original_sampling_frequency=4096.0, sampling_frequency=512.0, highpass_frequency=10,
-            lowpass_frequency=None, trim=0.25, remove_mean=True))
+        self.assertEqual(
+            self.ifo.meta_data["conditioning"],
+            dict(
+                original_sampling_frequency=4096.0,
+                sampling_frequency=512.0,
+                highpass_frequency=10,
+                lowpass_frequency=None,
+                trim=0.25,
+                remove_mean=True,
+            ),
+        )
         self.assertIsNone(self.ifo.gohberg_semencul_vectors)
         self.assertNotIn("autocovariance_function", self.ifo.meta_data)
 
@@ -1023,7 +1241,7 @@ class TestInterferometerConditionStrainData(unittest.TestCase):
             self.ifo.condition_strain_data(512.0)
 
     def test_highpass_filter_affecting_the_band_warns(self):
-        """ A high-pass at 0.5 x 20 Hz keeps > 99% of the band; one at 15 Hz does not """
+        """A high-pass at 0.5 x 20 Hz keeps > 99% of the band; one at 15 Hz does not"""
         self.ifo.minimum_frequency, self.ifo.maximum_frequency = 20, 256
         self.ifo.set_analysis_window(GPS_START + 6, 4)
         self.ifo.condition_strain_data(512.0, highpass_frequency=10)

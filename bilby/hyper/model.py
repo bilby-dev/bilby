@@ -54,10 +54,7 @@ class Model:
         probability = 1.0
         for ii, function in enumerate(self.models):
             function_parameters = self._get_function_parameters(function, **kwargs)
-            if (
-                self.cache
-                and self._cached_parameters[function] == function_parameters
-            ):
+            if self.cache and self._cached_parameters[function] == function_parameters:
                 new_probability = self._cached_probability[function]
             else:
                 new_probability = function(data, **function_parameters)

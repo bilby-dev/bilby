@@ -3,13 +3,14 @@ Utilities for time-domain gravitational-wave inference: products with the
 inverse of a Toeplitz noise covariance matrix, and placement of a time-domain
 waveform on the data samples.
 """
+
 import numpy as np
 from scipy.fft import next_fast_len
 from scipy.linalg import solve_toeplitz
 
 
 def gohberg_semencul_vectors(acf):
-    """ The Gohberg-Semencul vectors of the inverse of the symmetric Toeplitz matrix
+    """The Gohberg-Semencul vectors of the inverse of the symmetric Toeplitz matrix
     with first row `acf` (Gohberg & Semencul 1972), computed with the Levinson
     recursion
 
@@ -31,7 +32,7 @@ def gohberg_semencul_vectors(acf):
 
 
 def gohberg_semencul_product(x, y, vector):
-    """ The product of the inverse of a symmetric Toeplitz matrix with a vector,
+    """The product of the inverse of a symmetric Toeplitz matrix with a vector,
     computed from its Gohberg-Semencul vectors with FFTs, without forming the
     inverse matrix (Gohberg & Semencul 1972)
 
@@ -50,10 +51,12 @@ def gohberg_semencul_product(x, y, vector):
     number_of_samples = len(x)
     fft_length = next_fast_len(2 * number_of_samples - 1, real=True)
     x_fft = np.fft.rfft(x, n=fft_length)
-    zy_fft = np.fft.rfft(np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length)
+    zy_fft = np.fft.rfft(
+        np.concatenate(([0.0], np.asarray(y, dtype=float)[:-1])), n=fft_length
+    )
 
     def lower(w_fft, vector_fft):
-        """ The product of the lower-triangular Toeplitz matrix with first column w and v, from their FFTs """
+        """The product of the lower-triangular Toeplitz matrix with first column w and v, from their FFTs"""
         return np.fft.irfft(w_fft * vector_fft, n=fft_length)[:number_of_samples]
 
     # L(w)^T v = reverse(L(w) reverse(v))
@@ -64,7 +67,7 @@ def gohberg_semencul_product(x, y, vector):
 
 
 def fractional_time_shift(signal, fraction, pad=32):
-    """ Delay a time series by a fraction of a sample with a Fourier phase shift
+    """Delay a time series by a fraction of a sample with a Fourier phase shift
 
     Parameters
     ==========
@@ -82,25 +85,28 @@ def fractional_time_shift(signal, fraction, pad=32):
     signal = np.asarray(signal, dtype=float)
     length = next_fast_len(len(signal) + 2 * pad)
     buffer = np.zeros(length)
-    buffer[pad:pad + len(signal)] = signal
+    buffer[pad : pad + len(signal)] = signal
     frequencies = np.fft.rfftfreq(length)
     shifted = np.fft.irfft(
-        np.fft.rfft(buffer) * np.exp(-2j * np.pi * frequencies * fraction), n=length)
-    return shifted[:len(signal) + 2 * pad]
+        np.fft.rfft(buffer) * np.exp(-2j * np.pi * frequencies * fraction), n=length
+    )
+    return shifted[: len(signal) + 2 * pad]
 
 
 def _copy_into_segment(signal, offset, number_of_samples):
-    """ Put `signal` at data indices `offset`, `offset` + 1, ... of a segment of `number_of_samples` zeros """
+    """Put `signal` at data indices `offset`, `offset` + 1, ... of a segment of `number_of_samples` zeros"""
     segment = np.zeros(number_of_samples)
     first = max(0, -offset)
     last = min(len(signal), number_of_samples - offset)
     if last > first:
-        segment[offset + first:offset + last] = signal[first:last]
+        segment[offset + first : offset + last] = signal[first:last]
     return segment
 
 
-def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent_time, time_delay):
-    """ The times of data samples relative to the arrival of the merger at a detector
+def times_from_merger(
+    start_time, number_of_samples, sampling_frequency, geocent_time, time_delay
+):
+    """The times of data samples relative to the arrival of the merger at a detector
 
     Parameters
     ==========
@@ -120,12 +126,17 @@ def times_from_merger(start_time, number_of_samples, sampling_frequency, geocent
     array_like: The times (in s)
     """
     # subtract the two GPS times (~1e9 s) first, then add the small terms
-    return (start_time - geocent_time) - time_delay + np.arange(number_of_samples) / sampling_frequency
+    return (
+        (start_time - geocent_time)
+        - time_delay
+        + np.arange(number_of_samples) / sampling_frequency
+    )
 
 
-def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samples,
-                             placement="fd_shift"):
-    """ Place a time-domain signal, sampled at the sampling frequency of the data,
+def place_time_domain_signal(
+    signal, merger_index, arrival_index, number_of_samples, placement="fd_shift"
+):
+    """Place a time-domain signal, sampled at the sampling frequency of the data,
     on the data samples
 
     Signal samples outside the data are dropped and data samples not covered by
@@ -161,4 +172,6 @@ def place_time_domain_signal(signal, merger_index, arrival_index, number_of_samp
         shifted = fractional_time_shift(signal, fraction, pad=pad)
         return _copy_into_segment(shifted, offset - pad, number_of_samples)
     else:
-        raise ValueError(f"placement must be 'nearest' or 'fd_shift', not {placement!r}")
+        raise ValueError(
+            f"placement must be 'nearest' or 'fd_shift', not {placement!r}"
+        )

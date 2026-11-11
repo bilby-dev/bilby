@@ -12,10 +12,14 @@ from bilby.gw.model_time_waveforms import spin_arguments
 class TestSpinArguments(unittest.TestCase):
     def test_aligned_spin_models_take_the_z_components(self):
         self.assertEqual(spin_arguments("IMRPhenomT", 0, 0, 0.1, 0, 0, 0.2), (0.1, 0.2))
-        self.assertEqual(spin_arguments("IMRPhenomTHM", 0, 0, 0.1, 0, 0, 0.2), (0.1, 0.2))
+        self.assertEqual(
+            spin_arguments("IMRPhenomTHM", 0, 0, 0.1, 0, 0, 0.2), (0.1, 0.2)
+        )
 
     def test_precessing_models_take_all_components(self):
-        self.assertEqual(spin_arguments("IMRPhenomTPHM", 1, 2, 3, 4, 5, 6), (1, 2, 3, 4, 5, 6))
+        self.assertEqual(
+            spin_arguments("IMRPhenomTPHM", 1, 2, 3, 4, 5, 6), (1, 2, 3, 4, 5, 6)
+        )
 
     def test_in_plane_spins_with_an_aligned_spin_model_raise(self):
         with self.assertRaises(ValueError):
@@ -26,7 +30,11 @@ class TestSpinArguments(unittest.TestCase):
             spin_arguments("IMRPhenomXPHM", 0, 0, 0, 0, 0, 0)
 
     def test_missing_lalsimulation_function_raises(self):
-        from bilby.gw.model_time_waveforms import _POLARIZATION_FUNCTION, _get_approximant
+        from bilby.gw.model_time_waveforms import (
+            _POLARIZATION_FUNCTION,
+            _get_approximant,
+        )
+
         with self.assertRaises(ImportError):
             _get_approximant(_POLARIZATION_FUNCTION, "IMRPhenomNotAModel", True)
 
@@ -64,20 +72,37 @@ class TestModelTimeWaveforms(unittest.TestCase):
         if approximant in ("IMRPhenomT", "IMRPhenomTHM"):
             parameters.update(self.aligned_spins)
         return bilby.gw.source.lal_binary_black_hole_time_domain_heterodyning(
-            self.time_array, waveform_approximant=approximant, reference_frequency=20.0,
-            minimum_frequency=10.0, fiducial=1, **parameters)
+            self.time_array,
+            waveform_approximant=approximant,
+            reference_frequency=20.0,
+            minimum_frequency=10.0,
+            fiducial=1,
+            **parameters,
+        )
 
     def test_modes_and_harmonics_reproduce_the_polarizations(self):
-        """ h_+ - i h_x = sum over modes of Z h_lm + Zbar h_lm^*, with constant (aligned spins)
-        or time-dependent (precessing) harmonic factors """
-        for approximant in ["IMRPhenomT", "IMRPhenomTHM", "IMRPhenomTP", "IMRPhenomTPHM"]:
+        """h_+ - i h_x = sum over modes of Z h_lm + Zbar h_lm^*, with constant (aligned spins)
+        or time-dependent (precessing) harmonic factors"""
+        for approximant in [
+            "IMRPhenomT",
+            "IMRPhenomTHM",
+            "IMRPhenomTP",
+            "IMRPhenomTPHM",
+        ]:
             waveform = self._waveform(approximant)
             modes, harmonics = waveform["heterodyning_terms_at"](self.times)
             polarizations = waveform["polarizations_at"](self.times)
-            h = sum(harmonics[key][0] * mode + harmonics[key][1] * np.conj(mode) for key, mode in modes.items())
+            h = sum(
+                harmonics[key][0] * mode + harmonics[key][1] * np.conj(mode)
+                for key, mode in modes.items()
+            )
             scale = np.max(abs(polarizations["plus"]))
-            np.testing.assert_allclose(h.real, polarizations["plus"], atol=1e-12 * scale)
-            np.testing.assert_allclose(-h.imag, polarizations["cross"], atol=1e-12 * scale)
+            np.testing.assert_allclose(
+                h.real, polarizations["plus"], atol=1e-12 * scale
+            )
+            np.testing.assert_allclose(
+                -h.imag, polarizations["cross"], atol=1e-12 * scale
+            )
 
     def test_modes(self):
         modes, _ = self._waveform("IMRPhenomTHM")["heterodyning_terms_at"](self.times)
@@ -87,19 +112,27 @@ class TestModelTimeWaveforms(unittest.TestCase):
 
     def test_distance_scaling(self):
         near = self._waveform("IMRPhenomTPHM")["polarizations_at"](self.times)
-        far = self._waveform("IMRPhenomTPHM", luminosity_distance=2000.0)["polarizations_at"](self.times)
+        far = self._waveform("IMRPhenomTPHM", luminosity_distance=2000.0)[
+            "polarizations_at"
+        ](self.times)
         for mode in ["plus", "cross"]:
-            np.testing.assert_allclose(far[mode], near[mode] / 2, rtol=1e-10, atol=1e-35)
+            np.testing.assert_allclose(
+                far[mode], near[mode] / 2, rtol=1e-10, atol=1e-35
+            )
 
     def test_times_outside_the_model_give_zeros(self):
-        polarizations = self._waveform("IMRPhenomTHM")["polarizations_at"](np.array([-1e3, 1e3]))
+        polarizations = self._waveform("IMRPhenomTHM")["polarizations_at"](
+            np.array([-1e3, 1e3])
+        )
         np.testing.assert_array_equal(polarizations["plus"], 0)
 
     def test_waveform_can_be_pickled(self):
         polarizations_at = self._waveform("IMRPhenomTPHM")["polarizations_at"]
         restored = pickle.loads(pickle.dumps(polarizations_at))
         for mode in ["plus", "cross"]:
-            np.testing.assert_array_equal(restored(self.times)[mode], polarizations_at(self.times)[mode])
+            np.testing.assert_array_equal(
+                restored(self.times)[mode], polarizations_at(self.times)[mode]
+            )
 
 
 if __name__ == "__main__":

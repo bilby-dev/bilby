@@ -3,6 +3,7 @@
 An example of how to use bilby to perform parameter estimation for
 non-gravitational wave data consisting of a Gaussian with a mean and variance
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils import random

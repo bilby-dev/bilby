@@ -44,7 +44,9 @@ def antenna_response(detector_tensor, ra, dec, time, psi, mode):
         The antenna response (scalar or array depending on input).
     """
     xp = array_module(detector_tensor)
-    polarization_tensor = get_polarization_tensor(*promote_to_array((ra, dec, time, psi), xp), mode)
+    polarization_tensor = get_polarization_tensor(
+        *promote_to_array((ra, dec, time, psi), xp), mode
+    )
     return three_by_three_matrix_contraction(detector_tensor, polarization_tensor)
 
 
@@ -153,14 +155,16 @@ def get_polarization_tensor(ra, dec, time, psi, mode):
             -xp.sin(theta) * xp.ones_like(phi),
         ]
     )
-    v = xp.asarray([
-        -xp.sin(phi), xp.cos(phi), xp.zeros_like(phi)
-    ]) * xp.ones_like(theta)
-    omega = xp.asarray([
-        xp.sin(xp.pi - theta) * xp.cos(xp.pi + phi),
-        xp.sin(xp.pi - theta) * xp.sin(xp.pi + phi),
-        xp.cos(xp.pi - theta) * xp.ones_like(phi),
-    ])
+    v = xp.asarray([-xp.sin(phi), xp.cos(phi), xp.zeros_like(phi)]) * xp.ones_like(
+        theta
+    )
+    omega = xp.asarray(
+        [
+            xp.sin(xp.pi - theta) * xp.cos(xp.pi + phi),
+            xp.sin(xp.pi - theta) * xp.sin(xp.pi + phi),
+            xp.cos(xp.pi - theta) * xp.ones_like(phi),
+        ]
+    )
     m = -u * xp.sin(psi) - v * xp.cos(psi)
     n = -u * xp.cos(psi) + v * xp.sin(psi)
     if xp.__name__ == "mlx.core":
