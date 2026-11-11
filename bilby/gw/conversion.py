@@ -1927,9 +1927,25 @@ def _generate_all_cbc_parameters(
         try:
             output_sample[key] = likelihood.waveform_generator.waveform_arguments[key]
         except (KeyError, AttributeError):
-            default = waveform_defaults[key]
-            output_sample[key] = default
-            logger.debug("Assuming {} = {}".format(key, default))
+            if key in output_sample:
+                # If likelihood does not have the key and user supplied the value
+                # then set likelihood waveform_arguments[key] with user supplied key value if possible
+                if likelihood is not None and likelihood.waveform_generator is not None:
+                    likelihood.waveform_generator.waveform_arguments[key] = (
+                        output_sample[key]
+                    )
+                logger.debug(
+                    "Using user supplied value for {} = {}".format(
+                        key, output_sample[key]
+                    )
+                )
+            else:
+                # If likelihood does not have the key and user do not supplied the value
+                # then set otuput value to be default value
+                # (assuming waveform_defaults is also default value for Likelihood)
+                default = waveform_defaults[key]
+                output_sample[key] = default
+                logger.debug("Assuming {} = {}".format(key, default))
 
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
