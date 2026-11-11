@@ -1917,36 +1917,31 @@ def binary_love_lambda_symmetric_to_lambda_1_lambda_2_automatic_marginalisation(
 
 
 def _generate_all_cbc_parameters(
-    sample, defaults, base_conversion, likelihood=None, priors=None, npool=1, pool=None
+    sample,
+    defaults,
+    base_conversion,
+    likelihood=None,
+    priors=None,
+    npool=1,
+    pool=None,
+    waveform_arguments=None,
 ):
     """Generate all cbc parameters, helper function for BBH/BNS"""
+    if likelihood is not None and waveform_arguments is not None:
+        raise ValueError("likelihood and waveform_arguments are mutually exclusive")
+
+    if likelihood is not None:
+        waveform_arguments = getattr(
+            getattr(likelihood, "waveform_generator", None), "waveform_arguments", None
+        )
+    resolved_waveform_arguments = defaults.copy()
+    if waveform_arguments is not None:
+        resolved_waveform_arguments.update(waveform_arguments)
+    for key, default in defaults.items():
+        if waveform_arguments is None or key not in waveform_arguments:
+            logger.debug("Assuming {} = {}".format(key, default))
+
     output_sample = sample.copy()
-
-    waveform_defaults = defaults
-    for key in waveform_defaults:
-        try:
-            output_sample[key] = likelihood.waveform_generator.waveform_arguments[key]
-        except (KeyError, AttributeError):
-            if key in output_sample:
-                # If likelihood does not have the key and user supplied the value
-                # then set likelihood waveform_arguments[key] with user supplied key value if possible
-                if likelihood is not None and likelihood.waveform_generator is not None:
-                    likelihood.waveform_generator.waveform_arguments[key] = (
-                        output_sample[key]
-                    )
-                logger.debug(
-                    "Using user supplied value for {} = {}".format(
-                        key, output_sample[key]
-                    )
-                )
-            else:
-                # If likelihood does not have the key and user do not supplied the value
-                # then set otuput value to be default value
-                # (assuming waveform_defaults is also default value for Likelihood)
-                default = waveform_defaults[key]
-                output_sample[key] = default
-                logger.debug("Assuming {} = {}".format(key, default))
-
     output_sample = fill_from_fixed_priors(output_sample, priors)
     output_sample, _ = base_conversion(output_sample)
     if likelihood is not None:
@@ -2020,7 +2015,12 @@ def _generate_all_cbc_parameters(
         ],
     ):
         try:
-            output_sample = func(output_sample)
+            if func is generate_spin_parameters:
+                output_sample = func(
+                    output_sample, waveform_arguments=resolved_waveform_arguments
+                )
+            else:
+                output_sample = func(output_sample)
         except KeyError as e:
             logger.info(
                 "Generation of {} parameters failed with message {}".format(key, e)
@@ -2030,11 +2030,11 @@ def _generate_all_cbc_parameters(
 
 
 def generate_all_bbh_parameters(
-    sample, likelihood=None, priors=None, npool=1, pool=None
+    sample, likelihood=None, priors=None, npool=1, pool=None, waveform_arguments=None
 ):
     """
-    From either a single sample or a set of samples fill in all missing
-    BBH parameters, in place.
+    Return a copy of a single sample or set of samples with all missing
+    BBH parameters filled in.
 
     Parameters
     ==========
@@ -2046,6 +2046,13 @@ def generate_all_bbh_parameters(
         likelihood.interferometers.
     priors: dict, optional
         Dictionary of prior objects, used to fill in non-sampled parameters.
+    waveform_arguments: dict, optional
+        Waveform settings used for conversion, mutually exclusive with
+        ``likelihood``. Missing settings use the defaults: reference frequency
+        50 Hz, minimum frequency 20 Hz, and approximant ``IMRPhenomPv2``.
+        These settings are not added to the returned samples. When a likelihood
+        is supplied, its waveform generator provides the settings instead.
+        Pass waveform settings here rather than as entries in ``sample``.
     """
     waveform_defaults = {
         "reference_frequency": 50.0,
@@ -2060,16 +2067,17 @@ def generate_all_bbh_parameters(
         priors=priors,
         npool=npool,
         pool=pool,
+        waveform_arguments=waveform_arguments,
     )
     return output_sample
 
 
 def generate_all_bns_parameters(
-    sample, likelihood=None, priors=None, npool=1, pool=None
+    sample, likelihood=None, priors=None, npool=1, pool=None, waveform_arguments=None
 ):
     """
-    From either a single sample or a set of samples fill in all missing
-    BNS parameters, in place.
+    Return a copy of a single sample or set of samples with all missing
+    BNS parameters filled in.
 
     Since we assume BNS waveforms are aligned, component spins won't be
     calculated.
@@ -2086,6 +2094,13 @@ def generate_all_bns_parameters(
         Dictionary of prior objects, used to fill in non-sampled parameters.
     npool: int, (default=1)
         If given, perform generation (where possible) using a multiprocessing pool
+    waveform_arguments: dict, optional
+        Waveform settings used for conversion, mutually exclusive with
+        ``likelihood``. Missing settings use the defaults: reference frequency
+        50 Hz, minimum frequency 20 Hz, and approximant ``TaylorF2``.
+        These settings are not added to the returned samples. When a likelihood
+        is supplied, its waveform generator provides the settings instead.
+        Pass waveform settings here rather than as entries in ``sample``.
     """
     waveform_defaults = {
         "reference_frequency": 50.0,
@@ -2100,6 +2115,7 @@ def generate_all_bns_parameters(
         priors=priors,
         npool=npool,
         pool=pool,
+        waveform_arguments=waveform_arguments,
     )
     try:
         output_sample = generate_tidal_parameters(output_sample)
@@ -2108,7 +2124,7 @@ def generate_all_bns_parameters(
     return output_sample
 
 
-def generate_specific_parameters(sample, parameters):
+def generate_specific_parameters(sample, parameters, waveform_arguments=None):
     """
     Generate a specific subset of parameters that can be generated.
 
@@ -2118,6 +2134,8 @@ def generate_specific_parameters(sample, parameters):
         The input sample to be converted.
     parameters: list
         The list of parameters to return.
+    waveform_arguments: dict, optional
+        Waveform settings passed to :func:`generate_all_bns_parameters`.
 
     Returns
     -------
@@ -2132,7 +2150,9 @@ def generate_specific_parameters(sample, parameters):
     If the passed :code:`parameters` do not include the input parameters,
     those will not be returned.
     """
-    updated_sample = generate_all_bns_parameters(sample=sample.copy())
+    updated_sample = generate_all_bns_parameters(
+        sample=sample.copy(), waveform_arguments=waveform_arguments
+    )
     output_sample = sample.__class__()
     for key in parameters:
         if key in updated_sample:
@@ -2381,7 +2401,7 @@ def generate_mass_parameters(sample, source=False):
     return output_sample
 
 
-def generate_spin_parameters(sample):
+def generate_spin_parameters(sample, waveform_arguments=None):
     """
     Add all spin parameters to the data frame/dictionary.
 
@@ -2392,6 +2412,8 @@ def generate_spin_parameters(sample):
     ==========
     sample : dict, pandas.DataFrame
         The input dictionary with some spin parameters
+    waveform_arguments : dict, optional
+        Waveform settings passed to :func:`generate_component_spins`.
 
     Returns
     =======
@@ -2400,7 +2422,9 @@ def generate_spin_parameters(sample):
     """
     output_sample = sample.copy()
 
-    output_sample = generate_component_spins(output_sample)
+    output_sample = generate_component_spins(
+        output_sample, waveform_arguments=waveform_arguments
+    )
     xp = array_module(sample)
 
     output_sample["chi_eff"] = (
@@ -2432,7 +2456,7 @@ def generate_spin_parameters(sample):
     return output_sample
 
 
-def generate_component_spins(sample):
+def generate_component_spins(sample, waveform_arguments=None):
     """
     Add Cartesian component spins to a copy of a sample.
 
@@ -2458,9 +2482,13 @@ def generate_component_spins(sample):
         - ``a_1``, ``a_2``: dimensionless spin magnitudes;
         - ``mass_1``, ``mass_2``: detector-frame component masses, in solar
           masses;
-        - ``reference_frequency``: non-zero reference gravitational-wave
-          frequency, in Hz;
         - ``phase``: orbital phase at ``reference_frequency``, in radians.
+    waveform_arguments : dict, optional
+        Must contain ``reference_frequency``, the non-zero reference
+        gravitational-wave frequency in Hz, for precessing-spin conversion.
+        If omitted, ``reference_frequency`` is read from ``sample`` for
+        compatibility with existing callers. Settings are not added to the
+        returned samples.
 
     Returns
     =======
@@ -2481,6 +2509,10 @@ def generate_component_spins(sample):
 
     """
     output_sample = sample.copy()
+    if waveform_arguments is None:
+        reference_frequency = sample.get("reference_frequency")
+    else:
+        reference_frequency = waveform_arguments.get("reference_frequency")
     spin_conversion_parameters = [
         "theta_jn",
         "phi_jl",
@@ -2491,10 +2523,11 @@ def generate_component_spins(sample):
         "a_2",
         "mass_1",
         "mass_2",
-        "reference_frequency",
         "phase",
     ]
-    if all(key in output_sample.keys() for key in spin_conversion_parameters):
+    if reference_frequency is not None and all(
+        key in output_sample for key in spin_conversion_parameters
+    ):
         xp = array_module(output_sample["theta_jn"])
         (
             output_sample["iota"],
@@ -2514,7 +2547,7 @@ def generate_component_spins(sample):
             output_sample["a_2"],
             output_sample["mass_1"] * solar_mass,
             output_sample["mass_2"] * solar_mass,
-            output_sample["reference_frequency"],
+            reference_frequency,
             output_sample["phase"],
         )
 
