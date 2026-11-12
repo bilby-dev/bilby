@@ -6,7 +6,6 @@ import numpy as np
 
 from ...compat.patches import interp
 from ...compat.utils import array_module
-from ...core.utils.calculus import interp1d
 from ...core import utils
 from ...core.utils import logger
 from .strain_data import InterferometerStrainData
@@ -241,24 +240,18 @@ class PowerSpectralDensity(object):
            for arbitrary frequency arrays.
         """
         xp = array_module(self.frequency_array)
-        if aac.is_numpy_namespace(xp):
-            self._power_spectral_density_interpolated = interp1d(
-                self.frequency_array, self.psd_array,
-                bounds_error=False, fill_value=np.inf,
+        # Match scipy's sorting while keeping the samples on their device.
+        order = xp.argsort(self.frequency_array)
+        frequencies = self.frequency_array[order]
+        density = self.psd_array[order]
+
+        def interpolate(frequency_array):
+            return interp(
+                frequency_array, frequencies, density,
+                left=xp.inf, right=xp.inf, xp=xp,
             )
-        else:
-            # Match scipy's sorting while keeping the samples on their device.
-            order = xp.argsort(self.frequency_array)
-            frequencies = self.frequency_array[order]
-            density = self.psd_array[order]
 
-            def interpolate(frequency_array):
-                return interp(
-                    frequency_array, frequencies, density,
-                    left=np.inf, right=np.inf, xp=xp,
-                )
-
-            self._power_spectral_density_interpolated = interpolate
+        self._power_spectral_density_interpolated = interpolate
         self._update_cache(self.frequency_array)
 
     def get_power_spectral_density_array(self, frequency_array):
