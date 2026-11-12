@@ -268,21 +268,21 @@ class InterferometerList(list):
 
         .. code-block:: python
 
-            >>> ifos.set_analysis_windows(duration=4, start_time=parameters["geocent_time"] - 3)
+            ifos.set_analysis_windows(duration=4, start_time=parameters["geocent_time"] - 3)
 
         A 2 s inspiral window and a 0.5 s post-inspiral window, cut 20 M before the
         merger, with M the total mass in seconds:
 
         .. code-block:: python
 
-            >>> total_mass = (parameters["mass_1"] + parameters["mass_2"]) * lal.MTSUN_SI
-            >>> segment_cut_time = -20 * total_mass
-            >>> inspiral_ifos.set_analysis_windows(
-            ...     duration=2, analysis_segment="inspiral", segment_cut_time=segment_cut_time,
-            ...     cut_reference_parameters=parameters)
-            >>> post_inspiral_ifos.set_analysis_windows(
-            ...     duration=0.5, analysis_segment="post_inspiral", segment_cut_time=segment_cut_time,
-            ...     cut_reference_parameters=parameters)
+            total_mass = (parameters["mass_1"] + parameters["mass_2"]) * lal.MTSUN_SI
+            segment_cut_time = -20 * total_mass
+            inspiral_ifos.set_analysis_windows(
+                duration=2, analysis_segment="inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
+            post_inspiral_ifos.set_analysis_windows(
+                duration=0.5, analysis_segment="post_inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
         """
         if analysis_segment not in ("imr", "inspiral", "post_inspiral"):
             raise ValueError(

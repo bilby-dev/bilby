@@ -1274,16 +1274,16 @@ def lal_binary_black_hole_model_time(
     ========
     .. code-block:: python
 
-        >>> waveform_generator = bilby.gw.WaveformGenerator(
-        ...     duration=4, sampling_frequency=2048, start_time=start_time,
-        ...     time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
-        ...     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-        ...     waveform_arguments=dict(waveform_approximant="IMRPhenomTPHM", minimum_frequency=10))
-        >>> ifos.inject_signal(
-        ...     parameters=parameters, waveform_generator=waveform_generator, domain="time",
-        ...     placement="model_time")
-        >>> likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
-        ...     ifos, waveform_generator, placement="model_time")
+        waveform_generator = bilby.gw.WaveformGenerator(
+            duration=4, sampling_frequency=2048, start_time=start_time,
+            time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomTPHM", minimum_frequency=10))
+        ifos.inject_signal(
+            parameters=parameters, waveform_generator=waveform_generator, domain="time",
+            placement="model_time")
+        likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
+            ifos, waveform_generator, placement="model_time")
     """
     from .model_time_waveforms import polarizations_at_model_times
 

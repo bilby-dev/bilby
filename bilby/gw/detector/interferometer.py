@@ -404,11 +404,11 @@ class Interferometer(object):
 
         .. code-block:: python
 
-            >>> ifo.set_analysis_window(start_time, duration)
-            >>> ifo.strain_data.set_from_gwpy_timeseries(
-            ...     TimeSeries.fetch_open_data("H1", start_time - duration, start_time + 2 * duration))
-            >>> ifo.condition_strain_data(1024)
-            >>> ifo.set_autocovariance_function_from_power_spectral_density()
+            ifo.set_analysis_window(start_time, duration)
+            ifo.strain_data.set_from_gwpy_timeseries(
+                TimeSeries.fetch_open_data("H1", start_time - duration, start_time + 2 * duration))
+            ifo.condition_strain_data(1024)
+            ifo.set_autocovariance_function_from_power_spectral_density()
         """
         from .condition_data import condition_strain_data
 

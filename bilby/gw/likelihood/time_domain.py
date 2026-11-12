@@ -82,20 +82,20 @@ class TimeDomainGravitationalWaveTransient(GravitationalWaveTransient):
 
     .. code-block:: python
 
-        >>> ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        >>> ifos.set_analysis_windows(
-        ...     duration=0.5, analysis_segment="post_inspiral",
-        ...     segment_cut_time=segment_cut_time, cut_reference_parameters=parameters)
-        >>> ifos.set_strain_data_from_power_spectral_densities(
-        ...     sampling_frequency=2048, duration=4, start_time=start_time)
-        >>> ifos.set_autocovariance_functions_from_power_spectral_densities()
-        >>> waveform_generator = bilby.gw.WaveformGenerator(
-        ...     duration=4, sampling_frequency=2048, start_time=start_time,
-        ...     time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
-        ...     parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
-        ...     waveform_arguments=dict(waveform_approximant="IMRPhenomTPHM", minimum_frequency=10))
-        >>> likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
-        ...     ifos, waveform_generator, placement="model_time")
+        ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        ifos.set_analysis_windows(
+            duration=0.5, analysis_segment="post_inspiral",
+            segment_cut_time=segment_cut_time, cut_reference_parameters=parameters)
+        ifos.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=2048, duration=4, start_time=start_time)
+        ifos.set_autocovariance_functions_from_power_spectral_densities()
+        waveform_generator = bilby.gw.WaveformGenerator(
+            duration=4, sampling_frequency=2048, start_time=start_time,
+            time_domain_source_model=bilby.gw.source.lal_binary_black_hole_model_time,
+            parameter_conversion=bilby.gw.conversion.convert_to_lal_binary_black_hole_parameters,
+            waveform_arguments=dict(waveform_approximant="IMRPhenomTPHM", minimum_frequency=10))
+        likelihood = bilby.gw.likelihood.TimeDomainGravitationalWaveTransient(
+            ifos, waveform_generator, placement="model_time")
 
     The autocovariance functions are set after the analysis windows, the data
     and the power spectral densities, and are not updated if these change.

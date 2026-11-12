@@ -272,9 +272,9 @@ class PowerSpectralDensity(object):
         ========
         .. code-block:: python
 
-            >>> ifo.power_spectral_density = PowerSpectralDensity.from_autocovariance_array(
-            ...     np.loadtxt("acf_H1.txt"), 2048)
-            >>> ifo.set_autocovariance_function_from_power_spectral_density()
+            ifo.power_spectral_density = PowerSpectralDensity.from_autocovariance_array(
+                np.loadtxt("acf_H1.txt"), 2048)
+            ifo.set_autocovariance_function_from_power_spectral_density()
         """
         psd = PowerSpectralDensity()
         psd.autocovariance_array = np.asarray(autocovariance_array, dtype=float)
