@@ -393,6 +393,22 @@ class ProposalsTest(unittest.TestCase):
         del specific["diff"]["live"]
         self.assertDictEqual(specific, dict(diff=dict(mix=0.5, scale=1.19)))
 
+    def test_get_proposal_kwargs_diff_removes_starting_point(self):
+        live_points = np.array([[0, 0], [0.5, 0.5], [0, 1], [1, 0], [0.5, 0.5]])
+        args = Dummy(
+            u=np.array([0.5, 0.5]),
+            axes=np.eye(2),
+            live_points=live_points.copy(),
+            kwargs=dict(proposals=["diff"]),
+        )
+
+        _, _, specific = dynesty_utils._get_proposal_kwargs(args)
+
+        np.testing.assert_array_equal(
+            specific["diff"]["live"], [[0, 0], [0, 1], [1, 0]]
+        )
+        np.testing.assert_array_equal(args.live_points, live_points)
+
     def test_get_proposal_kwargs_volumetric(self):
         args = Dummy(u=-np.ones(4), axes=np.zeros((2, 2)), scale=4)
         args.kwargs["proposals"] = ["volumetric"]
