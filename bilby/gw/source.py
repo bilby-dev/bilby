@@ -1047,9 +1047,21 @@ def lal_binary_black_hole_relative_binning(
 
 
 def lal_binary_black_hole_relative_binning_by_mode(
-        frequency_array, mass_1, mass_2, luminosity_distance, a_1, tilt_1,
-        phi_12, a_2, tilt_2, phi_jl, theta_jn, phase, **kwargs):
-    """ Source model to go with ModeByModeRelativeBinningGravitationalWaveTransient likelihood.
+    frequency_array,
+    mass_1,
+    mass_2,
+    luminosity_distance,
+    a_1,
+    tilt_1,
+    phi_12,
+    a_2,
+    tilt_2,
+    phi_jl,
+    theta_jn,
+    phase,
+    **kwargs,
+):
+    """Source model to go with ModeByModeRelativeBinningGravitationalWaveTransient likelihood.
 
     The waveform is returned separately for each azimuthal index m of the
     co-precessing modes, summed over l. Each mode is generated with its own
@@ -1083,10 +1095,21 @@ def lal_binary_black_hole_relative_binning_by_mode(
         cross.append(0)
         for mode in modes:
             polarizations = lal_binary_black_hole_relative_binning(
-                frequency_array=frequency_array, mass_1=mass_1, mass_2=mass_2,
-                luminosity_distance=luminosity_distance, a_1=a_1, tilt_1=tilt_1,
-                phi_12=phi_12, a_2=a_2, tilt_2=tilt_2, phi_jl=phi_jl,
-                theta_jn=theta_jn, phase=phase, mode_array=[mode], **kwargs)
+                frequency_array=frequency_array,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                luminosity_distance=luminosity_distance,
+                a_1=a_1,
+                tilt_1=tilt_1,
+                phi_12=phi_12,
+                a_2=a_2,
+                tilt_2=tilt_2,
+                phi_jl=phi_jl,
+                theta_jn=theta_jn,
+                phase=phase,
+                mode_array=[mode],
+                **kwargs,
+            )
             if polarizations is None:
                 return None
             plus[-1] = plus[-1] + polarizations["plus"]

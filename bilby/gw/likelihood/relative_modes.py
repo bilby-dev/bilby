@@ -15,8 +15,21 @@ from ..conversion import (
 )
 
 _SAFE_KEYS = [
-    "mass_1", "mass_2", "a_1", "a_2", "tilt_1", "tilt_2", "phi_12", "phi_jl",
-    "theta_jn", "phase", "luminosity_distance", "ra", "dec", "psi", "geocent_time",
+    "mass_1",
+    "mass_2",
+    "a_1",
+    "a_2",
+    "tilt_1",
+    "tilt_2",
+    "phi_12",
+    "phi_jl",
+    "theta_jn",
+    "phase",
+    "luminosity_distance",
+    "ra",
+    "dec",
+    "psi",
+    "geocent_time",
 ]
 
 
@@ -56,24 +69,41 @@ def get_safe_fiducial_parameters(parameters, waveform_generator, eta_max=0.24):
 
     def lalsimulation_spins(values):
         return bilby_to_lalsimulation_spins(
-            theta_jn=values["theta_jn"], phi_jl=values["phi_jl"], tilt_1=values["tilt_1"],
-            tilt_2=values["tilt_2"], phi_12=values["phi_12"], a_1=values["a_1"], a_2=values["a_2"],
-            mass_1=values["mass_1"] * utils.solar_mass, mass_2=values["mass_2"] * utils.solar_mass,
-            reference_frequency=reference_frequency, phase=values["phase"])
+            theta_jn=values["theta_jn"],
+            phi_jl=values["phi_jl"],
+            tilt_1=values["tilt_1"],
+            tilt_2=values["tilt_2"],
+            phi_12=values["phi_12"],
+            a_1=values["a_1"],
+            a_2=values["a_2"],
+            mass_1=values["mass_1"] * utils.solar_mass,
+            mass_2=values["mass_2"] * utils.solar_mass,
+            reference_frequency=reference_frequency,
+            phase=values["phase"],
+        )
 
     safe = {key: converted[key] for key in _SAFE_KEYS}
     iota, _, _, spin_1z, _, _, spin_2z = lalsimulation_spins(safe)
     target_iota = 1.0 if iota < np.pi / 2 else np.pi - 1.0
 
-    if component_masses_to_symmetric_mass_ratio(safe["mass_1"], safe["mass_2"]) > eta_max:
+    if (
+        component_masses_to_symmetric_mass_ratio(safe["mass_1"], safe["mass_2"])
+        > eta_max
+    ):
         chirp_mass = component_masses_to_chirp_mass(safe["mass_1"], safe["mass_2"])
         safe["mass_1"], safe["mass_2"] = chirp_mass_and_mass_ratio_to_component_masses(
-            chirp_mass, symmetric_mass_ratio_to_mass_ratio(eta_max))
+            chirp_mass, symmetric_mass_ratio_to_mass_ratio(eta_max)
+        )
 
     safe.update(
-        a_1=abs(spin_1z), a_2=abs(spin_2z),
-        tilt_1=0.0 if spin_1z >= 0 else np.pi, tilt_2=0.0 if spin_2z >= 0 else np.pi,
-        phi_12=0.0, phi_jl=0.0, theta_jn=target_iota)
+        a_1=abs(spin_1z),
+        a_2=abs(spin_2z),
+        tilt_1=0.0 if spin_1z >= 0 else np.pi,
+        tilt_2=0.0 if spin_2z >= 0 else np.pi,
+        phi_12=0.0,
+        phi_jl=0.0,
+        theta_jn=target_iota,
+    )
     # J and L are antiparallel if the aligned spins outweigh L; theta_jn is then pi - iota
     if not np.isclose(lalsimulation_spins(safe)[0], target_iota):
         safe["theta_jn"] = np.pi - target_iota
@@ -84,7 +114,9 @@ def get_safe_fiducial_parameters(parameters, waveform_generator, eta_max=0.24):
     return safe
 
 
-class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravitationalWaveTransient):
+class ModeByModeRelativeBinningGravitationalWaveTransient(
+    RelativeBinningGravitationalWaveTransient
+):
     """A gravitational-wave transient likelihood object which uses relative
     binning separately for each azimuthal index m of the co-precessing modes
     and for each polarization, following Leslie, Dai and Pratten
@@ -170,27 +202,31 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
     Time marginalization and calibration marginalization are not supported.
     """
 
-    def __init__(self, interferometers,
-                 waveform_generator,
-                 fiducial_parameters=None,
-                 parameter_bounds=None,
-                 maximization_kwargs=None,
-                 update_fiducial_parameters=False,
-                 distance_marginalization=False,
-                 time_marginalization=False,
-                 phase_marginalization=False,
-                 priors=None,
-                 distance_marginalization_lookup_table=None,
-                 jitter_time=True,
-                 reference_frame="sky",
-                 time_reference="geocenter",
-                 chi=1,
-                 epsilon=0.5,
-                 spline_degree=3,
-                 safe_fiducial_parameters=True):
+    def __init__(
+        self,
+        interferometers,
+        waveform_generator,
+        fiducial_parameters=None,
+        parameter_bounds=None,
+        maximization_kwargs=None,
+        update_fiducial_parameters=False,
+        distance_marginalization=False,
+        time_marginalization=False,
+        phase_marginalization=False,
+        priors=None,
+        distance_marginalization_lookup_table=None,
+        jitter_time=True,
+        reference_frame="sky",
+        time_reference="geocenter",
+        chi=1,
+        epsilon=0.5,
+        spline_degree=3,
+        safe_fiducial_parameters=True,
+    ):
         if time_marginalization:
             raise NotImplementedError(
-                f"{self.__class__.__name__} does not support time marginalization.")
+                f"{self.__class__.__name__} does not support time marginalization."
+            )
         self.spline_degree = spline_degree
         self.safe_fiducial_parameters = safe_fiducial_parameters
         self.fiducial_waveform_parameters = None
@@ -211,7 +247,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
             reference_frame=reference_frame,
             time_reference=time_reference,
             chi=chi,
-            epsilon=epsilon)
+            epsilon=epsilon,
+        )
 
     def set_fiducial_waveforms(self, parameters):
         """
@@ -230,18 +267,26 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         parameters = parameters.copy()
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
         if self.safe_fiducial_parameters:
-            parameters = get_safe_fiducial_parameters(parameters, self.waveform_generator)
+            parameters = get_safe_fiducial_parameters(
+                parameters, self.waveform_generator
+            )
         self._set_fiducial()
-        self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(parameters)
+        self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
+            parameters
+        )
         self._unset_fiducial()
         if self.fiducial_polarizations is None:
             raise ValueError(f"Cannot compute fiducial waveforms for {parameters}")
         self.fiducial_waveform_parameters = parameters
 
         for interferometer in self.interferometers:
-            waveforms = interferometer.get_detector_response(self.fiducial_polarizations, parameters)
+            waveforms = interferometer.get_detector_response(
+                self.fiducial_polarizations, parameters
+            )
             self.per_detector_fiducial_mode_waveforms[interferometer.name] = waveforms
-            self.per_detector_fiducial_waveforms[interferometer.name] = waveforms.sum(axis=0)
+            self.per_detector_fiducial_waveforms[interferometer.name] = waveforms.sum(
+                axis=0
+            )
 
     def compute_summary_data(self):
         r"""
@@ -269,13 +314,23 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         names = [interferometer.name for interferometer in self.interferometers]
         number_of_harmonics = len(self.per_detector_fiducial_mode_waveforms[names[0]])
         self.harmonic_pairs = tuple(
-            np.array(indices) for indices in zip(*combinations_with_replacement(range(number_of_harmonics), 2)))
+            np.array(indices)
+            for indices in zip(
+                *combinations_with_replacement(range(number_of_harmonics), 2)
+            )
+        )
         m_inds, mprime_inds = self.harmonic_pairs
         inverse_psds = dict()
         for interferometer in self.interferometers:
-            inverse_psds[interferometer.name] = np.zeros(len(interferometer.frequency_array))
+            inverse_psds[interferometer.name] = np.zeros(
+                len(interferometer.frequency_array)
+            )
             inverse_psds[interferometer.name][interferometer.frequency_mask] = (
-                1 / interferometer.power_spectral_density_array[interferometer.frequency_mask])
+                1
+                / interferometer.power_spectral_density_array[
+                    interferometer.frequency_mask
+                ]
+            )
         network_inverse_psd = sum(inverse_psds.values())
 
         frequency_array = self.interferometers[0].frequency_array
@@ -285,27 +340,44 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
             name = interferometer.name
 
             # Remove the overall time shift so that the fiducial waveform is smooth in the ringdown
-            time_shift = np.exp(-2j * np.pi * frequency_array * (
-                self.fiducial_waveform_parameters["geocent_time"] - interferometer.strain_data.start_time))
+            time_shift = np.exp(
+                -2j
+                * np.pi
+                * frequency_array
+                * (
+                    self.fiducial_waveform_parameters["geocent_time"]
+                    - interferometer.strain_data.start_time
+                )
+            )
             h0 = self.per_detector_fiducial_mode_waveforms[name] / time_shift
             h0_bins = h0[:, self.bin_inds]
             for harmonic in range(number_of_harmonics):
-                self._fade_ringdown(h0[harmonic], h0_bins[harmonic], frequency_array, network_inverse_psd)
+                self._fade_ringdown(
+                    h0[harmonic],
+                    h0_bins[harmonic],
+                    frequency_array,
+                    network_inverse_psd,
+                )
             h0 *= time_shift
             h0_bins *= time_shift[self.bin_inds]
             if np.any(h0_bins == 0):
                 raise ValueError(
                     "A harmonic of the fiducial waveform is zero at a bin edge; "
-                    "use safe_fiducial_parameters=True or other fiducial parameters.")
+                    "use safe_fiducial_parameters=True or other fiducial parameters."
+                )
 
             inverse_psd = inverse_psds[name]
             strain = interferometer.frequency_domain_strain
             d_inner_h_weights = (
-                self._get_summary_weights(h0.conj() * strain * inverse_psd, interferometer.duration)
-                / h0_bins.conj())
-            h_inner_h_weights = (
-                self._get_summary_weights(h0[m_inds] * h0[mprime_inds].conj() * inverse_psd, interferometer.duration)
-                / (h0_bins[m_inds] * h0_bins[mprime_inds].conj()))
+                self._get_summary_weights(
+                    h0.conj() * strain * inverse_psd, interferometer.duration
+                )
+                / h0_bins.conj()
+            )
+            h_inner_h_weights = self._get_summary_weights(
+                h0[m_inds] * h0[mprime_inds].conj() * inverse_psd,
+                interferometer.duration,
+            ) / (h0_bins[m_inds] * h0_bins[mprime_inds].conj())
             h_inner_h_weights[m_inds != mprime_inds] *= 2
             summary_data[name] = (d_inner_h_weights, h_inner_h_weights)
 
@@ -328,23 +400,31 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         coefficients = np.empty((number_of_edges, number_of_edges))
         for index, values in enumerate(np.eye(number_of_edges)):
             knots, spline_coefficients, _ = scipy.interpolate.splrep(
-                self.bin_freqs, values, s=0, k=self.spline_degree)
+                self.bin_freqs, values, s=0, k=self.spline_degree
+            )
             coefficients[index] = spline_coefficients[:number_of_edges]
         self._spline_coefficients = coefficients
 
         rows, columns, values = list(), list(), list()
         for index in range(number_of_edges):
-            element_knots = knots[index:index + self.spline_degree + 2]
+            element_knots = knots[index : index + self.spline_degree + 2]
             element = scipy.interpolate.BSpline.basis_element(element_knots)
             start = np.searchsorted(frequency_array, element_knots[0], side="left")
             stop = np.searchsorted(frequency_array, element_knots[-1], side="right")
             rows.append(np.full(stop - start, index))
             columns.append(np.arange(start, stop))
             # A basis element vanishes at its last knot; evaluate just below it so the last element is one there
-            values.append(element(np.minimum(frequency_array[start:stop], np.nextafter(element_knots[-1], 0))))
+            values.append(
+                element(
+                    np.minimum(
+                        frequency_array[start:stop], np.nextafter(element_knots[-1], 0)
+                    )
+                )
+            )
         self._basis_splines = scipy.sparse.csr_matrix(
             (np.concatenate(values), (np.concatenate(rows), np.concatenate(columns))),
-            shape=(number_of_edges, len(frequency_array)))
+            shape=(number_of_edges, len(frequency_array)),
+        )
 
     def _get_summary_weights(self, integrand, duration):
         r"""
@@ -400,7 +480,9 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
             return
         cumulative_snr_squared /= cumulative_snr_squared[-1]
         frequency_99 = frequency_array[np.searchsorted(cumulative_snr_squared, 0.99)]
-        end_index = min(np.searchsorted(self.bin_freqs, frequency_99), len(self.bin_freqs) - 1)
+        end_index = min(
+            np.searchsorted(self.bin_freqs, frequency_99), len(self.bin_freqs) - 1
+        )
         while end_index > 0 and h0_bins[end_index] == 0:
             end_index -= 1
         start_frequency = self.bin_freqs[max(end_index - self.spline_degree, 0)]
@@ -410,15 +492,28 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
         def fade(frequencies):
             if end_frequency == start_frequency:
                 return (frequencies <= end_frequency).astype(float)
-            return np.cos(np.clip((frequencies - start_frequency) / (end_frequency - start_frequency), 0, 1)
-                          * np.pi / 2) ** 2
+            return (
+                np.cos(
+                    np.clip(
+                        (frequencies - start_frequency)
+                        / (end_frequency - start_frequency),
+                        0,
+                        1,
+                    )
+                    * np.pi
+                    / 2
+                )
+                ** 2
+            )
 
         fade_full = fade(frequency_array)
         fade_bins = fade(self.bin_freqs)
         h0[:] = h0 * fade_full + constant * (1 - fade_full)
         h0_bins[:] = h0_bins * fade_bins + constant * (1 - fade_bins)
 
-    def _waveform_at_bins_per_polarization(self, waveform_polarizations, interferometer, parameters):
+    def _waveform_at_bins_per_polarization(
+        self, waveform_polarizations, interferometer, parameters
+    ):
         """
         Apply the time shift to the interferometer and its calibration to
         each harmonic and polarization at the bin edges, without the antenna
@@ -440,14 +535,25 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
             Of shape (2, number of harmonics, number of bin edges), plus first.
         """
         time_shift = interferometer.time_delay_from_geocenter(
-            parameters["ra"], parameters["dec"], parameters["geocent_time"])
-        dt = parameters["geocent_time"] - interferometer.strain_data.start_time + time_shift
+            parameters["ra"], parameters["dec"], parameters["geocent_time"]
+        )
+        dt = (
+            parameters["geocent_time"]
+            - interferometer.strain_data.start_time
+            + time_shift
+        )
         response = np.exp(-2j * np.pi * dt * self.bin_freqs)
         response = response * interferometer.calibration_model.get_calibration_factor(
-            self.bin_freqs, prefix=f"recalib_{interferometer.name}_", **parameters)
-        return np.array([waveform_polarizations["plus"], waveform_polarizations["cross"]]) * response
+            self.bin_freqs, prefix=f"recalib_{interferometer.name}_", **parameters
+        )
+        return (
+            np.array([waveform_polarizations["plus"], waveform_polarizations["cross"]])
+            * response
+        )
 
-    def calculate_snrs(self, waveform_polarizations, interferometer, *, return_array=True, parameters):
+    def calculate_snrs(
+        self, waveform_polarizations, interferometer, *, return_array=True, parameters
+    ):
         r"""
         Compute the inner products of the waveform with the data and with
         itself from the summary data,
@@ -481,32 +587,51 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(RelativeBinningGravita
             The inner products, with :code:`d_inner_h_array` set to None.
         """
         waveform_per_polarization = self._waveform_at_bins_per_polarization(
-            waveform_polarizations, interferometer, parameters)
+            waveform_polarizations, interferometer, parameters
+        )
         if interferometer.reference_time is None:
             antenna_time = parameters["geocent_time"]
         else:
             antenna_time = interferometer.reference_time
-        antenna_pattern = np.array([
-            interferometer.antenna_response(
-                parameters["ra"], parameters["dec"], antenna_time, parameters["psi"], mode)
-            for mode in ["plus", "cross"]])
+        antenna_pattern = np.array(
+            [
+                interferometer.antenna_response(
+                    parameters["ra"],
+                    parameters["dec"],
+                    antenna_time,
+                    parameters["psi"],
+                    mode,
+                )
+                for mode in ["plus", "cross"]
+            ]
+        )
         d_inner_h_weights, h_inner_h_weights = self.summary_data[interferometer.name]
         m_inds, mprime_inds = self.harmonic_pairs
 
-        d_inner_h = np.einsum("p,mj,pmj->", antenna_pattern, d_inner_h_weights, waveform_per_polarization.conj())
+        d_inner_h = np.einsum(
+            "p,mj,pmj->",
+            antenna_pattern,
+            d_inner_h_weights,
+            waveform_per_polarization.conj(),
+        )
         strain = np.einsum("p,pmj->pmj", antenna_pattern, waveform_per_polarization)
         h_inner_h = np.einsum(
-            "kj,pkj,qkj->", h_inner_h_weights, strain[:, m_inds], strain[:, mprime_inds].conj()).real
+            "kj,pkj,qkj->",
+            h_inner_h_weights,
+            strain[:, m_inds],
+            strain[:, mprime_inds].conj(),
+        ).real
         optimal_snr_squared = h_inner_h
-        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared ** 0.5)
+        complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
             optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
-            d_inner_h_array=None
+            d_inner_h_array=None,
         )
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
         raise NotImplementedError(
-            f"{self.__class__.__name__} does not compute the full waveform.")
+            f"{self.__class__.__name__} does not compute the full waveform."
+        )
