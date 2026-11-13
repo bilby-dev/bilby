@@ -336,7 +336,9 @@ class TestSkyFrameConversion(unittest.TestCase):
         self.priors["zenith"] = bilby.core.prior.Sine()
         self.priors["time"] = bilby.core.prior.Uniform(-0.1, 0.1)
         self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
-        self.samples = self.priors.sample(10000)
+        self.samples = self.priors.sample(
+            10000, random_state=np.random.default_rng(12345)
+        )
 
     def tearDown(self) -> None:
         del self.priors
@@ -369,6 +371,52 @@ class TestSkyFrameConversion(unittest.TestCase):
         decs = np.asarray(decs)
         self.assertGreaterEqual(ks_2samp(self.samples["ra"], ras).pvalue, 0.01)
         self.assertGreaterEqual(ks_2samp(self.samples["dec"], decs).pvalue, 0.01)
+
+    def test_inverse_conversion_single(self) -> None:
+        sample = self.priors.sample()
+        ra = self.xp.asarray(sample["ra"])
+        dec = self.xp.asarray(sample["dec"])
+        time = self.xp.asarray(sample["time"])
+        self.ifos.array_backend = self.xp
+        zenith, azimuth = bilby.gw.utils.ra_dec_to_zenith_azimuth(
+            ra, dec, time, self.ifos
+        )
+        ra_out, dec_out = bilby.gw.utils.zenith_azimuth_to_ra_dec(
+            zenith, azimuth, time, self.ifos
+        )
+        self.assertAlmostEqual(float(ra_out), float(ra))
+        self.assertAlmostEqual(float(dec_out), float(dec))
+
+    def test_inverse_conversion_gives_correct_prior(self) -> None:
+        ras = self.xp.asarray(self.samples["ra"])
+        decs = self.xp.asarray(self.samples["dec"])
+        times = self.xp.asarray(self.samples["time"])
+        self.ifos.array_backend = self.xp
+        zeniths, azimuths = bilby.gw.utils.ra_dec_to_zenith_azimuth(
+            ras, decs, times, self.ifos
+        )
+        self.assertEqual(aac.get_namespace(zeniths), self.xp)
+        self.assertEqual(aac.get_namespace(azimuths), self.xp)
+        self.assertGreaterEqual(
+            ks_2samp(self.samples["zenith"], np.asarray(zeniths)).pvalue, 0.01
+        )
+        self.assertGreaterEqual(
+            ks_2samp(self.samples["azimuth"], np.asarray(azimuths)).pvalue, 0.01
+        )
+
+    def test_sky_conversion_invertibility(self) -> None:
+        zeniths = self.xp.asarray(self.samples["zenith"])
+        azimuths = self.xp.asarray(self.samples["azimuth"])
+        times = self.xp.asarray(self.samples["time"])
+        self.ifos.array_backend = self.xp
+        ras, decs = bilby.gw.utils.zenith_azimuth_to_ra_dec(
+            zeniths, azimuths, times, self.ifos
+        )
+        zeniths_out, azimuths_out = bilby.gw.utils.ra_dec_to_zenith_azimuth(
+            ras, decs, times, self.ifos
+        )
+        self.assertTrue(np.allclose(np.asarray(zeniths_out), np.asarray(zeniths)))
+        self.assertTrue(np.allclose(np.asarray(azimuths_out), np.asarray(azimuths)))
 
 
 @pytest.mark.array_backend
