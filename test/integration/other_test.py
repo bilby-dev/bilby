@@ -36,7 +36,7 @@ class Test(unittest.TestCase):
     """
 
     def test_make_standard_data(self):
-        " Load in the saved standard data and compare with new data "
+        "Load in the saved standard data and compare with new data"
 
         # Load in the saved standard data
         frequencies_saved, hf_real_saved, hf_imag_saved = np.loadtxt(

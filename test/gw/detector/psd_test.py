@@ -74,8 +74,10 @@ class TestPowerSpectralDensityWithoutFiles(unittest.TestCase):
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
 
     def test_from_power_spectral_density_array(self):
-        actual = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        actual = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
         self.assertTrue(np.array_equal(self.psd_array, actual.psd_array))
         self.assertTrue(np.array_equal(self.asd_array, actual.asd_array))
@@ -171,8 +173,10 @@ class TestPowerSpectralDensityWithFiles(unittest.TestCase):
         self.assertAlmostEqual(expected, psd.power_spectral_density_interpolated(2))
 
     def test_from_amplitude_spectral_density_file(self):
-        psd = bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(
-            asd_file=self.asd_file
+        psd = (
+            bilby.gw.detector.PowerSpectralDensity.from_amplitude_spectral_density_file(
+                asd_file=self.asd_file
+            )
         )
         self.assertEqual(self.asd_file, psd.asd_file)
         self.assertTrue(np.allclose(self.psd_array, psd.psd_array, atol=1e-60))
@@ -247,11 +251,15 @@ class TestPowerSpectralDensityEquals(unittest.TestCase):
         self.psd_from_file_2 = bilby.gw.detector.PowerSpectralDensity.from_aligo()
         self.frequency_array = np.linspace(1, 100)
         self.psd_array = np.linspace(1, 100)
-        self.psd_from_array_1 = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        self.psd_from_array_1 = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
-        self.psd_from_array_2 = bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
-            frequency_array=self.frequency_array, psd_array=self.psd_array
+        self.psd_from_array_2 = (
+            bilby.gw.detector.PowerSpectralDensity.from_power_spectral_density_array(
+                frequency_array=self.frequency_array, psd_array=self.psd_array
+            )
         )
 
     def tearDown(self):

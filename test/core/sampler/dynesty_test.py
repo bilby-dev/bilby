@@ -258,12 +258,14 @@ class TestDynesty(unittest.TestCase):
             all(not plt.fignum_exists(figure.number) for figure in created_figures)
         )
 
-    @parameterized.parameterized.expand((
-        ("unif", "single"),
-        ("unif", "multi"),
-        ("rslice", "single"),
-        ("rslice", "multi"),
-    ))
+    @parameterized.parameterized.expand(
+        (
+            ("unif", "single"),
+            ("unif", "multi"),
+            ("rslice", "single"),
+            ("rslice", "multi"),
+        )
+    )
     def test_dynesty_native_methods_initialize(self, sample, bound):
         """
         Make sure that we can initialize the native dynesty samplers.
@@ -301,7 +303,6 @@ def test_get_expected_outputs():
 
 
 class ProposalsTest(unittest.TestCase):
-
     def test_boundaries(self):
         inputs = np.array([0.1, 1.1, -1.3])
         expected = np.array([0.1, 0.1, 0.7])
@@ -410,6 +411,7 @@ class ProposalsTest(unittest.TestCase):
         args = Dummy(u=np.ones(4) / 2, axes=np.ones((2, 2)))
         args.live_points[0] += 1
         args.kwargs["ncdim"] = 2
+        args.kwargs["target"] = 1
         # args.kwargs["live"][0] += 1
         for proposals in [
             ["diff"],
@@ -431,9 +433,12 @@ class TestEstimateNMCMC(unittest.TestCase):
         """
         sampler = dynesty_utils.AcceptanceTrackingRWalk()
         dynesty_utils.AcceptanceTrackingRWalk.old_act = None
+        rng = np.random.default_rng(1234)
         for _ in range(10):
-            accept_ratio = np.random.uniform()
-            safety = np.random.randint(2, 8)
+            # keep accept_ratio large enough that the expected value stays
+            # below the default maxmcmc=5000 cap
+            accept_ratio = rng.uniform(0.01, 1)
+            safety = rng.integers(2, 8)
             expected = safety * (2 / accept_ratio - 1)
             for _ in range(1000):
                 estimated = sampler.estimate_nmcmc(
@@ -445,7 +450,6 @@ class TestEstimateNMCMC(unittest.TestCase):
 
 
 class TestReproducibility(unittest.TestCase):
-
     @staticmethod
     def model(x, m, c):
         return m * x + c
@@ -486,7 +490,6 @@ class TestReproducibility(unittest.TestCase):
             pass
 
     def _run_sampler(self, **kwargs):
-        bilby.core.utils.random.seed(42)
         return bilby.run_sampler(
             likelihood=self.likelihood,
             priors=self.priors,
@@ -496,26 +499,47 @@ class TestReproducibility(unittest.TestCase):
             dlogz=1.0,
             nlive=20,
             sample="acceptance-walk",
+            check_point=False,
+            check_point_plot=False,
+            print_progress=False,
             **kwargs,
         )
 
-    def test_reproducibility_seed(self):
-        res0 = self._run_sampler(seed=1234)
-        res1 = self._run_sampler(seed=1234)
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_seed(self, rejection_sample_posterior):
+        res0 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         rstate = np.random.default_rng(1234)
-        res1 = self._run_sampler(rstate=rstate)
+        res1 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
-    def test_reproducibility_state_and_seed(self):
+    @parameterized.parameterized.expand([True, False])
+    def test_reproducibility_state_and_seed(self, rejection_sample_posterior):
         rstate = np.random.default_rng(1234)
-        res0 = self._run_sampler(rstate=rstate)
-        res1 = self._run_sampler(seed=1234)
+        res0 = self._run_sampler(
+            rstate=rstate, rejection_sample_posterior=rejection_sample_posterior
+        )
+        res1 = self._run_sampler(
+            seed=1234, rejection_sample_posterior=rejection_sample_posterior
+        )
         assert res0.log_evidence == res1.log_evidence
+        np.testing.assert_array_equal(res0.samples, res1.samples)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ For this example we use `PyMultiNest`, this can be installed using
 
 conda install -c conda-forge pymultinest
 """
+
 import bilby
 import numpy as np
 from bilby.core.utils.random import seed

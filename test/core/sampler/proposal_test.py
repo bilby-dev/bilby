@@ -148,11 +148,13 @@ class TestNormJump(unittest.TestCase):
     def test_jump_proposal_call(self):
         sample = proposal.Sample(dict(reflective=0.0, periodic=0.0, default=0.0))
         new_sample = self.jump_proposal(sample)
-        expected = proposal.Sample(dict(
-            reflective=0.5942057242396577,
-            periodic=-0.02692301311556511,
-            default=-0.7450848662857457,
-        ))
+        expected = proposal.Sample(
+            dict(
+                reflective=0.5942057242396577,
+                periodic=-0.02692301311556511,
+                default=-0.7450848662857457,
+            )
+        )
         self.assertDictEqual(expected, new_sample)
 
 
@@ -169,7 +171,9 @@ class TestEnsembleWalk(unittest.TestCase):
         )
         bilby.core.utils.random.seed(5)
         self.jump_proposal = proposal.EnsembleWalk(
-            random_number_generator=bilby.core.utils.random.rng.uniform, n_points=4, priors=self.priors
+            random_number_generator=bilby.core.utils.random.rng.uniform,
+            n_points=4,
+            priors=self.priors,
         )
         self.coordinates = [proposal.Sample(self.priors.sample()) for _ in range(10)]
 
@@ -185,7 +189,10 @@ class TestEnsembleWalk(unittest.TestCase):
         self.assertEqual(3, self.jump_proposal.n_points)
 
     def test_random_number_generator_init(self):
-        self.assertEqual(bilby.core.utils.random.rng.uniform, self.jump_proposal.random_number_generator)
+        self.assertEqual(
+            bilby.core.utils.random.rng.uniform,
+            self.jump_proposal.random_number_generator,
+        )
 
     def test_get_center_of_mass(self):
         samples = [
@@ -200,11 +207,13 @@ class TestEnsembleWalk(unittest.TestCase):
     def test_jump_proposal_call(self):
         sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
         new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
-        expected = proposal.Sample(dict(
-            periodic=0.437075089594473,
-            reflective=-0.18027731528487945,
-            default=-0.17570046901727415,
-        ))
+        expected = proposal.Sample(
+            dict(
+                periodic=0.437075089594473,
+                reflective=-0.18027731528487945,
+                default=-0.17570046901727415,
+            )
+        )
         for key, value in new_sample.items():
             self.assertAlmostEqual(expected[key], value)
 
@@ -236,22 +245,20 @@ class TestEnsembleEnsembleStretch(unittest.TestCase):
         self.assertEqual(5.0, self.jump_proposal.scale)
 
     def test_jump_proposal_call(self):
-        sample = proposal.Sample(
-            dict(periodic=0.1, reflective=0.1, default=0.1)
-        )
+        sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
         new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
-        expected = proposal.Sample(dict(
-            periodic=0.5790181653312239,
-            reflective=-0.028378746842481914,
-            default=-0.23534241783479043,
-        ))
+        expected = proposal.Sample(
+            dict(
+                periodic=0.5790181653312239,
+                reflective=-0.028378746842481914,
+                default=-0.23534241783479043,
+            )
+        )
         for key, value in new_sample.items():
             self.assertAlmostEqual(expected[key], value)
 
     def test_log_j_after_call(self):
-        sample = proposal.Sample(
-            dict(periodic=0.2, reflective=0.2, default=0.2)
-        )
+        sample = proposal.Sample(dict(periodic=0.2, reflective=0.2, default=0.2))
         self.jump_proposal(sample=sample, coordinates=self.coordinates)
         self.assertAlmostEqual(-3.2879289432183088, self.jump_proposal.log_j, 10)
 
@@ -289,14 +296,14 @@ class TestDifferentialEvolution(unittest.TestCase):
         self.assertEqual(2, self.jump_proposal.sigma)
 
     def test_jump_proposal_call(self):
-        sample = proposal.Sample(
-            dict(periodic=0.1, reflective=0.1, default=0.1)
+        sample = proposal.Sample(dict(periodic=0.1, reflective=0.1, default=0.1))
+        expected = proposal.Sample(
+            dict(
+                periodic=0.09440864471444077,
+                reflective=0.567962015300636,
+                default=0.0657296821780595,
+            )
         )
-        expected = proposal.Sample(dict(
-            periodic=0.09440864471444077,
-            reflective=0.567962015300636,
-            default=0.0657296821780595,
-        ))
         new_sample = self.jump_proposal(sample, coordinates=self.coordinates)
         for key, value in new_sample.items():
             self.assertAlmostEqual(expected[key], value)

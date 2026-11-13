@@ -67,7 +67,8 @@ This demonstrates the two required features of a :code:`bilby`
 #. It has a :code:`log_likelihood` method which accepts a dictionary of parameters
    and returns the log likelihood for all the data.
 
-You can find an example that uses this likelihood `here <https://github.com/bilby-dev/bilby/blob/main/examples/other_examples/gaussian_example.py>`_.
+You can :example:`run an example that uses this likelihood <core_examples/gaussian_example.py>`
+in your browser.
 
 .. tip::
 
@@ -154,8 +155,9 @@ be the dependent variable.
     Here we have explicitly defined the :code:`noise_log_likelihood` method
     as the case when there is no signal (i.e., :math:`y(x; \theta)=0`).
 
-You can see an example of this likelihood in the `linear regression example
-<https://github.com/bilby-dev/bilby/blob/main/examples/other_examples/linear_regression.py>`_.
+You can see an example of this likelihood in the
+:example:`linear regression example <core_examples/linear_regression.py>`,
+which you can run in your browser.
 
 General likelihood for fitting a function :math:`y(x)` to some data with unknown noise
 --------------------------------------------------------------------------------------
@@ -208,7 +210,8 @@ instantiating the likelihood)::
 
 We provide this general-purpose class as part of bilby :code:`bilby.core.likelihood.GaussianLikelihood`
 
-An example using this likelihood can be found `on this page <https://github.com/bilby-dev/bilby/blob/main/examples/other_examples/linear_regression_unknown_noise.py>`_.
+You can :example:`run an example using this likelihood <core_examples/linear_regression_unknown_noise.py>`
+in your browser.
 
 Common likelihood functions
 ---------------------------

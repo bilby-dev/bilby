@@ -9,6 +9,7 @@ COSMOLOGY = [None, str(None)]
 def _set_default_cosmology():
     from astropy import cosmology as cosmo
     from ..core.utils.meta_data import global_meta_data
+
     global DEFAULT_COSMOLOGY, COSMOLOGY
     if DEFAULT_COSMOLOGY is None:
         DEFAULT_COSMOLOGY = cosmo.Planck15
@@ -27,6 +28,7 @@ def get_available_cosmologies():
         A tuple of strings with the names of the available cosmologies.
     """
     from astropy.cosmology.realizations import available
+
     return (*available, "Planck15_LAL")
 
 
@@ -51,6 +53,7 @@ def get_cosmology(cosmology=None):
         Cosmology instance
     """
     from astropy import cosmology as cosmo
+
     _set_default_cosmology()
     if cosmology is None:
         cosmology = DEFAULT_COSMOLOGY
@@ -79,8 +82,8 @@ def get_cosmology(cosmology=None):
         else:
             cosmology = getattr(cosmo, cosmology)
     elif isinstance(cosmology, dict):
-        if 'Ode0' in cosmology.keys():
-            if 'w0' in cosmology.keys():
+        if "Ode0" in cosmology.keys():
+            if "w0" in cosmology.keys():
                 cosmology = cosmo.wCDM(**cosmology)
             else:
                 cosmology = cosmo.LambdaCDM(**cosmology)
@@ -105,6 +108,7 @@ def set_cosmology(cosmology=None):
             class.
     """
     from ..core.utils.meta_data import global_meta_data
+
     cosmology = get_cosmology(cosmology)
     global COSMOLOGY, DEFAULT_COSMOLOGY
     DEFAULT_COSMOLOGY = cosmology
@@ -125,4 +129,5 @@ def z_at_value(func, fval, **kwargs):
     for detailed documentation.
     """
     from astropy.cosmology import z_at_value
+
     return z_at_value(func=func, fval=fval, **kwargs).value

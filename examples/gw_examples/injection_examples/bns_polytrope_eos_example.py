@@ -14,7 +14,6 @@ The reparameterization here uses a 3-piece dynamic polytrope model implemented i
 LALSimNeutronStarEOSDynamicPolytrope.c.
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 

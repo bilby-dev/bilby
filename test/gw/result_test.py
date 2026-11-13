@@ -9,7 +9,6 @@ import bilby
 
 
 class BaseCBCResultTest(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def init_outdir(self, tmp_path):
         # Use pytest's tmp_path fixture to create a temporary directory
@@ -61,7 +60,6 @@ class BaseCBCResultTest(unittest.TestCase):
 
 
 class TestCBCResult(BaseCBCResultTest):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -212,7 +210,6 @@ class TestCBCResult(BaseCBCResultTest):
 
 
 class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
-
     @pytest.fixture(autouse=True)
     def set_caplog(self, caplog):
         self._caplog = caplog
@@ -228,12 +225,8 @@ class CBCResultsGlobalMetaDataTest(BaseCBCResultTest):
         )
 
 
-@parameterized_class(
-    ["cosmology_name"],
-    [["Planck15"], ["Planck15_LAL"]]
-)
+@parameterized_class(["cosmology_name"], [["Planck15"], ["Planck15_LAL"]])
 class TestCBCResultSaveAndLoad(BaseCBCResultTest):
-
     def setUp(self):
         self.orig_cosmology = bilby.gw.cosmology.get_cosmology()
         bilby.gw.cosmology.set_cosmology(self.cosmology_name)
@@ -261,10 +254,19 @@ class TestCBCResultSaveAndLoad(BaseCBCResultTest):
             result_class=bilby.gw.result.CBCResult,
         )
         self.assertEqual(self.result.cosmology, loaded_result.cosmology)
-        self.assertEqual(self.result.parameter_conversion, loaded_result.parameter_conversion)
-        self.assertEqual(self.result.frequency_domain_source_model, loaded_result.frequency_domain_source_model)
-        self.assertEqual(self.result.waveform_generator_class, loaded_result.waveform_generator_class)
-        self.assertEqual(self.result.waveform_arguments, loaded_result.waveform_arguments)
+        self.assertEqual(
+            self.result.parameter_conversion, loaded_result.parameter_conversion
+        )
+        self.assertEqual(
+            self.result.frequency_domain_source_model,
+            loaded_result.frequency_domain_source_model,
+        )
+        self.assertEqual(
+            self.result.waveform_generator_class, loaded_result.waveform_generator_class
+        )
+        self.assertEqual(
+            self.result.waveform_arguments, loaded_result.waveform_arguments
+        )
         self.assertEqual(self.result.interferometers, loaded_result.interferometers)
 
 

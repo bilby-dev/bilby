@@ -4,6 +4,7 @@ An example of how to use bilby to perform parameter estimation for
 non-gravitational wave data. In this case, fitting the half-life and
 initial radionuclide number for Polonium 214.
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np

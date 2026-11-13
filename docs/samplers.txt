@@ -120,20 +120,20 @@ Most plugins can be installed from `pip <https://pypi.org/project/pip/>`_ or
 
 .. tab-set::
 
-   .. tabe-item:: Pip
+   .. tab-item:: Pip
 
-      .. code-block
+      .. code-block:: console
          
          $ pip install nestle-bilby
 
    .. tab-item:: Conda
 
-      .. code-block
+      .. code-block:: console
 
          $ conda install conda-forge::nestle-bilby
 
 
-Once the plugin is installed, the sampler can be by specfiying, for example, :code:`sampler="nestle"`.
+Once the plugin is installed, the sampler can be by specifying, for example, :code:`sampler="nestle"`.
 
 .. warning::
    Some external samplers are only available via :code:`conda` or directly from source.

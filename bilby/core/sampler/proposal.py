@@ -205,7 +205,7 @@ class EnsembleWalk(JumpProposal):
         random_number_generator=random.rng.uniform,
         n_points=3,
         priors=None,
-        **random_number_generator_args
+        **random_number_generator_args,
     ):
         """
         An ensemble walk

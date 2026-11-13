@@ -134,7 +134,6 @@ class BaseProposal(object):
         return minimum + width * val_normalised_reflected
 
     def __call__(self, chain, likelihood=None, priors=None):
-
         if getattr(self, "needs_likelihood_and_priors", False):
             sample, log_factor = self.propose(chain, likelihood, priors)
         else:
@@ -581,7 +580,7 @@ class NormalizingFlowProposal(DensityEstimateProposal):
             The factor to use in determining the max-JS factor to terminate
             training.
         max_training_epochs: int
-            The maximum bumber of traning steps to take
+            The maximum number of training steps to take
         """
     )
 

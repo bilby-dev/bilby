@@ -24,6 +24,7 @@ https://numpy.org/doc/stable/reference/random/generator.html
     Do not import :code:`rng` directly from :code:`bilby.core.utils.random`
     since it will not be seeded correctly.
 """
+
 import sys
 import warnings
 
@@ -49,6 +50,7 @@ class Generator:
     It should not be used directly, instead use :code:`random.rng` to
     generate random numbers. See the documentation for more details.
     """
+
     rng = default_rng()
     """Random number generator.
 
@@ -81,7 +83,7 @@ def seed(seed):
 
     # Warn if the original rng object (i.e., pre-seed) still exists elsewhere
     for module in sys.modules.values():
-        if not module or not hasattr(module, '__dict__'):
+        if not module or not hasattr(module, "__dict__"):
             continue
         rng_obj = module.__dict__.get("rng")
         if rng_obj is _original_rng:
@@ -89,7 +91,7 @@ def seed(seed):
                 "Detected that `rng` was likely imported directly before calling `seed()`. "
                 "This means the imported reference will not reflect the newly seeded generator. "
                 "Use `from bilby.core.utils import random` and access `random.rng` instead.",
-                RuntimeWarning
+                RuntimeWarning,
             )
             break
 
@@ -147,6 +149,7 @@ def resolve_random_state(random_state):
         return _resolve_numpy_generator(random_state)
 
     import orng
+
     if isinstance(random_state, (np.random.Generator, orng.RandomGenerator)):
         return random_state
     elif aac.is_jax_array(random_state):
@@ -181,9 +184,13 @@ def random_array_module(random_state):
         return np
     elif aac.is_jax_array(random_state) or getattr(random_state, "backend") == "jax":
         import jax.numpy as jnp
+
         return jnp
-    elif aac.is_torch_array(random_state) or getattr(random_state, "backend") == "torch":
+    elif (
+        aac.is_torch_array(random_state) or getattr(random_state, "backend") == "torch"
+    ):
         import torch
+
         return torch
     else:
         return np

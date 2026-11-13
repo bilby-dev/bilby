@@ -11,6 +11,7 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
     source are cast to numpy for compatibility. The outputs are converted
     to the appropriate array type.
     """
+
     def __init__(self, wfg, xp):
         self.wfg = wfg
         self.xp = xp
@@ -26,7 +27,9 @@ class BackendWaveformGenerator(bilby.gw.waveform_generator.WaveformGenerator):
         elif isinstance(data, dict):
             return {key: self.convert_nested_dict(value) for key, value in data.items()}
         else:
-            raise ValueError("Input must be an array API object or a dict of such objects.")
+            raise ValueError(
+                "Input must be an array API object or a dict of such objects."
+            )
 
     def _strain_from_model(self, model_data_points, model, parameters, *, xp=None):
         model_data_points = np.asarray(model_data_points)

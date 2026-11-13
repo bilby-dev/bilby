@@ -183,7 +183,6 @@ class Bilby_MCMC(MCMCSampler):
         normalize_prior=True,
         **kwargs,
     ):
-
         super(Bilby_MCMC, self).__init__(
             likelihood=likelihood,
             priors=priors,
@@ -304,7 +303,6 @@ class Bilby_MCMC(MCMCSampler):
             self.init_ptsampler()
 
     def init_ptsampler(self):
-
         logger.info(f"Initializing BilbyPTMCMCSampler with:\n{self.get_setup_string()}")
         self.ptsampler = BilbyPTMCMCSampler(
             convergence_inputs=self.convergence_inputs,
@@ -643,7 +641,6 @@ class BilbyPTMCMCSampler(object):
         return betas
 
     def setup_sampler_dictionary(self, convergence_inputs, proposal_cycle):
-
         betas = self.get_initial_betas()
         logger.info(
             f"Initializing BilbyPTMCMCSampler with:"

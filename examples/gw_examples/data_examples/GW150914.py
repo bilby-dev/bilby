@@ -9,6 +9,7 @@ the LIGO Data Grid instead.
 
 [1] https://gwpy.github.io/docs/stable/timeseries/remote-access.html
 """
+
 import bilby
 from gwpy.timeseries import TimeSeries
 

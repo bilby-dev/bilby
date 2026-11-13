@@ -2,26 +2,40 @@
 Examples
 ========
 
-1. `General inference examples <https://github.com/bilby-dev/bilby/tree/master/examples/core_examples>`_:
+You can run and edit all of the example scripts in your browser, with no
+installation, on the `interactive examples
+<https://bilby-dev.github.io/examples/>`_ page. The links below open each
+example there.
 
-  * `A simple Gaussian likelihood <https://github.com/bilby-dev/bilby/blob/main/examples/core_examples/gaussian_example.py>`_: a good example to see how to write your own likelihood.
-  * `Linear regression for unknown noise <https://github.com/bilby-dev/bilby/blob/main/examples/core_examples/linear_regression_unknown_noise.py>`_: fitting to general time-domain data.
+General inference examples
+--------------------------
 
-2. `Examples of injecting and recovering data <https://github.com/bilby-dev/bilby/tree/master/examples/gw_examples/injection_examples>`__:
+* :example:`A simple Gaussian likelihood <core_examples/gaussian_example.py>`:
+  a good example to see how to write your own likelihood.
+* :example:`Linear regression for unknown noise <core_examples/linear_regression_unknown_noise.py>`:
+  fitting to general time-domain data.
 
-  * `4-parameter CBC tutorial <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/fast_tutorial.py>`__
-  *  `15-parameter CBC tutorial <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/standard_15d_cbc_tutorial.py>`__
-  *  `Create your own source model <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/create_your_own_source_model.py>`__
-  *  `Create your own time-domain source model <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/create_your_own_time_domain_source_model.py>`__
-  *  `How to specify the prior <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/how_to_specify_the_prior.py>`__
-  *  `Using a partially marginalized likelihood <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/marginalized_likelihood.py>`__
-  *  `Injecting and recovering a neutron-star equation of state <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/injection_examples/bns_eos_example.py>`__
+Examples of injecting and recovering data
+-----------------------------------------
 
-3. `Examples using open data <https://github.com/bilby-dev/bilby/tree/master/examples/gw_examples/data_examples>`__:
+* :example:`4-parameter CBC tutorial <gw_examples/injection_examples/fast_tutorial.py>`
+* :example:`15-parameter CBC tutorial <gw_examples/injection_examples/standard_15d_cbc_tutorial.py>`
+* :example:`Create your own source model <gw_examples/injection_examples/create_your_own_source_model.py>`
+* :example:`Create your own time-domain source model <gw_examples/injection_examples/create_your_own_time_domain_source_model.py>`
+* :example:`How to specify the prior <gw_examples/injection_examples/how_to_specify_the_prior.py>`
+* :example:`Using a partially marginalized likelihood <gw_examples/injection_examples/marginalized_likelihood.py>`
+* :example:`Injecting and recovering a neutron-star equation of state <gw_examples/injection_examples/bns_eos_example.py>`
 
-  * `Analysing the first Binary Black hole detection, GW150914 <https://github.com/bilby-dev/bilby/blob/main/examples/gw_examples/data_examples/GW150914.py>`__
+Examples using open data
+------------------------
 
-4. `Notebook-style tutorials <https://github.com/bilby-dev/bilby/tree/master/examples/tutorials>`__:
+* :example:`Analysing the first binary black hole detection, GW150914 <gw_examples/data_examples/GW150914.py>`
 
-  * `Comparing different samplers <https://github.com/bilby-dev/bilby/blob/main/examples/tutorials/compare_samplers.ipynb>`__
-  * `Visualising the output <https://github.com/bilby-dev/bilby/blob/main/examples/tutorials/visualising_the_results.ipynb>`__
+Notebook-style tutorials
+------------------------
+
+* :doc:`making_priors`
+* :doc:`conditional_priors`
+* :doc:`compare_samplers`
+* :doc:`fitting_with_x_and_y_errors`
+* :doc:`visualising_the_results`

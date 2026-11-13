@@ -8,7 +8,6 @@ and also estimates the tidal deformabilities using a uniform prior in both
 tidal deformabilities
 """
 
-
 import bilby
 from bilby.core.utils.random import seed
 

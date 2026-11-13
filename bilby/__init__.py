@@ -14,6 +14,7 @@ For installation instructions see
 https://bilby-dev.github.io/bilby/installation.html.
 
 """
+
 import logging
 
 # Avoid configuring logging for applications that import bilby.
@@ -29,4 +30,4 @@ from .core.result import read_in_result, read_in_result_list
 try:
     from ._version import version as __version__
 except ModuleNotFoundError:  # development mode
-    __version__ = 'unknown'
+    __version__ = "unknown"

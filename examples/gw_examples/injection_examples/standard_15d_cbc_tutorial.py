@@ -6,6 +6,7 @@ one can modify for the study of injected CBC events.
 
 This will take many hours to run.
 """
+
 import bilby
 from bilby.core.utils import random
 

@@ -30,7 +30,7 @@ class TestInterferometerGeometry(unittest.TestCase):
             xarm_tilt=self.xarm_tilt,
             yarm_tilt=self.yarm_tilt,
         )
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
 
     def tearDown(self):
         del self.length
@@ -154,37 +154,49 @@ class TestInterferometerGeometry(unittest.TestCase):
     def test_detector_tensor_with_x_azimuth_update(self):
         original = self.geometry.detector_tensor
         self.geometry.xarm_azimuth += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_y_azimuth_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_azimuth += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_x_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.xarm_tilt += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_y_tilt_update(self):
         original = self.geometry.detector_tensor
         self.geometry.yarm_tilt += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_longitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.longitude += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_detector_tensor_with_latitude_update(self):
         original = self.geometry.detector_tensor
         self.geometry.latitude += 1
-        self.assertNotEqual(np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0)
+        self.assertNotEqual(
+            np.max(np.asarray(abs(self.geometry.detector_tensor - original))), 0
+        )
         self.assertEqual(aac.get_namespace(self.geometry.detector_tensor), self.xp)
 
     def test_unit_vector_along_arm_default(self):
@@ -196,7 +208,7 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.geometry.xarm_tilt = 0
         self.geometry.xarm_azimuth = 0
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
         arm = self.geometry.unit_vector_along_arm("x")
         self.assertTrue(np.allclose(arm, np.array([0, 1, 0])))
         self.assertEqual(aac.get_namespace(arm), self.xp)
@@ -206,7 +218,7 @@ class TestInterferometerGeometry(unittest.TestCase):
         self.geometry.latitude = 0
         self.geometry.yarm_tilt = 0
         self.geometry.yarm_azimuth = 90
-        self.geometry.set_array_backend(self.xp)
+        self.geometry.array_backend = self.xp
         arm = self.geometry.unit_vector_along_arm("y")
         self.assertTrue(np.allclose(arm, np.array([0, 0, 1])))
         self.assertEqual(aac.get_namespace(arm), self.xp)

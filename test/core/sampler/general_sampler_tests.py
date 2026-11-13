@@ -26,7 +26,6 @@ def test_get_sampler_class():
 def test_get_sampler_class_not_implemented():
     """Assert an error is raised if the sampler is not recognized"""
     with pytest.raises(
-        ValueError,
-        match=r"Sampler not_a_valid_sampler not yet implemented"
+        ValueError, match=r"Sampler not_a_valid_sampler not yet implemented"
     ):
         get_sampler_class("not_a_valid_sampler")

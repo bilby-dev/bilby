@@ -2,6 +2,7 @@
 """
 An example of how to use bilby to perform parameter estimation for hyper params
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np

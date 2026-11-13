@@ -1,4 +1,5 @@
-""" Script used to generate the samples for the bilby logo """
+"""Script used to generate the samples for the bilby logo"""
+
 import bilby
 import numpy as np
 import scipy.interpolate as si

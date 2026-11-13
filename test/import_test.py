@@ -10,8 +10,15 @@ import bilby  # noqa
 unique_packages = set(sys.modules)
 
 unwanted = {
-    "lal", "lalsimulation", "matplotlib",
-    "h5py", "dill", "tqdm", "tables", "deepdish", "corner",
+    "lal",
+    "lalsimulation",
+    "matplotlib",
+    "h5py",
+    "dill",
+    "tqdm",
+    "tables",
+    "deepdish",
+    "corner",
 }
 
 for filename in ["mcmc_requirements.txt", "optional_requirements.txt"]:

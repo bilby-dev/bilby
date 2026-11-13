@@ -6,6 +6,7 @@ data with background Gaussian noise. We then compare the result to posteriors
 estimated using the Fisher Information Matrix approximation.
 
 """
+
 import copy
 
 import bilby

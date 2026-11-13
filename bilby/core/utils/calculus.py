@@ -190,36 +190,38 @@ def logtrapzexp(lnf, dx, *, xp=np):
     return logsumexp(xp.asarray([logsumexp(lnfdx1), logsumexp(lnfdx2)])) - np.log(2)
 
 
-class interp1d(_interp1d):
+def interp1d(x, y, kind="linear", axis=-1, bounds_error=None, fill_value=np.nan):
+    if not BILBY_ARRAY_API:
+        return WrappedInterp1d(
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
+        )
 
-    def __call__(self, x):
-        if not BILBY_ARRAY_API:
-            return super().__call__(x)
+    if aac.is_jax_array(x):
+        from interpax import Interpolator1D
 
-        import array_api_compat as aac
-
-        xp = array_module(x)
-        if aac.is_numpy_namespace(xp):
-            return super().__call__(x)
-        else:
-            from ...compat.patches import interp
-
-            if isinstance(self.fill_value, tuple):
-                left, right = self.fill_value
-            else:
-                left = right = self.fill_value
-
-            return interp(
-                x,
-                xp.asarray(self.x),
-                xp.asarray(self.y),
-                left=left,
-                right=right,
-            )
+        return Interpolator1D(
+            x=x,
+            f=y,
+            method=kind,
+            extrap=fill_value,
+        )
+    else:
+        return WrappedInterp1d(
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
+        )
 
 
 class BoundedRectBivariateSpline(RectBivariateSpline):
-
     def __init__(self, x, y, z, bbox=[None] * 4, kx=3, ky=3, s=0, fill_value=None):
         self.x_min, self.x_max, self.y_min, self.y_max = bbox
         if self.x_min is None:
@@ -276,16 +278,31 @@ class BoundedRectBivariateSpline(RectBivariateSpline):
         )
 
 
-class WrappedInterp1d(interp1d):
+class WrappedInterp1d(_interp1d):
     """
     A wrapper around scipy interp1d which sets equality-by-instantiation and
     makes sure that the output is a float if the input is a float or int.
     """
+
+    def __init__(
+        self, x, y, kind="linear", axis=-1, bounds_error=False, fill_value=np.nan
+    ):
+        super().__init__(
+            x=x,
+            y=y,
+            kind=kind,
+            axis=axis,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
+        )
+        self.kind = kind
+
     def __call__(self, x):
+        # some backends, e.g., torch don't support interpolation, add an explicit
+        # cast to make it not crash
         output = super().__call__(x)
-        if isinstance(x, (float, int)):
-            output = output.item()
-        return output
+        xp = array_module(x)
+        return xp.asarray(output)
 
     def __eq__(self, other):
         for key in self.__dict__:
@@ -311,4 +328,4 @@ def round_up_to_power_of_two(x):
     float: next power of two
 
     """
-    return 2**math.ceil(np.log2(x))
+    return 2 ** math.ceil(np.log2(x))

@@ -31,10 +31,7 @@ _sampler_kwargs = dict(
     emcee=dict(iterations=1000, nwalkers=10),
 )
 
-sampler_imports = dict(
-    bilby_mcmc="bilby",
-    dynamic_dynesty="dynesty"
-)
+sampler_imports = dict(bilby_mcmc="bilby", dynamic_dynesty="dynesty")
 
 # Only load the native samplers
 loaded_samplers = {
@@ -99,7 +96,9 @@ class TestRunningSamplers(unittest.TestCase):
     @parameterized.expand(_sampler_kwargs.keys())
     def test_run_sampler_schwimmbad(self, sampler):
         pool = SerialPool()
-        initialize_global_variables(self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0})
+        initialize_global_variables(
+            self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0}
+        )
         self._run_sampler(sampler, pool_size=1, pool=pool)
 
     @parameterized.expand(_sampler_kwargs.keys())
@@ -129,7 +128,9 @@ class TestRunningSamplers(unittest.TestCase):
     @parameterized.expand(_sampler_kwargs.keys())
     def test_interrupt_sampler_schwimmbad(self, sampler):
         pool = SerialPool()
-        initialize_global_variables(self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0})
+        initialize_global_variables(
+            self.likelihood, self.priors, ["m", "c"], True, {"m": 0, "c": 0}
+        )
         self._run_with_signal_handling(sampler, pool_size=1, pool=pool)
 
     @parameterized.expand(_sampler_kwargs.keys())
@@ -157,7 +158,9 @@ class TestRunningSamplers(unittest.TestCase):
         with self.assertRaises((SystemExit, KeyboardInterrupt)):
             try:
                 while True:
-                    self._run_sampler(sampler=sampler, pool_size=pool_size, exit_code=5, **kwargs)
+                    self._run_sampler(
+                        sampler=sampler, pool_size=pool_size, exit_code=5, **kwargs
+                    )
             except SystemExit as error:
                 self.assertEqual(error.code, 5)
                 raise

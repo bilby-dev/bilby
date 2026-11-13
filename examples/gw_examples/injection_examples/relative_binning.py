@@ -7,6 +7,7 @@ This example estimates the masses using a uniform prior in both component masses
 and distance using a uniform in comoving volume prior on luminosity distance
 between luminosity distances of 100Mpc and 5Gpc, the cosmology is Planck15.
 """
+
 from copy import deepcopy
 
 import bilby
@@ -172,7 +173,7 @@ for parameters in tqdm(result.posterior.to_dict(orient="records")):
     )
 weights = np.exp(weights)
 print(
-    f"Reweighting efficiency is {np.mean(weights)**2 / np.mean(weights**2) * 100:.2f}%"
+    f"Reweighting efficiency is {np.mean(weights) ** 2 / np.mean(weights**2) * 100:.2f}%"
 )
 print(f"Binned vs unbinned log Bayes factor {np.log(np.mean(weights)):.2f}")
 

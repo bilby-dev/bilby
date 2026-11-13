@@ -44,6 +44,4 @@ class GlobalMetaData(dict):
         return cls._instance
 
 
-global_meta_data = GlobalMetaData({
-    "rng": random.rng
-})
+global_meta_data = GlobalMetaData({"rng": random.rng})

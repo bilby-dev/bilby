@@ -39,7 +39,7 @@ class TestNoiseRealisation(unittest.TestCase):
         # generate some toy-model signal for matched filtering SNR testing
         n_avg = 1000
         snr = np.zeros(n_avg)
-        mu = np.exp(-((time_array - duration / 2.0) ** 2) / (2.0 * 0.1 ** 2)) * np.sin(
+        mu = np.exp(-((time_array - duration / 2.0) ** 2) / (2.0 * 0.1**2)) * np.sin(
             2 * np.pi * 100 * time_array
         )
         muf, frequency_array = bilby.core.utils.nfft(mu, sampling_frequency)

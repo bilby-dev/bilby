@@ -5,6 +5,7 @@ non-gravitational wave data. In this case, fitting a linear function to
 data with background Gaussian noise with unknown variance.
 
 """
+
 import bilby
 import matplotlib.pyplot as plt
 import numpy as np

@@ -386,7 +386,7 @@ class Chain(object):
         position_indexes = np.arange(self.position + 1)
 
         # Plot the traceplots
-        for (start, stop, thin, color, alpha, ms) in plot_setups:
+        for start, stop, thin, color, alpha, ms in plot_setups:
             for ax, key in zip(axes[:, 0], self.keys):
                 xx = position_indexes[start:stop:thin] / K
                 yy = self.get_1d_array(key)[start:stop:thin]

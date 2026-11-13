@@ -8,7 +8,10 @@ from bilby.compat.utils import BILBY_DEVICE
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--skip-roqs", action="store_true", default=False, help="Skip all tests that require ROQs"
+        "--skip-roqs",
+        action="store_true",
+        default=False,
+        help="Skip all tests that require ROQs",
     )
     parser.addoption(
         "--array-backend",
@@ -19,7 +22,9 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_roqs: mark a test that requires ROQs")
-    config.addinivalue_line("markers", "array_backend: mark that a test uses all array backends")
+    config.addinivalue_line(
+        "markers", "array_backend: mark that a test uses all array backends"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -53,6 +58,7 @@ def _xp(request):
             xp = jax.numpy
         case "torch":
             import torch
+
             # torch starts a lot of threads, so disable this on the first import
             # to avoid segfaults
             try:
@@ -65,7 +71,6 @@ def _xp(request):
             xp = torch
         case _:
             try:
-
                 xp = importlib.import_module(backend)
             except ImportError:
                 raise ValueError(f"Unknown backend for testing: {backend}")
@@ -80,9 +85,11 @@ def _rng(xp):
         return resolve_random_state(12345)
     elif aac.is_jax_namespace(xp):
         import jax.random
+
         return resolve_random_state(jax.random.key(12345))
     elif aac.is_torch_namespace(xp):
         import torch
+
         return resolve_random_state(torch.Tensor([12345]))
     else:
         raise ValueError(f"Unknown array namespace {xp} for RNG")

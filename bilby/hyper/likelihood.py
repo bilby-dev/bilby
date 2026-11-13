@@ -1,4 +1,3 @@
-
 import logging
 
 import array_api_compat as aac
@@ -11,7 +10,7 @@ from ..core.prior import PriorDict
 
 
 class HyperparameterLikelihood(Likelihood):
-    """ A likelihood for inferring hyperparameter posterior distributions
+    """A likelihood for inferring hyperparameter posterior distributions
 
     See Eq. (34) of https://arxiv.org/abs/1809.02293 for a definition.
 
@@ -36,16 +35,30 @@ class HyperparameterLikelihood(Likelihood):
 
     """
 
-    def __init__(self, posteriors, hyper_prior, sampling_prior=None,
-                 log_evidences=None, max_samples=1e100, xp=np):
+    def __init__(
+        self,
+        posteriors,
+        hyper_prior,
+        sampling_prior=None,
+        log_evidences=None,
+        max_samples=1e100,
+        xp=np,
+    ):
         if not isinstance(hyper_prior, Model):
             hyper_prior = Model([hyper_prior])
         if sampling_prior is None:
-            if ('log_prior' not in posteriors[0].keys()) and ('prior' not in posteriors[0].keys()):
-                raise ValueError('Missing both sampling prior function and prior or log_prior '
-                                 'column in posterior dictionary. Must pass one or the other.')
+            if ("log_prior" not in posteriors[0].keys()) and (
+                "prior" not in posteriors[0].keys()
+            ):
+                raise ValueError(
+                    "Missing both sampling prior function and prior or log_prior "
+                    "column in posterior dictionary. Must pass one or the other."
+                )
         else:
-            if not (isinstance(sampling_prior, Model) or isinstance(sampling_prior, PriorDict)):
+            if not (
+                isinstance(sampling_prior, Model)
+                or isinstance(sampling_prior, PriorDict)
+            ):
                 sampling_prior = Model([sampling_prior])
         if log_evidences is not None:
             self.evidence_factor = np.sum(log_evidences)
@@ -63,13 +76,12 @@ class HyperparameterLikelihood(Likelihood):
         self.data = self.resample_posteriors(posteriors=posteriors, xp=xp)
         self.n_posteriors = len(posteriors)
         self.samples_per_posterior = self.max_samples
-        self.samples_factor =\
-            - self.n_posteriors * np.log(self.samples_per_posterior)
+        self.samples_factor = -self.n_posteriors * np.log(self.samples_per_posterior)
 
     def log_likelihood_ratio(self, parameters):
         probs = self.hyper_prior.prob(self.data, **parameters)
         xp = array_module(probs)
-        log_l = xp.sum(xp.log(xp.sum(probs / self.data['prior'], axis=-1)))
+        log_l = xp.sum(xp.log(xp.sum(probs / self.data["prior"], axis=-1)))
         log_l += self.samples_factor
         return xp.nan_to_num(log_l)
 
@@ -77,7 +89,9 @@ class HyperparameterLikelihood(Likelihood):
         return self.evidence_factor
 
     def log_likelihood(self, parameters):
-        return self.noise_log_likelihood() + self.log_likelihood_ratio(parameters=parameters)
+        return self.noise_log_likelihood() + self.log_likelihood_ratio(
+            parameters=parameters
+        )
 
     def resample_posteriors(self, posteriors=None, max_samples=None, xp=np):
         """
@@ -107,18 +121,19 @@ class HyperparameterLikelihood(Likelihood):
         for posterior in posteriors:
             self.max_samples = min(len(posterior), self.max_samples)
         data = {key: [] for key in posteriors[0]}
-        if 'log_prior' in data.keys():
-            data.pop('log_prior')
-        if 'prior' not in data.keys():
-            data['prior'] = []
-        logging.debug('Downsampling to {} samples per posterior.'.format(
-            self.max_samples))
+        if "log_prior" in data.keys():
+            data.pop("log_prior")
+        if "prior" not in data.keys():
+            data["prior"] = []
+        logging.debug(
+            "Downsampling to {} samples per posterior.".format(self.max_samples)
+        )
         for posterior in posteriors:
             temp = posterior.sample(self.max_samples)
             if self.sampling_prior is not None:
-                temp['prior'] = self.sampling_prior.prob(temp, axis=0)
-            elif 'log_prior' in temp.keys():
-                temp['prior'] = np.exp(temp['log_prior'])
+                temp["prior"] = self.sampling_prior.prob(temp, axis=0)
+            elif "log_prior" in temp.keys():
+                temp["prior"] = np.exp(temp["log_prior"])
             for key in data:
                 data[key].append(temp[key])
         for key in data:

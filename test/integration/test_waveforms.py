@@ -67,7 +67,6 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
         self.run_for_approximant(waveform_approximant, source="bns")
 
     def run_for_approximant(self, waveform_approximant, source):
-
         if source == "bbh":
             injection_parameters = self.BBH_precessing_injection_parameters
             frequency_domain_source_model = bilby.gw.source.lal_binary_black_hole
@@ -75,7 +74,9 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             injection_parameters = self.BNS_precessing_injection_parameters
             frequency_domain_source_model = bilby.gw.source.lal_binary_neutron_star
         else:
-            raise ValueError("Source can only be 'bbh' or 'bns', but was '{}'".format(source))
+            raise ValueError(
+                "Source can only be 'bbh' or 'bns', but was '{}'".format(source)
+            )
 
         # create a waveform generator for bilby
         duration = 4.0
@@ -144,7 +145,7 @@ class TestWaveformDirectAgainstLALSIM(unittest.TestCase):
             (waveform_generator.frequency_array)[-1],
             lambda_1,
             lambda_2,
-            **waveform_arguments
+            **waveform_arguments,
         )
 
         h_plus = get_lalsim_waveform["plus"]
@@ -247,7 +248,7 @@ def lalsim_FD_waveform(
     fmax,
     lambda_1=None,
     lambda_2=None,
-    **kwarg
+    **kwarg,
 ):
     mass1 = m1 * lal.MSUN_SI
     mass2 = m2 * lal.MSUN_SI

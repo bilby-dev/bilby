@@ -109,7 +109,7 @@ evaluation takes more than a fraction of a second, it is unlikely your run will
 complete in a reasonable amount of time using serial bilby. After this, is a list
 of all the kwargs passed in to dynesty. Note, where a :code:`None` is given,
 dynesty will fill in its own defaults. The Bilby specific arguments are printed
-on their onw. Then, we get a message about how often checkpointing will be done,
+on their own. Then, we get a message about how often checkpointing will be done,
 the version of dynesty, and which sample method will be used.
 
 During the sampling, dynesty writes an update of its progress to the terminal

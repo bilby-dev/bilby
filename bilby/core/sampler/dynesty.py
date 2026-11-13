@@ -74,12 +74,13 @@ class Dynesty(NestedSampler):
         only advisable for testing environments
     print_method: str ('tqdm')
         The method to use for printing. The options are:
-        - 'tqdm': use a `tqdm` `pbar`, this is the default.
-        - 'interval-$TIME': print to `stdout` every `$TIME` seconds,
-          e.g., 'interval-10' prints every ten seconds, this does not print every iteration
-        - else: print to `stdout` at every iteration
+
+        - :code:`'tqdm'`: use a :code:`tqdm` progress bar, this is the default.
+        - :code:`'interval-$TIME'`: print to :code:`stdout` every :code:`$TIME` seconds,
+          e.g., :code:`'interval-10'` prints every ten seconds, this does not print every iteration
+        - else: print to :code:`stdout` at every iteration
     exit_code: int
-        The code which the same exits on if it hasn't finished sampling
+        The code which the sampler exits with if it hasn't finished sampling
     check_point: bool,
         If true, use check pointing.
     check_point_plot: bool,
@@ -120,14 +121,13 @@ class Dynesty(NestedSampler):
         one of [nlive, nlives, n_live_points, npoints]
     bound: {'live', 'live-multi', 'none', 'single', 'multi', 'balls', 'cubes'}, ('live')
         Method used to select new points
-    sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice',
-             'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
+    sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice', 'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
         Method used to sample uniformly within the likelihood constraints,
         conditioned on the provided bounds
     walks: int (100)
-        Number of walks taken if using the dynesty implemented sample methods
-        Note that the default `walks` in dynesty itself is 25, although using
-        `ndim * 10` can be a reasonable rule of thumb for new problems.
+        Number of walks taken if using the dynesty implemented sample methods.
+        Note that the default :code:`walks` in dynesty itself is 25, although using
+        :code:`ndim * 10` can be a reasonable rule of thumb for new problems.
         For :code:`sample="act-walk"` and :code:`sample="rwalk"` this parameter
         has no impact on the sampling.
     dlogz: float, (0.1)
@@ -492,7 +492,7 @@ class Dynesty(NestedSampler):
         else:
             if self.kwargs["live_points"] is None:
                 self.kwargs["live_points"] = self.get_initial_points_from_prior(
-                    self.nlive
+                    self.nlive, random_state=self.kwargs["rstate"]
                 )
                 self.kwargs["live_points"] = (*self.kwargs["live_points"], None)
             self.sampler = self.sampler_init(
@@ -528,12 +528,12 @@ class Dynesty(NestedSampler):
         dynesty_result = f"{self.outdir}/{self.label}_dynesty.pickle"
         safe_file_dump(out, dynesty_result, "dill")
 
-        self._generate_result(out)
+        self._generate_result(out, random_state=self.sampler.rstate)
         self.result.sampling_time = self.sampling_time
 
         return self.result
 
-    def _generate_result(self, out):
+    def _generate_result(self, out, *, random_state=None):
         """
         Extract the information we need from the dynesty output. This includes
         the evidence, nested samples, run statistics. In addition, we generate
@@ -543,12 +543,16 @@ class Dynesty(NestedSampler):
         ==========
         out: dynesty.result.Result
             The dynesty output.
+        random_state: None, int, numpy.random.Generator
+            Random state used to generate posterior samples. If None, use
+            Bilby's global random number generator.
         """
         import dynesty
         from scipy.special import logsumexp
 
         from ..utils import random
 
+        rng = random.resolve_random_state(random_state)
         logwts = out["logwt"]
         weights = np.exp(logwts - out["logz"][-1])
         nested_samples = DataFrame(out.samples, columns=self.search_parameter_keys)
@@ -556,14 +560,16 @@ class Dynesty(NestedSampler):
         nested_samples["log_likelihood"] = out.logl
         self.result.nested_samples = nested_samples
         if self.rejection_sample_posterior:
-            keep = weights > random.rng.uniform(0, max(weights), len(weights))
+            keep = weights > rng.uniform(0, max(weights), len(weights))
             self.result.samples = out.samples[keep]
             self.result.log_likelihood_evaluations = out.logl[keep]
             logger.info(
                 f"Rejection sampling nested samples to obtain {sum(keep)} posterior samples"
             )
         else:
-            self.result.samples = dynesty.utils.resample_equal(out.samples, weights)
+            self.result.samples = dynesty.utils.resample_equal(
+                out.samples, weights, rstate=rng
+            )
             self.result.log_likelihood_evaluations = self.reorder_loglikelihoods(
                 unsorted_loglikelihoods=out.logl,
                 unsorted_samples=out.samples,
@@ -808,8 +814,7 @@ class Dynesty(NestedSampler):
             logger.info(f"Written checkpoint file {self.resume_file}")
         else:
             logger.warning(
-                "Cannot write pickle resume file! "
-                "Job will not resume if interrupted."
+                "Cannot write pickle resume file! Job will not resume if interrupted."
             )
         self.sampler.pool = self.pool
         if self.sampler.pool is not None:

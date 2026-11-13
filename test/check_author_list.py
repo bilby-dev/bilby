@@ -1,4 +1,4 @@
-""" A script to verify that the .AUTHOR.md file is up to date """
+"""A script to verify that the .AUTHOR.md file is up to date"""
 
 import re
 import subprocess
@@ -9,22 +9,25 @@ with open("AUTHORS.md", "r") as f:
     AUTHORS_list = " ".join([line for line in f]).lower()
 
 
-lines = subprocess.check_output(["git", "shortlog", "HEAD", "-sn"]).decode("utf-8").split("\n")
+lines = (
+    subprocess.check_output(["git", "shortlog", "HEAD", "-sn"])
+    .decode("utf-8")
+    .split("\n")
+)
 
 if len(lines) == 0:
     raise Exception("No authors to check against")
 
 
 def remove_accents(raw_text):
-
-    raw_text = re.sub(u"[àáâãäå]", 'a', raw_text)
-    raw_text = re.sub(u"[èéêë]", 'e', raw_text)
-    raw_text = re.sub(u"[ìíîï]", 'i', raw_text)
-    raw_text = re.sub(u"[òóôõö]", 'o', raw_text)
-    raw_text = re.sub(u"[ùúûü]", 'u', raw_text)
-    raw_text = re.sub(u"[ýÿ]", 'y', raw_text)
-    raw_text = re.sub(u"[ß]", 'ss', raw_text)
-    raw_text = re.sub(u"[ñ]", 'n', raw_text)
+    raw_text = re.sub("[àáâãäå]", "a", raw_text)
+    raw_text = re.sub("[èéêë]", "e", raw_text)
+    raw_text = re.sub("[ìíîï]", "i", raw_text)
+    raw_text = re.sub("[òóôõö]", "o", raw_text)
+    raw_text = re.sub("[ùúûü]", "u", raw_text)
+    raw_text = re.sub("[ýÿ]", "y", raw_text)
+    raw_text = re.sub("[ß]", "ss", raw_text)
+    raw_text = re.sub("[ñ]", "n", raw_text)
 
     return raw_text
 
@@ -32,7 +35,7 @@ def remove_accents(raw_text):
 fail_test = False
 for line in lines:
     line = line.replace(".", " ")
-    line = re.sub('([A-Z][a-z]+)', r' \1', re.sub('([A-Z]+)', r' \1', line))
+    line = re.sub("([A-Z][a-z]+)", r" \1", re.sub("([A-Z]+)", r" \1", line))
     line = remove_accents(line)
     for element in line.split()[1:]:
         element = element.lower()
@@ -41,4 +44,6 @@ for line in lines:
             fail_test += True
 
 if fail_test:
-    raise Exception("Author check list failed.. have you added your name to the .AUTHOR file?")
+    raise Exception(
+        "Author check list failed.. have you added your name to the .AUTHOR file?"
+    )
