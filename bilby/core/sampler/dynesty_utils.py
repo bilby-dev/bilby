@@ -787,7 +787,7 @@ def _get_proposal_kwargs(args):
             )
         live = np.unique(live, axis=0)
         matches = np.where(np.equal(current_u, live).all(axis=1))[0]
-        np.delete(live, matches, 0)
+        live = np.delete(live, matches, 0)
 
     if isinstance(proposals, (list, set, tuple)):
         proposals = rstate.choice(proposals, int(walks))
