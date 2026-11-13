@@ -43,6 +43,10 @@ class Interferometer(object):
     minimum_frequency = PropertyAccessor("strain_data", "minimum_frequency")
     maximum_frequency = PropertyAccessor("strain_data", "maximum_frequency")
     frequency_mask = PropertyAccessor("strain_data", "frequency_mask")
+    time_mask = PropertyAccessor("strain_data", "time_mask")
+    crop_time = PropertyAccessor("strain_data", "crop_time")
+    cropped_duration = PropertyAccessor("strain_data", "cropped_duration")
+    cropped_frequency_mask = PropertyAccessor("strain_data", "cropped_frequency_mask")
     frequency_domain_strain = PropertyAccessor("strain_data", "frequency_domain_strain")
     time_domain_strain = PropertyAccessor("strain_data", "time_domain_strain")
 
@@ -703,17 +707,9 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float: The optimal signal-to-noise ratio squared of the signal
         """
-        mask = self.strain_data.frequency_mask
-        xp = array_module(signal)
-        return gwutils.optimal_snr_squared(
-            signal=signal * mask,
-            power_spectral_density=xp.where(
-                mask, self.power_spectral_density_array, xp.inf
-            ),
-            duration=self.strain_data.duration,
-        )
+        return (abs(self.whiten_frequency_series(signal)) ** 2).sum()
 
     def inner_product(self, signal):
         """
@@ -725,18 +721,13 @@ class Interferometer(object):
 
         Returns
         =======
-        float: The optimal signal to noise ratio possible squared
+        float:
+            The noise-weighted inner product between the passed signal
+            and the data stored in the :code:`Interferometer`.
         """
-        mask = self.strain_data.frequency_mask
-        xp = array_module(signal)
-        return gwutils.noise_weighted_inner_product(
-            aa=signal * mask,
-            bb=self.strain_data.frequency_domain_strain * mask,
-            power_spectral_density=xp.where(
-                mask, self.power_spectral_density_array, xp.inf
-            ),
-            duration=self.strain_data.duration,
-        )
+        whitened_signal = self.whiten_frequency_series(signal)
+        whitened_data = self.whitened_frequency_domain_strain
+        return (whitened_signal * whitened_data.conj()).sum()
 
     def template_template_inner_product(self, signal_1, signal_2):
         """A noise weighted inner product between two templates, using this ifo's PSD.
@@ -752,14 +743,9 @@ class Interferometer(object):
         =======
         float: The noise weighted inner product of the two templates
         """
-        return gwutils.noise_weighted_inner_product(
-            aa=signal_1[self.strain_data.frequency_mask],
-            bb=signal_2[self.strain_data.frequency_mask],
-            power_spectral_density=self.power_spectral_density_array[
-                self.strain_data.frequency_mask
-            ],
-            duration=self.strain_data.duration,
-        )
+        whitened_1 = self.whiten_frequency_series(signal_1)
+        whitened_2 = self.whiten_frequency_series(signal_2)
+        return (whitened_1 * whitened_2.conj()).sum()
 
     def matched_filter_snr(self, signal):
         """
@@ -774,16 +760,7 @@ class Interferometer(object):
         complex: The matched filter signal to noise ratio
 
         """
-        return gwutils.matched_filter_snr(
-            signal=signal[self.strain_data.frequency_mask],
-            frequency_domain_strain=self.strain_data.frequency_domain_strain[
-                self.strain_data.frequency_mask
-            ],
-            power_spectral_density=self.power_spectral_density_array[
-                self.strain_data.frequency_mask
-            ],
-            duration=self.strain_data.duration,
-        )
+        return self.inner_product(signal) / self.optimal_snr_squared(signal) ** 0.5
 
     def whiten_frequency_series(self, frequency_series: np.array) -> np.array:
         """Whitens a frequency series with the noise properties of the detector
@@ -804,20 +781,33 @@ class Interferometer(object):
         frequency_series : np.array
             The frequency series, whitened by the ASD
         """
-        return frequency_series / (
-            self.amplitude_spectral_density_array * (self.duration / 4) ** 0.5
-        )
+        if self.crop_time == 0:
+            return gwutils.frequency_domain_whiten(
+                frequency_series=frequency_series,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                duration=self.duration,
+            )
+        else:
+            return gwutils.whiten_and_crop(
+                frequency_series=frequency_series,
+                amplitude_spectral_density=self.amplitude_spectral_density_array,
+                frequency_mask=self.frequency_mask,
+                time_mask=self.time_mask,
+                duration=self.duration,
+            )
 
     def get_whitened_time_series_from_whitened_frequency_series(
         self, whitened_frequency_series: np.array
     ) -> np.array:
         """Gets the whitened time series from a whitened frequency series.
 
-        This ifft's and also applies a windowing factor,
-        since when f_min and f_max are set bilby applies a mask to the series.
+        This ifft's and also applies a windowing factor in both the time and frequency
+        domains. Due to f_min and f_max being applied as a mask to the series.
+        There is also the generic time-domain window.
 
-        Per 6.2a-b in https://arxiv.org/pdf/gr-qc/0509116 since our window
-        is just a band pass,
+        For the frequency domain, per 6.2a-b in https://arxiv.org/pdf/gr-qc/0509116
+        since our window is just a band pass,
         this coefficient is :math:`w/W` where
 
         .. math::
@@ -835,6 +825,8 @@ class Interferometer(object):
         .. math::
             w = \\sqrt{N W} = \\sqrt{\\sum_{k=0}^N \\Theta(f_{max} - f_k)\\Theta(f_k - f_{min})}
 
+        For the time domain, we have a tukey window, so we need to use the regular expression.
+
         """
         xp = array_module(whitened_frequency_series)
 
@@ -844,6 +836,7 @@ class Interferometer(object):
             xp.fft.irfft(whitened_frequency_series)
             * self.frequency_mask.sum() ** 0.5
             / frequency_window_factor
+            * (self.time_mask**2).mean() ** 0.5
         )
 
         return whitened_time_series
