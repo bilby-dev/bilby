@@ -2603,9 +2603,7 @@ def compute_snrs(sample, likelihood, npool=1, pool=None):
     """
     if likelihood is not None:
         if isinstance(sample, dict):
-            signal_polarizations = (
-                likelihood.waveform_generator.frequency_domain_strain(sample.copy())
-            )
+            signal_polarizations = likelihood.waveform_polarizations(sample.copy())
             for ifo in likelihood.interferometers:
                 per_detector_snr = likelihood.calculate_snrs(
                     signal_polarizations, ifo, parameters=sample
@@ -2654,9 +2652,7 @@ def _compute_snrs(args):
     likelihood = sampling_convenience_dump.likelihood
     ii, sample = args
     sample = dict(sample).copy()
-    signal_polarizations = likelihood.waveform_generator.frequency_domain_strain(
-        sample.copy()
-    )
+    signal_polarizations = likelihood.waveform_polarizations(sample.copy())
     snrs = list()
     for ifo in likelihood.interferometers:
         snrs.append(

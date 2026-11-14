@@ -470,5 +470,170 @@ class TriangularInterferometerTest(unittest.TestCase):
         self.assertLess(float(self.xp.max(self.xp.abs(total))), 1e-10)
 
 
+class TestInterferometerListTimeDomain(unittest.TestCase):
+    def setUp(self):
+        self.gps_start = 1126259640.0
+        self.sky = dict(ra=1.375, dec=-1.2108, psi=2.659)
+        self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.ifos.set_strain_data_from_zero_noise(
+            sampling_frequency=1024.0, duration=8, start_time=self.gps_start
+        )
+
+    def tearDown(self):
+        del self.ifos
+
+    @staticmethod
+    def _burst_at_model_times():
+        def polarizations_at(times):
+            envelope = 1e-21 * np.exp(-((np.asarray(times) / 0.04) ** 2))
+            return dict(
+                plus=envelope * np.cos(2 * np.pi * 150 * np.asarray(times)),
+                cross=envelope * np.sin(2 * np.pi * 150 * np.asarray(times)),
+            )
+
+        return dict(polarizations_at=polarizations_at)
+
+    def test_imr_windows_are_the_same_in_every_interferometer(self):
+        self.ifos.set_analysis_windows(duration=2, start_time=self.gps_start + 3)
+        for ifo in self.ifos:
+            self.assertEqual(
+                (ifo.analysis_start_time, ifo.analysis_duration),
+                (self.gps_start + 3, 2),
+            )
+            self.assertIsNone(ifo.analysis_cut_time)
+            self.assertEqual(
+                ifo.meta_data["analysis_window"]["analysis_segment"], "imr"
+            )
+
+    def test_cut_time_includes_the_detector_time_delay(self):
+        reference = dict(self.sky, geocent_time=self.gps_start + 4.3)
+        self.ifos.set_analysis_windows(
+            duration=1,
+            analysis_segment="inspiral",
+            segment_cut_time=-0.01,
+            cut_reference_parameters=reference,
+        )
+        for ifo in self.ifos:
+            delay = ifo.time_delay_from_geocenter(
+                reference["ra"], reference["dec"], reference["geocent_time"]
+            )
+            self.assertAlmostEqual(
+                ifo.analysis_cut_time,
+                reference["geocent_time"] - 0.01 + delay,
+                places=9,
+            )
+            self.assertAlmostEqual(
+                ifo.analysis_start_time, ifo.analysis_cut_time - 1, places=9
+            )
+            self.assertEqual(
+                ifo.meta_data["analysis_window"]["segment_cut_time"], -0.01
+            )
+
+    def test_inspiral_and_post_inspiral_windows_meet_at_the_cut(self):
+        """For cuts on and off the sample grid, the inspiral window ends where the
+        post-inspiral window starts, at the sample nearest the cut"""
+        for fraction in [0.0, 0.3, 0.5001, 0.7]:
+            reference = dict(
+                self.sky, geocent_time=self.gps_start + 4 + fraction / 1024
+            )
+            slices, cuts = dict(), dict()
+            for segment in ["inspiral", "post_inspiral"]:
+                self.ifos.set_analysis_windows(
+                    duration=1,
+                    analysis_segment=segment,
+                    segment_cut_time=0.0,
+                    cut_reference_parameters=reference,
+                )
+                slices[segment] = [ifo.analysis_slice for ifo in self.ifos]
+                cuts[segment] = [ifo.analysis_cut_time for ifo in self.ifos]
+            for ifo, inspiral, post_inspiral, cut in zip(
+                self.ifos, slices["inspiral"], slices["post_inspiral"], cuts["inspiral"]
+            ):
+                self.assertEqual(inspiral.stop, post_inspiral.start)
+                self.assertEqual(inspiral.stop - inspiral.start, 1024)
+                self.assertLessEqual(
+                    abs(ifo.time_array[post_inspiral.start] - cut), 0.5 / 1024 + 1e-9
+                )
+
+    def test_unknown_analysis_segment_raises(self):
+        with self.assertRaises(ValueError):
+            self.ifos.set_analysis_windows(
+                duration=1, start_time=self.gps_start, analysis_segment="ringdown"
+            )
+
+    def test_strain_data_start_times_may_differ_with_time_domain_windows(self):
+        h1, l1 = self.ifos
+        l1.set_strain_data_from_zero_noise(
+            sampling_frequency=1024.0, duration=8, start_time=self.gps_start + 3
+        )
+        h1.set_analysis_window(self.gps_start + 4, 2)
+        l1.set_analysis_window(self.gps_start + 4.5, 2)
+        bilby.gw.detector.InterferometerList([h1, l1])
+        h1.analysis_duration = None
+        with self.assertRaises(ValueError):
+            bilby.gw.detector.InterferometerList([h1, l1])
+
+    def test_interferometers_without_window_attributes(self):
+        ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        del (
+            ifo.analysis_duration
+        )  # e.g. unpickled from an older bilby: the class default is used
+        bilby.gw.detector.InterferometerList([ifo])
+
+    def test_set_autocovariance_functions(self):
+        self.ifos.set_analysis_windows(duration=2, start_time=self.gps_start + 3)
+        self.ifos.set_autocovariance_functions_from_power_spectral_densities(
+            fill_multiplier=10
+        )
+        for ifo in self.ifos:
+            self.assertIsNotNone(ifo.gohberg_semencul_vectors)
+            self.assertEqual(
+                ifo.meta_data["autocovariance_function"]["fill_multiplier"], 10
+            )
+
+    def test_time_domain_injection(self):
+        self.ifos.set_analysis_windows(duration=2, start_time=self.gps_start + 3)
+        self.ifos.set_autocovariance_functions_from_power_spectral_densities()
+        parameters = dict(self.sky, geocent_time=self.gps_start + 4.3)
+        polarizations = self.ifos.inject_signal(
+            parameters=parameters,
+            injection_polarizations=self._burst_at_model_times(),
+            domain="time",
+            placement="model_time",
+        )
+        self.assertEqual(len(polarizations), 2)
+        for ifo in self.ifos:
+            self.assertGreater(ifo.meta_data["optimal_SNR"], 0)
+            self.assertEqual(ifo.meta_data["injection_placement"], "model_time")
+
+    def test_time_domain_injection_errors(self):
+        self.ifos.set_analysis_windows(duration=2, start_time=self.gps_start + 3)
+        self.ifos.set_autocovariance_functions_from_power_spectral_densities()
+        parameters = dict(self.sky, geocent_time=self.gps_start + 4.3)
+        generator = bilby.gw.WaveformGenerator(
+            duration=8,
+            sampling_frequency=2048,
+            time_domain_source_model=lambda time_array: dict(),
+        )
+        for kwargs in [
+            dict(domain="time"),
+            dict(waveform_generator=generator, domain="time"),
+            dict(
+                injection_polarizations=self._burst_at_model_times(),
+                domain="time",
+                raise_error=False,
+            ),
+            dict(
+                injection_polarizations=self._burst_at_model_times(), domain="wavelet"
+            ),
+            dict(
+                injection_polarizations=dict(plus=np.zeros(4097, dtype=complex)),
+                placement="fd_shift",
+            ),
+        ]:
+            with self.assertRaises(ValueError):
+                self.ifos.inject_signal(parameters=parameters, **kwargs)
+
+
 if __name__ == "__main__":
     unittest.main()
