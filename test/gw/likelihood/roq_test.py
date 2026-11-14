@@ -514,6 +514,7 @@ class TestROQLikelihoodHDF5(unittest.TestCase, ROQBasisMixin):
             duration=self.duration,
             start_time=self.injection_parameters["geocent_time"] - self.duration + 1,
         )
+        interferometers.array_backend = self.xp
         for ifo in interferometers:
             ifo.minimum_frequency = self.minimum_frequency
 

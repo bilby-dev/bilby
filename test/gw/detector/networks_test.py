@@ -3,6 +3,7 @@ from unittest import mock
 from shutil import rmtree
 from itertools import combinations
 
+import array_api_compat as aac
 import numpy as np
 import pytest
 
@@ -468,6 +469,46 @@ class TriangularInterferometerTest(unittest.TestCase):
         """
         total = sum(ifo.detector_tensor for ifo in self.triangular_ifo)
         self.assertLess(float(self.xp.max(self.xp.abs(total))), 1e-10)
+
+
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
+class TestInterferometerListArrayBackendBeforeData(unittest.TestCase):
+    def setUp(self):
+        self.sampling_frequency = 2048
+        self.duration = 4
+        self.ifo_list = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.ifo_list.array_backend = self.xp
+
+    def tearDown(self):
+        del self.sampling_frequency
+        del self.duration
+        del self.ifo_list
+
+    def _check_strain_data_array_backend(self):
+        for ifo in self.ifo_list:
+            for name in [
+                "frequency_domain_strain",
+                "time_domain_strain",
+                "frequency_array",
+                "time_array",
+                "frequency_mask",
+                "power_spectral_density_array",
+            ]:
+                with self.subTest(":".join((ifo.name, name))):
+                    self.assertEqual(aac.get_namespace(getattr(ifo, name)), self.xp)
+
+    def test_set_strain_data_from_power_spectral_densities(self):
+        self.ifo_list.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=self.sampling_frequency, duration=self.duration
+        )
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_zero_noise(self):
+        self.ifo_list.set_strain_data_from_zero_noise(
+            sampling_frequency=self.sampling_frequency, duration=self.duration
+        )
+        self._check_strain_data_array_backend()
 
 
 if __name__ == "__main__":

@@ -227,6 +227,9 @@ and the analysis is then performed using the JIT-compiled likelihood.
     Some array backends (notably :code:`torch`) are more picky than others about data types.
     For maximal consistency, try to consistently pass zero-dimensional arrays rather than :code:`Python`
     scalars, e.g., :code:`torch.array(1.0)` instead of :code:`1.0`.
+    When using :code:`torch`, set the default data type to double precision with
+    :code:`torch.set_default_dtype(torch.float64)` before creating any :code:`Bilby` objects.
+    Single precision is not sufficient to represent GPS times.
 
 Performance Considerations
 --------------------------
