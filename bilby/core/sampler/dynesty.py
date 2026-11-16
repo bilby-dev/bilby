@@ -490,17 +490,24 @@ class Dynesty(NestedSampler):
         if self.resume:
             logger.info("Resume file successfully loaded.")
         else:
+            log_volume = 0.0
             if self.kwargs["live_points"] is None:
-                self.kwargs["live_points"] = self.get_initial_points_from_prior(
-                    self.nlive, random_state=self.kwargs["rstate"]
+                *live_points, log_volume = self.get_initial_points_from_prior(
+                    self.nlive,
+                    random_state=self.kwargs["rstate"],
+                    return_log_volume=True,
                 )
-                self.kwargs["live_points"] = (*self.kwargs["live_points"], None)
+                self.kwargs["live_points"] = (*live_points, None)
             self.sampler = self.sampler_init(
                 loglikelihood=_log_likelihood_wrapper,
                 prior_transform=_prior_transform_wrapper,
                 ndim=self.ndim,
                 **self.sampler_init_kwargs,
             )
+            # dynesty assumes provided live points fill the prior volume, so
+            # account for the draws rejected for an infinite likelihood.
+            # This requires dynesty>=3.2 and is reset by DynamicNestedSampler.
+            self.sampler.logvol_init = log_volume
         if self.print_method == "tqdm" and self.kwargs["print_progress"]:
             from tqdm.auto import tqdm
 
