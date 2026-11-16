@@ -1,4 +1,5 @@
 from . import utils
+from ..compat.utils import array_module
 
 
 class CoupledTimeAndFrequencySeries:
@@ -142,3 +143,26 @@ class CoupledTimeAndFrequencySeries:
     def start_time(self, start_time):
         self._start_time = start_time
         self._time_array_updated = False
+
+    @property
+    def array_backend(self):
+        return array_module(self.frequency_array)
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        """Set the array backend for the time and frequency arrays
+
+        Parameters
+        ==========
+        xp: module
+            The array backend to use for the time and frequency arrays
+
+        """
+        if self._sampling_frequency is not None:
+            self._sampling_frequency = xp.asarray(self._sampling_frequency)
+        if self._duration is not None:
+            self._duration = xp.asarray(self._duration)
+        if self._frequency_array is not None:
+            self._frequency_array = xp.asarray(self._frequency_array)
+        if self._time_array is not None:
+            self._time_array = xp.asarray(self._time_array)

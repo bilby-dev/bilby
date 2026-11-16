@@ -6,7 +6,9 @@ import lalsimulation
 import pytest
 from shutil import rmtree
 
+import array_api_compat as aac
 import numpy as np
+from gwpy.timeseries import TimeSeries
 
 import bilby
 
@@ -708,3 +710,156 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         )
         whitened_td = self.ifo.whitened_time_domain_strain - whitened_signal_ifo_td
         self._check_time_series_whiteness(whitened_td)
+
+
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
+class TestInterferometerArrayBackend(unittest.TestCase):
+    """
+    Test setting the array backend converts existing strain data.
+
+    The values are checked as well as the namespace, as a setter that rebuilds
+    a cached array, or drops the frequency mask, would return an array in the
+    correct backend with the wrong contents.
+    """
+
+    def setUp(self):
+        self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        self.ifo.set_strain_data_from_power_spectral_density(
+            sampling_frequency=2048, duration=4
+        )
+        self.frequency_domain_strain = self.ifo.frequency_domain_strain
+        self.time_domain_strain = self.ifo.time_domain_strain
+        self.frequency_array = self.ifo.frequency_array
+        self.time_array = self.ifo.time_array
+        self.frequency_mask = self.ifo.frequency_mask
+        self.power_spectral_density_array = self.ifo.power_spectral_density_array
+        self.ifo.array_backend = self.xp
+
+    def tearDown(self):
+        del self.ifo
+        del self.frequency_domain_strain
+        del self.time_domain_strain
+        del self.frequency_array
+        del self.time_array
+        del self.frequency_mask
+        del self.power_spectral_density_array
+
+    def test_frequency_domain_strain_backend(self):
+        self.assertTrue(
+            np.array_equal(
+                self.ifo.frequency_domain_strain, self.frequency_domain_strain
+            )
+        )
+        self.assertEqual(aac.get_namespace(self.ifo.frequency_domain_strain), self.xp)
+
+    def test_time_domain_strain_backend(self):
+        self.assertTrue(
+            np.array_equal(self.ifo.time_domain_strain, self.time_domain_strain)
+        )
+        self.assertEqual(aac.get_namespace(self.ifo.time_domain_strain), self.xp)
+
+    def test_frequency_array_backend(self):
+        self.assertTrue(np.array_equal(self.ifo.frequency_array, self.frequency_array))
+        self.assertEqual(aac.get_namespace(self.ifo.frequency_array), self.xp)
+
+    def test_time_array_backend(self):
+        self.assertTrue(np.array_equal(self.ifo.time_array, self.time_array))
+        self.assertEqual(aac.get_namespace(self.ifo.time_array), self.xp)
+
+    def test_frequency_mask_backend(self):
+        self.assertTrue(np.array_equal(self.ifo.frequency_mask, self.frequency_mask))
+        self.assertEqual(aac.get_namespace(self.ifo.frequency_mask), self.xp)
+
+    def test_power_spectral_density_array_backend(self):
+        self.assertTrue(
+            np.allclose(
+                self.ifo.power_spectral_density_array,
+                self.power_spectral_density_array,
+            )
+        )
+        self.assertEqual(
+            aac.get_namespace(self.ifo.power_spectral_density_array), self.xp
+        )
+
+
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
+class TestInterferometerArrayBackendBeforeData(unittest.TestCase):
+    def setUp(self):
+        self.sampling_frequency = 2048
+        self.duration = 4
+        self.channel = "H1:TEST"
+        self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        self.ifo.array_backend = self.xp
+        self.time_series = TimeSeries(
+            np.random.normal(size=self.sampling_frequency * self.duration),
+            sample_rate=self.sampling_frequency,
+            t0=0,
+            name=self.channel,
+            channel=self.channel,
+        )
+        self.outdir = "outdir"
+        bilby.core.utils.check_directory_exists_and_if_not_mkdir(self.outdir)
+
+    def tearDown(self):
+        del self.sampling_frequency
+        del self.duration
+        del self.channel
+        del self.ifo
+        del self.time_series
+        rmtree(self.outdir)
+
+    def _check_strain_data_array_backend(self):
+        for name in [
+            "frequency_domain_strain",
+            "time_domain_strain",
+            "frequency_array",
+            "time_array",
+            "frequency_mask",
+            "power_spectral_density_array",
+        ]:
+            with self.subTest(name):
+                self.assertEqual(aac.get_namespace(getattr(self.ifo, name)), self.xp)
+
+    def test_set_strain_data_from_power_spectral_density(self):
+        self.ifo.set_strain_data_from_power_spectral_density(
+            sampling_frequency=self.sampling_frequency, duration=self.duration
+        )
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_zero_noise(self):
+        self.ifo.set_strain_data_from_zero_noise(
+            sampling_frequency=self.sampling_frequency, duration=self.duration
+        )
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_frequency_domain_strain(self):
+        self.ifo.set_strain_data_from_frequency_domain_strain(
+            np.ones(4097, dtype=complex),
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+        )
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_gwpy_timeseries(self):
+        self.ifo.set_strain_data_from_gwpy_timeseries(self.time_series)
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_csv(self):
+        filename = "{}/test.csv".format(self.outdir)
+        self.time_series.write(filename, format="csv")
+        self.ifo.set_strain_data_from_csv(filename)
+        self._check_strain_data_array_backend()
+
+    def test_set_strain_data_from_frame_file(self):
+        filename = "{}/test.gwf".format(self.outdir)
+        self.time_series.write(filename, format="gwf")
+        self.ifo.set_strain_data_from_frame_file(
+            filename,
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            channel=self.channel,
+            buffer_time=0,
+        )
+        self._check_strain_data_array_backend()
