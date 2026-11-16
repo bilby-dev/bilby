@@ -5,6 +5,14 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+### Fixes
+
+* Fix the `dynesty` progress output with `dynesty` 3.2.0 by removing the running evidence uncertainty, which `dynesty` 3.2.0 no longer provides. The final `log_evidence_err` is unaffected.
+
+### Removed
+
+* Remove support for reflective prior boundary conditions, as they do not preserve detailed balance, following their removal in `dynesty` 3.2.0. This affects the `dynesty`, `bilby_mcmc`, and `bilby.core.sampler.proposal` implementations. Setting `boundary="reflective"` now emits a warning and sets the boundary to `None`, so that existing prior files and results can still be read. The calibration priors from `CalibrationPriorDict.from_envelope_file` and `CalibrationPriorDict.constant_uncertainty_spline` now default to `boundary=None`. `bilby.core.utils.reflect` has been removed.
+
 ## [3.0.0b1]
 
 This is the first beta release of Bilby version 3.

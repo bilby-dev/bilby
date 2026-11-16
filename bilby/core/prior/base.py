@@ -50,8 +50,11 @@ class Prior(object):
         check_range_nonzero: boolean, optional
             If True, checks that the prior range is non-zero
         boundary: str, optional
-            The boundary condition of the prior, can be 'periodic', 'reflective'
-            Currently implemented in cpnest, dynesty and pymultinest.
+            The boundary condition of the prior, can be 'periodic' or None.
+            Of the bundled samplers, periodic boundaries are implemented in
+            bilby_mcmc and dynesty. Reflective boundaries are no longer
+            supported, :code:`'reflective'` is converted to None with a
+            warning.
         """
         if check_range_nonzero and maximum <= minimum:
             raise ValueError(
@@ -367,7 +370,18 @@ class Prior(object):
 
     @boundary.setter
     def boundary(self, boundary):
-        if boundary not in ["periodic", "reflective", None]:
+        if boundary == "reflective":
+            # Kept so that existing prior files and results can still be read.
+            # The message is fixed so the warning is only shown once.
+            warnings.warn(
+                "Reflective boundary conditions are no longer supported as they "
+                "do not preserve detailed balance, setting the prior boundary to "
+                "None.",
+                UserWarning,
+                stacklevel=2,
+            )
+            boundary = None
+        if boundary not in ["periodic", None]:
             raise ValueError(
                 "{} is not a valid setting for prior boundaries".format(boundary)
             )

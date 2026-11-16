@@ -66,7 +66,7 @@ class TestRunningSamplers(unittest.TestCase):
 
         self.priors = bilby.core.prior.PriorDict()
         self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")
-        self.priors["c"] = bilby.core.prior.Uniform(-2, 2, boundary="reflective")
+        self.priors["c"] = bilby.core.prior.Uniform(-2, 2)
         self._remove_tree()
         bilby.core.utils.check_directory_exists_and_if_not_mkdir("outdir")
 
