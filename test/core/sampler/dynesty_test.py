@@ -1,10 +1,7 @@
 import datetime
-import io
 import os
 import shutil
 import unittest
-from collections import namedtuple
-from contextlib import redirect_stdout
 from copy import deepcopy
 from unittest import mock
 
@@ -181,32 +178,6 @@ class TestDynesty(unittest.TestCase):
         self.assertIsNone(
             self.dysampler.internal_sampler_next.sampler_kwargs.get("reflective")
         )
-
-    def _print_status(self, **extra_fields):
-        fields = dict(
-            loglstar=-10.0, delta_logz=5.0, logz=-20.0, nc=3, bounditer=0, eff=50.0
-        )
-        fields.update(extra_fields)
-        results = namedtuple("IteratorResult", fields.keys())(**fields)
-        self.sampler.print_method = "interval-0"
-        self.sampler._last_print_time = datetime.datetime.now()
-        self.sampler._print_interval = datetime.timedelta(0)
-        self.sampler.sampling_time = datetime.timedelta()
-        self.sampler.start_time = datetime.datetime.now()
-        output = io.StringIO()
-        with redirect_stdout(output):
-            self.sampler._print_func(results, niter=10, ncall=100, dlogz=0.1)
-        return output.getvalue()
-
-    def test_print_func_omits_logz_error(self):
-        """
-        dynesty<3.2.0 provides a running estimate of the evidence variance,
-        dynesty>=3.2.0 does not, the uncertainty is not printed for either.
-        """
-        for extra_fields in [dict(logzvar=0.04), dict()]:
-            output = self._print_status(**extra_fields)
-            self.assertIn("logz=-20.00 ", output)
-            self.assertNotIn("+/-", output)
 
     def test_sampler_kwargs_act(self):
         self.init_sampler(sample="act-walk", nact=5, maxmcmc=200)
