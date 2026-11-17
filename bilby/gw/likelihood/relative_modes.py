@@ -484,13 +484,16 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
 
         .. math::
 
-            \langle h|d \rangle = \sum_{m,p} F_p \sum_j D_{m,j} h_{m,p}^*(f_j)
+            h_m(f_j) = \sum_p F_p h_{m,p}(f_j)
 
-            \langle h|h \rangle = \mathrm{Re} \sum_{m \leq m'} \sum_{p,p'}
-            F_p F_{p'} \sum_j H_{mm',j} h_{m,p}(f_j) h_{m',p'}^*(f_j)
+            \langle h|d \rangle = \sum_m \sum_j D_{m,j} h_m^*(f_j)
 
-        with :math:`F_p` the antenna pattern of polarization p and
+            \langle h|h \rangle = \mathrm{Re} \sum_{m \leq m'}
+            \sum_j H_{mm',j} h_m(f_j) h_{m'}^*(f_j)
+
+        with :math:`F_p` the antenna pattern of polarization p,
         :math:`h_{m,p}` harmonic m of polarization p, time shifted to the
+        interferometer, and :math:`h_m` harmonic m of the strain in the
         interferometer.
 
         Parameters
@@ -532,19 +535,15 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         d_inner_h_weights, h_inner_h_weights = self.summary_data[interferometer.name]
         m_inds, mprime_inds = self.harmonic_pairs
 
-        d_inner_h = np.einsum(
-            "p,mj,pmj->",
-            antenna_pattern,
-            d_inner_h_weights,
-            waveform_per_polarization.conj(),
+        # The antenna patterns are real, so the polarizations are summed first,
+        # once, into the strain of each harmonic, of shape (harmonics, bin edges)
+        strain = (antenna_pattern[:, None, None] * waveform_per_polarization).sum(
+            axis=0
         )
-        strain = np.einsum("p,pmj->pmj", antenna_pattern, waveform_per_polarization)
-        h_inner_h = np.einsum(
-            "kj,pkj,qkj->",
-            h_inner_h_weights,
-            strain[:, m_inds],
-            strain[:, mprime_inds].conj(),
-        ).real
+        d_inner_h = (d_inner_h_weights * strain.conj()).sum()
+        h_inner_h = (
+            (h_inner_h_weights * strain[m_inds] * strain[mprime_inds].conj()).sum().real
+        )
         optimal_snr_squared = h_inner_h
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
