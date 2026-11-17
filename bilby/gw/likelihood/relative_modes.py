@@ -5,6 +5,7 @@ import scipy.interpolate
 import scipy.sparse
 
 from .relative import RelativeBinningGravitationalWaveTransient
+from ...compat.utils import array_module
 from ...core import utils
 from ..conversion import (
     bilby_to_lalsimulation_spins,
@@ -458,6 +459,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         waveform_per_polarization: array_like
             Of shape (2, number of harmonics, number of bin edges), plus first.
         """
+        xp = array_module(waveform_polarizations)
+        frequencies = xp.asarray(self.bin_freqs)
         time_shift = interferometer.time_delay_from_geocenter(
             parameters["ra"], parameters["dec"], parameters["geocent_time"]
         )
@@ -466,12 +469,12 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
             - interferometer.strain_data.start_time
             + time_shift
         )
-        response = np.exp(-2j * np.pi * dt * self.bin_freqs)
+        response = xp.exp(-1j * 2 * np.pi * dt * frequencies)
         response = response * interferometer.calibration_model.get_calibration_factor(
-            self.bin_freqs, prefix=f"recalib_{interferometer.name}_", **parameters
+            frequencies, prefix=f"recalib_{interferometer.name}_", xp=xp, **parameters
         )
         return (
-            np.array([waveform_polarizations["plus"], waveform_polarizations["cross"]])
+            xp.stack([waveform_polarizations["plus"], waveform_polarizations["cross"]])
             * response
         )
 
@@ -520,14 +523,17 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
             antenna_time = parameters["geocent_time"]
         else:
             antenna_time = interferometer.reference_time
-        antenna_pattern = np.array(
+        xp = array_module(waveform_per_polarization)
+        antenna_pattern = xp.stack(
             [
-                interferometer.antenna_response(
-                    parameters["ra"],
-                    parameters["dec"],
-                    antenna_time,
-                    parameters["psi"],
-                    mode,
+                xp.asarray(
+                    interferometer.antenna_response(
+                        parameters["ra"],
+                        parameters["dec"],
+                        antenna_time,
+                        parameters["psi"],
+                        mode,
+                    )
                 )
                 for mode in ["plus", "cross"]
             ]
