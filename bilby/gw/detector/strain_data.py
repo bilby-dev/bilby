@@ -176,6 +176,28 @@ class InterferometerStrainData(object):
         self._frequency_mask_updated = True
 
     @property
+    def array_backend(self):
+        return array_module(self.frequency_array)
+
+    @array_backend.setter
+    def array_backend(self, xp):
+        """Set the array backend for the strain data and cached arrays
+
+        Parameters
+        ==========
+        xp: module
+            The array backend to use for the strain data and cached arrays
+
+        """
+        self._times_and_frequencies.array_backend = xp
+        if self._time_domain_strain is not None:
+            self._time_domain_strain = xp.asarray(self._time_domain_strain)
+        if self._frequency_domain_strain is not None:
+            self._frequency_domain_strain = xp.asarray(self._frequency_domain_strain)
+        if self._frequency_mask is not None:
+            self._frequency_mask = xp.asarray(self._frequency_mask)
+
+    @property
     def alpha(self):
         return 2 * self.roll_off / self.duration
 
@@ -755,8 +777,7 @@ class InterferometerStrainData(object):
         )
 
         xp = aac.array_namespace(frequency_domain_strain)
-        self._frequency_array = xp.asarray(self.frequency_array)
-        self._time_array = xp.asarray(self.time_array)
+        self._times_and_frequencies.array_backend = xp
 
         if (
             self.duration == duration

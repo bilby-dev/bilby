@@ -157,9 +157,11 @@ class Interferometer(object):
             The data to set.
         xp: array module, optional
             The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
-            If not specified :code:`numpy` will be used.
+            If not specified, the interferometer's array backend is used.
 
         """
+        if xp is None:
+            xp = self.array_backend
         self.strain_data.set_from_gwpy_timeseries(time_series=time_series, xp=xp)
 
     def set_strain_data_from_frequency_domain_strain(
@@ -194,6 +196,7 @@ class Interferometer(object):
             start_time=start_time,
             frequency_array=frequency_array,
         )
+        self.strain_data.array_backend = self.array_backend
 
     def set_strain_data_from_power_spectral_density(
         self, sampling_frequency, duration, start_time=0, *, random_state=None
@@ -214,10 +217,11 @@ class Interferometer(object):
             The GPS start-time of the data
 
         """
+        xp = self.array_backend
         self.strain_data.set_from_power_spectral_density(
             self.power_spectral_density,
-            sampling_frequency=sampling_frequency,
-            duration=duration,
+            sampling_frequency=xp.asarray(sampling_frequency),
+            duration=xp.asarray(duration),
             start_time=start_time,
             random_state=random_state,
         )
@@ -252,9 +256,11 @@ class Interferometer(object):
             `start_time+duration+buffer_time`
         xp: array module, optional
             The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
-            If not specified :code:`numpy` will be used.
+            If not specified, the interferometer's array backend is used.
 
         """
+        if xp is None:
+            xp = self.array_backend
         self.strain_data.set_from_frame_file(
             frame_file=frame_file,
             sampling_frequency=sampling_frequency,
@@ -284,9 +290,11 @@ class Interferometer(object):
             The GPS start-time of the data
         xp: array module, optional
             The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
-            If not specified :code:`numpy` will be used.
+            If not specified, the interferometer's array backend is used.
 
         """
+        if xp is None:
+            xp = self.array_backend
         self.strain_data.set_from_channel_name(
             channel=channel,
             sampling_frequency=sampling_frequency,
@@ -304,9 +312,11 @@ class Interferometer(object):
             The path to the file to read in
         xp: array module, optional
             The array module to use, e.g., :code:`numpy` or :code:`jax.numpy`.
-            If not specified :code:`numpy` will be used.
+            If not specified, the interferometer's array backend is used.
 
         """
+        if xp is None:
+            xp = self.array_backend
         self.strain_data.set_from_csv(filename, xp=xp)
 
     def set_strain_data_from_zero_noise(
@@ -325,9 +335,10 @@ class Interferometer(object):
 
         """
 
+        xp = self.array_backend
         self.strain_data.set_from_zero_noise(
-            sampling_frequency=sampling_frequency,
-            duration=duration,
+            sampling_frequency=xp.asarray(sampling_frequency),
+            duration=xp.asarray(duration),
             start_time=start_time,
         )
 
@@ -1106,3 +1117,4 @@ class Interferometer(object):
     def array_backend(self, xp):
         self.geometry.array_backend = xp
         self.power_spectral_density.array_backend = xp
+        self.strain_data.array_backend = xp
