@@ -187,6 +187,17 @@ class TestModeByModeRelativeBinningLikelihood(unittest.TestCase):
         np.testing.assert_allclose([spin_1x, spin_1y, spin_2x, spin_2y], 0, atol=1e-12)
         self.assertAlmostEqual(iota, 1)
 
+    def test_bins_end_where_fiducial_harmonics_end(self):
+        _, _, by_mode, _ = make_likelihoods(200, 0.5, PRECESSING_SPINS, epsilon=0.5)
+        frequency_array = by_mode.waveform_generator.frequency_array
+        plus = by_mode.fiducial_polarizations["plus"]
+        last_nonzero = frequency_array[np.where(np.all(plus != 0, axis=0))[0][-1]]
+        self.assertLess(last_nonzero, frequency_array[-1])
+        self.assertEqual(by_mode.maximum_frequency, last_nonzero)
+        self.assertLessEqual(by_mode.bin_freqs[-1], last_nonzero)
+        for waveforms in by_mode.per_detector_fiducial_mode_waveforms.values():
+            self.assertTrue(np.all(waveforms[:, by_mode.bin_inds] != 0))
+
     def test_time_marginalization_not_supported(self):
         with self.assertRaises(NotImplementedError):
             bilby.gw.likelihood.ModeByModeRelativeBinningGravitationalWaveTransient(
