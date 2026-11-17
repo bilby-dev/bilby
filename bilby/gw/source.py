@@ -1064,8 +1064,8 @@ def lal_binary_black_hole_relative_binning_by_mode(
     """Source model to go with ModeByModeRelativeBinningGravitationalWaveTransient likelihood.
 
     The waveform is returned separately for each azimuthal index m of the
-    co-precessing modes, summed over l. Each mode is generated with its own
-    call to lalsimulation, with a mode array holding only that mode.
+    co-precessing modes, summed over l. The modes that share m are generated
+    together, with one call to lalsimulation per m.
 
     All parameters are the same as in the usual source models, except `fiducial`
 
@@ -1085,35 +1085,33 @@ def lal_binary_black_hole_relative_binning_by_mode(
         first appearance in `mode_array`. None if any waveform call fails.
     """
     mode_array = kwargs.pop("mode_array", [[2, 2], [2, 1], [3, 3], [3, 2], [4, 4]])
+    # Dictionary with m as keys and lists of the (l, m) modes with that m as values
     modes_by_m = dict()
     for mode in mode_array:
         modes_by_m.setdefault(int(mode[1]), []).append(mode)
 
     plus, cross = list(), list()
     for modes in modes_by_m.values():
-        plus.append(0)
-        cross.append(0)
-        for mode in modes:
-            polarizations = lal_binary_black_hole_relative_binning(
-                frequency_array=frequency_array,
-                mass_1=mass_1,
-                mass_2=mass_2,
-                luminosity_distance=luminosity_distance,
-                a_1=a_1,
-                tilt_1=tilt_1,
-                phi_12=phi_12,
-                a_2=a_2,
-                tilt_2=tilt_2,
-                phi_jl=phi_jl,
-                theta_jn=theta_jn,
-                phase=phase,
-                mode_array=[mode],
-                **kwargs,
-            )
-            if polarizations is None:
-                return None
-            plus[-1] = plus[-1] + polarizations["plus"]
-            cross[-1] = cross[-1] + polarizations["cross"]
+        polarizations = lal_binary_black_hole_relative_binning(
+            frequency_array=frequency_array,
+            mass_1=mass_1,
+            mass_2=mass_2,
+            luminosity_distance=luminosity_distance,
+            a_1=a_1,
+            tilt_1=tilt_1,
+            phi_12=phi_12,
+            a_2=a_2,
+            tilt_2=tilt_2,
+            phi_jl=phi_jl,
+            theta_jn=theta_jn,
+            phase=phase,
+            mode_array=modes,
+            **kwargs,
+        )
+        if polarizations is None:
+            return None
+        plus.append(polarizations["plus"])
+        cross.append(polarizations["cross"])
     return dict(plus=np.array(plus), cross=np.array(cross))
 
 
