@@ -10,6 +10,9 @@ class TestDynamicDynesty(unittest.TestCase):
         self.priors = bilby.core.prior.PriorDict(
             dict(a=bilby.core.prior.Uniform(0, 1), b=bilby.core.prior.Uniform(0, 1))
         )
+        self.init_sampler()
+
+    def init_sampler(self, **kwargs):
         self.sampler = bilby.core.sampler.dynamic_dynesty.DynamicDynesty(
             self.likelihood,
             self.priors,
@@ -18,6 +21,7 @@ class TestDynamicDynesty(unittest.TestCase):
             use_ratio=False,
             plot=False,
             skip_import_verification=True,
+            **kwargs
         )
 
     def tearDown(self):
@@ -29,13 +33,19 @@ class TestDynamicDynesty(unittest.TestCase):
         """Only test the kwargs where we specify different defaults to dynesty"""
         expected = dict(
             sample="act-walk",
-            bound="none",
+            bound="default",
             facc=0.2,
             save_bounds=False,
             update_interval=600,
         )
         for key in expected:
             self.assertEqual(expected[key], self.sampler.kwargs[key])
+
+        self.assertEqual("none", self.sampler.sampler_init_kwargs["bound"])
+
+    def test_default_kwargs_unif_sample(self):
+        self.init_sampler(sample="unif")
+        self.assertEqual("multi", self.sampler.sampler_init_kwargs["bound"])
 
 
 if __name__ == "__main__":

@@ -119,9 +119,11 @@ class Dynesty(NestedSampler):
     nlive: int, (1000)
         The number of live points, note this can also equivalently be given as
         one of [nlive, nlives, n_live_points, npoints]
-    bound: {'none', 'single', 'multi', 'balls', 'cubes'}, ('none')
+    bound: {'default', 'none', 'single', 'multi', 'balls', 'cubes'}, ('default')
         Bounding method used for dynesty-native samplers to select new points.
-        For bilby-implemented sampling methods this only affects volumetric proposals.
+        For bilby-implemented sampling methods, the constructed bounds are used to
+        inform volumetric proposals. Will default to 'none' when using bilby-implemented samplers
+        and 'multi' for dynesty-native samplers.
     sample: {'act-walk', 'acceptance-walk', 'unif', 'rwalk', 'slice',
              'rslice', 'hslice', 'rwalk_dynesty'}, ('act-walk')
         Method used to sample uniformly within the likelihood constraints,
@@ -151,7 +153,7 @@ class Dynesty(NestedSampler):
             if param.default != param.empty
         }
         kwargs["sample"] = "act-walk"
-        kwargs["bound"] = "none"
+        kwargs["bound"] = "default"
         kwargs["update_interval"] = 600
         kwargs["facc"] = 0.2
         return kwargs
@@ -290,6 +292,11 @@ class Dynesty(NestedSampler):
         else:
             internal_sampler = kwargs["sample"]
         kwargs["sample"] = internal_sampler
+        if kwargs["bound"] == "default":
+            if isinstance(kwargs["sample"], dynesty_utils.BaseEnsembleSampler):
+                kwargs["bound"] = "none"
+            else:
+                kwargs["bound"] = "multi"
         return kwargs
 
     def _translate_kwargs(self, kwargs):

@@ -151,11 +151,13 @@ class TestDynesty(unittest.TestCase):
             facc=0.2,
             save_bounds=False,
             dlogz=0.1,
-            bound="none",
+            bound="default",
             update_interval=600,
         )
         for key in expected:
             self.assertEqual(expected[key], self.sampler.kwargs[key])
+
+        self.assertEqual("none", self.sampler.sampler_init_kwargs["bound"])
 
     def test_translate_kwargs(self):
         expected = 1000
@@ -206,6 +208,10 @@ class TestDynesty(unittest.TestCase):
         )
         self.assertEqual(self.dysampler.internal_sampler_next.naccept, 5)
         self.assertEqual(self.dysampler.internal_sampler_next.maxmcmc, 200)
+
+    def test_sampler_default_kwargs_unif(self):
+        self.init_sampler(sample="unif")
+        self.assertEqual(self.sampler.sampler_init_kwargs["bound"], "multi")
 
     def test_run_test_runs(self):
         self.sampler._run_test()
