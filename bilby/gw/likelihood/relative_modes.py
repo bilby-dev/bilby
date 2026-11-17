@@ -129,12 +129,12 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
     with a spline of degree :code:`spline_degree`. The detector antenna
     pattern multiplies :math:`h_{m,p}` after the interpolation.
 
-    Two steps keep :math:`h_{0,m}` away from zero at the bin edges. The
-    fiducial parameters are first made safe with
-    :func:`get_safe_fiducial_parameters`. Above the bin edge where the
-    cumulative squared SNR of :math:`h_{0,m}` reaches 99%, :math:`h_{0,m}` is
-    faded to a constant over :code:`spline_degree` bins. The bins span the full
-    frequency band of the interferometers.
+    The fiducial parameters are made safe with
+    :func:`get_safe_fiducial_parameters`, which avoids zeros in single
+    harmonics of the fiducial waveform. The bins end at the last frequency at
+    which every harmonic of the fiducial waveform is nonzero, as the bins of
+    :code:`RelativeBinningGravitationalWaveTransient` end where its fiducial
+    waveform does.
 
     The waveform generator must use
     :func:`bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode`, or
@@ -258,7 +258,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
 
         If :code:`safe_fiducial_parameters` is set, the waveform is computed
         at :func:`get_safe_fiducial_parameters` of :code:`parameters`. The
-        bins are not limited by where the fiducial waveform ends.
+        maximum frequency of the bins is set to the last frequency at which
+        every harmonic of the fiducial waveform is nonzero.
 
         Parameters
         ----------
@@ -279,6 +280,13 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         if self.fiducial_polarizations is None:
             raise ValueError(f"Cannot compute fiducial waveforms for {parameters}")
         self.fiducial_waveform_parameters = parameters
+
+        every_harmonic_nonzero = np.all(
+            self.fiducial_polarizations["plus"] != 0, axis=0
+        )
+        self.maximum_frequency = self.waveform_generator.frequency_array[
+            np.where(every_harmonic_nonzero)[0][-1]
+        ]
 
         for interferometer in self.interferometers:
             waveforms = interferometer.get_detector_response(
@@ -308,9 +316,7 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
             \frac{h_{0,m}(f) h_{0,m'}^*(f)}{P(f)}
             \Big/ \left(h_{0,m}(f_j) h_{0,m'}^*(f_j)\right)
 
-        with :math:`H_{mm',j}` doubled for :math:`m \neq m'`. Before this,
-        :math:`h_{0,m}` is faded to a constant above the bin where its
-        cumulative squared SNR reaches 99%.
+        with :math:`H_{mm',j}` doubled for :math:`m \neq m'`.
         """
         names = [interferometer.name for interferometer in self.interferometers]
         number_of_harmonics = len(self.per_detector_fiducial_mode_waveforms[names[0]])
@@ -332,35 +338,14 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
                     interferometer.frequency_mask
                 ]
             )
-        network_inverse_psd = sum(inverse_psds.values())
 
         frequency_array = self.interferometers[0].frequency_array
         self._set_splines(frequency_array)
         summary_data = dict()
         for interferometer in self.interferometers:
             name = interferometer.name
-
-            # Remove the overall time shift so that the fiducial waveform is smooth in the ringdown
-            time_shift = np.exp(
-                -2j
-                * np.pi
-                * frequency_array
-                * (
-                    self.fiducial_waveform_parameters["geocent_time"]
-                    - interferometer.strain_data.start_time
-                )
-            )
-            h0 = self.per_detector_fiducial_mode_waveforms[name] / time_shift
+            h0 = self.per_detector_fiducial_mode_waveforms[name]
             h0_bins = h0[:, self.bin_inds]
-            for harmonic in range(number_of_harmonics):
-                self._fade_ringdown(
-                    h0[harmonic],
-                    h0_bins[harmonic],
-                    frequency_array,
-                    network_inverse_psd,
-                )
-            h0 *= time_shift
-            h0_bins *= time_shift[self.bin_inds]
             if np.any(h0_bins == 0):
                 raise ValueError(
                     "A harmonic of the fiducial waveform is zero at a bin edge; "
@@ -449,68 +434,6 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         projected = (self._basis_splines @ np.atleast_2d(integrand).T).T
         weights = 4 / duration * projected @ self._spline_coefficients.T
         return weights.reshape(integrand.shape[:-1] + (len(self.bin_freqs),))
-
-    def _fade_ringdown(self, h0, h0_bins, frequency_array, inverse_psd):
-        r"""
-        Replace one harmonic of the fiducial waveform by a constant at high
-        frequency, in place, as cogwheel does.
-
-        The cutoff is the first bin edge at or above the frequency where the
-        cumulative :math:`|h_0|^2 / P` reaches 99% of its total, with
-        :math:`1 / P` summed over the interferometers. Between the edge
-        :code:`spline_degree` bins below the cutoff and the cutoff, the
-        waveform is multiplied by a :math:`\cos^2` taper and the remainder is
-        filled with its value at the cutoff. If that value is zero, the cutoff
-        moves down to the last bin edge where the waveform is nonzero.
-
-        Parameters
-        ----------
-        h0: array_like
-            The harmonic on the full frequency grid, without the overall time
-            shift.
-        h0_bins: array_like
-            The harmonic at the bin edges, without the overall time shift.
-        frequency_array: array_like
-            The full frequency grid.
-        inverse_psd: array_like
-            :math:`1 / P` summed over the interferometers, zero outside the
-            frequency masks.
-        """
-        cumulative_snr_squared = np.cumsum(np.abs(h0) ** 2 * inverse_psd)
-        if cumulative_snr_squared[-1] == 0:
-            return
-        cumulative_snr_squared /= cumulative_snr_squared[-1]
-        frequency_99 = frequency_array[np.searchsorted(cumulative_snr_squared, 0.99)]
-        end_index = min(
-            np.searchsorted(self.bin_freqs, frequency_99), len(self.bin_freqs) - 1
-        )
-        while end_index > 0 and h0_bins[end_index] == 0:
-            end_index -= 1
-        start_frequency = self.bin_freqs[max(end_index - self.spline_degree, 0)]
-        end_frequency = self.bin_freqs[end_index]
-        constant = h0_bins[end_index]
-
-        def fade(frequencies):
-            if end_frequency == start_frequency:
-                return (frequencies <= end_frequency).astype(float)
-            return (
-                np.cos(
-                    np.clip(
-                        (frequencies - start_frequency)
-                        / (end_frequency - start_frequency),
-                        0,
-                        1,
-                    )
-                    * np.pi
-                    / 2
-                )
-                ** 2
-            )
-
-        fade_full = fade(frequency_array)
-        fade_bins = fade(self.bin_freqs)
-        h0[:] = h0 * fade_full + constant * (1 - fade_full)
-        h0_bins[:] = h0_bins * fade_bins + constant * (1 - fade_bins)
 
     def _waveform_at_bins_per_polarization(
         self, waveform_polarizations, interferometer, parameters
