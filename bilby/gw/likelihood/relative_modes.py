@@ -37,7 +37,7 @@ def get_safe_fiducial_parameters(parameters, waveform_generator, eta_max=0.24):
     """
     Return fiducial parameters that avoid zeros in single harmonics of the
     fiducial waveform, following :code:`ReferenceWaveformFinder._get_safe_par_dic`
-    of cogwheel (arXiv:2105.04587).
+    of cogwheel (Roulet et al., (2022) Phys. Rev. D 106, 123015).
 
     The in-plane spin components at the reference frequency are set to zero,
     the inclination of the orbital angular momentum is set to 1 or pi - 1,
@@ -120,7 +120,8 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
     """A gravitational-wave transient likelihood object which uses relative
     binning separately for each azimuthal index m of the co-precessing modes
     and for each polarization, following Leslie, Dai and Pratten
-    arXiv:2109.09872 and the implementation in cogwheel (arXiv:2105.04587).
+    arXiv:2109.09872 and the implementation in cogwheel (Roulet et al., (2022)
+    Phys. Rev. D 106, 123015).
 
     For each detector, harmonic m and polarization p, the ratio of the
     waveform :math:`h_{m,p}` to the detector response :math:`h_{0,m}` of
