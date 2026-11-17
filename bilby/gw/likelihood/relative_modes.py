@@ -5,7 +5,6 @@ import scipy.interpolate
 import scipy.sparse
 
 from .relative import RelativeBinningGravitationalWaveTransient
-from ...compat.utils import array_module
 from ...core import utils
 from ..conversion import (
     bilby_to_lalsimulation_spins,
@@ -436,48 +435,6 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         weights = 4 / duration * projected @ self._spline_coefficients.T
         return weights.reshape(integrand.shape[:-1] + (len(self.bin_freqs),))
 
-    def _waveform_at_bins_per_polarization(
-        self, waveform_polarizations, interferometer, parameters
-    ):
-        """
-        Apply the time shift to the interferometer and its calibration to
-        each harmonic and polarization at the bin edges, without the antenna
-        pattern.
-
-        Parameters
-        ----------
-        waveform_polarizations: dict
-            Plus and cross polarizations, each of shape (number of harmonics,
-            number of bin edges).
-        interferometer: bilby.gw.detector.Interferometer
-            The interferometer.
-        parameters: dict
-            Parameters of the signal.
-
-        Returns
-        -------
-        waveform_per_polarization: array_like
-            Of shape (2, number of harmonics, number of bin edges), plus first.
-        """
-        xp = array_module(waveform_polarizations)
-        frequencies = xp.asarray(self.bin_freqs)
-        time_shift = interferometer.time_delay_from_geocenter(
-            parameters["ra"], parameters["dec"], parameters["geocent_time"]
-        )
-        dt = (
-            parameters["geocent_time"]
-            - interferometer.strain_data.start_time
-            + time_shift
-        )
-        response = xp.exp(-1j * 2 * np.pi * dt * frequencies)
-        response = response * interferometer.calibration_model.get_calibration_factor(
-            frequencies, prefix=f"recalib_{interferometer.name}_", xp=xp, **parameters
-        )
-        return (
-            xp.stack([waveform_polarizations["plus"], waveform_polarizations["cross"]])
-            * response
-        )
-
     def calculate_snrs(
         self, waveform_polarizations, interferometer, *, return_array=True, parameters
     ):
@@ -495,14 +452,15 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
             \sum_j H_{mm',j} h_m(f_j) h_{m'}^*(f_j)
 
         with :math:`F_p` the antenna pattern of polarization p,
-        :math:`h_{m,p}` harmonic m of polarization p, time shifted to the
-        interferometer, and :math:`h_m` harmonic m of the strain in the
-        interferometer.
+        :math:`h_{m,p}` harmonic m of polarization p, and :math:`h_m`
+        harmonic m of the strain in the interferometer, time shifted and
+        calibrated, from
+        :meth:`bilby.gw.detector.Interferometer.get_detector_response`.
 
         Parameters
         ----------
         waveform_polarizations: dict
-            Plus and cross polarizations at the bin edges, each of shape
+            Polarizations at the bin edges, each of shape
             (number of harmonics, number of bin edges).
         interferometer: bilby.gw.detector.Interferometer
             The interferometer.
@@ -516,36 +474,14 @@ class ModeByModeRelativeBinningGravitationalWaveTransient(
         calculated_snrs: _CalculatedSNRs
             The inner products, with :code:`d_inner_h_array` set to None.
         """
-        waveform_per_polarization = self._waveform_at_bins_per_polarization(
-            waveform_polarizations, interferometer, parameters
-        )
-        if interferometer.reference_time is None:
-            antenna_time = parameters["geocent_time"]
-        else:
-            antenna_time = interferometer.reference_time
-        xp = array_module(waveform_per_polarization)
-        antenna_pattern = xp.stack(
-            [
-                xp.asarray(
-                    interferometer.antenna_response(
-                        parameters["ra"],
-                        parameters["dec"],
-                        antenna_time,
-                        parameters["psi"],
-                        mode,
-                    )
-                )
-                for mode in ["plus", "cross"]
-            ]
+        # The strain of each harmonic at the bin edges, of shape (harmonics, bin edges)
+        strain = interferometer.get_detector_response(
+            waveform_polarizations=waveform_polarizations,
+            parameters=parameters,
+            frequencies=self.bin_freqs,
         )
         d_inner_h_weights, h_inner_h_weights = self.summary_data[interferometer.name]
         m_inds, mprime_inds = self.harmonic_pairs
-
-        # The antenna patterns are real, so the polarizations are summed first,
-        # once, into the strain of each harmonic, of shape (harmonics, bin edges)
-        strain = (antenna_pattern[:, None, None] * waveform_per_polarization).sum(
-            axis=0
-        )
         d_inner_h = (d_inner_h_weights * strain.conj()).sum()
         h_inner_h = (
             (h_inner_h_weights * strain[m_inds] * strain[mprime_inds].conj()).sum().real
