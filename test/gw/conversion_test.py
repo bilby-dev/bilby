@@ -1050,5 +1050,178 @@ class TestEquationOfStateConversions(unittest.TestCase):
             self.assertAlmostEqual(self.eos_check_polytrope[i], eos_check)
 
 
+@pytest.mark.array_backend
+@pytest.mark.usefixtures("xp_class")
+class TestTransformPrecessingSpins:
+    def test_transform_precessing_spins(self):
+        """
+        Verify that our port of this function matches the lalsimulation version.
+        """
+        import lal
+        from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
+
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors["mass_1"] = bilby.core.prior.Uniform(1, 1000)
+        priors["mass_2"] = bilby.core.prior.Uniform(1, 1000)
+        priors["reference_frequency"] = bilby.core.prior.Uniform(10, 100)
+
+        # some default priors are problematic for some array backends
+        for key in ["luminosity_distance", "chirp_mass", "mass_ratio"]:
+            del priors[key]
+
+        for _ in range(100):
+            point = priors.sample(random_state=self.rng)
+            bilby_transformed = conversion.transform_precessing_spins(
+                point["theta_jn"],
+                point["phi_jl"],
+                point["tilt_1"],
+                point["tilt_2"],
+                point["phi_12"],
+                point["a_1"],
+                point["a_2"],
+                point["mass_1"],
+                point["mass_2"],
+                point["reference_frequency"],
+                point["phase"],
+            )
+            assert aac.get_namespace(*bilby_transformed) == self.xp
+            bilby_transformed = np.asarray(bilby_transformed)
+            lalsim_transformed = np.asarray(
+                SimInspiralTransformPrecessingNewInitialConditions(
+                    float(point["theta_jn"]),
+                    float(point["phi_jl"]),
+                    float(point["tilt_1"]),
+                    float(point["tilt_2"]),
+                    float(point["phi_12"]),
+                    float(point["a_1"]),
+                    float(point["a_2"]),
+                    float(point["mass_1"] * lal.MSUN_SI),
+                    float(point["mass_2"] * lal.MSUN_SI),
+                    float(point["reference_frequency"]),
+                    float(point["phase"]),
+                )
+            )
+            # the different array backends have some precision loss
+            np.testing.assert_allclose(bilby_transformed, lalsim_transformed, atol=1e-5)
+
+    @pytest.mark.array_backend
+    def test_transform_precessing_spins_vectorized(self):
+        """
+        Run the tests with vectorization, note that this returns a tuple of arrays.
+        """
+        import lal
+        from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
+
+        priors = bilby.gw.prior.BBHPriorDict()
+        priors["mass_1"] = bilby.core.prior.Uniform(1, 1000)
+        priors["mass_2"] = bilby.core.prior.Uniform(1, 1000)
+        priors["reference_frequency"] = bilby.core.prior.Uniform(10, 100)
+
+        # some default priors are problematic for some array backends
+        for key in ["luminosity_distance", "chirp_mass", "mass_ratio"]:
+            del priors[key]
+
+        points = priors.sample(100, random_state=self.rng)
+        bilby_transformed = conversion.transform_precessing_spins(
+            points["theta_jn"],
+            points["phi_jl"],
+            points["tilt_1"],
+            points["tilt_2"],
+            points["phi_12"],
+            points["a_1"],
+            points["a_2"],
+            points["mass_1"],
+            points["mass_2"],
+            points["reference_frequency"],
+            points["phase"],
+        )
+        assert aac.get_namespace(*bilby_transformed) == self.xp
+        bilby_transformed = np.asarray(bilby_transformed)
+        lalsim_transformed = list()
+        for ii in range(len(points["theta_jn"])):
+            point = {key: points[key][ii] for key in points.keys()}
+            lalsim_transformed.append(
+                np.asarray(
+                    SimInspiralTransformPrecessingNewInitialConditions(
+                        float(point["theta_jn"]),
+                        float(point["phi_jl"]),
+                        float(point["tilt_1"]),
+                        float(point["tilt_2"]),
+                        float(point["phi_12"]),
+                        float(point["a_1"]),
+                        float(point["a_2"]),
+                        float(point["mass_1"] * lal.MSUN_SI),
+                        float(point["mass_2"] * lal.MSUN_SI),
+                        float(point["reference_frequency"]),
+                        float(point["phase"]),
+                    )
+                )
+            )
+        lalsim_transformed = np.asarray(lalsim_transformed).T
+        # the different array backends have some precision loss
+        np.testing.assert_allclose(bilby_transformed, lalsim_transformed, atol=1e-5)
+
+
+class TestPrecessingSpinMassUnits(unittest.TestCase):
+    """
+    All callers should pass masses in solar masses to the spin conversion,
+    check the results against lalsimulation.
+    """
+
+    def setUp(self):
+        import lal
+        from lalsimulation import SimInspiralTransformPrecessingNewInitialConditions
+
+        self.parameters = dict(
+            theta_jn=0.4,
+            phi_jl=1.0,
+            tilt_1=0.8,
+            tilt_2=2.0,
+            phi_12=0.5,
+            a_1=0.6,
+            a_2=0.4,
+            mass_1=30.0,
+            mass_2=25.0,
+            reference_frequency=20.0,
+            phase=1.3,
+        )
+        values = list(self.parameters.values())
+        values[7] *= lal.MSUN_SI
+        values[8] *= lal.MSUN_SI
+        self.expected = np.asarray(
+            SimInspiralTransformPrecessingNewInitialConditions(*values)
+        )
+        self.keys = [
+            "iota",
+            "spin_1x",
+            "spin_1y",
+            "spin_1z",
+            "spin_2x",
+            "spin_2y",
+            "spin_2z",
+        ]
+
+    def test_bilby_to_lalsimulation_spins(self):
+        result = conversion.bilby_to_lalsimulation_spins(**self.parameters)
+        np.testing.assert_allclose(np.asarray(result), self.expected, atol=1e-10)
+
+    def test_generate_component_spins(self):
+        sample = {key: np.full(3, value) for key, value in self.parameters.items()}
+        result = conversion.generate_component_spins(sample)
+        for key, expected in zip(self.keys, self.expected):
+            np.testing.assert_allclose(result[key], expected, atol=1e-10)
+
+    def test_mixed_scalar_and_array_inputs(self):
+        names = list(self.parameters.keys())
+        for name in names:
+            values = list(self.parameters.values())
+            values[names.index(name)] = np.full(4, values[names.index(name)])
+            result = np.asarray(conversion.transform_precessing_spins(*values))
+            self.assertEqual(result.shape, (7, 4))
+            np.testing.assert_allclose(
+                result, self.expected[:, None] * np.ones(4), atol=1e-10
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

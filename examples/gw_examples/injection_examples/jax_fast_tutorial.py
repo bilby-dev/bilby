@@ -80,7 +80,7 @@ def ripple_bbh(
         Dictionary containing the plus and cross polarizations of the waveform.
     """
     reference_frequency = jnp.asarray(kwargs["reference_frequency"])
-    iota, *cartesian_spins = bilby.gw.geometry.transform_precessing_spins(
+    iota, *cartesian_spins = bilby.gw.conversion.transform_precessing_spins(
         theta_jn,
         phi_jl,
         tilt_1,

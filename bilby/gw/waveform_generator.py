@@ -545,8 +545,8 @@ class GWSignalWaveformGenerator(WaveformGenerator):
                 phi_12=parameters["phi_12"],
                 a_1=parameters["a_1"],
                 a_2=parameters["a_2"],
-                mass_1=parameters["mass_1"] * utils.solar_mass,
-                mass_2=parameters["mass_2"] * utils.solar_mass,
+                mass_1=parameters["mass_1"],
+                mass_2=parameters["mass_2"],
                 reference_frequency=reference_frequency,
                 phase=parameters["phase"],
             )
