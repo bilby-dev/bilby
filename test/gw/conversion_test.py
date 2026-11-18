@@ -1211,6 +1211,19 @@ class TestPrecessingSpinMassUnits(unittest.TestCase):
         for key, expected in zip(self.keys, self.expected):
             np.testing.assert_allclose(result[key], expected, atol=1e-10)
 
+    def test_zero_reference_frequency_raises(self):
+        parameters = dict(self.parameters, reference_frequency=0.0)
+        with self.assertRaises(ZeroDivisionError):
+            conversion.bilby_to_lalsimulation_spins(**parameters)
+
+    def test_zero_reference_frequency_caught(self):
+        parameters = dict(self.parameters, reference_frequency=0.0)
+        with self.assertLogs("bilby", level="WARNING"):
+            result = conversion.bilby_to_lalsimulation_spins(
+                **parameters, catch_errors=True
+            )
+        self.assertIsNone(result)
+
     def test_mixed_scalar_and_array_inputs(self):
         names = list(self.parameters.keys())
         for name in names:

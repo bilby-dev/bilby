@@ -128,6 +128,7 @@ def bilby_to_lalsimulation_spins(
     mass_2,
     reference_frequency,
     phase,
+    catch_errors=False,
 ):
     """
     Convert Bilby spin parameters to the Cartesian representation used by
@@ -166,6 +167,10 @@ def bilby_to_lalsimulation_spins(
         Non-zero reference gravitational-wave frequency, in Hz.
     phase : float
         Orbital phase at ``reference_frequency``, in radians.
+    catch_errors : bool
+        If :code:`True`, log a warning and return :code:`None` instead of
+        raising when the conversion fails, e.g., for a zero reference
+        frequency or total mass with float inputs. Default is :code:`False`.
 
     Returns
     =======
@@ -175,6 +180,9 @@ def bilby_to_lalsimulation_spins(
     spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z : float
         Dimensionless Cartesian spin components in the frame used by
         lalsimulation waveform generators.
+
+        If :code:`catch_errors` is :code:`True` and the conversion fails,
+        :code:`None` is returned instead.
     """
     if (a_1 == 0 or tilt_1 in [0, np.pi]) and (a_2 == 0 or tilt_2 in [0, np.pi]):
         spin_1x = 0
@@ -185,21 +193,44 @@ def bilby_to_lalsimulation_spins(
         spin_2z = a_2 * np.cos(tilt_2)
         iota = theta_jn
     else:
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
-            transform_precessing_spins(
-                theta_jn,
-                phi_jl,
-                tilt_1,
-                tilt_2,
-                phi_12,
-                a_1,
-                a_2,
-                mass_1,
-                mass_2,
-                reference_frequency,
-                phase,
+        try:
+            iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+                transform_precessing_spins(
+                    theta_jn,
+                    phi_jl,
+                    tilt_1,
+                    tilt_2,
+                    phi_12,
+                    a_1,
+                    a_2,
+                    mass_1,
+                    mass_2,
+                    reference_frequency,
+                    phase,
+                )
             )
-        )
+        except ZeroDivisionError as e:
+            if not catch_errors:
+                raise
+            failed_parameters = dict(
+                theta_jn=theta_jn,
+                phi_jl=phi_jl,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_12=phi_12,
+                a_1=a_1,
+                a_2=a_2,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                reference_frequency=reference_frequency,
+                phase=phase,
+            )
+            logger.warning(
+                f"Converting spins failed with error: {e}\n"
+                f"The parameters were {failed_parameters}\n"
+                "Likelihood will be set to -inf."
+            )
+            return None
     return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
 
