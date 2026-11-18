@@ -6,7 +6,7 @@ import bilby
 import numpy as np
 from parameterized import parameterized
 
-from bilby.gw.likelihood.relative_modes import get_safe_fiducial_parameters
+from bilby.gw.likelihood.relative import get_safe_fiducial_parameters
 
 CHIRP_MASSES = [3, 10, 30, 100, 200]
 MASS_RATIOS = [1, 0.5, 0.2]
