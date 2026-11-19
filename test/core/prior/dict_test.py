@@ -355,6 +355,62 @@ class TestPriorDict(unittest.TestCase):
                 self.assertEqual(N, len(samples2[key]))
             mock_warning.assert_not_called()
 
+    def test_sample_subset_constrained_with_partial_subset(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        samples = priors.sample_subset_constrained(
+            keys=["mass_1"], size=16, random_state=self.rng
+        )
+
+        self.assertListEqual(["mass_1"], list(samples.keys()))
+        self.assertEqual(16, len(samples["mass_1"]))
+
+    def test_sample_subset_constrained_full_sample_requires_constraints(self):
+        def conversion_function(parameters):
+            return parameters.copy()
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        with self.assertRaises(ValueError):
+            priors.sample_subset_constrained(
+                keys=list(priors.keys()), size=1, random_state=self.rng
+            )
+
+    def test_prob_subset_and_ln_prob_subset_skip_unavailable_constraints(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=-2, maximum=0)
+
+        sample = {"mass_1": 1.5}
+        normalization = priors.normalize_constraint_factor(
+            tuple(sample), min_accept=10, sampling_chunk=20, nrepeats=1, strict=False
+        )
+
+        self.assertEqual(1, normalization)
+        self.assertEqual(priors["mass_1"].prob(1.5), priors.prob_subset(sample))
+        self.assertEqual(priors["mass_1"].ln_prob(1.5), priors.ln_prob_subset(sample))
+
     def test_sample_with_random_seed(self):
         """
         This test uses the default RNG, so don't specify random_state.
@@ -382,9 +438,7 @@ class TestPriorDict(unittest.TestCase):
             self.assertEqual(aac.get_namespace(samples[key]), self.xp)
 
     def test_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=["mass", "speed"], random_state=self.rng
-        )
+        samples = self.prior_set_from_dict.sample(random_state=self.rng)
         expected = self.first_prior.prob(samples["mass"]) * self.second_prior.prob(
             samples["speed"]
         )
@@ -392,14 +446,144 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(aac.get_namespace(expected), self.xp)
 
     def test_ln_prob(self):
-        samples = self.prior_set_from_dict.sample_subset(
-            keys=["mass", "speed"], random_state=self.rng
-        )
+        samples = self.prior_set_from_dict.sample(random_state=self.rng)
         expected = self.first_prior.ln_prob(
             samples["mass"]
         ) + self.second_prior.ln_prob(samples["speed"])
         self.assertEqual(expected, self.prior_set_from_dict.ln_prob(samples))
         self.assertEqual(aac.get_namespace(expected), self.xp)
+
+    def test_probability_requires_complete_sample(self):
+        for method in ("prob", "ln_prob"):
+            for sample in ({}, {"mass": 0.5}, {"speed": -1.0}):
+                with self.subTest(method=method, keys=list(sample)):
+                    with self.assertRaisesRegex(ValueError, f"Use {method}_subset"):
+                        getattr(self.prior_set_from_dict, method)(
+                            sample, normalized=False
+                        )
+
+    def test_probability_does_not_require_fixed_parameters(self):
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        without_fixed = {key: sample[key] for key in ("mass", "speed")}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.prior_set_from_dict, method)(sample)
+                actual = getattr(self.prior_set_from_dict, method)(without_fixed)
+                self.assertEqual(actual, expected)
+
+    def test_probability_subset(self):
+        sample = {"speed": self.xp.asarray([1.1, 1.5, 1.9])}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.second_prior, method)(sample["speed"])
+                actual = getattr(self.prior_set_from_dict, f"{method}_subset")(
+                    sample, axis=0, normalized=False
+                )
+                np.testing.assert_allclose(actual, expected)
+                self.assertEqual(aac.get_namespace(actual), self.xp)
+
+    def test_probability_subset_with_complete_sample(self):
+        sample = self.prior_set_from_dict.sample(random_state=self.rng)
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                expected = getattr(self.prior_set_from_dict, method)(sample)
+                actual = getattr(self.prior_set_from_dict, f"{method}_subset")(sample)
+                self.assertEqual(actual, expected)
+
+    def test_probability_subset_skips_missing_constraints_for_complete_sample(self):
+        for prior_class in (
+            bilby.core.prior.PriorDict,
+            bilby.core.prior.ConditionalPriorDict,
+        ):
+            priors = prior_class(
+                dict(
+                    mass=bilby.core.prior.Uniform(0, 2),
+                    fixed=bilby.core.prior.DeltaFunction(1),
+                    limit=bilby.core.prior.Constraint(0, 1),
+                )
+            )
+            sample = {"mass": self.xp.asarray(0.5)}
+            for normalized in (False, True):
+                for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
+                    with self.subTest(
+                        prior_class=prior_class, normalized=normalized, method=method
+                    ):
+                        actual = getattr(priors, method + "_subset")(
+                            sample, normalized=normalized
+                        )
+                        self.assertAlmostEqual(actual, expected)
+                with self.assertRaisesRegex(ValueError, "Constraint limit"):
+                    getattr(priors, method)(sample, normalized=normalized)
+
+    def test_probability_strict_conversion_failure(self):
+        def conversion_function(sample):
+            return dict(sample, limit=sample["missing"])
+
+        priors = bilby.core.prior.PriorDict(
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            ),
+            conversion_function=conversion_function,
+        )
+        sample = {"mass": self.xp.asarray(0.5)}
+        for normalized in (False, True):
+            for method, expected in (("prob", 0.5), ("ln_prob", np.log(0.5))):
+                with self.subTest(normalized=normalized, method=method):
+                    actual = getattr(priors, method + "_subset")(
+                        sample, normalized=normalized
+                    )
+                    self.assertAlmostEqual(actual, expected)
+                    with self.assertRaisesRegex(KeyError, "missing"):
+                        getattr(priors, method)(sample, normalized=normalized)
+
+    def test_normalization_strictness_is_not_shared_between_cache_entries(self):
+        priors = bilby.core.prior.PriorDict(
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            )
+        )
+        # Exercise normalization's accumulation loop as well as its first chunk.
+        factor = priors.normalize_constraint_factor(
+            ("mass",), min_accept=5, sampling_chunk=2, nrepeats=1, strict=False
+        )
+        self.assertEqual(factor, 1)
+        with self.assertRaisesRegex(ValueError, "Constraint limit"):
+            priors.normalize_constraint_factor(
+                ("mass",), min_accept=5, sampling_chunk=2, nrepeats=1, strict=True
+            )
+
+    def test_probability_applies_available_constraints(self):
+        priors = bilby.core.prior.PriorDict(
+            dict(
+                mass=bilby.core.prior.Uniform(0, 2),
+                speed=bilby.core.prior.Uniform(0, 2),
+                limit=bilby.core.prior.Constraint(0, 1),
+            ),
+            conversion_function=lambda sample: dict(sample, limit=sample["mass"]),
+        )
+        for method, expected in (
+            ("prob", [0.25, 0.0]),
+            ("ln_prob", [np.log(0.25), -np.inf]),
+        ):
+            for suffix in ("", "_subset"):
+                with self.subTest(method=method, suffix=suffix):
+                    sample = {
+                        "mass": self.xp.asarray([0.5, 1.5]),
+                        "speed": self.xp.asarray([0.5, 0.5]),
+                    }
+                    if suffix:
+                        del sample["speed"]
+                        subset_expected = (
+                            [0.5, 0.0] if method == "prob" else [np.log(0.5), -np.inf]
+                        )
+                    else:
+                        subset_expected = expected
+                    actual = getattr(priors, method + suffix)(
+                        sample, axis=0, normalized=False
+                    )
+                    np.testing.assert_allclose(actual, subset_expected)
 
     def test_rescale(self):
         theta = [0.5, 0.5, 0.5]
@@ -436,6 +620,98 @@ class TestPriorDict(unittest.TestCase):
     def test_redundancy(self):
         for key in self.prior_set_from_dict.keys():
             self.assertFalse(self.prior_set_from_dict.test_redundancy(key=key))
+
+    def test_evaluate_constraints(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.7, "mass_2": 1.2}
+        self.assertTrue(priors.evaluate_constraints(theta))
+
+        theta = {"mass_1": 1.5, "mass_2": 1.2}
+        self.assertFalse(priors.evaluate_constraints(theta))
+
+    def test_evaluate_constraints_batches(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": np.array([1.7, 1.5]), "mass_2": np.array([1.2, 1.2])}
+        expected = np.array([True, False])
+        self.assertTrue(np.array_equal(expected, priors.evaluate_constraints(theta)))
+
+    def test_evaluate_constraints_missing_keys(self):
+        def conversion_function(parameters):
+            return parameters.copy()
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.5, "mass_2": 1.2}
+
+        with self.assertRaises(
+            ValueError,
+            msg="Constraint delta_mass is not present in the sample. Cannot evaluate constraints.",
+        ):
+            priors.evaluate_constraints(theta)
+
+    def test_evaluate_constraints_partial_sample_requires_non_strict(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["delta_mass"] = (
+                parameters["mass_1"] - parameters["mass_2"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1.38, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=1.4)
+        priors["delta_mass"] = bilby.core.prior.Constraint(minimum=0.4, maximum=1.4)
+
+        theta = {"mass_1": 1.5}
+
+        self.assertTrue(priors.evaluate_constraints(theta, strict=False))
+        with self.assertRaises(KeyError):
+            priors.evaluate_constraints(theta)
+        with self.assertRaises(KeyError):
+            priors.evaluate_constraints(theta, strict=True)
+
+    def test_normalize_constraint_keys(self):
+        def conversion_function(parameters):
+            converted_parameters = parameters.copy()
+            converted_parameters["mass_ratio"] = (
+                parameters["mass_2"] / parameters["mass_1"]
+            )
+            return converted_parameters
+
+        priors = bilby.core.prior.PriorDict(conversion_function=conversion_function)
+        priors["mass_1"] = bilby.core.prior.Uniform(minimum=1, maximum=2)
+        priors["mass_2"] = bilby.core.prior.Uniform(minimum=1, maximum=2)
+        priors["mass_ratio"] = bilby.core.prior.Constraint(minimum=0.0, maximum=1.0)
+
+        # Factor should close to 2 since half the prior volume is removed by the constraint
+        keys = ("mass_1", "mass_2")
+        factor = priors.normalize_constraint_factor(keys)
+        self.assertAlmostEqual(factor, 2.0, delta=0.01)
 
 
 class TestJsonIO(unittest.TestCase):
@@ -636,14 +912,19 @@ def positive_uniform_prior():
         ),
         conversion_function=conversion,
     )
-    priors._cached_normalizations[("x",)] = np.float64(2)
+    for strict in (True, False):
+        priors._cached_normalizations[(("x",), strict)] = np.float64(2)
     return priors
 
 
 @pytest.mark.array_backend
+@pytest.mark.parametrize("subset", [False, True])
 @pytest.mark.parametrize("normalized", [True, False])
 @pytest.mark.parametrize("values", [0.5, [-0.5, 0.5], [0.25, 0.5]])
-def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, values):
+def test_constrained_uniform_ln_prob(
+    xp, positive_uniform_prior, normalized, values, subset
+):
+    suffix = "_subset" if subset else ""
     values = xp.asarray(values)
     expected = xp.where(values > 0, 0.0 if normalized else -np.log(2), -xp.inf)
     with patch.object(
@@ -651,37 +932,48 @@ def test_constrained_uniform_ln_prob(xp, positive_uniform_prior, normalized, val
         "normalize_constraint_factor",
         wraps=positive_uniform_prior.normalize_constraint_factor,
     ) as normalization:
-        actual = positive_uniform_prior.ln_prob(
+        actual = getattr(positive_uniform_prior, "ln_prob" + suffix)(
             {"x": values}, axis=0, normalized=normalized
         )
         assert normalization.call_count == int(normalized)
     assert xp.asarray(actual).shape == values.shape
     assert xp.allclose(actual, expected)
     assert xp.allclose(
-        positive_uniform_prior.prob({"x": values}, axis=0, normalized=normalized),
+        getattr(positive_uniform_prior, "prob" + suffix)(
+            {"x": values}, axis=0, normalized=normalized
+        ),
         xp.exp(actual),
     )
 
 
 @pytest.mark.array_backend
-def test_uniform_ln_prob_out_of_bounds(xp):
+@pytest.mark.parametrize("subset", [False, True])
+def test_uniform_ln_prob_out_of_bounds(xp, subset):
     priors = bilby.core.prior.PriorDict(dict(x=bilby.core.prior.Uniform(-1, 1)))
     sample = {"x": xp.asarray([0.0, 2.0])}
-    actual = priors.ln_prob(sample, axis=0)
+    suffix = "_subset" if subset else ""
+    actual = getattr(priors, "ln_prob" + suffix)(sample, axis=0)
     assert xp.allclose(actual, xp.asarray([-np.log(2), -xp.inf]))
-    assert xp.allclose(priors.prob(sample, axis=0), xp.exp(actual))
+    assert xp.allclose(getattr(priors, "prob" + suffix)(sample, axis=0), xp.exp(actual))
 
 
+@pytest.mark.parametrize("subset", [False, True])
 @pytest.mark.parametrize("value", [-0.5, 0.5])
-def test_constrained_uniform_scalar_ln_prob(positive_uniform_prior, value):
+def test_constrained_uniform_scalar_ln_prob(positive_uniform_prior, value, subset):
     expected = 0.0 if value > 0 else -np.inf
-    actual = positive_uniform_prior.ln_prob({"x": value})
+    method = (
+        positive_uniform_prior.ln_prob_subset
+        if subset
+        else positive_uniform_prior.ln_prob
+    )
+    actual = method({"x": value})
     assert isinstance(actual, float)
     assert actual == pytest.approx(expected)
 
 
 @pytest.mark.array_backend
-def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
+@pytest.mark.parametrize("strict", [False, True])
+def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior, strict):
     if not aac.is_jax_namespace(xp):
         pytest.skip("Requires the JAX backend")
     import jax
@@ -693,6 +985,7 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
         return positive_uniform_prior.check_ln_prob(
             {"x": values},
             ln_density,
+            strict=strict,
             xp=xp,
         )
 
@@ -702,13 +995,17 @@ def test_check_ln_prob_jax_jit_and_grad(xp, positive_uniform_prior):
     assert xp.allclose(actual, expected)
     gradient = jax.grad(lambda density: xp.sum(log_probability(density)))(ln_density)
     assert xp.allclose(gradient, xp.asarray([0.0, 1.0]))
-    joint_ln_prob = jax.jit(
-        lambda values: positive_uniform_prior.ln_prob({"x": values}, axis=0)
-    )(values)
+    method = (
+        positive_uniform_prior.ln_prob
+        if strict
+        else positive_uniform_prior.ln_prob_subset
+    )
+    joint_ln_prob = jax.jit(lambda values: method({"x": values}, axis=0))(values)
     assert xp.allclose(joint_ln_prob, expected)
 
 
 @pytest.mark.array_backend
+@pytest.mark.parametrize("strict", [False, True])
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 @pytest.mark.parametrize("values", [0.5, [-0.5, 0.5]])
@@ -717,6 +1014,7 @@ def test_check_ln_prob_torch_preserves_tensor(
     dtype,
     device,
     values,
+    strict,
 ):
     torch = pytest.importorskip("torch")
     if device == "cuda" and not torch.cuda.is_available():
@@ -727,6 +1025,7 @@ def test_check_ln_prob_torch_preserves_tensor(
     actual = positive_uniform_prior.check_ln_prob(
         {"x": values},
         ln_density,
+        strict=strict,
         xp=xp,
     )
     expected = torch.where(

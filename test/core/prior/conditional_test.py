@@ -293,6 +293,43 @@ class TestConditionalPriorDict(unittest.TestCase):
         with self.assertRaises(bilby.core.prior.IllegalConditionsException):
             self.conditional_priors.ln_prob(sample=self.test_sample)
 
+    def test_probability_requires_complete_sample(self):
+        sample = {"var_0": self.test_sample["var_0"]}
+        for method in ("prob", "ln_prob"):
+            with self.subTest(method=method):
+                with self.assertRaisesRegex(ValueError, f"Use {method}_subset"):
+                    getattr(self.conditional_priors, method)(sample)
+
+    def test_probability_does_not_require_fixed_parameters(self):
+        self.conditional_priors["var_0"] = bilby.core.prior.DeltaFunction(0.7)
+        sample = {
+            key: value for key, value in self.test_sample.items() if key != "var_0"
+        }
+        for method, expected in (
+            ("prob", self.test_value),
+            ("ln_prob", np.log(self.test_value)),
+        ):
+            with self.subTest(method=method):
+                actual = getattr(self.conditional_priors, method)(sample)
+                self.assertAlmostEqual(actual.item(), expected)
+
+    def test_probability_subset(self):
+        sample = {key: self.test_sample[key] for key in ("var_0", "var_1")}
+        for method, expected in (("prob", 1 / 0.7), ("ln_prob", -np.log(0.7))):
+            with self.subTest(method=method):
+                actual = getattr(self.conditional_priors, f"{method}_subset")(sample)
+                self.assertAlmostEqual(actual.item(), expected)
+                self.assertEqual(aac.get_namespace(actual), self.xp)
+
+    def test_probability_subset_requires_dependencies(self):
+        # A previous evaluation must not supply stale conditional parameters.
+        self.conditional_priors.prob(self.test_sample)
+        sample = {"var_1": self.test_sample["var_1"]}
+        for method in ("prob_subset", "ln_prob_subset"):
+            with self.subTest(method=method):
+                with self.assertRaises(bilby.core.prior.IllegalConditionsException):
+                    getattr(self.conditional_priors, method)(sample)
+
     def test_sample_subset_all_keys(self):
         bilby.core.utils.random.seed(5)
         self.assertDictEqual(
@@ -506,6 +543,72 @@ class TestDirichletPrior(unittest.TestCase):
     def test_pickle(self):
         """Assert can be pickled (needed for use with bilby_pipe)"""
         pickle.dumps(self.priors)
+
+
+@pytest.fixture
+def conditional_uniform_prior():
+    def condition(reference_parameters, x):
+        return dict(maximum=x)
+
+    return bilby.core.prior.ConditionalPriorDict(
+        dict(
+            x=bilby.core.prior.Uniform(0, 2),
+            y=bilby.core.prior.ConditionalUniform(condition, minimum=0, maximum=2),
+            z=bilby.core.prior.Uniform(0, 1),
+        )
+    )
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("method", ["prob", "ln_prob", "prob_subset", "ln_prob_subset"])
+def test_conditional_probability_batch(xp, conditional_uniform_prior, method):
+    x = xp.asarray([1.0, 1.5])
+    sample = dict(x=x, y=xp.asarray([0.25, 0.5]))
+    if not method.endswith("_subset"):
+        sample["z"] = xp.asarray([0.5, 0.5])
+    expected = 0.5 / x
+    if method.startswith("ln_"):
+        expected = xp.log(expected)
+    actual = getattr(conditional_uniform_prior, method)(sample, axis=0)
+    assert aac.get_namespace(actual) == xp
+    assert actual.shape == x.shape
+    assert xp.allclose(actual, expected)
+
+
+@pytest.mark.array_backend
+@pytest.mark.parametrize("method", ["prob", "ln_prob", "prob_subset", "ln_prob_subset"])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("batched", [False, True])
+def test_conditional_probability_torch_gradients(
+    conditional_uniform_prior,
+    method,
+    device,
+    batched,
+):
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    x = torch.tensor(
+        [1.0, 1.5] if batched else 1.0,
+        dtype=torch.get_default_dtype(),
+        device=device,
+        requires_grad=True,
+    )
+    sample = dict(x=x, y=torch.full_like(x, 0.25))
+    if not method.endswith("_subset"):
+        sample["z"] = torch.full_like(x, 0.5)
+    actual = getattr(conditional_uniform_prior, method)(sample, axis=0)
+    expected = 0.5 / x
+    expected_gradient = -0.5 / x**2
+    if method.startswith("ln_"):
+        expected = torch.log(expected)
+        expected_gradient = -1 / x
+    torch.testing.assert_close(actual, expected)
+    assert actual.dtype == x.dtype
+    assert actual.device == x.device
+    assert actual.shape == x.shape
+    actual.sum().backward()
+    torch.testing.assert_close(x.grad, expected_gradient)
 
 
 if __name__ == "__main__":
