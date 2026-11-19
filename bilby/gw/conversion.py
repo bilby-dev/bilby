@@ -4,44 +4,43 @@ gravitational-wave sources.
 """
 
 import os
-import sys
 import pickle
+import sys
 
 import numpy as np
 from pandas import DataFrame, Series
 from scipy.stats import norm
 
+from ..compat.utils import array_module
+from ..core.likelihood import MarginalizedLikelihoodReconstructionError
+from ..core.prior import DeltaFunction
+from ..core.utils import (
+    command_line_args,
+    gravitational_constant,
+    logger,
+    safe_file_dump,
+    solar_mass,
+    speed_of_light,
+)
+from ..core.utils.parallel import bilby_pool, sampling_convenience_dump
+from .cosmology import get_cosmology, z_at_value
+from .eos.eos import IntegrateTOV
 from .utils import (
-    lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
-    lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition,
-    lalsim_SimNeutronStarEOS4ParamSDViableFamilyCheck,
-    lalsim_SimNeutronStarEOS3PieceDynamicPolytrope,
-    lalsim_SimNeutronStarEOS3PieceCausalAnalytic,
-    lalsim_SimNeutronStarEOS3PDViableFamilyCheck,
     lalsim_CreateSimNeutronStarFamily,
+    lalsim_SimInspiralTransformPrecessingNewInitialConditions,
+    lalsim_SimNeutronStarEOS3PDViableFamilyCheck,
+    lalsim_SimNeutronStarEOS3PieceCausalAnalytic,
+    lalsim_SimNeutronStarEOS3PieceDynamicPolytrope,
+    lalsim_SimNeutronStarEOS4ParameterSpectralDecomposition,
+    lalsim_SimNeutronStarEOS4ParamSDGammaCheck,
+    lalsim_SimNeutronStarEOS4ParamSDViableFamilyCheck,
     lalsim_SimNeutronStarEOSMaxPseudoEnthalpy,
     lalsim_SimNeutronStarEOSSpeedOfSoundGeometerized,
     lalsim_SimNeutronStarFamMinimumMass,
+    lalsim_SimNeutronStarLoveNumberK2,
     lalsim_SimNeutronStarMaximumMass,
     lalsim_SimNeutronStarRadius,
-    lalsim_SimNeutronStarLoveNumberK2,
 )
-
-from ..compat.utils import array_module
-from ..core.likelihood import MarginalizedLikelihoodReconstructionError
-from ..core.utils import (
-    logger,
-    solar_mass,
-    gravitational_constant,
-    speed_of_light,
-    command_line_args,
-    safe_file_dump,
-)
-from ..core.utils.parallel import bilby_pool, sampling_convenience_dump
-from ..core.prior import DeltaFunction
-from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
-from .eos.eos import IntegrateTOV
-from .cosmology import get_cosmology, z_at_value
 
 
 def redshift_to_luminosity_distance(redshift, cosmology=None):
@@ -284,10 +283,19 @@ def convert_to_lal_binary_black_hole_parameters(parameters):
                     converted_parameters[f"chi_{idx}"] ** 2
                     + converted_parameters[f"chi_{idx}_in_plane"] ** 2
                 ) ** 0.5
-                converted_parameters[f"cos_tilt_{idx}"] = (
-                    converted_parameters[f"chi_{idx}"]
-                    / converted_parameters[f"a_{idx}"]
-                )
+                with np.errstate(invalid="raise"):
+                    try:
+                        converted_parameters[f"cos_tilt_{idx}"] = (
+                            converted_parameters[f"chi_{idx}"]
+                            / converted_parameters[f"a_{idx}"]
+                        )
+                    except (FloatingPointError, ZeroDivisionError):
+                        logger.debug(
+                            "Error in conversion to spherical spin tilt. "
+                            "This is often due to the spin parameters being zero. "
+                            f"Setting cos_tilt_{idx} = 1."
+                        )
+                        converted_parameters[f"cos_tilt_{idx}"] = 1.0
             elif "a_{}".format(idx) not in original_keys:
                 converted_parameters["a_{}".format(idx)] = abs(
                     converted_parameters[key]
