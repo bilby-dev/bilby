@@ -1,11 +1,10 @@
 import unittest
 
 import array_api_compat as aac
+import bilby
 import numpy as np
 import pandas as pd
 import pytest
-
-import bilby
 from bilby.gw import conversion
 
 
@@ -404,6 +403,18 @@ class TestConvertToLALParams(unittest.TestCase):
             },
             dict(a_1=a_1, tilt_1=tilt_1, phi_jl=phi_jl, phi_12=phi_12),
         )
+
+    def test_bbh_zero_spin_with_in_plane_component_converted_twice(self):
+        """
+        Test that converting parameters with zero spin twice does not
+        produce NaN tilt angles, as happens in the sampler post-processing.
+        """
+        self.parameters["chi_1"] = 0
+        self.parameters["chi_1_in_plane"] = 0
+        self.bbh_convert()
+        self.bbh_convert()
+        self.assertEqual(self.parameters["cos_tilt_1"], 1)
+        self.assertEqual(self.parameters["tilt_1"], 0)
 
     def test_bbh_cos_angle_to_angle_conversion(self):
         self.parameters["cos_tilt_1"] = 1
