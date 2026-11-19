@@ -779,11 +779,14 @@ class ConditionalPriorDict(PriorDict):
 
     def _check_conditions_resolved(self, key, sampled_keys):
         """Checks if all required variables have already been sampled so we can sample this key"""
-        conditions_resolved = True
         for k in self[key].required_variables:
             if k not in sampled_keys:
-                conditions_resolved = False
-        return conditions_resolved
+                return False
+            elif isinstance(self[k], JointPrior):
+                for name in self[k].dist.names:
+                    if name not in sampled_keys and name != key:
+                        return False
+        return True
 
     def sample_subset(self, keys=iter([]), size=None, *, random_state=None):
         self.convert_floats_to_delta_functions()
@@ -937,29 +940,26 @@ class ConditionalPriorDict(PriorDict):
         self._check_resolved()
         self._update_rescale_keys(keys)
         result = dict()
-        joint = dict()
         for key, index in zip(
             self.sorted_keys_without_fixed_parameters, self._rescale_indexes
         ):
             result[key] = self[key].rescale(
                 theta[index], **self.get_required_variables(key)
             )
-            self[key].least_recently_sampled = result[key]
-            if (
-                isinstance(self[key], JointPrior)
-                and self[key].dist.distname not in joint
-            ):
-                joint[self[key].dist.distname] = [key]
-            elif isinstance(self[key], JointPrior):
-                joint[self[key].dist.distname].append(key)
-        for names in joint.values():
-            for key in names:
-                if result[key] is None:
-                    continue
-                for subkey, val in zip(self[key].dist.names, result[key]):
-                    self[subkey].least_recently_sampled = val
-                    result[subkey] = val
 
+            # joint-priors only return on rescale if all related keys have
+            # been requested
+            if isinstance(self[key], JointPrior):
+                if len(result[key]) != 0:
+                    names = self[key].dist.names
+                    for name, joint_rescale in zip(names, result[key]):
+                        result[name] = joint_rescale
+                        self[name].least_recently_sampled = joint_rescale
+            else:
+                # if not joint prior, set value immediately
+                self[key].least_recently_sampled = result[key]
+
+        # finally return results in the order requested
         return xp.asarray([result[key] for key in keys])
 
     def _update_rescale_keys(self, keys):
