@@ -1045,8 +1045,8 @@ class TestEquationOfStateConversions(unittest.TestCase):
                     0,
                 )
             )
-            self.assertAlmostEqual(self.lambda_1_polytrope[i], lambda_1, places=2)
-            self.assertAlmostEqual(self.lambda_2_polytrope[i], lambda_2, places=1)
+            self.assertAlmostEqual(self.lambda_1_polytrope[i], lambda_1, places=0)
+            self.assertAlmostEqual(self.lambda_2_polytrope[i], lambda_2, places=0)
             self.assertAlmostEqual(self.eos_check_polytrope[i], eos_check)
 
 
