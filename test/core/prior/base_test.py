@@ -140,6 +140,18 @@ class TestPrior(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.prior.boundary = "else"
 
+    def test_set_boundary_reflective_warns_and_sets_none(self):
+        self.prior.boundary = "periodic"
+        with self.assertWarnsRegex(UserWarning, "Reflective boundary conditions"):
+            self.prior.boundary = "reflective"
+        self.assertIsNone(self.prior.boundary)
+
+    def test_instantiate_with_reflective_boundary(self):
+        with self.assertWarnsRegex(UserWarning, "Reflective boundary conditions"):
+            prior = bilby.core.prior.Uniform(0, 1, boundary="reflective")
+        self.assertIsNone(prior.boundary)
+        self.assertIn("boundary=None", repr(prior))
+
 
 class TestConstraint(unittest.TestCase):
     def setUp(self):

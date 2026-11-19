@@ -1,4 +1,3 @@
-import array_api_extra as xpx
 import numpy as np
 from scipy.special import logsumexp
 
@@ -113,31 +112,3 @@ def kish_log_effective_sample_size(ln_weights):
 
     """
     return 2 * logsumexp(ln_weights) - logsumexp(2 * ln_weights)
-
-
-def reflect(u):
-    """
-    Iteratively reflect a number until it is contained in [0, 1].
-
-    This is for priors with a reflective boundary condition, all numbers in the
-    set `u = 2n +/- x` should be mapped to x.
-
-    For the `+` case we just take `u % 1`.
-    For the `-` case we take `1 - (u % 1)`.
-
-    E.g., -0.9, 1.1, and 2.9 should all map to 0.9.
-
-    Parameters
-    ==========
-    u: array-like
-        The array of points to map to the unit cube
-
-    Returns
-    =======
-    u: array-like
-       The input array, modified in place.
-    """
-    idxs_even = (u % 2) < 1
-    u = xpx.at(u)[idxs_even].set(u[idxs_even] % 1)
-    u = xpx.at(u)[~idxs_even].set(1 - (u[~idxs_even] % 1))
-    return u

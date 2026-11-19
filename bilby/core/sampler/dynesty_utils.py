@@ -3,7 +3,7 @@ from collections import namedtuple
 
 import numpy as np
 from dynesty.internal_samplers import InternalSampler, SamplerReturn
-from dynesty.utils import SamplerHistoryItem, apply_reflect, get_random_generator
+from dynesty.utils import SamplerHistoryItem, get_random_generator
 from scipy.stats import binom
 
 from ...bilby_mcmc.chain import calculate_tau
@@ -185,9 +185,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         naccept = 0
         ncall = 0
 
-        periodic = args.kwargs["periodic"]
-        reflective = args.kwargs["reflective"]
-        boundary_kwargs = dict(periodic=periodic, reflective=reflective)
+        periodic = args.kwargs.get("periodic", None)
 
         proposals, common_kwargs, proposal_kwargs = _get_proposal_kwargs(args)
         walks = len(proposals)
@@ -197,7 +195,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
             u_prop = proposal_funcs[prop](
                 u=current_u, **common_kwargs, **proposal_kwargs[prop]
             )
-            u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
+            u_prop = apply_boundaries_(u_prop=u_prop, periodic=periodic)
             if u_prop is None:
                 continue
 
@@ -399,8 +397,6 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
     def build_cache(args):
         # Bounds
         periodic = args.kwargs.get("periodic", None)
-        reflective = args.kwargs.get("reflective", None)
-        boundary_kwargs = dict(periodic=periodic, reflective=reflective)
 
         proposals, common_kwargs, proposal_kwargs = _get_proposal_kwargs(args)
 
@@ -439,7 +435,7 @@ class ACTTrackingEnsembleWalk(BaseEnsembleSampler):
             u_prop = proposal_funcs[prop](
                 u=current_u, **common_kwargs, **proposal_kwargs[prop]
             )
-            u_prop = apply_boundaries_(u_prop=u_prop, **boundary_kwargs)
+            u_prop = apply_boundaries_(u_prop=u_prop, periodic=periodic)
             success = False
             if u_prop is not None:
                 v_prop = args.prior_transform(np.array(u_prop))
@@ -612,8 +608,6 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
         rstate = get_random_generator(args.rseed)
 
         periodic = args.kwargs.get("periodic", None)
-        reflective = args.kwargs.get("reflective", None)
-        boundary_kwargs = dict(periodic=periodic, reflective=reflective)
 
         current_u = args.u
         nlive = args.kwargs.get("nlive", args.kwargs.get("walks", 100))
@@ -636,7 +630,7 @@ class AcceptanceTrackingRWalk(EnsembleWalkSampler):
             u_prop = proposal_funcs[prop](
                 current_u, **common_kwargs, **proposal_kwargs[prop]
             )
-            u_prop = apply_boundaries_(u_prop, **boundary_kwargs)
+            u_prop = apply_boundaries_(u_prop, periodic=periodic)
 
             if u_prop is None:
                 nfail += 1
@@ -937,10 +931,12 @@ def propose_volumetric(
     return u_prop
 
 
-def apply_boundaries_(u_prop, periodic, reflective):
+def apply_boundaries_(u_prop, periodic):
     """
-    Apply the periodic and reflective boundaries and test if we are inside the
-    unit cube.
+    Apply the periodic boundaries and test if we are inside the unit cube.
+
+    Reflective boundaries are not supported as they do not preserve detailed
+    balance.
 
     Parameters
     ----------
@@ -948,8 +944,6 @@ def apply_boundaries_(u_prop, periodic, reflective):
         The proposed point in the unit hypercube space.
     periodic: np.ndarray
         Indices of the parameters with periodic boundaries.
-    reflective: np.ndarray
-        Indices of the parameters with reflective boundaries.
 
     Returns
     =======
@@ -960,10 +954,6 @@ def apply_boundaries_(u_prop, periodic, reflective):
     # Wrap periodic parameters
     if periodic is not None:
         u_prop[periodic] = np.mod(u_prop[periodic], 1)
-
-    # Reflect
-    if reflective is not None:
-        u_prop[reflective] = apply_reflect(u_prop[reflective])
 
     if u_prop.min() < 0 or u_prop.max() > 1:
         return None

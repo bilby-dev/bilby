@@ -225,7 +225,6 @@ class Dynesty(NestedSampler):
         self.resume = resume
         self.rejection_sample_posterior = rejection_sample_posterior
         self._apply_dynesty_boundaries("periodic")
-        self._apply_dynesty_boundaries("reflective")
 
         self.nestcheck = nestcheck
 
@@ -257,7 +256,6 @@ class Dynesty(NestedSampler):
             ndim=self.ndim,
             nonbounded=self.kwargs.get("nonbounded", None),
             periodic=self.kwargs.get("periodic", None),
-            reflective=self.kwargs.get("reflective", None),
             maxmcmc=self.maxmcmc,
         )
 
@@ -394,7 +392,6 @@ class Dynesty(NestedSampler):
         loglstar = results.loglstar
         delta_logz = results.delta_logz
         logz = results.logz
-        logzvar = results.logzvar
         nc = results.nc
         bounditer = results.bounditer
         eff = results.eff
@@ -402,10 +399,6 @@ class Dynesty(NestedSampler):
         # Adjusting outputs for printing.
         if delta_logz > 1e6:
             delta_logz = np.inf
-        if 0.0 <= logzvar <= 1e6:
-            logzerr = np.sqrt(logzvar)
-        else:
-            logzerr = np.nan
         if logz <= -1e6:
             logz = -np.inf
         if loglstar <= -1e6:
@@ -422,7 +415,7 @@ class Dynesty(NestedSampler):
         string.append(f"nc:{nc:3d}")
         string.append(f"ncall:{ncall:.1e}")
         string.append(f"eff:{eff:0.1f}%")
-        string.append(f"{key}={logz:0.2f}+/-{logzerr:0.2f}")
+        string.append(f"{key}={logz:0.2f}")
         if nbatch is not None:
             string.append(f"batch:{nbatch}")
         if logl_min > -np.inf:
@@ -441,8 +434,8 @@ class Dynesty(NestedSampler):
 
     def _apply_dynesty_boundaries(self, key):
         # The periodic kwargs passed into dynesty allows the parameters to
-        # wander out of the bounds, this includes both periodic and reflective.
-        # these are then handled in the prior_transform
+        # wander out of the bounds, these are then wrapped back into the
+        # unit cube before the prior_transform is called
         selected = list()
         for ii, param in enumerate(self.search_parameter_keys):
             if self.priors[param].boundary == key:

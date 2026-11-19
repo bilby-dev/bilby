@@ -267,35 +267,6 @@ class TestTimeAndFrequencyArrays(unittest.TestCase):
             )
 
 
-@pytest.mark.array_backend
-@pytest.mark.usefixtures("xp_class")
-class TestReflect(unittest.TestCase):
-    def test_in_range(self):
-        xprime = self.xp.asarray([0.1, 0.5, 0.9])
-        x = self.xp.asarray([0.1, 0.5, 0.9])
-        self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
-
-    def test_in_one_to_two(self):
-        xprime = self.xp.asarray([1.1, 1.5, 1.9])
-        x = self.xp.asarray([0.9, 0.5, 0.1])
-        self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
-
-    def test_in_two_to_three(self):
-        xprime = self.xp.asarray([2.1, 2.5, 2.9])
-        x = self.xp.asarray([0.1, 0.5, 0.9])
-        self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
-
-    def test_in_minus_one_to_zero(self):
-        xprime = self.xp.asarray([-0.9, -0.5, -0.1])
-        x = self.xp.asarray([0.9, 0.5, 0.1])
-        self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
-
-    def test_in_minus_two_to_minus_one(self):
-        xprime = self.xp.asarray([-1.9, -1.5, -1.1])
-        x = self.xp.asarray([0.1, 0.5, 0.9])
-        self.assertTrue(np.testing.assert_allclose(utils.reflect(xprime), x) is None)
-
-
 class TestCloseNewFigures(unittest.TestCase):
     def setUp(self):
         self.existing_figure = plt.figure()
