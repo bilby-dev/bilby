@@ -6,7 +6,9 @@ gravitational-wave sources.
 import os
 import sys
 import pickle
+from functools import partial
 
+import array_api_compat as aac
 import numpy as np
 from pandas import DataFrame, Series
 from scipy.stats import norm
@@ -27,7 +29,7 @@ from .utils import (
     lalsim_SimNeutronStarLoveNumberK2,
 )
 
-from ..compat.utils import array_module
+from ..compat.utils import array_module, xp_wrap
 from ..core.likelihood import MarginalizedLikelihoodReconstructionError
 from ..core.utils import (
     logger,
@@ -37,9 +39,9 @@ from ..core.utils import (
     command_line_args,
     safe_file_dump,
 )
+from ..core.utils.constants import msun_time_si
 from ..core.utils.parallel import bilby_pool, sampling_convenience_dump
 from ..core.prior import DeltaFunction
-from .utils import lalsim_SimInspiralTransformPrecessingNewInitialConditions
 from .eos.eos import IntegrateTOV
 from .cosmology import get_cosmology, z_at_value
 
@@ -126,6 +128,7 @@ def bilby_to_lalsimulation_spins(
     mass_2,
     reference_frequency,
     phase,
+    catch_errors=False,
 ):
     """
     Convert Bilby spin parameters to the Cartesian representation used by
@@ -157,13 +160,17 @@ def bilby_to_lalsimulation_spins(
     a_2 : float
         Secondary dimensionless spin magnitude, between 0 and 1.
     mass_1 : float
-        Detector-frame primary mass, in kilograms.
+        Detector-frame primary mass, in solar masses.
     mass_2 : float
-        Detector-frame secondary mass, in kilograms.
+        Detector-frame secondary mass, in solar masses.
     reference_frequency : float
         Non-zero reference gravitational-wave frequency, in Hz.
     phase : float
         Orbital phase at ``reference_frequency``, in radians.
+    catch_errors : bool
+        If :code:`True`, log a warning and return :code:`None` instead of
+        raising when the conversion fails, e.g., for a zero reference
+        frequency or total mass with float inputs. Default is :code:`False`.
 
     Returns
     =======
@@ -173,6 +180,9 @@ def bilby_to_lalsimulation_spins(
     spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z : float
         Dimensionless Cartesian spin components in the frame used by
         lalsimulation waveform generators.
+
+        If :code:`catch_errors` is :code:`True` and the conversion fails,
+        :code:`None` is returned instead.
     """
     if (a_1 == 0 or tilt_1 in [0, np.pi]) and (a_2 == 0 or tilt_2 in [0, np.pi]):
         spin_1x = 0
@@ -183,41 +193,250 @@ def bilby_to_lalsimulation_spins(
         spin_2z = a_2 * np.cos(tilt_2)
         iota = theta_jn
     else:
-        from numbers import Number
+        try:
+            iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = (
+                transform_precessing_spins(
+                    theta_jn,
+                    phi_jl,
+                    tilt_1,
+                    tilt_2,
+                    phi_12,
+                    a_1,
+                    a_2,
+                    mass_1,
+                    mass_2,
+                    reference_frequency,
+                    phase,
+                )
+            )
+        except ZeroDivisionError as e:
+            if not catch_errors:
+                raise
+            failed_parameters = dict(
+                theta_jn=theta_jn,
+                phi_jl=phi_jl,
+                tilt_1=tilt_1,
+                tilt_2=tilt_2,
+                phi_12=phi_12,
+                a_1=a_1,
+                a_2=a_2,
+                mass_1=mass_1,
+                mass_2=mass_2,
+                reference_frequency=reference_frequency,
+                phase=phase,
+            )
+            logger.warning(
+                f"Converting spins failed with error: {e}\n"
+                f"The parameters were {failed_parameters}\n"
+                "Likelihood will be set to -inf."
+            )
+            return None
+    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
 
-        args = (
+
+@xp_wrap
+def transform_precessing_spins(
+    theta_jn,
+    phi_jl,
+    tilt_1,
+    tilt_2,
+    phi_12,
+    chi_1,
+    chi_2,
+    mass_1,
+    mass_2,
+    f_ref,
+    phase,
+    *,
+    xp=None,
+):
+    """
+    A direct reimplementation of
+    :code:`lalsimulation.SimInspiralTransformPrecessingNewInitialConditions`.
+
+    Parameters
+    ----------
+    theta_jn: float | xp.ndarray
+        Zenith angle between J and N (rad).
+    phi_jl: float | xp.ndarray
+        Azimuthal angle of L_N on its cone about J (rad).
+    tilt_1: float | xp.ndarray
+        Zenith angle between S1 and LNhat (rad).
+    tilt_2: float | xp.ndarray
+        Zenith angle between S2 and LNhat (rad).
+    phi_12: float | xp.ndarray
+        Difference in azimuthal angle between S1, S2 (rad).
+    chi_1: float | xp.ndarray
+        Dimensionless spin of body 1.
+    chi_2: float | xp.ndarray
+        Dimensionless spin of body 2.
+    mass_1: float | xp.ndarray
+        Mass of body 1 (solar masses).
+    mass_2: float | xp.ndarray
+        Mass of body 2 (solar masses).
+    f_ref: float | xp.ndarray
+        Reference GW frequency (Hz).
+    phase: float | xp.ndarray
+        Reference orbital phase.
+
+    Returns
+    -------
+    tuple
+        (iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z)
+        - iota: Inclination angle of L_N
+        - spin_1x, spin_1y, spin_1z: Components of spin 1
+        - spin_2x, spin_2y, spin_2z: Components of spin 2
+    """
+    # np.asarray is much faster than stack here, but torch doesn't support
+    # this so we need to explicitly use stack
+    if aac.is_torch_namespace(xp):
+        stack = partial(xp.stack, axis=0)
+    else:
+        stack = xp.asarray
+
+    # The vectors below are stacked from components that depend on different
+    # inputs, so the inputs must share a shape. Only broadcast when needed as
+    # broadcast_arrays is comparatively slow for scalar inputs.
+    inputs = (
+        theta_jn,
+        phi_jl,
+        tilt_1,
+        tilt_2,
+        phi_12,
+        chi_1,
+        chi_2,
+        mass_1,
+        mass_2,
+        f_ref,
+        phase,
+    )
+    if len({getattr(value, "shape", ()) for value in inputs}) > 1:
+        (
             theta_jn,
             phi_jl,
             tilt_1,
             tilt_2,
             phi_12,
-            a_1,
-            a_2,
+            chi_1,
+            chi_2,
             mass_1,
             mass_2,
-            reference_frequency,
+            f_ref,
             phase,
-        )
-        float_inputs = all([isinstance(arg, Number) for arg in args])
-        if float_inputs:
-            func = lalsim_SimInspiralTransformPrecessingNewInitialConditions
-        else:
-            func = transform_precessing_spins
-        iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z = func(*args)
-    return iota, spin_1x, spin_1y, spin_1z, spin_2x, spin_2y, spin_2z
+        ) = xp.broadcast_arrays(*[xp.asarray(value) for value in inputs])
 
+    # Helper rotation functions
+    def rotate_z(angle, vec):
+        """Rotate vector about z-axis"""
+        cos_a = xp.cos(angle)
+        sin_a = xp.sin(angle)
+        x_new = cos_a * vec[0] - sin_a * vec[1]
+        y_new = sin_a * vec[0] + cos_a * vec[1]
+        return stack([x_new, y_new, vec[2]])
 
-@np.vectorize
-def transform_precessing_spins(*args):
-    """
-    Vectorized wrapper for
-    lalsimulation.SimInspiralTransformPrecessingNewInitialConditions
+    def rotate_y(angle, vec):
+        """Rotate vector about y-axis"""
+        cos_a = xp.cos(angle)
+        sin_a = xp.sin(angle)
+        x_new = cos_a * vec[0] + sin_a * vec[2]
+        z_new = -sin_a * vec[0] + cos_a * vec[2]
+        return stack([x_new, vec[1], z_new])
 
-    For detailed documentation see
-    :code:`bilby.gw.conversion.bilby_to_lalsimulation_spins`.
-    This will be removed from the public API in a future release.
-    """
-    return lalsim_SimInspiralTransformPrecessingNewInitialConditions(*args)
+    # Starting frame: LNhat is along the z-axis
+    ln_hat = stack([theta_jn * 0, theta_jn * 0, theta_jn**0])
+
+    # Initial spin unit vectors
+    s1_hat = stack(
+        [
+            xp.sin(tilt_1) * xp.cos(phase),
+            xp.sin(tilt_1) * xp.sin(phase),
+            xp.cos(tilt_1),
+        ]
+    )
+
+    s2_hat = stack(
+        [
+            xp.sin(tilt_2) * xp.cos(phi_12 + phase),
+            xp.sin(tilt_2) * xp.sin(phi_12 + phase),
+            xp.cos(tilt_2),
+        ]
+    )
+
+    # Compute physical parameters
+    m_total = mass_1 + mass_2
+    eta = mass_1 * mass_2 / (m_total * m_total)
+
+    # v parameter at reference point (c=G=1 units)
+    v0 = (m_total * msun_time_si * xp.pi * f_ref) ** (1 / 3)
+
+    # Compute angular momentum magnitude using PN expressions
+    # L/M = eta * v^(-1) * (1 + v^2 * L_2PN)
+    # L_2PN = 3/2 + 1/6 * eta
+    l_2pn = 1.5 + eta / 6.0
+    l_mag = eta * m_total * m_total / v0 * (1.0 + v0 * v0 * l_2pn)
+
+    # Spin vectors with proper magnitudes
+    s1 = mass_1 * mass_1 * chi_1 * s1_hat
+    s2 = mass_2 * mass_2 * chi_2 * s2_hat
+
+    # Total angular momentum J = L + S1 + S2
+    l_vec = stack([l_mag * 0, l_mag * 0, l_mag])
+    j = l_vec + s1 + s2
+
+    # Normalize J to get Jhat and find its angles
+    j_norm = xp.sqrt(xp.sum(j**2, axis=0))
+    j_hat = j / j_norm
+
+    theta_0 = xp.arccos(j_hat[2])
+    phi_0 = xp.arctan2(j_hat[1], j_hat[0])
+
+    # Rotation 1: Rotate about z-axis by -phi_0 to put Jhat in x-z plane
+    angle = -phi_0
+    s1_hat = rotate_z(angle, s1_hat)
+    s2_hat = rotate_z(angle, s2_hat)
+
+    # Rotation 2: Rotate about y-axis by -theta_0 to put Jhat along z-axis
+    angle = -theta_0
+    ln_hat = rotate_y(angle, ln_hat)
+    s1_hat = rotate_y(angle, s1_hat)
+    s2_hat = rotate_y(angle, s2_hat)
+
+    # Rotation 3: Rotate about z-axis by (phi_jl - pi) to put L at desired azimuth
+    angle = phi_jl - xp.pi
+    ln_hat = rotate_z(angle, ln_hat)
+    s1_hat = rotate_z(angle, s1_hat)
+    s2_hat = rotate_z(angle, s2_hat)
+
+    # Compute inclination: angle between L and N
+    n = stack([theta_jn * 0, xp.sin(theta_jn), xp.cos(theta_jn)])
+    iota = xp.arccos(xp.sum(n * ln_hat, axis=0))
+
+    # Rotation 4-5: Bring L into the z-axis
+    theta_lj = xp.arccos(ln_hat[2])
+    phi_l = xp.arctan2(ln_hat[1], ln_hat[0])
+
+    angle = -phi_l
+    s1_hat = rotate_z(angle, s1_hat)
+    s2_hat = rotate_z(angle, s2_hat)
+    n = rotate_z(angle, n)
+
+    angle = -theta_lj
+    s1_hat = rotate_y(angle, s1_hat)
+    s2_hat = rotate_y(angle, s2_hat)
+    n = rotate_y(angle, n)
+
+    # Rotation 6: Bring N into y-z plane with positive y component
+    phi_n = xp.arctan2(n[1], n[0])
+
+    angle = xp.pi / 2.0 - phi_n - phase
+    s1_hat = rotate_z(angle, s1_hat)
+    s2_hat = rotate_z(angle, s2_hat)
+
+    # Return final spin components
+    spin_1 = s1_hat * chi_1
+    spin_2 = s2_hat * chi_2
+
+    return iota, *spin_1, *spin_2
 
 
 def convert_to_lal_binary_black_hole_parameters(parameters):
@@ -2496,8 +2715,8 @@ def generate_component_spins(sample):
             output_sample["phi_12"],
             output_sample["a_1"],
             output_sample["a_2"],
-            output_sample["mass_1"] * solar_mass,
-            output_sample["mass_2"] * solar_mass,
+            output_sample["mass_1"],
+            output_sample["mass_2"],
             output_sample["reference_frequency"],
             output_sample["phase"],
         )
