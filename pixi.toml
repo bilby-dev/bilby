@@ -63,7 +63,7 @@ python-lalframe = "*"
 python-lalsimulation = "*"
 
 [feature.gw.pypi-dependencies]
-bilby-cython = ">=0.5.4"
+bilby-cython = ">=0.6.0"
 
 [feature.jax.dependencies]
 numpy = "<2.5"
