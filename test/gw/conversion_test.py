@@ -1,4 +1,6 @@
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import array_api_compat as aac
 import numpy as np
@@ -467,9 +469,6 @@ class TestGenerateAllParameters(unittest.TestCase):
             "geocent_time",
             "ra",
             "dec",
-            "reference_frequency",
-            "waveform_approximant",
-            "minimum_frequency",
             "chirp_mass",
             "total_mass",
             "symmetric_mass_ratio",
@@ -523,6 +522,140 @@ class TestGenerateAllParameters(unittest.TestCase):
             new_parameters = func(values)
             for key in expected:
                 self.assertIn(key, new_parameters)
+            for key in [
+                "reference_frequency",
+                "minimum_frequency",
+                "waveform_approximant",
+            ]:
+                self.assertNotIn(key, new_parameters)
+
+    def test_generate_parameters_with_waveform_arguments(self):
+        waveform_arguments = dict(
+            reference_frequency=5.0,
+            minimum_frequency=5.0,
+            waveform_approximant="IMRPhenomXPHM",
+        )
+        original_arguments = waveform_arguments.copy()
+        spin_keys = [
+            "iota",
+            "spin_1x",
+            "spin_1y",
+            "spin_1z",
+            "spin_2x",
+            "spin_2y",
+            "spin_2z",
+        ]
+        expected_spins = conversion.bilby_to_lalsimulation_spins(
+            self.parameters["theta_jn"],
+            self.parameters["phi_jl"],
+            self.parameters["tilt_1"],
+            self.parameters["tilt_2"],
+            self.parameters["phi_12"],
+            self.parameters["a_1"],
+            self.parameters["a_2"],
+            self.parameters["mass_1"] * bilby.core.utils.solar_mass,
+            self.parameters["mass_2"] * bilby.core.utils.solar_mass,
+            5.0,
+            self.parameters["phase"],
+        )
+        for func in [
+            conversion.generate_all_bbh_parameters,
+            conversion.generate_all_bns_parameters,
+        ]:
+            for values in [self.parameters, self.data_frame]:
+                with self.subTest(function=func.__name__, sample_type=type(values)):
+                    original_sample = values.copy()
+                    converted = func(values, waveform_arguments=waveform_arguments)
+                    default = func(values)
+                    for key, expected in zip(spin_keys, expected_spins):
+                        np.testing.assert_allclose(converted[key], expected, atol=1e-12)
+                    self.assertFalse(
+                        np.allclose(converted["spin_1x"], default["spin_1x"])
+                    )
+                    for key in waveform_arguments:
+                        self.assertNotIn(key, converted)
+                    if isinstance(values, pd.DataFrame):
+                        pd.testing.assert_frame_equal(values, original_sample)
+                    else:
+                        self.assertDictEqual(values, original_sample)
+                    self.assertDictEqual(waveform_arguments, original_arguments)
+
+    def test_partial_waveform_arguments_use_defaults(self):
+        for func in [
+            conversion.generate_all_bbh_parameters,
+            conversion.generate_all_bns_parameters,
+        ]:
+            expected = func(self.parameters)
+            for arguments in [{}, {"minimum_frequency": 5.0}]:
+                converted = func(self.parameters, waveform_arguments=arguments)
+                for key in expected:
+                    np.testing.assert_equal(converted[key], expected[key])
+
+    def test_waveform_arguments_and_likelihood_are_mutually_exclusive(self):
+        for func in [
+            conversion.generate_all_bbh_parameters,
+            conversion.generate_all_bns_parameters,
+        ]:
+            for arguments in [{}, {"reference_frequency": 5.0}]:
+                with self.assertRaisesRegex(ValueError, "mutually exclusive"):
+                    func(
+                        self.parameters,
+                        likelihood=object(),
+                        waveform_arguments=arguments,
+                    )
+
+    def test_likelihood_waveform_arguments(self):
+        for func in [
+            conversion.generate_all_bbh_parameters,
+            conversion.generate_all_bns_parameters,
+        ]:
+            for arguments in [{}, {"reference_frequency": 5.0}]:
+                original_arguments = arguments.copy()
+                likelihood = SimpleNamespace(
+                    waveform_generator=SimpleNamespace(waveform_arguments=arguments)
+                )
+                expected = func(self.parameters, waveform_arguments=arguments)
+                with (
+                    patch.object(conversion, "compute_per_detector_log_likelihoods"),
+                    patch.object(conversion, "compute_snrs"),
+                ):
+                    converted = func(self.parameters, likelihood=likelihood)
+                for key in expected:
+                    np.testing.assert_equal(converted[key], expected[key])
+                self.assertEqual(
+                    likelihood.waveform_generator.waveform_arguments, original_arguments
+                )
+
+    def test_related_functions_accept_waveform_arguments(self):
+        arguments = {"reference_frequency": 5.0}
+        expected = conversion.generate_all_bbh_parameters(
+            self.parameters, waveform_arguments=arguments
+        )
+        for func in [
+            conversion.generate_component_spins,
+            conversion.generate_spin_parameters,
+        ]:
+            for values in [self.parameters, self.data_frame]:
+                values = values.copy()
+                values["mass_ratio"] = (
+                    self.parameters["mass_2"] / self.parameters["mass_1"]
+                )
+                converted = func(values, waveform_arguments=arguments)
+                np.testing.assert_allclose(converted["spin_1x"], expected["spin_1x"])
+                self.assertNotIn("reference_frequency", converted)
+        converted = conversion.generate_specific_parameters(
+            self.parameters, ["spin_1x", "chi_p"], waveform_arguments=arguments
+        )
+        for key in converted:
+            np.testing.assert_allclose(converted[key], expected[key])
+
+    def test_component_spins_support_reference_frequency_in_sample(self):
+        parameters = dict(self.parameters, reference_frequency=5.0)
+        expected = conversion.generate_component_spins(
+            self.parameters, waveform_arguments={"reference_frequency": 5.0}
+        )
+        converted = conversion.generate_component_spins(parameters)
+        np.testing.assert_allclose(converted["spin_1x"], expected["spin_1x"])
 
     def test_generate_bbh_parameters_with_likelihood(self):
         priors = bilby.gw.prior.BBHPriorDict()
