@@ -98,6 +98,9 @@ def conditional_prior_factory(prior_class):
             self.condition_func = condition_func
             self._reference_params = reference_params
 
+            # Conditional values can change even for delta functions.
+            self._is_fixed = False
+
         def sample(self, size=None, *, random_state=None, **required_variables):
             """Draw a sample from the prior
 
