@@ -21,7 +21,7 @@ class TestDynamicDynesty(unittest.TestCase):
             use_ratio=False,
             plot=False,
             skip_import_verification=True,
-            **kwargs
+            **kwargs,
         )
 
     def tearDown(self):

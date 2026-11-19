@@ -299,7 +299,7 @@ class TestDynesty(unittest.TestCase):
         self.init_sampler(proposals=["diff", "volumetric"])
         self.assertEqual(
             self.dysampler.internal_sampler_next.sampler_kwargs["proposals"],
-            ["diff", "volumetric"]
+            ["diff", "volumetric"],
         )
 
 
