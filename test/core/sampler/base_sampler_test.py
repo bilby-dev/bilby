@@ -144,6 +144,25 @@ class TestSampler(unittest.TestCase):
         expected = np.random.default_rng(1234).uniform(0, 1, (5, self.sampler.ndim))
         np.testing.assert_array_equal(points, expected)
 
+    def test_initial_points_log_volume_ignores_prior_rejections(self):
+        # Of the five draws, two are accepted, two have an infinite likelihood
+        # and one is outside the (constrained) prior.
+        with (
+            patch.object(
+                self.sampler,
+                "check_draw",
+                side_effect=[False, False, True, False, True],
+            ),
+            patch.object(self.sampler, "log_prior", side_effect=[0, -np.inf, 0]),
+            patch.object(
+                self.sampler, "prior_transform", side_effect=lambda unit: unit
+            ),
+        ):
+            *_, log_volume = self.sampler.get_initial_points_from_prior(
+                2, return_log_volume=True
+            )
+        self.assertEqual(log_volume, np.log(2 / 4))
+
     def test_base_run_sampler(self):
         sampler_copy = copy.copy(self.sampler)
         self.sampler.run_sampler()
