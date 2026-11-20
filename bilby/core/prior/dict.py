@@ -8,7 +8,6 @@ from warnings import warn
 
 import array_api_compat as aac
 import numpy as np
-from scipy.stats.qmc import Halton
 
 from .analytical import DeltaFunction
 from .base import Prior, Constraint
@@ -18,7 +17,6 @@ from ..utils import (
     check_directory_exists_and_if_not_mkdir,
     BilbyJsonEncoder,
     decode_bilby_json,
-    random
 )
 from ..utils.random import resolve_random_state, random_array_module
 from ...compat.utils import array_module, xp_wrap
@@ -82,6 +80,10 @@ class PriorDict(dict):
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
+            elif isinstance(self[key], JointPrior):
+                prob *= (out_sample[key] >= self[key].minimum) & (
+                    out_sample[key] <= self[key].maximum
+                )
         return prob
 
     def default_conversion_function(self, sample):
@@ -530,29 +532,61 @@ class PriorDict(dict):
             }
             return all_samples
 
-    def _integrate_normalization_factor_from_samples(self, keys, sampling_chunk):
-        samples = self.sample_subset(keys=keys, size=sampling_chunk)
-        factor = np.mean(self.evaluate_constraints(samples))
+    def _integrate_rejected_fraction(
+        self,
+        keys,
+        nrepeats=10,
+        sampling_chunk=10000,
+        rel_error_target=0.01,
+        max_trials: int | bool = False,
+    ):
+        trials = 0
+        estimates = []
+        while True:
+            if max_trials and trials + sampling_chunk * nrepeats > max_trials:
+                logger.warning(
+                    "Normalization did not reach the relative error target within max_trials."
+                )
+                break
+            for i in range(nrepeats):
+                samples = self.sample_subset(keys=keys, size=sampling_chunk)
+                factor_chunk = np.mean(self.evaluate_constraints(samples))
+                trials += sampling_chunk
+                estimates.append(factor_chunk)
+
+            cumulative_integral = np.mean(estimates)
+            if cumulative_integral == 0:
+                raise RuntimeError(
+                    "No samples satisfied the constraints; normalization cannot be estimated."
+                )
+            standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
+
+            # compute the rounded factor and relative error (as given by the standard deviation)
+            factor = 1 / cumulative_integral
+            rel_error = factor * standard_error
+
+            if rel_error < rel_error_target:
+                break
+        if rel_error > 0:
+            decimals = int(-np.floor(np.log10(3 * rel_error)))
+            factor = np.round(factor, decimals)
         return factor
 
-    def _integrate_normalization_factor_from_qmc_quad(self, keys, sampling_chunk):
-        qrng = Halton(len(keys), seed=random.rng)
-        theta = qrng.random(sampling_chunk).T
-        samples = self.rescale(keys=keys, theta=theta)
-        samples = {key: samps for key, samps in zip(keys, samples)}
-        factor = np.mean(self.evaluate_constraints(samples))
-        return factor
-
-    def normalize_constraint_factor(self, keys, nrepeats=10, sampling_chunk=10000, rel_error_target=0.01,
-                                    max_trials=False, method="qmc_quad", **kwargs):
-        """Estimates the probality normalization factor for constrained priors from (quasi) Monte Carlo integration.
+    def normalize_constraint_factor(
+        self,
+        keys,
+        nrepeats=10,
+        sampling_chunk=10000,
+        rel_error_target=0.01,
+        max_trials: int | bool = False,
+    ):
+        """Estimates the probality normalization factor for constrained priors from Monte Carlo integration.
 
         Parameters
         ==========
         keys: list, tuple
             The set of keys in the prior dict to perform the integration for. Must contain all keys that the constraint
-            depends on. For joint priors, the full distribution is sampled. Joint prior keys not present in 'keys' are
-            marginalized.
+            depends on. For each joint prior included, all components of its distribution must be present.
         nrepeats: int
             Number of repeated Monte Carlo integrations before convergence is checked. Higher numbers improve the
             estimation of the sampling error.
@@ -563,13 +597,9 @@ class PriorDict(dict):
             from the standard deviation between repeated runs. The algorithm repeats 'nrepeats' iterations until the
             rel_error_target is reached.
         max_trials: False, int
-            Second termination criterion. The integration stops when the number of samples evaluated in the next
-            iteration would exceed 'max_trials' even if rel_error_target was not reached.
-        method: ['qmc_quad', 'from_samples']
-            Method to use for the Monte Carlo integration, effectively choosing between quasi Monte Carlo integration
-            and "normal" Monte Carlo integration. Due to computational overhead, the latter method will be faster in
-            most cases. However, 'qmc_quad' is expected to yield lower errors against the ground truth for cases with
-            few repeats, but high sampling_chunk.
+            Maximum number of integration samples, excluding the preflight validation draw.
+            Must allow at least one batch of 'nrepeats * sampling_chunk' samples.
+            Raises an error if another batch would exceed the budget before convergence.
 
         Returns
         =======
@@ -577,20 +607,18 @@ class PriorDict(dict):
             The normalization factor, rounded to the number of significant digits based on the standard deviation of
             the integration estimate.
 
+        Raises
+        ======
+        ValueError
+            The requested keys omit a joint-prior component or a parameter needed by the constraint,
+            or max_trials cannot accommodate the first integration batch.
+        RuntimeError
+            No samples satisfy the constraints, or the integration budget is exhausted before convergence.
+
         Notes
         =====
-        .. seealso::
-            :py:class:`scipy.stats.qmc.Halton`
-                Documentation of the quasi-random number generator used for the quasi-monte carlo-based method
-                to integrate the normalization factor.
-            :py:func:`scipy.integrate.qmc_quad`
-                Documentation of the scipy-native quasi-monte carlo integration scheme.
-                The implementation, particularly the error estimate, motivates this implementation.
-                (The error estimate was re-implemented to also apply for the 'from_samples' method.)
-
-        .. versionchanged:: 4.0
-            The estimation of the normalization factor is now by default based on quasi-monte carlo integration.
-            Further, the default stopping criterion is now based on an target for the estimated relative integration
+        .. versionchanged:: 3.0.0
+            The estimation of the normalization factor is now based on an target for the estimated relative integration
             error.
         """
         if not self.has_constraint:
@@ -600,61 +628,38 @@ class PriorDict(dict):
         if keys in self._cached_normalizations.keys():
             return self._cached_normalizations[keys]
 
+        selected_keys = set(keys)
+        for key in keys:
+            prior = self.get(key)
+            if isinstance(prior, JointPrior) and not set(prior.dist.names).issubset(
+                selected_keys
+            ):
+                raise ValueError(
+                    "'keys' must include all components of each selected joint prior."
+                )
+        if max_trials and (sampling_chunk * nrepeats > max_trials):
+            raise ValueError(
+                "max_trials must allow at least nrepeats * sampling_chunk integration samples."
+            )
+
         # check if the constraint can be applied to the selection of keys
         try:
             sample = self.sample_subset(keys, size=1)
             self.conversion_function(sample)
         except KeyError:
-            raise ValueError("'keys' does not contain all parameters needed to evaluate the constraint.")
+            raise ValueError(
+                "'keys' does not contain all parameters needed to evaluate the constraint."
+            )
 
-        if method == "from_samples":
-            integrator = self._integrate_normalization_factor_from_samples
-        elif method == "qmc_quad":
-            integrator = self._integrate_normalization_factor_from_qmc_quad
-            try:
-                theta = np.random.uniform(0, 1, size=(len(keys), 1))
-                samples = self.rescale(keys, theta)
-                none_keys = []
-                for i, key in enumerate(keys):
-                    if samples[i] is None:
-                        none_keys.append(key)
-                if len(none_keys) > 0:
-                    raise NotImplementedError(f"The rescale method returns 'None', for key(s) {none_keys}.")
-            except NotImplementedError as e:
-                logger.info(f"The rescaling step fails with message:\n{e}")
-                logger.info("Switching to method 'from_samples'")
-                integrator = self._integrate_normalization_factor_from_samples
-                method = "from_samples"
-        else:
-            raise ValueError(f"Integration method {method} not understood.\n" +
-                             "Available options are ('from_samples','qmc_quad').")
+        factor_rounded = self._integrate_rejected_fraction(
+            keys=keys,
+            nrepeats=nrepeats,
+            sampling_chunk=sampling_chunk,
+            rel_error_target=rel_error_target,
+            max_trials=max_trials,
+        )
 
-        trials = 0
-        estimates = []
-        while True:
-            for i in range(nrepeats):
-                integral = integrator(keys, sampling_chunk, **kwargs)
-                trials += sampling_chunk
-                estimates.append(integral)
-
-            standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
-            cumulative_integral = np.mean(estimates)
-
-            # compute the rounded factor and relative error (as given by the standard deviation)
-            factor = 1 / cumulative_integral
-            rel_error = factor * standard_error
-
-            if rel_error < rel_error_target:
-                break
-            elif max_trials and ((trials + sampling_chunk * nrepeats) > max_trials):
-                break
-
-        if rel_error > 0:
-            decimals = int(-np.floor(np.log10(3 * rel_error)))
-            factor_rounded = np.round(factor, decimals)
-            self._cached_normalizations[keys] = factor_rounded
-        else:
-            self._cached_normalizations[keys] = factor
+        self._cached_normalizations[keys] = factor_rounded
         return self._cached_normalizations[keys]
 
     def prob(self, sample, *, normalized=True, xp=None, **kwargs):
