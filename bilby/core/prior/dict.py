@@ -80,6 +80,10 @@ class PriorDict(dict):
         for key in self:
             if isinstance(self[key], Constraint) and key in out_sample:
                 prob *= self[key].prob(out_sample[key])
+            elif isinstance(self[key], JointPrior):
+                prob *= (out_sample[key] >= self[key].minimum) & (
+                    out_sample[key] <= self[key].maximum
+                )
         return prob
 
     def default_conversion_function(self, sample):
@@ -456,6 +460,10 @@ class PriorDict(dict):
     def constraint_keys(self):
         return [k for k, p in self.items() if isinstance(p, Constraint)]
 
+    @property
+    def has_constraint(self):
+        return len(self.constraint_keys) > 0
+
     def sample_subset_constrained(self, keys=iter([]), size=None, *, random_state=None):
         """
         Sample a subset of priors while ensuring constraints are satisfied.
@@ -524,41 +532,135 @@ class PriorDict(dict):
             }
             return all_samples
 
-    def normalize_constraint_factor(
-        self, keys, min_accept=10000, sampling_chunk=50000, nrepeats=10
+    def _integrate_rejected_fraction(
+        self,
+        keys,
+        nrepeats=10,
+        sampling_chunk=10000,
+        rel_error_target=0.01,
+        max_trials: int | bool = False,
     ):
-        if len(self.constraint_keys) == 0:
-            return 1
-        elif keys in self._cached_normalizations.keys():
-            return self._cached_normalizations[keys]
-        else:
-            factor_estimates = [
-                self._estimate_normalization(keys, min_accept, sampling_chunk)
-                for _ in range(nrepeats)
-            ]
-            factor = np.mean(factor_estimates)
-            if np.std(factor_estimates) > 0:
-                decimals = int(-np.floor(np.log10(3 * np.std(factor_estimates))))
-                factor_rounded = np.round(factor, decimals)
-            else:
-                factor_rounded = factor
-            self._cached_normalizations[keys] = factor_rounded
-            return factor_rounded
+        trials = 0
+        estimates = []
+        while True:
+            if max_trials and trials + sampling_chunk * nrepeats > max_trials:
+                logger.warning(
+                    "Normalization did not reach the relative error target within max_trials."
+                )
+                break
+            for i in range(nrepeats):
+                samples = self.sample_subset(keys=keys, size=sampling_chunk)
+                factor_chunk = np.mean(self.evaluate_constraints(samples))
+                trials += sampling_chunk
+                estimates.append(factor_chunk)
 
-    def _estimate_normalization(self, keys, min_accept, sampling_chunk):
-        samples = self.sample_subset(keys=keys, size=sampling_chunk)
-        keep = np.atleast_1d(self.evaluate_constraints(samples))
-        if len(keep) == 1:
-            self._cached_normalizations[keys] = 1
-            return 1
-        all_samples = {key: np.array([]) for key in keys}
-        while np.count_nonzero(keep) < min_accept:
-            samples = self.sample_subset(keys=keys, size=sampling_chunk)
-            for key in samples:
-                all_samples[key] = np.hstack([all_samples[key], samples[key].flatten()])
-            keep = np.array(self.evaluate_constraints(all_samples), dtype=bool)
-        factor = len(keep) / np.count_nonzero(keep)
+            cumulative_integral = np.mean(estimates)
+            if cumulative_integral == 0:
+                raise RuntimeError(
+                    "No samples satisfied the constraints; normalization cannot be estimated."
+                )
+            standard_error = np.std(estimates, ddof=1) / np.sqrt(len(estimates))
+
+            # compute the rounded factor and relative error (as given by the standard deviation)
+            factor = 1 / cumulative_integral
+            rel_error = factor * standard_error
+
+            if rel_error < rel_error_target:
+                break
+        if rel_error > 0:
+            decimals = int(-np.floor(np.log10(3 * rel_error)))
+            factor = np.round(factor, decimals)
         return factor
+
+    def normalize_constraint_factor(
+        self,
+        keys,
+        nrepeats=10,
+        sampling_chunk=10000,
+        rel_error_target=0.01,
+        max_trials: int | bool = False,
+    ):
+        """Estimates the probality normalization factor for constrained priors from Monte Carlo integration.
+
+        Parameters
+        ==========
+        keys: list, tuple
+            The set of keys in the prior dict to perform the integration for. Must contain all keys that the constraint
+            depends on. For each joint prior included, all components of its distribution must be present.
+        nrepeats: int
+            Number of repeated Monte Carlo integrations before convergence is checked. Higher numbers improve the
+            estimation of the sampling error.
+        sampling_chunk: int
+            Number of samples drawn per Monte Carlo integration. Higher numbers improve the integral estimation.
+        rel_error_target: float
+            The relative error targeted by the Monte Carlo integration. The relative error of the integral is estimated
+            from the standard deviation between repeated runs. The algorithm repeats 'nrepeats' iterations until the
+            rel_error_target is reached.
+        max_trials: False, int
+            Maximum number of integration samples, excluding the preflight validation draw.
+            Must allow at least one batch of 'nrepeats * sampling_chunk' samples.
+            Raises an error if another batch would exceed the budget before convergence.
+
+        Returns
+        =======
+        factor_rounded: float
+            The normalization factor, rounded to the number of significant digits based on the standard deviation of
+            the integration estimate.
+
+        Raises
+        ======
+        ValueError
+            The requested keys omit a joint-prior component or a parameter needed by the constraint,
+            or max_trials cannot accommodate the first integration batch.
+        RuntimeError
+            No samples satisfy the constraints, or the integration budget is exhausted before convergence.
+
+        Notes
+        =====
+        .. versionchanged:: 3.0.0
+            The estimation of the normalization factor is now based on an target for the estimated relative integration
+            error.
+        """
+        if not self.has_constraint:
+            return 1
+
+        keys = tuple(keys)
+        if keys in self._cached_normalizations.keys():
+            return self._cached_normalizations[keys]
+
+        selected_keys = set(keys)
+        for key in keys:
+            prior = self.get(key)
+            if isinstance(prior, JointPrior) and not set(prior.dist.names).issubset(
+                selected_keys
+            ):
+                raise ValueError(
+                    "'keys' must include all components of each selected joint prior."
+                )
+        if max_trials and (sampling_chunk * nrepeats > max_trials):
+            raise ValueError(
+                "max_trials must allow at least nrepeats * sampling_chunk integration samples."
+            )
+
+        # check if the constraint can be applied to the selection of keys
+        try:
+            sample = self.sample_subset(keys, size=1)
+            self.conversion_function(sample)
+        except KeyError:
+            raise ValueError(
+                "'keys' does not contain all parameters needed to evaluate the constraint."
+            )
+
+        factor_rounded = self._integrate_rejected_fraction(
+            keys=keys,
+            nrepeats=nrepeats,
+            sampling_chunk=sampling_chunk,
+            rel_error_target=rel_error_target,
+            max_trials=max_trials,
+        )
+
+        self._cached_normalizations[keys] = factor_rounded
+        return self._cached_normalizations[keys]
 
     def prob(self, sample, *, normalized=True, xp=None, **kwargs):
         """
