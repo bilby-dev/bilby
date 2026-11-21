@@ -987,6 +987,9 @@ def lal_binary_black_hole_relative_binning(
         If fiducial=1, waveform evaluated on the full frequency grid is returned.
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
+
+    Both are evaluated on a frequency sequence, see
+    :func:`_relative_binning_waveform`.
     """
     fiducial = kwargs.pop("fiducial", 0)
 
@@ -1003,47 +1006,24 @@ def lal_binary_black_hole_relative_binning(
     )
     waveform_kwargs.update(kwargs)
 
-    if fiducial == 1:
-        _ = waveform_kwargs.pop("frequency_bin_edges", None)
-        return _base_lal_cbc_fd_waveform(
-            frequency_array=frequency_array,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            luminosity_distance=luminosity_distance,
-            theta_jn=theta_jn,
-            phase=phase,
-            a_1=a_1,
-            a_2=a_2,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_jl=phi_jl,
-            phi_12=phi_12,
-            lambda_1=0.0,
-            lambda_2=0.0,
-            **waveform_kwargs,
-        )
-
-    else:
-        _ = waveform_kwargs.pop("minimum_frequency", None)
-        _ = waveform_kwargs.pop("maximum_frequency", None)
-        waveform_kwargs["frequencies"] = waveform_kwargs.pop("frequency_bin_edges")
-        return _base_waveform_frequency_sequence(
-            frequency_array=frequency_array,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            luminosity_distance=luminosity_distance,
-            theta_jn=theta_jn,
-            phase=phase,
-            a_1=a_1,
-            a_2=a_2,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_jl=phi_jl,
-            phi_12=phi_12,
-            lambda_1=0.0,
-            lambda_2=0.0,
-            **waveform_kwargs,
-        )
+    return _relative_binning_waveform(
+        frequency_array=frequency_array,
+        fiducial=fiducial,
+        waveform_kwargs=waveform_kwargs,
+        mass_1=mass_1,
+        mass_2=mass_2,
+        luminosity_distance=luminosity_distance,
+        theta_jn=theta_jn,
+        phase=phase,
+        a_1=a_1,
+        a_2=a_2,
+        tilt_1=tilt_1,
+        tilt_2=tilt_2,
+        phi_jl=phi_jl,
+        phi_12=phi_12,
+        lambda_1=0.0,
+        lambda_2=0.0,
+    )
 
 
 def lal_binary_neutron_star_relative_binning(
@@ -1071,6 +1051,9 @@ def lal_binary_neutron_star_relative_binning(
         If fiducial=1, waveform evaluated on the full frequency grid is returned.
         If fiducial=0, waveform evaluated at waveform_kwargs["frequency_bin_edges"]
         is returned.
+
+    Both are evaluated on a frequency sequence, see
+    :func:`_relative_binning_waveform`.
     """
     fiducial = kwargs.pop("fiducial", 0)
 
@@ -1087,46 +1070,84 @@ def lal_binary_neutron_star_relative_binning(
     )
     waveform_kwargs.update(kwargs)
 
+    return _relative_binning_waveform(
+        frequency_array=frequency_array,
+        fiducial=fiducial,
+        waveform_kwargs=waveform_kwargs,
+        mass_1=mass_1,
+        mass_2=mass_2,
+        luminosity_distance=luminosity_distance,
+        theta_jn=theta_jn,
+        phase=phase,
+        a_1=a_1,
+        a_2=a_2,
+        tilt_1=tilt_1,
+        tilt_2=tilt_2,
+        phi_jl=phi_jl,
+        phi_12=phi_12,
+        lambda_1=lambda_1,
+        lambda_2=lambda_2,
+    )
+
+
+def _relative_binning_waveform(
+    frequency_array, fiducial, waveform_kwargs, **parameters
+):
+    """
+    Evaluate the waveform for the relative-binning source models.
+
+    The fiducial waveform (:code:`fiducial=1`) is evaluated at the frequencies
+    of :code:`frequency_array` between :code:`minimum_frequency` and
+    :code:`maximum_frequency`, and is zero elsewhere. Otherwise, the waveform
+    is evaluated at :code:`frequency_bin_edges`.
+
+    Both use :code:`SimInspiralChooseFDWaveformSequence`, so that the fiducial
+    waveform equals the binned waveform at the bin edges. A uniform frequency
+    grid can give a different waveform: IMRPhenomXHM and IMRPhenomXPHM use
+    multibanding only on a uniform grid, and the SpinTaylor precession angles
+    of IMRPhenomXPHM depend on the frequency spacing of a uniform grid.
+
+    Parameters
+    ==========
+    frequency_array: array_like
+        The full frequency grid.
+    fiducial: int
+        Whether to evaluate the fiducial waveform.
+    waveform_kwargs: dict
+        Waveform arguments, including :code:`minimum_frequency`,
+        :code:`maximum_frequency` and, for the binned waveform,
+        :code:`frequency_bin_edges`.
+    parameters: dict
+        The binary parameters passed to :func:`_base_waveform_frequency_sequence`.
+
+    Returns
+    =======
+    waveform_polarizations: dict
+        Dict with plus and cross polarizations, or None if the waveform call
+        fails and :code:`catch_waveform_errors` is set.
+    """
+    minimum_frequency = waveform_kwargs.pop("minimum_frequency")
+    maximum_frequency = waveform_kwargs.pop("maximum_frequency")
     if fiducial == 1:
         _ = waveform_kwargs.pop("frequency_bin_edges", None)
-        return _base_lal_cbc_fd_waveform(
-            frequency_array=frequency_array,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            luminosity_distance=luminosity_distance,
-            theta_jn=theta_jn,
-            phase=phase,
-            a_1=a_1,
-            a_2=a_2,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_12=phi_12,
-            phi_jl=phi_jl,
-            lambda_1=lambda_1,
-            lambda_2=lambda_2,
-            **waveform_kwargs,
+        in_band = (frequency_array >= minimum_frequency) & (
+            frequency_array <= maximum_frequency
         )
+        waveform_kwargs["frequencies"] = frequency_array[in_band]
     else:
-        _ = waveform_kwargs.pop("minimum_frequency", None)
-        _ = waveform_kwargs.pop("maximum_frequency", None)
         waveform_kwargs["frequencies"] = waveform_kwargs.pop("frequency_bin_edges")
-        return _base_waveform_frequency_sequence(
-            frequency_array=frequency_array,
-            mass_1=mass_1,
-            mass_2=mass_2,
-            luminosity_distance=luminosity_distance,
-            theta_jn=theta_jn,
-            phase=phase,
-            a_1=a_1,
-            a_2=a_2,
-            tilt_1=tilt_1,
-            tilt_2=tilt_2,
-            phi_jl=phi_jl,
-            phi_12=phi_12,
-            lambda_1=lambda_1,
-            lambda_2=lambda_2,
-            **waveform_kwargs,
-        )
+
+    polarizations = _base_waveform_frequency_sequence(
+        frequency_array=frequency_array, **parameters, **waveform_kwargs
+    )
+    if fiducial != 1 or polarizations is None:
+        return polarizations
+
+    full_polarizations = dict()
+    for mode, values in polarizations.items():
+        full_polarizations[mode] = np.zeros(len(frequency_array), dtype=complex)
+        full_polarizations[mode][in_band] = values
+    return full_polarizations
 
 
 def _base_roq_waveform(
