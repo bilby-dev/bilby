@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import scipy.interpolate
 import scipy.sparse
+import scipy.sparse.linalg
 from scipy.optimize import differential_evolution
 
 from .base import GravitationalWaveTransient
@@ -537,53 +538,55 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
     def _set_splines(self, frequency_array):
         """
-        Set :code:`_spline_coefficients`, whose row j holds the B-spline
-        coefficients of the spline of degree :code:`spline_degree` that is one
-        at bin edge j and zero at the other edges, and :code:`_basis_splines`,
-        a sparse array whose rows are the B-spline basis elements on
-        :code:`frequency_array`.
+        Set up the B-spline interpolation between the bin edges.
+
+        The splines of degree :code:`spline_degree` have the knots that
+        :code:`scipy.interpolate.splrep` uses to interpolate at the bin edges.
+        This sets :code:`_basis_splines`, a sparse array whose rows are the
+        B-spline basis elements on the frequencies between the first and last
+        bin edges (:code:`_spline_frequency_mask`), and sparse LU
+        factorizations of the collocation matrix :math:`A_{jm} = B_m(f_j)` at
+        the bin edges and of its transpose. Memory and time scale linearly
+        with the number of bins.
 
         Parameters
         ==========
         frequency_array: array_like
             The frequencies at which the basis elements are evaluated.
         """
-        number_of_edges = len(self.bin_freqs)
-        coefficients = np.empty((number_of_edges, number_of_edges))
-        for index, values in enumerate(np.eye(number_of_edges)):
-            knots, spline_coefficients, _ = scipy.interpolate.splrep(
-                self.bin_freqs, values, s=0, k=self.spline_degree
-            )
-            coefficients[index] = spline_coefficients[:number_of_edges]
-        self._spline_coefficients = coefficients
-
-        rows, columns, values = list(), list(), list()
-        for index in range(number_of_edges):
-            element_knots = knots[index : index + self.spline_degree + 2]
-            element = scipy.interpolate.BSpline.basis_element(element_knots)
-            start = np.searchsorted(frequency_array, element_knots[0], side="left")
-            stop = np.searchsorted(frequency_array, element_knots[-1], side="right")
-            rows.append(np.full(stop - start, index))
-            columns.append(np.arange(start, stop))
-            # A basis element vanishes at its last knot; evaluate just below it
-            # so that the last element is one at the last bin edge
-            values.append(
-                element(
-                    np.minimum(
-                        frequency_array[start:stop], np.nextafter(element_knots[-1], 0)
-                    )
-                )
-            )
-        self._basis_splines = scipy.sparse.csr_matrix(
-            (np.concatenate(values), (np.concatenate(rows), np.concatenate(columns))),
-            shape=(number_of_edges, len(frequency_array)),
+        degree = self.spline_degree
+        knots = scipy.interpolate.splrep(self.bin_freqs, self.bin_freqs, s=0, k=degree)[
+            0
+        ]
+        collocation = scipy.interpolate.BSpline.design_matrix(
+            self.bin_freqs, knots, degree
+        ).tocsc()
+        self._collocation_lu = scipy.sparse.linalg.splu(collocation)
+        self._collocation_transpose_lu = scipy.sparse.linalg.splu(collocation.T.tocsc())
+        self._spline_frequency_mask = (frequency_array >= self.bin_freqs[0]) & (
+            frequency_array <= self.bin_freqs[-1]
         )
+        self._basis_splines = scipy.interpolate.BSpline.design_matrix(
+            frequency_array[self._spline_frequency_mask], knots, degree
+        ).T.tocsr()
+
+    @staticmethod
+    def _solve(lu, rhs):
+        """Solve a real sparse LU-factorized system for a real or complex right-hand side."""
+        if np.iscomplexobj(rhs):
+            return lu.solve(np.ascontiguousarray(rhs.real)) + 1j * lu.solve(
+                np.ascontiguousarray(rhs.imag)
+            )
+        return lu.solve(np.ascontiguousarray(rhs))
 
     def _get_summary_weights(self, integrand, duration):
         r"""
         Return the weights :math:`W_j = (4 / T) \sum_f g(f) S_j(f)`, so that
         :math:`(4 / T) \sum_f g(f) r(f) = \sum_j W_j r(f_j)` for a spline
         :math:`r` of degree :code:`spline_degree` with knots at the bin edges.
+
+        With :math:`r = \sum_m c_m B_m` and :math:`A c = r(f_j)`, the weights
+        are :math:`W = A^{-T} p` with :math:`p_m = (4 / T) \sum_f g(f) B_m(f)`.
 
         Parameters
         ==========
@@ -597,8 +600,12 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         weights: array_like
             Of shape (..., number of bin edges).
         """
-        projected = (self._basis_splines @ np.atleast_2d(integrand).T).T
-        weights = 4 / duration * projected @ self._spline_coefficients.T
+        integrand = np.asarray(integrand)
+        flat = integrand.reshape(-1, integrand.shape[-1])[
+            :, self._spline_frequency_mask
+        ]
+        projected = 4 / duration * (self._basis_splines @ flat.T)
+        weights = self._solve(self._collocation_transpose_lu, projected).T
         return weights.reshape(integrand.shape[:-1] + (len(self.bin_freqs),))
 
     def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
@@ -615,7 +622,9 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             frequencies=self.bin_freqs,
         )
         ratio = np.asarray(strain) / fiducial_waveform[self.bin_inds]
-        full_ratio = self._basis_splines.T @ (self._spline_coefficients.T @ ratio)
+        coefficients = self._solve(self._collocation_lu, ratio)
+        full_ratio = np.zeros(len(fiducial_waveform), dtype=complex)
+        full_ratio[self._spline_frequency_mask] = self._basis_splines.T @ coefficients
         return fiducial_waveform * full_ratio
 
     def calculate_snrs(
