@@ -295,5 +295,184 @@ class TestRelativeBinningLikelihood(unittest.TestCase):
         self.assertLess(abs(regular_ln_l - binned_ln_l), 1e-3)
 
 
+class _InjectionMixin:
+    """
+    Zero-noise H1/L1 injection for comparing the relative-binning likelihood
+    with the full likelihood. Subclasses set binary ("black_hole" or
+    "neutron_star"), approximant, injection, minimum_frequency,
+    sampling_frequency, epsilon, chirp_mass_scatter and seed.
+    """
+
+    duration = 4.0
+
+    def setUp(self):
+        self.injection = dict(self.injection)
+        self.waveform_kwargs = dict(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            parameter_conversion=getattr(
+                bilby.gw.conversion, f"convert_to_lal_binary_{self.binary}_parameters"
+            ),
+            waveform_arguments=dict(
+                waveform_approximant=self.approximant,
+                reference_frequency=self.minimum_frequency,
+                minimum_frequency=self.minimum_frequency,
+            ),
+        )
+        full_wfg = bilby.gw.WaveformGenerator(
+            frequency_domain_source_model=getattr(
+                bilby.gw.source, f"lal_binary_{self.binary}"
+            ),
+            **deepcopy(self.waveform_kwargs),
+        )
+        self.ifos = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.ifos.set_strain_data_from_zero_noise(
+            sampling_frequency=self.sampling_frequency,
+            duration=self.duration,
+            start_time=self.injection["geocent_time"] + 2 - self.duration,
+        )
+        for ifo in self.ifos:
+            ifo.minimum_frequency = self.minimum_frequency
+        self.ifos.inject_signal(
+            parameters=self.injection, waveform_generator=full_wfg, raise_error=False
+        )
+        self.full = bilby.gw.likelihood.GravitationalWaveTransient(self.ifos, full_wfg)
+
+    def _binned(self, **kwargs):
+        kwargs.setdefault("epsilon", self.epsilon)
+        wfg = bilby.gw.WaveformGenerator(
+            frequency_domain_source_model=getattr(
+                bilby.gw.source, f"lal_binary_{self.binary}_relative_binning"
+            ),
+            **deepcopy(self.waveform_kwargs),
+        )
+        return bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient(
+            self.ifos, wfg, fiducial_parameters=dict(self.injection), **kwargs
+        )
+
+    def _max_error(self, binned):
+        """Largest |Delta ln L| over 10 points near the injection."""
+        rng = np.random.default_rng(self.seed)
+        errors = list()
+        for _ in range(10):
+            parameters = dict(self.injection)
+            parameters.update(
+                chirp_mass=self.injection["chirp_mass"]
+                * (1 + self.chirp_mass_scatter * rng.normal()),
+                mass_ratio=self.injection["mass_ratio"] * (1 + 0.03 * rng.normal()),
+                phase=self.injection["phase"] + 0.3 * rng.normal(),
+                geocent_time=self.injection["geocent_time"] + 2e-4 * rng.normal(),
+            )
+            errors.append(
+                abs(
+                    binned.log_likelihood_ratio(parameters)
+                    - self.full.log_likelihood_ratio(parameters)
+                )
+            )
+        return max(errors)
+
+
+class TestRelativeBinningFiducialFade(_InjectionMixin, unittest.TestCase):
+    """
+    NRTidal waveforms taper to zero at a frequency that depends on the
+    parameters. Without the fade, the fiducial waveform is close to zero at
+    the last bin edges, so that nearby waveforms have a large ratio to it
+    there and the relative-binning likelihood is badly wrong.
+    """
+
+    binary = "neutron_star"
+    approximant = "IMRPhenomPv2_NRTidalv2"
+    injection = dict(
+        chirp_mass=bilby.gw.conversion.component_masses_to_chirp_mass(1.6, 1.4),
+        mass_ratio=1.4 / 1.6,
+        a_1=0.05,
+        a_2=0.03,
+        tilt_1=0.0,
+        tilt_2=np.pi,
+        phi_12=0.0,
+        phi_jl=0.0,
+        lambda_1=400.0,
+        lambda_2=450.0,
+        luminosity_distance=40.0,
+        theta_jn=0.8,
+        psi=0.4,
+        phase=0.3,
+        geocent_time=1126259642.4,
+        ra=1.3,
+        dec=-0.4,
+    )
+    minimum_frequency = 100.0
+    sampling_frequency = 4096.0
+    epsilon = 0.05
+    chirp_mass_scatter = 2e-4
+    seed = 3
+
+    def test_tapered_fiducial_without_fade_is_inaccurate(self):
+        binned = self._binned(fade_fiducial_waveform=False)
+        self.assertGreater(self._max_error(binned), 1.0)
+
+    def test_fade_keeps_likelihood_accurate_for_tapered_fiducial(self):
+        binned = self._binned(fade_fiducial_waveform=True)
+        self.assertLess(self._max_error(binned), 1e-2)
+
+    def test_fade_only_changes_summary_fiducial_near_the_end(self):
+        faded = self._binned(fade_fiducial_waveform=True)
+        unfaded = self._binned(fade_fiducial_waveform=False)
+        frequencies = self.ifos[0].frequency_array
+        for ifo in self.ifos:
+            name = ifo.name
+            np.testing.assert_array_equal(
+                faded.per_detector_fiducial_waveforms[name],
+                unfaded.per_detector_fiducial_waveforms[name],
+            )
+            difference = (
+                faded._summary_fiducial_waveforms[name]
+                != unfaded._summary_fiducial_waveforms[name]
+            )
+            self.assertTrue(np.any(difference))
+            self.assertGreater(frequencies[difference].min(), 1500)
+
+
+class TestRelativeBinningSplineDegree(_InjectionMixin, unittest.TestCase):
+    binary = "black_hole"
+    approximant = "IMRPhenomXAS"
+    injection = dict(
+        chirp_mass=17.0,
+        mass_ratio=0.5,
+        chi_1=0.3,
+        chi_2=-0.2,
+        luminosity_distance=800.0,
+        theta_jn=0.8,
+        psi=0.4,
+        phase=0.3,
+        geocent_time=1126259642.4,
+        ra=1.3,
+        dec=-0.4,
+    )
+    minimum_frequency = 20.0
+    sampling_frequency = 2048.0
+    epsilon = 0.1
+    chirp_mass_scatter = 2e-3
+    seed = 5
+
+    @parameterized.expand([(1,), (2,), (3,), (5,)])
+    def test_spline_degree_matches_non_binned(self, spline_degree):
+        binned = self._binned(spline_degree=spline_degree)
+        self.assertLess(self._max_error(binned), 2e-2)
+
+    def test_matches_non_binned_at_fiducial_without_fade(self):
+        binned = self._binned(spline_degree=3, fade_fiducial_waveform=False)
+        self.assertAlmostEqual(
+            binned.log_likelihood_ratio(self.injection),
+            self.full.log_likelihood_ratio(self.injection),
+            places=6,
+        )
+
+    @parameterized.expand([(0,), (6,), (1.5,)])
+    def test_invalid_spline_degree_raises(self, spline_degree):
+        with self.assertRaises(ValueError):
+            self._binned(spline_degree=spline_degree)
+
+
 if __name__ == "__main__":
     unittest.main()

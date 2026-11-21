@@ -1,6 +1,9 @@
 from copy import deepcopy
 
 import numpy as np
+import scipy.interpolate
+import scipy.sparse
+import scipy.sparse.linalg
 from scipy.optimize import differential_evolution
 
 from .base import GravitationalWaveTransient
@@ -8,7 +11,6 @@ from ...compat.utils import array_module
 from ...core.utils import logger
 from ...core.prior.base import Constraint
 from ...core.prior import DeltaFunction
-from ..utils import noise_weighted_inner_product
 
 
 class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
@@ -94,6 +96,17 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     epsilon: float, optional
         Tunable parameter which limits the differential phase change in each
         bin when setting up the bin range. See https://arxiv.org/abs/1806.08792.
+    spline_degree: int, optional
+        Degree of the B-spline that interpolates the ratio of the waveform to
+        the fiducial waveform between the bin edges, from 1 to 5. Degree 1 is
+        linear interpolation within each bin. Default is 3.
+    fade_fiducial_waveform: bool, optional
+        Whether to replace the fiducial waveform used for the summary data by
+        a constant above the frequency that contains 99.99% of its squared
+        signal-to-noise ratio, see :meth:`_get_summary_fiducial_waveforms`.
+        This avoids dividing by a fiducial waveform that is close to zero at
+        the end of its support, e.g., in the taper of the NRTidal models.
+        Default is :code:`True`.
 
     Returns
     -------
@@ -124,6 +137,8 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         time_reference="geocenter",
         chi=1,
         epsilon=0.5,
+        spline_degree=3,
+        fade_fiducial_waveform=True,
     ):
         super(RelativeBinningGravitationalWaveTransient, self).__init__(
             interferometers=interferometers,
@@ -151,6 +166,14 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.fiducial_parameters["phase"] = 0.0
         self.chi = chi
         self.epsilon = epsilon
+        if spline_degree not in (1, 2, 3, 4, 5):
+            raise ValueError(
+                f"spline_degree must be 1, 2, 3, 4 or 5, not {spline_degree}."
+            )
+        self.spline_degree = spline_degree
+        self.fade_fiducial_waveform = fade_fiducial_waveform
+        self._fiducial_waveform_parameters = None
+        self._summary_fiducial_waveforms = dict()
         self.gamma = np.array([-5 / 3, -2 / 3, 1, 5 / 3, 7 / 3])
         self.maximum_frequency = waveform_generator.frequency_array[-1]
         self.fiducial_waveform_obtained = False
@@ -267,11 +290,107 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
             self.per_detector_fiducial_waveform_points[name] = (
                 self.per_detector_fiducial_waveforms[name][self.bin_inds]
             )
+        if len(self.bin_freqs) <= self.spline_degree:
+            raise ValueError(
+                f"{len(self.bin_freqs)} bin edges are too few for splines of degree "
+                f"{self.spline_degree}; decrease epsilon."
+            )
+
+    def _get_summary_fiducial_waveforms(self, snr_fraction=0.9999):
+        r"""
+        Return the fiducial waveform of each interferometer used for the
+        summary data.
+
+        Without :code:`fade_fiducial_waveform`, this is
+        :code:`per_detector_fiducial_waveforms`. Otherwise the fiducial waveform
+        is replaced by a constant at high frequency, following cogwheel
+        (Roulet et al., (2022) Phys. Rev. D 106, 123015), which uses
+        :code:`snr_fraction=0.99`; a larger fraction leaves the likelihood of
+        waveforms without a taper essentially unchanged.
+
+        Near the end of its support, e.g., in the taper of the NRTidal models,
+        the fiducial waveform can be close to zero, so that the ratio of a
+        waveform to it, which is interpolated between the bin edges, is large
+        and not smooth. The cutoff is the first bin edge at or above the
+        frequency where the cumulative :math:`\sum |h_0|^2 / P` over the
+        interferometers reaches :code:`snr_fraction` of its total. Above the
+        cutoff, the fiducial polarizations are replaced by their values at
+        the cutoff, and over the :code:`spline_degree` bins below the cutoff
+        they are joined with a :math:`\cos^2` taper. The detector responses
+        are then computed from the faded polarizations, so that the time shift
+        is applied after the fade. :code:`per_detector_fiducial_waveforms` is
+        not changed.
+
+        Parameters
+        ==========
+        snr_fraction: float
+            Fraction of the squared signal-to-noise ratio of the fiducial
+            waveform below the cutoff.
+
+        Returns
+        =======
+        fiducial_waveforms: dict
+            The fiducial waveform of each interferometer on the full frequency
+            grid.
+        """
+        if not self.fade_fiducial_waveform:
+            return dict(self.per_detector_fiducial_waveforms)
+        frequency_array = self.waveform_generator.frequency_array
+        polarizations = self.fiducial_polarizations
+        snr_density = np.zeros(len(frequency_array))
+        for interferometer in self.interferometers:
+            mask = interferometer.frequency_mask
+            waveform = self.per_detector_fiducial_waveforms[interferometer.name]
+            snr_density[mask] += (
+                np.abs(waveform[mask]) ** 2
+                / interferometer.power_spectral_density_array[mask]
+            )
+        cumulative = np.cumsum(snr_density)
+        if cumulative[-1] == 0:
+            return dict(self.per_detector_fiducial_waveforms)
+        cutoff_frequency = frequency_array[
+            np.searchsorted(cumulative / cumulative[-1], snr_fraction)
+        ]
+        end = min(
+            int(np.searchsorted(self.bin_freqs, cutoff_frequency)),
+            len(self.bin_freqs) - 1,
+        )
+        while end > 0 and all(
+            polarizations[mode][self.bin_inds[end]] == 0 for mode in polarizations
+        ):
+            end -= 1
+        start_frequency = self.bin_freqs[max(end - self.spline_degree, 0)]
+        end_frequency = self.bin_freqs[end]
+        if end_frequency > start_frequency:
+            fraction = (frequency_array - start_frequency) / (
+                end_frequency - start_frequency
+            )
+            weight = np.cos(np.clip(fraction, 0, 1) * np.pi / 2) ** 2
+        else:
+            weight = (frequency_array <= end_frequency).astype(float)
+        logger.debug(
+            f"Fading the fiducial waveform between {start_frequency} Hz "
+            f"and {end_frequency} Hz"
+        )
+        index = self.bin_inds[end]
+        faded = {
+            mode: values * weight + values[index] * (1 - weight)
+            for mode, values in polarizations.items()
+        }
+        fiducial_waveforms = dict()
+        for interferometer in self.interferometers:
+            waveform = interferometer.get_detector_response(
+                faded, self._fiducial_waveform_parameters
+            )
+            waveform *= interferometer.frequency_array <= self.maximum_frequency
+            fiducial_waveforms[interferometer.name] = waveform
+        return fiducial_waveforms
 
     def set_fiducial_waveforms(self, parameters):
         parameters = parameters.copy()
         self._set_fiducial()
         parameters.update(self.get_sky_frame_parameters(parameters=parameters))
+        self._fiducial_waveform_parameters = parameters
         self.fiducial_polarizations = self.waveform_generator.frequency_domain_strain(
             parameters
         )
@@ -362,110 +481,168 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         return bounds
 
     def compute_summary_data(self):
+        r"""
+        Compute the summary data of each interferometer: the weights
+        :math:`D_j` of :math:`\langle h|d \rangle` and :math:`H_j` of
+        :math:`\langle h|h \rangle` at bin edge :math:`j`.
+
+        With :math:`S_j(f)` the spline of degree :code:`spline_degree` that is
+        one at bin edge :math:`j` and zero at the other edges, and
+        :math:`h_0` the fiducial waveform from
+        :meth:`_get_summary_fiducial_waveforms`,
+
+        .. math::
+
+            D_j = \frac{4}{T} \sum_f S_j(f) \frac{h_0^*(f) d(f)}{P(f)}
+            \Big/ h_0^*(f_j)
+
+            H_j = \frac{4}{T} \sum_f S_j(f) \frac{|h_0(f)|^2}{P(f)}
+            \Big/ |h_0(f_j)|^2
+
+        so that :math:`\langle h|d \rangle = \sum_j D_j h^*(f_j)` and
+        :math:`\langle h|h \rangle = \sum_j H_j |h(f_j)|^2` when the ratio of
+        :math:`h` to :math:`h_0`, and its squared modulus, are splines with
+        knots at the bin edges.
+        """
+        frequency_array = self.waveform_generator.frequency_array
+        self._set_splines(frequency_array)
+        self._summary_fiducial_waveforms = self._get_summary_fiducial_waveforms()
         summary_data = dict()
-
         for interferometer in self.interferometers:
+            name = interferometer.name
+            h0 = np.asarray(self._summary_fiducial_waveforms[name])
+            h0_bins = h0[self.bin_inds]
+            if np.any(h0_bins == 0):
+                raise ValueError(
+                    f"The fiducial waveform in {name} is zero at a bin edge; "
+                    "use other fiducial parameters."
+                )
+            inverse_psd = np.zeros(len(interferometer.frequency_array))
             mask = interferometer.frequency_mask
-            masked_frequency_array = interferometer.frequency_array[mask]
-            masked_bin_inds = []
-            for edge in self.bin_freqs:
-                index = np.where(masked_frequency_array == edge)[0][0]
-                masked_bin_inds.append(index)
-            # For the last bin, make sure to include
-            # the last point in the frequency array,
-            # if it's not already included
-            if masked_bin_inds[-1] < len(masked_frequency_array) - 1:
-                masked_bin_inds[-1] += 1
-
-            masked_strain = interferometer.frequency_domain_strain[mask]
-            masked_h0 = np.asarray(
-                self.per_detector_fiducial_waveforms[interferometer.name][mask]
+            inverse_psd[mask] = 1 / interferometer.power_spectral_density_array[mask]
+            strain = interferometer.frequency_domain_strain
+            d_inner_h_weights = (
+                self._get_summary_weights(
+                    h0.conj() * strain * inverse_psd, interferometer.duration
+                )
+                / h0_bins.conj()
             )
-            masked_psd = interferometer.power_spectral_density_array[mask]
-            duration = interferometer.duration
-            a0, b0, a1, b1 = np.zeros((4, self.number_of_bins), dtype=complex)
-
-            for i in range(self.number_of_bins):
-                start_idx = masked_bin_inds[i]
-                end_idx = masked_bin_inds[i + 1]
-                start = masked_frequency_array[start_idx]
-                stop = masked_frequency_array[end_idx]
-                idxs = slice(start_idx, end_idx)
-
-                strain = masked_strain[idxs]
-                h0 = masked_h0[idxs]
-                psd = masked_psd[idxs]
-
-                frequencies = masked_frequency_array[idxs]
-                central_frequency = (start + stop) / 2
-                delta_frequency = frequencies - central_frequency
-
-                a0[i] = noise_weighted_inner_product(h0, strain, psd, duration)
-                b0[i] = noise_weighted_inner_product(h0, h0, psd, duration)
-                a1[i] = noise_weighted_inner_product(
-                    h0, strain * delta_frequency, psd, duration
+            h_inner_h_weights = (
+                self._get_summary_weights(
+                    np.abs(h0) ** 2 * inverse_psd, interferometer.duration
                 )
-                b1[i] = noise_weighted_inner_product(
-                    h0, h0 * delta_frequency, psd, duration
-                )
-
-            summary_data[interferometer.name] = (a0, a1, b0, b1)
-
+                / np.abs(h0_bins) ** 2
+            ).real
+            summary_data[name] = (d_inner_h_weights, h_inner_h_weights)
         self.summary_data = summary_data
 
-    def compute_waveform_ratio_per_interferometer(
-        self, waveform_polarizations, interferometer, parameters
-    ):
+    def _set_splines(self, frequency_array):
+        """
+        Set up the B-spline interpolation between the bin edges.
+
+        The splines of degree :code:`spline_degree` have the knots that
+        :code:`scipy.interpolate.splrep` uses to interpolate at the bin edges.
+        This sets :code:`_basis_splines`, a sparse array whose rows are the
+        B-spline basis elements on the frequencies between the first and last
+        bin edges (:code:`_spline_frequency_mask`), and sparse LU
+        factorizations of the collocation matrix :math:`A_{jm} = B_m(f_j)` at
+        the bin edges and of its transpose. Memory and time scale linearly
+        with the number of bins.
+
+        Parameters
+        ==========
+        frequency_array: array_like
+            The frequencies at which the basis elements are evaluated.
+        """
+        degree = self.spline_degree
+        knots = scipy.interpolate.splrep(self.bin_freqs, self.bin_freqs, s=0, k=degree)[
+            0
+        ]
+        collocation = scipy.interpolate.BSpline.design_matrix(
+            self.bin_freqs, knots, degree
+        ).tocsc()
+        self._collocation_lu = scipy.sparse.linalg.splu(collocation)
+        self._collocation_transpose_lu = scipy.sparse.linalg.splu(collocation.T.tocsc())
+        self._spline_frequency_mask = (frequency_array >= self.bin_freqs[0]) & (
+            frequency_array <= self.bin_freqs[-1]
+        )
+        self._basis_splines = scipy.interpolate.BSpline.design_matrix(
+            frequency_array[self._spline_frequency_mask], knots, degree
+        ).T.tocsr()
+
+    @staticmethod
+    def _solve(lu, rhs):
+        """Solve a real sparse LU-factorized system for a real or complex right-hand side."""
+        if np.iscomplexobj(rhs):
+            return lu.solve(np.ascontiguousarray(rhs.real)) + 1j * lu.solve(
+                np.ascontiguousarray(rhs.imag)
+            )
+        return lu.solve(np.ascontiguousarray(rhs))
+
+    def _get_summary_weights(self, integrand, duration):
+        r"""
+        Return the weights :math:`W_j = (4 / T) \sum_f g(f) S_j(f)`, so that
+        :math:`(4 / T) \sum_f g(f) r(f) = \sum_j W_j r(f_j)` for a spline
+        :math:`r` of degree :code:`spline_degree` with knots at the bin edges.
+
+        With :math:`r = \sum_m c_m B_m` and :math:`A c = r(f_j)`, the weights
+        are :math:`W = A^{-T} p` with :math:`p_m = (4 / T) \sum_f g(f) B_m(f)`.
+
+        Parameters
+        ==========
+        integrand: array_like
+            :math:`g(f)`, of shape (..., number of frequencies).
+        duration: float
+            The duration :math:`T` of the data.
+
+        Returns
+        =======
+        weights: array_like
+            Of shape (..., number of bin edges).
+        """
+        integrand = np.asarray(integrand)
+        flat = integrand.reshape(-1, integrand.shape[-1])[
+            :, self._spline_frequency_mask
+        ]
+        projected = 4 / duration * (self._basis_splines @ flat.T)
+        weights = self._solve(self._collocation_transpose_lu, projected).T
+        return weights.reshape(integrand.shape[:-1] + (len(self.bin_freqs),))
+
+    def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
+        """
+        Return the waveform on the full frequency grid, as the fiducial
+        waveform times the spline through the ratio of the waveform to it at
+        the bin edges.
+        """
         name = interferometer.name
+        fiducial_waveform = self._summary_fiducial_waveforms[name]
+        strain = interferometer.get_detector_response(
+            waveform_polarizations=signal_polarizations,
+            parameters=parameters,
+            frequencies=self.bin_freqs,
+        )
+        ratio = np.asarray(strain) / fiducial_waveform[self.bin_inds]
+        coefficients = self._solve(self._collocation_lu, ratio)
+        full_ratio = np.zeros(len(fiducial_waveform), dtype=complex)
+        full_ratio[self._spline_frequency_mask] = self._basis_splines.T @ coefficients
+        return fiducial_waveform * full_ratio
+
+    def calculate_snrs(
+        self, waveform_polarizations, interferometer, *, return_array=True, parameters
+    ):
         strain = interferometer.get_detector_response(
             waveform_polarizations=waveform_polarizations,
             parameters=parameters,
             frequencies=self.bin_freqs,
         )
-        reference_strain = self.per_detector_fiducial_waveform_points[name]
-        waveform_ratio = strain / reference_strain
-
-        r0 = (waveform_ratio[1:] + waveform_ratio[:-1]) / 2
-        r1 = (waveform_ratio[1:] - waveform_ratio[:-1]) / self.bin_widths
-
-        return [r0, r1]
-
-    def _compute_full_waveform(self, signal_polarizations, interferometer, parameters):
-        fiducial_waveform = self.per_detector_fiducial_waveforms[interferometer.name]
-        r0, r1 = self.compute_waveform_ratio_per_interferometer(
-            waveform_polarizations=signal_polarizations,
-            interferometer=interferometer,
-            parameters=parameters,
-        )
-
-        idxs = slice(self.bin_inds[0], self.bin_inds[-1] + 1)
-        duplicated_r0 = np.repeat(r0, self.bin_sizes)
-        duplicated_r1 = np.repeat(r1, self.bin_sizes)
-        duplicated_fm = np.repeat(self.bin_centers, self.bin_sizes)
-
-        f = interferometer.frequency_array
-        full_waveform_ratio = np.zeros(f.shape[0], dtype=complex)
-        full_waveform_ratio[idxs] = duplicated_r0 + duplicated_r1 * (
-            f[idxs] - duplicated_fm
-        )
-        return fiducial_waveform * full_waveform_ratio
-
-    def calculate_snrs(
-        self, waveform_polarizations, interferometer, *, return_array=True, parameters
-    ):
-        r0, r1 = self.compute_waveform_ratio_per_interferometer(
-            waveform_polarizations=waveform_polarizations,
-            interferometer=interferometer,
-            parameters=parameters,
-        )
-        a0, a1, b0, b1 = self.summary_data[interferometer.name]
-        d_inner_h = (a0 * r0.conj() + a1 * r1.conj()).sum()
-        h_inner_h = (b0 * abs(r0) ** 2 + 2 * b1 * (r0 * r1.conj()).real).sum()
+        xp = array_module(strain)
+        d_inner_h_weights, h_inner_h_weights = self.summary_data[interferometer.name]
+        d_inner_h = (d_inner_h_weights * strain.conj()).sum()
+        h_inner_h = (h_inner_h_weights * xp.abs(strain) ** 2).sum()
         optimal_snr_squared = h_inner_h
         complex_matched_filter_snr = d_inner_h / (optimal_snr_squared**0.5)
 
         if return_array and self.time_marginalization:
-            xp = array_module(r0)
             full_waveform = self._compute_full_waveform(
                 signal_polarizations=waveform_polarizations,
                 interferometer=interferometer,
@@ -486,7 +663,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
 
         return self._CalculatedSNRs(
             d_inner_h=d_inner_h,
-            optimal_snr_squared=optimal_snr_squared.real,
+            optimal_snr_squared=optimal_snr_squared,
             complex_matched_filter_snr=complex_matched_filter_snr,
             d_inner_h_array=d_inner_h_array,
         )
