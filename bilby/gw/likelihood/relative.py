@@ -98,7 +98,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
     spline_degree: int, optional
         Degree of the B-spline that interpolates the ratio of the waveform to
         the fiducial waveform between the bin edges, from 1 to 5. Degree 1 is
-        linear interpolation within each bin. Default is 1.
+        linear interpolation within each bin. Default is 3.
     fade_fiducial_waveform: bool, optional
         Whether to replace the fiducial waveform used for the summary data by
         a constant above the frequency that contains 99.99% of its squared
@@ -136,7 +136,7 @@ class RelativeBinningGravitationalWaveTransient(GravitationalWaveTransient):
         time_reference="geocenter",
         chi=1,
         epsilon=0.5,
-        spline_degree=1,
+        spline_degree=3,
         fade_fiducial_waveform=True,
     ):
         super(RelativeBinningGravitationalWaveTransient, self).__init__(
