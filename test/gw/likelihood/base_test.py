@@ -1,8 +1,10 @@
 import unittest
+from unittest import mock
 
 import array_api_compat as aac
 import bilby
 import numpy as np
+import pandas as pd
 import pytest
 
 from utils import BackendWaveformGenerator
@@ -217,3 +219,87 @@ class TestBBHLikelihoodSetUp(unittest.TestCase):
 
     def test_instantiation(self):
         self.like = bilby.gw.likelihood.get_binary_black_hole_likelihood(self.ifos)
+
+
+class TestWaveformPolarizations(unittest.TestCase):
+    def setUp(self):
+        bilby.core.utils.random.seed(500)
+        self.parameters = dict(
+            mass_1=31.0,
+            mass_2=29.0,
+            a_1=0.4,
+            a_2=0.3,
+            tilt_1=0.5,
+            tilt_2=1.0,
+            phi_12=1.7,
+            phi_jl=0.3,
+            luminosity_distance=4000.0,
+            theta_jn=0.4,
+            psi=2.659,
+            phase=1.3,
+            geocent_time=1126259642.413,
+            ra=1.375,
+            dec=-1.2108,
+            time_jitter=0.0,
+        )
+        self.interferometers = bilby.gw.detector.InterferometerList(["H1", "L1"])
+        self.interferometers.set_strain_data_from_power_spectral_densities(
+            sampling_frequency=2048, duration=4, start_time=1126259640
+        )
+        self.waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=4,
+            sampling_frequency=2048,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole,
+        )
+        self.likelihood = bilby.gw.likelihood.GravitationalWaveTransient(
+            interferometers=self.interferometers,
+            waveform_generator=self.waveform_generator,
+        )
+
+    def tearDown(self):
+        del self.parameters
+        del self.interferometers
+        del self.waveform_generator
+        del self.likelihood
+
+    def test_frequency_domain_strain(self):
+        polarizations = self.likelihood.waveform_polarizations(self.parameters)
+        expected = self.waveform_generator.frequency_domain_strain(self.parameters)
+        for mode in expected:
+            np.testing.assert_array_equal(polarizations[mode], expected[mode])
+
+    def test_used_wherever_the_waveform_is_generated(self):
+        class WaveformRequested(Exception):
+            pass
+
+        for name in [
+            "log_likelihood_ratio",
+            "compute_per_detector_log_likelihood",
+            "generate_calibration_sample_from_marginalized_likelihood",
+            "generate_time_sample_from_marginalized_likelihood",
+            "generate_distance_sample_from_marginalized_likelihood",
+            "generate_phase_sample_from_marginalized_likelihood",
+            "get_calibration_log_likelihoods",
+        ]:
+            with self.subTest(name):
+                with mock.patch.object(
+                    self.likelihood,
+                    "waveform_polarizations",
+                    side_effect=WaveformRequested,
+                ):
+                    method = getattr(self.likelihood, name)
+                    with self.assertRaises(WaveformRequested):
+                        if name.startswith("generate") or name.startswith("get"):
+                            method(parameters=dict(self.parameters))
+                        else:
+                            method(dict(self.parameters))
+
+    def test_compute_snrs_in_parallel(self):
+        samples = pd.DataFrame(
+            [self.parameters, dict(self.parameters, phase=0.4, mass_1=32.0)]
+        )
+        serial, parallel = samples.copy(), samples.copy()
+        bilby.gw.conversion.compute_snrs(serial, self.likelihood, npool=1)
+        bilby.gw.conversion.compute_snrs(parallel, self.likelihood, npool=2)
+        for column in ["H1_optimal_snr", "L1_optimal_snr", "H1_matched_filter_snr"]:
+            np.testing.assert_array_equal(serial[column], parallel[column])

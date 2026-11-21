@@ -466,12 +466,15 @@ class GravitationalWaveTransient(Likelihood):
             self._noise_log_likelihood_value = self._calculate_noise_log_likelihood()
         return self._noise_log_likelihood_value
 
+    def waveform_polarizations(self, parameters):
+        """The waveform polarizations for the given parameters: the frequency-domain
+        strain, or the time-domain strain for time-domain likelihoods"""
+        return self.waveform_generator.frequency_domain_strain(parameters)
+
     def log_likelihood_ratio(self, parameters):
         parameters = copy.deepcopy(parameters)
         parameters.update(self.get_sky_frame_parameters(parameters))
-        waveform_polarizations = self.waveform_generator.frequency_domain_strain(
-            parameters
-        )
+        waveform_polarizations = self.waveform_polarizations(parameters)
         if waveform_polarizations is None:
             return np.nan_to_num(-np.inf)
 
@@ -486,7 +489,6 @@ class GravitationalWaveTransient(Likelihood):
                 interferometer=interferometer,
                 parameters=parameters,
             )
-
             total_snrs += per_detector_snr
 
         log_l = self.compute_log_likelihood_from_snrs(total_snrs, parameters=parameters)
@@ -530,9 +532,7 @@ class GravitationalWaveTransient(Likelihood):
 
     def compute_per_detector_log_likelihood(self, parameters):
         parameters.update(self.get_sky_frame_parameters(parameters))
-        waveform_polarizations = self.waveform_generator.frequency_domain_strain(
-            parameters
-        )
+        waveform_polarizations = self.waveform_polarizations(parameters)
 
         if self.time_marginalization and self.jitter_time:
             parameters["geocent_time"] += parameters["time_jitter"]
@@ -574,7 +574,7 @@ class GravitationalWaveTransient(Likelihood):
         """
         if len(self._marginalized_parameters) > 0:
             signal_polarizations = copy.deepcopy(
-                self.waveform_generator.frequency_domain_strain(parameters)
+                self.waveform_polarizations(parameters)
             )
         else:
             return parameters
@@ -626,9 +626,7 @@ class GravitationalWaveTransient(Likelihood):
             parameters.pop("recalib_index")
         parameters.update(self.get_sky_frame_parameters(parameters))
         if signal_polarizations is None:
-            signal_polarizations = self.waveform_generator.frequency_domain_strain(
-                parameters
-            )
+            signal_polarizations = self.waveform_polarizations(parameters)
 
         log_like = self.get_calibration_log_likelihoods(
             signal_polarizations=signal_polarizations, parameters=parameters
@@ -668,9 +666,7 @@ class GravitationalWaveTransient(Likelihood):
         if self.jitter_time:
             parameters["geocent_time"] += parameters["time_jitter"]
         if signal_polarizations is None:
-            signal_polarizations = self.waveform_generator.frequency_domain_strain(
-                parameters
-            )
+            signal_polarizations = self.waveform_polarizations(parameters)
 
         times = create_time_series(
             sampling_frequency=16384,
@@ -750,9 +746,7 @@ class GravitationalWaveTransient(Likelihood):
         """
         parameters.update(self.get_sky_frame_parameters(parameters))
         if signal_polarizations is None:
-            signal_polarizations = self.waveform_generator.frequency_domain_strain(
-                parameters
-            )
+            signal_polarizations = self.waveform_polarizations(parameters)
 
         d_inner_h, h_inner_h = self._calculate_inner_products(
             signal_polarizations, parameters=parameters
@@ -835,9 +829,7 @@ class GravitationalWaveTransient(Likelihood):
         """
         parameters.update(self.get_sky_frame_parameters(parameters))
         if signal_polarizations is None:
-            signal_polarizations = self.waveform_generator.frequency_domain_strain(
-                parameters
-            )
+            signal_polarizations = self.waveform_polarizations(parameters)
         d_inner_h, h_inner_h = self._calculate_inner_products(
             signal_polarizations, parameters=parameters
         )
@@ -902,9 +894,7 @@ class GravitationalWaveTransient(Likelihood):
     def get_calibration_log_likelihoods(self, signal_polarizations=None, *, parameters):
         parameters.update(self.get_sky_frame_parameters(parameters))
         if signal_polarizations is None:
-            signal_polarizations = self.waveform_generator.frequency_domain_strain(
-                parameters
-            )
+            signal_polarizations = self.waveform_polarizations(parameters)
 
         total_snrs = self._CalculatedSNRs()
 

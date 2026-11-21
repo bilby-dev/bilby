@@ -14,6 +14,7 @@ from ..geometry import (
 from .calibration import Recalibrate
 from .geometry import InterferometerGeometry
 from .strain_data import InterferometerStrainData
+from ..time_domain_utils import gohberg_semencul_vectors
 from ..conversion import generate_all_bbh_parameters
 
 
@@ -45,6 +46,12 @@ class Interferometer(object):
     frequency_mask = PropertyAccessor("strain_data", "frequency_mask")
     frequency_domain_strain = PropertyAccessor("strain_data", "frequency_domain_strain")
     time_domain_strain = PropertyAccessor("strain_data", "time_domain_strain")
+
+    # Time-domain analysis attributes, with defaults for interferometers created without them
+    analysis_start_time = None
+    analysis_duration = None
+    analysis_cut_time = None
+    gohberg_semencul_vectors = None
 
     def __init__(
         self,
@@ -115,6 +122,10 @@ class Interferometer(object):
         )
         self.meta_data = dict(name=name)
         self.reference_time = None
+        self.analysis_start_time = None
+        self.analysis_duration = None
+        self.analysis_cut_time = None
+        self.gohberg_semencul_vectors = None
 
     def __eq__(self, other):
         if (
@@ -340,6 +351,130 @@ class Interferometer(object):
             sampling_frequency=xp.asarray(sampling_frequency),
             duration=xp.asarray(duration),
             start_time=start_time,
+        )
+
+    def set_analysis_window(self, start_time, duration, cut_time=None):
+        """Set the analysis window used by time-domain likelihoods
+
+        Parameters
+        ==========
+        start_time: float
+            The GPS start time of the window
+        duration: float
+            The duration of the window (in s)
+        cut_time: float, optional
+            The GPS time of the inspiral/post-inspiral cut, if any
+        """
+        self.analysis_start_time = float(start_time)
+        self.analysis_duration = float(duration)
+        self.analysis_cut_time = cut_time
+        self.meta_data["analysis_window"] = dict(
+            start_time=self.analysis_start_time,
+            duration=self.analysis_duration,
+            cut_time=cut_time,
+        )
+        self.gohberg_semencul_vectors = None
+        self.meta_data.pop("autocovariance_function", None)
+
+    @property
+    def analysis_slice(self):
+        """The slice of the time-domain strain data in the analysis window"""
+        if self.analysis_duration is None:
+            raise ValueError(
+                f"{self.name}: set the analysis window first (set_analysis_window)"
+            )
+        first = int(np.argmin(abs(self.time_array - self.analysis_start_time)))
+        last = first + int(round(self.analysis_duration * self.sampling_frequency))
+        if (
+            last > len(self.time_array)
+            or abs(self.time_array[first] - self.analysis_start_time)
+            > 0.5 / self.sampling_frequency + 1e-6
+        ):
+            raise ValueError(
+                f"{self.name}: the analysis window ({self.analysis_start_time:.6f} + {self.analysis_duration:g} s) "
+                f"is not inside the data ({self.start_time:.6f} + {self.duration:g} s)"
+            )
+        return slice(first, last)
+
+    @property
+    def analysis_data(self):
+        """The time-domain strain data in the analysis window"""
+        return self.time_domain_strain[self.analysis_slice]
+
+    def set_autocovariance_function_from_power_spectral_density(
+        self,
+        minimum_frequency=None,
+        maximum_frequency=None,
+        sampling_frequency=None,
+        duration_factor=16,
+        fill_value=None,
+        fill_multiplier=100,
+    ):
+        """Set the noise covariance from the power spectral density
+
+        Computes the autocovariance function (ACF) from the PSD using
+        :code:`PowerSpectralDensity.get_autocovariance_array` (or takes the ACF of
+        :code:`PowerSpectralDensity.from_autocovariance_array`), then builds
+        the Gohberg-Semencul vectors for fast products with the inverse
+        noise covariance matrix.
+
+        Parameters
+        ==========
+        minimum_frequency: float, optional
+            The lower edge of the frequency band (in Hz), default: :code:`self.minimum_frequency`
+        maximum_frequency: float, optional
+            The upper edge of the frequency band (in Hz), default: :code:`self.maximum_frequency`
+        sampling_frequency: float, optional
+            The sampling frequency (in Hz), default: that of the strain data
+        duration_factor: float
+            The minimum duration of the autocovariance function divided by that of the analysis window
+        fill_value: float or tuple, optional
+            The PSD value used outside the band, or the values (below, above) the band;
+            overrides `fill_multiplier`
+        fill_multiplier: float
+            The PSD below (above) the band is set to this multiple of its maximum there
+        """
+        if self.analysis_duration is None:
+            raise ValueError(
+                f"{self.name}: set the analysis window first (set_analysis_window)"
+            )
+        if sampling_frequency is None:
+            sampling_frequency = self.strain_data.sampling_frequency
+            if sampling_frequency is None:
+                raise ValueError(
+                    f"{self.name}: set the strain data first, or give sampling_frequency"
+                )
+        if minimum_frequency is None:
+            minimum_frequency = self.minimum_frequency
+        if maximum_frequency is None:
+            maximum_frequency = self.maximum_frequency
+        if self.strain_data.sampling_frequency is not None and not np.isclose(
+            sampling_frequency, self.strain_data.sampling_frequency, rtol=1e-9, atol=0
+        ):
+            raise ValueError(
+                f"{self.name}: the sampling frequency of the autocovariance function "
+                f"({sampling_frequency:g} Hz) differs from that of the strain data "
+                f"({self.strain_data.sampling_frequency:g} Hz)"
+            )
+        number_of_samples = int(round(self.analysis_duration * sampling_frequency))
+        acf_array, fill_value, fill_multiplier = (
+            self.power_spectral_density.get_autocovariance_array(
+                number_of_samples,
+                sampling_frequency,
+                minimum_frequency,
+                maximum_frequency,
+                duration_factor=duration_factor,
+                fill_value=fill_value,
+                fill_multiplier=fill_multiplier,
+            )
+        )
+        self.gohberg_semencul_vectors = gohberg_semencul_vectors(acf_array)
+        self.meta_data["autocovariance_function"] = dict(
+            sampling_frequency=sampling_frequency,
+            minimum_frequency=minimum_frequency,
+            maximum_frequency=maximum_frequency,
+            fill_value=fill_value,
+            fill_multiplier=fill_multiplier,
         )
 
     def antenna_response(self, ra, dec, time, psi, mode):
