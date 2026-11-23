@@ -694,6 +694,119 @@ class TestRelbinBBH(unittest.TestCase):
         self.assertFalse(np.all(out_v223["plus"] == out_v102["plus"]))
 
 
+class TestRelbinBBHByMode(unittest.TestCase):
+    def setUp(self):
+        self.parameters = dict(
+            mass_1=30.0,
+            mass_2=30.0,
+            luminosity_distance=400.0,
+            a_1=0.4,
+            tilt_1=0.2,
+            phi_12=1.0,
+            a_2=0.8,
+            tilt_2=2.7,
+            phi_jl=2.9,
+            theta_jn=0.3,
+            phase=0.0,
+        )
+        self.waveform_kwargs_fiducial = dict(
+            waveform_approximant="IMRPhenomXPHM",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+            fiducial=True,
+        )
+        self.waveform_kwargs_binned = dict(
+            waveform_approximant="IMRPhenomXPHM",
+            reference_frequency=50.0,
+            minimum_frequency=20.0,
+            catch_waveform_errors=True,
+            fiducial=False,
+            frequency_bin_edges=np.arange(20, 1500, 50),
+        )
+        self.frequency_array = bilby.core.utils.create_frequency_series(2048, 4)
+        self.bad_parameters = copy(self.parameters)
+        self.bad_parameters["mass_1"] = -30.0
+        self.number_of_harmonics = 4
+
+    def tearDown(self):
+        del self.parameters
+        del self.waveform_kwargs_fiducial
+        del self.waveform_kwargs_binned
+        del self.frequency_array
+        del self.bad_parameters
+        del self.number_of_harmonics
+
+    def test_relbin_by_mode_fiducial_bbh_works_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        polarizations = bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+            self.frequency_array, **self.parameters
+        )
+        for key in ["plus", "cross"]:
+            self.assertEqual(
+                polarizations[key].shape,
+                (self.number_of_harmonics, len(self.frequency_array)),
+            )
+
+    def test_relbin_by_mode_binned_bbh_works_runs_valid_parameters(self):
+        self.parameters.update(self.waveform_kwargs_binned)
+        polarizations = bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+            self.frequency_array, **self.parameters
+        )
+        for key in ["plus", "cross"]:
+            self.assertEqual(
+                polarizations[key].shape,
+                (
+                    self.number_of_harmonics,
+                    len(self.waveform_kwargs_binned["frequency_bin_edges"]),
+                ),
+            )
+
+    def test_waveform_error_catching_fiducial(self):
+        self.bad_parameters.update(self.waveform_kwargs_fiducial)
+        self.assertIsNone(
+            bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+                self.frequency_array, **self.bad_parameters
+            )
+        )
+
+    def test_waveform_error_raising_fiducial(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs_fiducial)
+        raise_error_parameters["catch_waveform_errors"] = False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+                self.frequency_array, **raise_error_parameters
+            )
+
+    def test_waveform_error_raising_binned(self):
+        raise_error_parameters = copy(self.bad_parameters)
+        raise_error_parameters.update(self.waveform_kwargs_binned)
+        raise_error_parameters["catch_waveform_errors"] = False
+        with self.assertRaises(Exception):
+            bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+                self.frequency_array, **raise_error_parameters
+            )
+
+    def test_relbin_by_mode_sum_matches_relbin(self):
+        """
+        The sum over harmonics equals the waveform of
+        ``lal_binary_black_hole_relative_binning`` with the same modes.
+        """
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        mode_array = [[2, 2], [2, 1], [3, 3], [3, 2], [4, 4]]
+        by_mode = bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode(
+            self.frequency_array, mode_array=mode_array, **self.parameters
+        )
+        summed = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, mode_array=mode_array, **self.parameters
+        )
+        for key in ["plus", "cross"]:
+            diff = np.sum(np.abs(np.sum(by_mode[key], axis=0) - summed[key]) ** 2.0)
+            norm = np.sum(np.abs(summed[key]) ** 2.0)
+            self.assertLess(diff / norm, 1e-5)
+
+
 class TestRelbinBNS(unittest.TestCase):
     def setUp(self):
         self.parameters = dict(

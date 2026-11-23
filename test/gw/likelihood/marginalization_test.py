@@ -169,7 +169,7 @@ class TestMarginalizations(unittest.TestCase):
     """
 
     _parameters = product(
-        ["regular", "roq", "relbin", "multiband"],
+        ["regular", "roq", "relbin", "relbin_by_mode", "multiband"],
         ["luminosity_distance", "geocent_time", "phase"],
         [True, False],
         [True, False],
@@ -241,6 +241,18 @@ class TestMarginalizations(unittest.TestCase):
                 reference_frequency=20.0,
                 minimum_frequency=20.0,
                 waveform_approximant="IMRPhenomPv2",
+            ),
+        )
+
+        self.relbin_by_mode_waveform_generator = bilby.gw.waveform_generator.WaveformGenerator(
+            duration=self.duration,
+            sampling_frequency=self.sampling_frequency,
+            frequency_domain_source_model=bilby.gw.source.lal_binary_black_hole_relative_binning_by_mode,
+            start_time=1126259640,
+            waveform_arguments=dict(
+                reference_frequency=20.0,
+                minimum_frequency=20.0,
+                waveform_approximant="IMRPhenomXPHM",
             ),
         )
 
@@ -351,6 +363,9 @@ class TestMarginalizations(unittest.TestCase):
         elif kind == "relbin":
             kwargs["fiducial_parameters"] = deepcopy(self.parameters)
             kwargs["waveform_generator"] = self.relbin_waveform_generator
+        elif kind == "relbin_by_mode":
+            kwargs["fiducial_parameters"] = deepcopy(self.parameters)
+            kwargs["waveform_generator"] = self.relbin_by_mode_waveform_generator
         elif kind == "multiband":
             kwargs["waveform_generator"] = self.multiband_waveform_generator
             kwargs["reference_chirp_mass"] = (
@@ -379,6 +394,12 @@ class TestMarginalizations(unittest.TestCase):
             cls_ = bilby.gw.likelihood.ROQGravitationalWaveTransient
         elif kind == "relbin":
             cls_ = bilby.gw.likelihood.RelativeBinningGravitationalWaveTransient
+            kwargs["epsilon"] = 0.1
+            self.parameters["fiducial"] = 0
+        elif kind == "relbin_by_mode":
+            cls_ = (
+                bilby.gw.likelihood.ModeByModeRelativeBinningGravitationalWaveTransient
+            )
             kwargs["epsilon"] = 0.1
             self.parameters["fiducial"] = 0
         elif kind == "multiband":
@@ -431,6 +452,8 @@ class TestMarginalizations(unittest.TestCase):
     def test_marginalisation(self, kind, key, distance, time, phase):
         if all([distance, time, phase]):
             pytest.skip()
+        if kind == "relbin_by_mode" and (time or key == "geocent_time"):
+            pytest.skip()
         tested_args = dict(
             distance_marginalization=distance,
             time_marginalization=time,
@@ -469,7 +492,7 @@ class TestMarginalizations(unittest.TestCase):
 
     @parameterized.expand(
         itertools.product(
-            ["regular", "roq", "relbin", "multiband"],
+            ["regular", "roq", "relbin", "relbin_by_mode", "multiband"],
             *itertools.repeat([True, False], 3),
         ),
         name_func=lambda func, num, param: (
@@ -480,6 +503,8 @@ class TestMarginalizations(unittest.TestCase):
         ),
     )
     def test_marginalization_reconstruction(self, kind, distance, phase, time):
+        if kind == "relbin_by_mode" and time:
+            pytest.skip()
         marginalizations = dict(
             geocent_time=time,
             luminosity_distance=distance,
