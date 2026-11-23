@@ -318,6 +318,93 @@ class TestPriorDict(unittest.TestCase):
         self.assertEqual(aac.get_namespace(out), self.xp)
         self.assertTrue(out.shape == (len(keys), size))
 
+    def test_constrained_normalization(self):
+        prior_x = bilby.prior.Uniform(-1, 1, name="x")
+        prior_y = bilby.prior.Uniform(-1, 1, name="y")
+
+        def radius_squared(sample_dict):
+            sample_dict["constraint"] = (
+                np.array(sample_dict["x"]) ** 2 + np.array(sample_dict["y"]) ** 2
+            )
+            return sample_dict
+
+        r = 1
+        prior_constraint = bilby.prior.Constraint(
+            minimum=0, maximum=r**2, name="constraint"
+        )
+
+        prior_dict = bilby.prior.PriorDict(
+            {
+                "x": prior_x,
+                "y": prior_y,
+                "constraint": prior_constraint,
+            },
+            conversion_function=radius_squared,
+        )
+
+        factor = prior_dict.normalize_constraint_factor(keys=("x", "y"))
+        truth = 4 / (np.pi * r**2)
+        self.assertAlmostEqual(truth, factor, delta=truth * 0.01)
+
+        r = 2
+        prior_constraint_2 = bilby.prior.Constraint(
+            minimum=0, maximum=r**2, name="constraint"
+        )
+
+        prior_dict_2 = bilby.prior.PriorDict(
+            {
+                "x": prior_x,
+                "y": prior_y,
+                "constraint": prior_constraint_2,
+            },
+            conversion_function=radius_squared,
+        )
+
+        rel_error_target = 0.01
+        factor_2 = prior_dict_2.normalize_constraint_factor(keys=("x", "y"), rel_error_target=rel_error_target)
+        truth_2 = 1
+        self.assertAlmostEqual(truth_2, factor_2, delta=truth_2 * rel_error_target)
+
+        with pytest.raises(ValueError):
+            prior_dict_2.normalize_constraint_factor(keys=("x"))
+
+        prior_dist_1 = bilby.prior.MultivariateGaussianDist(
+            names=["x", "y", "z"],
+            mus=[0, 0, 0],
+            sigmas=[1, 1, 1],
+        )
+
+        joint_prior_x = bilby.prior.JointPrior(dist=prior_dist_1, name="x")
+        joint_prior_y = bilby.prior.JointPrior(dist=prior_dist_1, name="y")
+        joint_prior_z = bilby.prior.JointPrior(dist=prior_dist_1, name="z")
+
+        r = 1
+        prior_constraint_3 = bilby.prior.Constraint(
+            minimum=0, maximum=r**2, name="constraint"
+        )
+
+        prior_dict_3 = bilby.prior.PriorDict(
+            {
+                "x": joint_prior_x,
+                "y": joint_prior_y,
+                "z": joint_prior_z,
+                "constraint": prior_constraint_3,
+            },
+            conversion_function=radius_squared,
+        )
+
+        with pytest.raises(ValueError):
+            prior_dict_3.normalize_constraint_factor(keys=prior_dict_3.non_fixed_keys, max_trials=5)
+
+        factor_3 = prior_dict_3.normalize_constraint_factor(keys=("x", "y", "z"), rel_error_target=rel_error_target)
+        from scipy.stats import chi2
+
+        truth_3 = 1 / (chi2(df=2).cdf(1))
+        self.assertAlmostEqual(truth_3, factor_3, delta=truth_3 * rel_error_target)
+
+        with pytest.raises(ValueError):
+            prior_dict_3.normalize_constraint_factor(keys=("x", "y"))
+
     def test_sample_subset_constrained(self):
         def conversion_function(parameters):
             converted_parameters = parameters.copy()
