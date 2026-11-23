@@ -6,7 +6,7 @@ from scipy.spatial.transform import Rotation
 from ...compat.utils import xp_wrap
 from ...core import utils
 from ...core.utils import logger, safe_file_dump
-from ..geometry import zenith_azimuth_to_theta_phi
+from ..geometry import zenith_azimuth_to_theta_phi, theta_phi_to_zenith_azimuth
 from .interferometer import Interferometer
 from .psd import PowerSpectralDensity
 from ..utils import get_vertex_position_geocentric, get_vertex_position_ellipsoid
@@ -607,3 +607,9 @@ def load_interferometer(filename):
 def zenith_azimuth_to_theta_phi(zenith, azimuth, ifos: InterferometerList | list):
     delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
     return zenith_azimuth_to_theta_phi(zenith, azimuth, delta_x)
+
+
+@theta_phi_to_zenith_azimuth.dispatch
+def theta_phi_to_zenith_azimuth(theta, phi, ifos: InterferometerList | list):
+    delta_x = ifos[0].geometry.vertex - ifos[1].geometry.vertex
+    return theta_phi_to_zenith_azimuth(theta, phi, delta_x)
