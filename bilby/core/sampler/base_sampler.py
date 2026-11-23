@@ -538,7 +538,9 @@ class Sampler(object):
         self.check_draw(draw)
         return draw
 
-    def get_initial_points_from_prior(self, npoints=1, *, random_state=None):
+    def get_initial_points_from_prior(
+        self, npoints=1, *, random_state=None, return_log_volume=False
+    ):
         """Method to draw a set of live points from the prior
 
         This iterates over draws from the prior until all the samples have a
@@ -551,6 +553,11 @@ class Sampler(object):
         random_state: None, int, numpy.random.Generator
             Random state used to draw the initial points. If None, use Bilby's
             global random number generator.
+        return_log_volume: bool
+            If True, also return an estimate of the log of the fraction of the
+            prior volume with a finite likelihood. Draws rejected by the prior
+            (e.g., prior constraints) are not counted, so the fraction is
+            relative to the constrained prior.
 
         Returns
         =======
@@ -559,6 +566,8 @@ class Sampler(object):
             unit cube, parameters (nlive, ndim) is the unit_cube array
             transformed to the target space, while likelihood (nlive) are the
             likelihood evaluations.
+        log_volume: float
+            Only returned if :code:`return_log_volume=True`.
 
         """
         from ..utils import random
@@ -568,6 +577,7 @@ class Sampler(object):
         unit_cube = []
         parameters = []
         likelihood = []
+        n_finite_prior = 0
         while len(unit_cube) < npoints:
             unit = rng.uniform(0, 1, self.ndim)
             theta = self.prior_transform(unit)
@@ -575,8 +585,16 @@ class Sampler(object):
                 unit_cube.append(unit)
                 parameters.append(theta)
                 likelihood.append(self.log_likelihood(theta))
+                n_finite_prior += 1
+            elif self._check_bad_value(
+                val=self.log_prior(theta), warning=False, theta=theta, label="prior"
+            ):
+                n_finite_prior += 1
 
-        return np.array(unit_cube), np.array(parameters), np.array(likelihood)
+        points = np.array(unit_cube), np.array(parameters), np.array(likelihood)
+        if return_log_volume:
+            return *points, np.log(npoints / n_finite_prior)
+        return points
 
     def check_draw(self, theta, warning=True):
         """
