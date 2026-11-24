@@ -500,6 +500,14 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             )
 
     def _from_bilby_parameters(self, **parameters):
+        from lalsimulation import (
+            SimInspiralImplementedFDApproximants,
+            SimInspiralImplementedTDApproximants,
+        )
+        from lalsimulation.gwsignal.core.waveform import (
+            LALCompactBinaryCoalescenceGenerator,
+        )
+
         from .conversion import bilby_to_lalsimulation_spins
 
         parameters = self._format_parameters(parameters)
@@ -552,6 +560,17 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             )
         )
 
+        metadata = self.generator.metadata
+        if isinstance(self.generator, LALCompactBinaryCoalescenceGenerator):
+            # For models implemented in both domains, GWSignal's metadata
+            # reports the last requested domain. Use LAL's capabilities instead.
+            approximant = lalsim_GetApproximantFromString(metadata["approximant"])
+            condition = SimInspiralImplementedTDApproximants(
+                approximant
+            ) and not SimInspiralImplementedFDApproximants(approximant)
+        else:
+            condition = metadata["implemented_domain"] == "time"
+
         gwsignal_dict = {
             "mass1": parameters["mass_1"],
             "mass2": parameters["mass_2"],
@@ -573,7 +592,7 @@ class GWSignalWaveformGenerator(WaveformGenerator):
             "inclination": iota,
             "eccentricity": parameters["eccentricity"],
             "meanPerAno": parameters["mean_per_ano"],
-            "condition": int(self.generator.metadata["implemented_domain"] == "time"),
+            "condition": int(condition),
         }
 
         # add astropy units to the parameters using the defaults from gwsignal

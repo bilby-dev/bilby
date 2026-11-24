@@ -1004,6 +1004,38 @@ class TestGWSignalGenerator(unittest.TestCase):
         for key in base_wf:
             np.testing.assert_almost_equal(base_wf[key], new_wf[key])
 
+    def test_frequency_domain_strain_is_independent_of_time_domain_call(self):
+        parameters = dict(
+            mass_1=35.0,
+            mass_2=28.0,
+            theta_jn=0.8,
+            luminosity_distance=400.0,
+            phase=0.2,
+        )
+
+        for approximant in ("IMRPhenomD", "IMRPhenomT"):
+            with self.subTest(approximant=approximant):
+                wfg = self.get_wfgen(
+                    waveform_arguments=dict(
+                        waveform_approximant=approximant,
+                        reference_frequency=20.0,
+                        minimum_frequency=20.0,
+                        maximum_frequency=400.0,
+                    ),
+                    sampling_frequency=1024,
+                    spinning=False,
+                )
+                before = wfg.frequency_domain_strain(parameters)
+                time_domain = wfg.time_domain_strain(parameters)
+                after = wfg.frequency_domain_strain(parameters)
+
+                for polarization in ("plus", "cross"):
+                    self.assertTrue(np.any(before[polarization]))
+                    self.assertTrue(np.any(time_domain[polarization]))
+                    np.testing.assert_allclose(
+                        after[polarization], before[polarization], rtol=1e-12, atol=0
+                    )
+
     def test_raises_error_with_extra_kwargs(self):
         wfg = self.get_wfgen(
             waveform_arguments=dict(waveform_approximant="IMRPhenomD", foo="bar"),
