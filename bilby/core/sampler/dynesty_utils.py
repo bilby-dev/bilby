@@ -234,9 +234,7 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
         # check that the number of accepted steps is consistent with the target
         # number of accepted steps, if it is much lower than the target, our
         # mcmc chain is too short and we may be open to bias. If we're hitting
-        # maxmcmc, this is expected, but it also happens at the beginning of the
-        # run or around phase transitions, so we discard this point and so an
-        # equivalent longer mcmc will happen at the next iteration
+        # maxmcmc, this is expected, so we only log it and keep the point
         dist = binom(n=walks, p=args.kwargs["target"] / walks)
         minimum = dist.ppf(1e-4)
         undersampled = naccept < minimum
@@ -249,17 +247,6 @@ class EnsembleWalkSampler(BaseEnsembleSampler):
                 naccept,
                 walks,
             )
-        elif undersampled:
-            logger.info(
-                "Only %s accepted steps out of target %s. "
-                "Discarding this point. "
-                "This is expected at the beginning of the run, increase 'walks'. "
-                "This can also happen when the geometry of the likelihood surface "
-                "changes drastically.",
-                naccept,
-                args.kwargs["target"],
-            )
-            logl = args.loglstar - 1
 
         return SamplerReturn(
             u=current_u,
