@@ -5,6 +5,12 @@ The original MRs are only visible on the [LIGO GitLab repository](https://git.li
 
 ## [Unreleased]
 
+## [2.8.3]
+
+### Fixes
+
+* Set upper version bounds for Python (`<3.14`), dynesty (`<3.2`), NumPy (`<2.4`), and LALSuite (`<8`) to avoid incompatible versions in the 2.8.x release series. [PR #1187](https://github.com/bilby-dev/bilby/pull/1187)
+
 ## [2.8.2]
 
 ### Fixes
@@ -1292,7 +1298,8 @@ First `pip` installable version https://pypi.org/project/BILBY/ .
 - All chainconsumer dependency as this was causing issues.
 
 
-[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.2...main
+[Unreleased]: https://github.com/bilby-dev/bilby/compare/v2.8.3...main
+[2.8.3]: https://github.com/bilby-dev/bilby/compare/v2.8.2...v2.8.3
 [2.8.2]: https://github.com/bilby-dev/bilby/compare/v2.8.1...v2.8.2
 [2.8.1]: https://github.com/bilby-dev/bilby/compare/v2.8.0...v2.8.1
 [2.8.0]: https://github.com/bilby-dev/bilby/compare/v2.7.1...v2.8.0
