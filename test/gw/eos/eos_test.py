@@ -30,12 +30,20 @@ LALSIM_MPA1 = lalsim.SimNeutronStarEOS4ParameterSpectralDecomposition(
 )
 BILBY_MPA1 = SpectralDecompositionEOS(GAMMAS, PRESSURE_0, ENERGY_DENSITY_0, XMAX)
 
-MPA1_PRESSURES = BILBY_MPA1.e_pdat.T[0]
+# lalsimulation>=7 raises for pressures below the EOS interpolation range
+if hasattr(lalsim, "SimNeutronStarEOSMinPressureGeometrized"):
+    LALSIM_MPA1_MIN_PRESSURE = lalsim.SimNeutronStarEOSMinPressureGeometrized(
+        LALSIM_MPA1
+    )
+else:
+    LALSIM_MPA1_MIN_PRESSURE = 0
+MPA1_MASK = BILBY_MPA1.e_pdat.T[0][:-1] >= LALSIM_MPA1_MIN_PRESSURE
+MPA1_PRESSURES = BILBY_MPA1.e_pdat.T[0][:-1][MPA1_MASK]
 LALSIM_MPA1_ENERGY_DENSITY = [
     lalsim.SimNeutronStarEOSEnergyDensityOfPressureGeometerized(PRESSURE, LALSIM_MPA1)
-    for PRESSURE in MPA1_PRESSURES[:-1]
+    for PRESSURE in MPA1_PRESSURES
 ]
-BILBY_MPA1_ENERGY_DENSITY = BILBY_MPA1.e_pdat.T[1][:-1]
+BILBY_MPA1_ENERGY_DENSITY = BILBY_MPA1.e_pdat.T[1][:-1][MPA1_MASK]
 
 
 class TestEOSFamily(unittest.TestCase):
