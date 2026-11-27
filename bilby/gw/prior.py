@@ -1425,7 +1425,7 @@ class CalibrationPriorDict(PriorDict):
         maximum_frequency,
         n_nodes,
         label,
-        boundary="reflective",
+        boundary=None,
         correction_type=None,
     ):
         """
@@ -1458,7 +1458,7 @@ class CalibrationPriorDict(PriorDict):
             Number of nodes for the spline.
         label: str
             Label for the names of the parameters, e.g., `recalib_H1_`
-        boundary: None, 'reflective', 'periodic'
+        boundary: None, 'periodic'
             The type of prior boundary to assign
         correction_type: str
             How the correction is defined, either to the :code:`data`
@@ -1550,7 +1550,7 @@ class CalibrationPriorDict(PriorDict):
         maximum_frequency,
         n_nodes,
         label,
-        boundary="reflective",
+        boundary=None,
     ):
         """
         Make prior assuming constant in frequency calibration uncertainty.
@@ -1571,7 +1571,7 @@ class CalibrationPriorDict(PriorDict):
             Number of nodes for the spline.
         label: str
             Label for the names of the parameters, e.g., `recalib_H1_`
-        boundary: None, 'reflective', 'periodic'
+        boundary: None, 'periodic'
             The type of prior boundary to assign
 
         Returns

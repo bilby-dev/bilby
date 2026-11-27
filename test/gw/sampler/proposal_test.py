@@ -13,7 +13,7 @@ class TestSkyLocationWanderJump(unittest.TestCase):
         self.priors = prior.PriorDict(
             dict(
                 ra=prior.Uniform(minimum=0.0, maximum=2 * np.pi, boundary="periodic"),
-                dec=prior.Uniform(minimum=0.0, maximum=np.pi, boundary="reflective"),
+                dec=prior.Uniform(minimum=0.0, maximum=np.pi),
             )
         )
         self.jump_proposal = bilby.gw.sampler.proposal.SkyLocationWanderJump(

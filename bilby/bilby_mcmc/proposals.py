@@ -9,7 +9,7 @@ from scipy.stats import gaussian_kde
 from ..core.fisher import FisherMatrixPosteriorEstimator
 from ..core.prior import PriorDict
 from ..core.sampler.base_sampler import SamplerError
-from ..core.utils import logger, random, reflect
+from ..core.utils import logger, random
 from ..gw.source import PARAMETER_SETS
 
 
@@ -115,8 +115,6 @@ class BaseProposal(object):
                 continue
             elif boundary == "periodic":
                 point[key] = self.apply_periodic_boundary(key, point[key])
-            elif boundary == "reflective":
-                point[key] = self.apply_reflective_boundary(key, point[key])
             else:
                 raise SamplerError(f"Boundary {boundary} not implemented")
         return point
@@ -125,13 +123,6 @@ class BaseProposal(object):
         minimum = self.prior_minimum_dict[key]
         width = self.prior_width_dict[key]
         return minimum + np.mod(val - minimum, width)
-
-    def apply_reflective_boundary(self, key, val):
-        minimum = self.prior_minimum_dict[key]
-        width = self.prior_width_dict[key]
-        val_normalised = (val - minimum) / width
-        val_normalised_reflected = reflect(np.array(val_normalised))
-        return minimum + width * val_normalised_reflected
 
     def __call__(self, chain, likelihood=None, priors=None):
         if getattr(self, "needs_likelihood_and_priors", False):

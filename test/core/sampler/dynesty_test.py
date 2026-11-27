@@ -23,9 +23,7 @@ class Dummy:
     axes: np.ndarray
     scale: float = 1
     rseed: float = 1234
-    kwargs: dict = dict(
-        walks=500, live=np.zeros((2, 4)), periodic=None, reflective=None
-    )
+    kwargs: dict = dict(walks=500, live=np.zeros((2, 4)), periodic=None)
     prior_transform: callable = lambda x: x
     loglikelihood: callable = lambda x: 0
     loglstar: float = -1
@@ -170,17 +168,17 @@ class TestDynesty(unittest.TestCase):
 
     def test_prior_boundary(self):
         self.priors["a"] = bilby.core.prior.Prior(boundary="periodic")
-        self.priors["b"] = bilby.core.prior.Prior(boundary="reflective")
+        self.priors["b"] = bilby.core.prior.Prior(boundary=None)
         self.priors["c"] = bilby.core.prior.Prior(boundary=None)
-        self.priors["d"] = bilby.core.prior.Prior(boundary="reflective")
+        self.priors["d"] = bilby.core.prior.Prior(boundary=None)
         self.priors["e"] = bilby.core.prior.Prior(boundary="periodic")
         self.init_sampler()
         self.assertEqual(
             [0, 4], self.dysampler.internal_sampler_next.sampler_kwargs["periodic"]
         )
-        self.assertEqual(
-            [1, 3],
-            self.dysampler.internal_sampler_next.sampler_kwargs["reflective"],
+        self.assertIsNone(self.sampler.kwargs.get("reflective"))
+        self.assertIsNone(
+            self.dysampler.internal_sampler_next.sampler_kwargs.get("reflective")
         )
 
     def test_sampler_kwargs_act(self):
@@ -319,21 +317,19 @@ class ProposalsTest(unittest.TestCase):
     def test_boundaries(self):
         inputs = np.array([0.1, 1.1, -1.3])
         expected = np.array([0.1, 0.1, 0.7])
-        periodic = [1]
-        reflective = [2]
+        periodic = [1, 2]
         self.assertLess(
-            max(
-                abs(
-                    dynesty_utils.apply_boundaries_(inputs, periodic, reflective)
-                    - expected
-                )
-            ),
+            max(abs(dynesty_utils.apply_boundaries_(inputs, periodic) - expected)),
             1e-10,
         )
 
     def test_boundaries_returns_none_outside_bound(self):
         inputs = np.array([0.1, 1.1, -1.3])
-        self.assertIsNone(dynesty_utils.apply_boundaries_(inputs, None, None))
+        self.assertIsNone(dynesty_utils.apply_boundaries_(inputs, None))
+
+    def test_boundaries_returns_none_outside_non_periodic_bound(self):
+        inputs = np.array([0.1, 1.1, -1.3])
+        self.assertIsNone(dynesty_utils.apply_boundaries_(inputs, [1]))
 
     def test_propose_volumetric(self):
         proposal_func = dynesty_utils.proposal_funcs["volumetric"]
@@ -483,7 +479,7 @@ class TestReproducibility(unittest.TestCase):
 
         self.priors = bilby.core.prior.PriorDict()
         self.priors["m"] = bilby.core.prior.Uniform(0, 5, boundary="periodic")
-        self.priors["c"] = bilby.core.prior.Uniform(-2, 2, boundary="reflective")
+        self.priors["c"] = bilby.core.prior.Uniform(-2, 2)
         # Evaluate prior once to ensure normalization constant have been set
         theta = self.priors.sample()
         self.priors.ln_prob(theta)
