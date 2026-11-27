@@ -425,5 +425,61 @@ class TestNotchList(unittest.TestCase):
             bilby.gw.detector.strain_data.NotchList([(30, 20, 20)])
 
 
+class TestInterferometerStrainDataTimeDomainStrain(unittest.TestCase):
+    def setUp(self):
+        self.strain_data = bilby.gw.detector.InterferometerStrainData()
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=1024, duration=4, start_time=0
+        )
+
+    def tearDown(self):
+        del self.strain_data
+
+    def test_time_domain_strain_setter(self):
+        _ = self.strain_data.frequency_domain_strain
+        self.strain_data.time_domain_strain = np.ones(len(self.strain_data.time_array))
+        self.assertIsNone(self.strain_data._frequency_domain_strain)
+        np.testing.assert_array_equal(self.strain_data.time_domain_strain, 1)
+
+    def test_time_domain_strain_setter_wrong_length_raises(self):
+        with self.assertRaises(ValueError):
+            self.strain_data.time_domain_strain = np.ones(10)
+
+    def test_new_noise_realisation_updates_time_domain_strain(self):
+        psd = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
+        first = self.strain_data.time_domain_strain.copy()
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
+        self.assertFalse(np.array_equal(first, self.strain_data.time_domain_strain))
+
+    def test_zero_noise_updates_time_domain_strain(self):
+        psd = bilby.gw.detector.PowerSpectralDensity.from_aligo()
+        self.strain_data.set_from_power_spectral_density(
+            psd, sampling_frequency=1024, duration=4
+        )
+        _ = self.strain_data.time_domain_strain
+        self.strain_data.set_from_zero_noise(
+            sampling_frequency=1024, duration=4, start_time=0
+        )
+        np.testing.assert_array_equal(self.strain_data.time_domain_strain, 0)
+
+    def test_frequency_domain_strain_updates_time_domain_strain(self):
+        _ = self.strain_data.time_domain_strain
+        frequency_domain_strain = np.ones(
+            len(self.strain_data.frequency_array), dtype=complex
+        )
+        self.strain_data.set_from_frequency_domain_strain(
+            frequency_domain_strain, sampling_frequency=1024, duration=4
+        )
+        np.testing.assert_allclose(
+            self.strain_data.time_domain_strain,
+            bilby.core.utils.infft(frequency_domain_strain, 1024),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

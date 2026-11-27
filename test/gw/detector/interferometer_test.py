@@ -8,6 +8,7 @@ from shutil import rmtree
 
 import array_api_compat as aac
 import numpy as np
+import scipy.linalg
 from gwpy.timeseries import TimeSeries
 
 import bilby
@@ -710,6 +711,106 @@ class TestInterferometerWhitenedStrain(unittest.TestCase):
         )
         whitened_td = self.ifo.whitened_time_domain_strain - whitened_signal_ifo_td
         self._check_time_series_whiteness(whitened_td)
+
+
+GPS_START = 1126259640.0
+
+
+class TestInterferometerAnalysisWindow(unittest.TestCase):
+    def setUp(self):
+        self.ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        self.ifo.set_strain_data_from_zero_noise(
+            sampling_frequency=1024, duration=8, start_time=GPS_START
+        )
+
+    def tearDown(self):
+        del self.ifo
+
+    def test_default_window_attributes(self):
+        self.assertIsNone(self.ifo.analysis_start_time)
+        self.assertIsNone(self.ifo.analysis_duration)
+        self.assertIsNone(self.ifo.analysis_cut_time)
+        self.assertIsNone(self.ifo.gohberg_semencul_vectors)
+
+    def test_analysis_slice_and_data(self):
+        self.ifo.strain_data.time_domain_strain = np.arange(8 * 1024.0)
+        self.ifo.set_analysis_window(GPS_START + 2, 3, cut_time=GPS_START + 5)
+        self.assertEqual(self.ifo.analysis_slice, slice(2048, 5120))
+        np.testing.assert_array_equal(self.ifo.analysis_data, np.arange(2048.0, 5120.0))
+        self.assertEqual(
+            self.ifo.meta_data["analysis_window"],
+            dict(start_time=GPS_START + 2, duration=3, cut_time=GPS_START + 5),
+        )
+
+    def test_analysis_slice_without_a_window_raises(self):
+        with self.assertRaises(ValueError):
+            _ = self.ifo.analysis_slice
+
+    def test_window_outside_the_data_raises(self):
+        for start, duration in [
+            (GPS_START + 6, 3),
+            (GPS_START - 1, 2),
+            (GPS_START - 0.7 / 1024, 2),
+        ]:
+            self.ifo.set_analysis_window(start, duration)
+            with self.assertRaises(ValueError):
+                _ = self.ifo.analysis_slice
+
+    def test_autocovariance_function(self):
+        self.ifo.minimum_frequency, self.ifo.maximum_frequency = 20, 512
+        self.ifo.set_analysis_window(GPS_START + 2, 1)
+        self.ifo.set_autocovariance_function_from_power_spectral_density()
+        acf, fill_value, _ = self.ifo.power_spectral_density.get_autocovariance_array(
+            1024, 1024.0, 20, 512
+        )
+        x, y = self.ifo.gohberg_semencul_vectors
+        np.testing.assert_allclose(
+            scipy.linalg.toeplitz(acf) @ x, np.eye(1024)[0], atol=1e-8 * np.max(abs(x))
+        )
+        np.testing.assert_array_equal(y, x[::-1])
+        meta_data = self.ifo.meta_data["autocovariance_function"]
+        self.assertEqual(
+            (meta_data["fill_value"], meta_data["fill_multiplier"]), (fill_value, 100)
+        )
+
+    def test_autocovariance_function_from_a_precomputed_autocovariance(self):
+        self.ifo.minimum_frequency, self.ifo.maximum_frequency = 20, 512
+        self.ifo.set_analysis_window(GPS_START + 2, 1)
+        self.ifo.set_autocovariance_function_from_power_spectral_density()
+        expected = self.ifo.gohberg_semencul_vectors
+        acf, _, _ = self.ifo.power_spectral_density.get_autocovariance_array(
+            1024, 1024.0, 20, 512
+        )
+        self.ifo.power_spectral_density = (
+            bilby.gw.detector.PowerSpectralDensity.from_autocovariance_array(acf, 1024)
+        )
+        self.ifo.set_autocovariance_function_from_power_spectral_density()
+        for vector, expected_vector in zip(self.ifo.gohberg_semencul_vectors, expected):
+            np.testing.assert_array_equal(vector, expected_vector)
+
+    def test_autocovariance_function_needs_a_window(self):
+        with self.assertRaises(ValueError):
+            self.ifo.set_autocovariance_function_from_power_spectral_density()
+
+    def test_autocovariance_function_needs_strain_data(self):
+        ifo = bilby.gw.detector.get_empty_interferometer("H1")
+        ifo.set_analysis_window(GPS_START, 2)
+        with self.assertRaises(ValueError):
+            ifo.set_autocovariance_function_from_power_spectral_density()
+
+    def test_autocovariance_function_sampling_frequency_must_match_the_data(self):
+        self.ifo.set_analysis_window(GPS_START + 2, 3)
+        with self.assertRaises(ValueError):
+            self.ifo.set_autocovariance_function_from_power_spectral_density(
+                sampling_frequency=2048.0
+            )
+
+    def test_setting_a_window_clears_the_autocovariance_function(self):
+        self.ifo.set_analysis_window(GPS_START + 2, 3)
+        self.ifo.set_autocovariance_function_from_power_spectral_density()
+        self.ifo.set_analysis_window(GPS_START + 2, 2)
+        self.assertIsNone(self.ifo.gohberg_semencul_vectors)
+        self.assertNotIn("autocovariance_function", self.ifo.meta_data)
 
 
 @pytest.mark.array_backend

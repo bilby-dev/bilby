@@ -54,12 +54,18 @@ class InterferometerList(list):
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
 
+        If every interferometer has a time-domain analysis window, the start times
+        of the strain data are not checked, as they may differ between interferometers.
+
         If the above attributes are not the same, then the attributes are checked to
         see if they are the same up to 5 decimal places.
 
         If both checks fail, then a ValueError is raised.
         """
         consistent_attributes = ["duration", "start_time", "sampling_frequency"]
+        if all(interferometer.analysis_duration is not None for interferometer in self):
+            # the strain data can start at different times in each detector, e.g. after conditioning
+            consistent_attributes = ["duration", "sampling_frequency"]
         for attribute in consistent_attributes:
             x = [
                 getattr(interferometer.strain_data, attribute)
@@ -196,6 +202,100 @@ class InterferometerList(list):
             )
 
         return all_injection_polarizations
+
+    def set_analysis_windows(
+        self,
+        duration,
+        start_time=None,
+        analysis_segment="imr",
+        segment_cut_time=None,
+        cut_reference_parameters=None,
+    ):
+        """Set the analysis window of each interferometer
+
+        For "imr", every interferometer gets the same window, from `start_time`
+        to `start_time` + `duration`.
+
+        For "inspiral" and "post_inspiral", each interferometer gets its own cut
+        time, `segment_cut_time` after the arrival of the merger at that
+        interferometer (e.g. -10 M to cut 10 M before the merger), with the
+        `geocent_time`, `ra` and `dec` in `cut_reference_parameters`. The
+        "inspiral" window ends at the cut time and the "post_inspiral" window
+        starts at it.
+
+        Each window starts at the data sample nearest its start time.
+
+        Parameters
+        ==========
+        duration: float
+            The duration of the windows (in s)
+        start_time: float, optional
+            The GPS start time of the windows; required for "imr"
+        analysis_segment: str
+            "imr", "inspiral" or "post_inspiral"
+        segment_cut_time: float, optional
+            The cut time relative to the merger (in s); required for "inspiral" and "post_inspiral"
+        cut_reference_parameters: dict, optional
+            Dictionary with `geocent_time`, `ra` and `dec`; required for "inspiral" and "post_inspiral"
+
+        Examples
+        ========
+        An IMR analysis of a 4 s window starting 3 s before the merger:
+
+        .. code-block:: python
+
+            ifos.set_analysis_windows(duration=4, start_time=parameters["geocent_time"] - 3)
+
+        A 2 s inspiral window and a 0.5 s post-inspiral window, cut 20 M before the
+        merger, with M the total mass in seconds:
+
+        .. code-block:: python
+
+            total_mass = (parameters["mass_1"] + parameters["mass_2"]) * lal.MTSUN_SI
+            segment_cut_time = -20 * total_mass
+            inspiral_ifos.set_analysis_windows(
+                duration=2, analysis_segment="inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
+            post_inspiral_ifos.set_analysis_windows(
+                duration=0.5, analysis_segment="post_inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
+        """
+        if analysis_segment not in ("imr", "inspiral", "post_inspiral"):
+            raise ValueError(
+                "analysis_segment must be 'imr', 'inspiral' or 'post_inspiral', "
+                f"not {analysis_segment!r}"
+            )
+        for interferometer in self:
+            window_start = start_time
+            cut_time = None
+            if analysis_segment != "imr":
+                cut_time = (
+                    cut_reference_parameters["geocent_time"]
+                    + segment_cut_time
+                    + interferometer.time_delay_from_geocenter(
+                        cut_reference_parameters["ra"],
+                        cut_reference_parameters["dec"],
+                        cut_reference_parameters["geocent_time"],
+                    )
+                )
+                window_start = (
+                    cut_time - duration if analysis_segment == "inspiral" else cut_time
+                )
+            interferometer.set_analysis_window(window_start, duration, cut_time)
+            interferometer.meta_data["analysis_window"].update(
+                analysis_segment=analysis_segment, segment_cut_time=segment_cut_time
+            )
+
+    def set_autocovariance_functions_from_power_spectral_densities(self, **kwargs):
+        """Set the autocovariance function of each interferometer from its power spectral density
+
+        See :code:`bilby.gw.detector.Interferometer.set_autocovariance_function_from_power_spectral_density`
+        for the keyword arguments.
+        """
+        for interferometer in self:
+            interferometer.set_autocovariance_function_from_power_spectral_density(
+                **kwargs
+            )
 
     def save_data(self, outdir, label=None):
         """Creates a save file for the data in plain text format
