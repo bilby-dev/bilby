@@ -1,6 +1,7 @@
 import os
 
 import math
+import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ...compat.utils import xp_wrap
@@ -54,12 +55,18 @@ class InterferometerList(list):
     def _check_interferometers(self):
         """Verify IFOs 'duration', 'start_time', 'sampling_frequency' are the same.
 
+        If every interferometer has a time-domain analysis window, the start times
+        of the strain data are not checked, as they may differ between interferometers.
+
         If the above attributes are not the same, then the attributes are checked to
         see if they are the same up to 5 decimal places.
 
         If both checks fail, then a ValueError is raised.
         """
         consistent_attributes = ["duration", "start_time", "sampling_frequency"]
+        if all(interferometer.analysis_duration is not None for interferometer in self):
+            # the strain data can start at different times in each detector, e.g. after conditioning
+            consistent_attributes = ["duration", "sampling_frequency"]
         for attribute in consistent_attributes:
             x = [
                 getattr(interferometer.strain_data, attribute)
@@ -144,24 +151,30 @@ class InterferometerList(list):
         injection_polarizations=None,
         waveform_generator=None,
         raise_error=True,
+        *,
+        domain="frequency",
+        placement=None,
     ):
-        """Inject a signal into noise in each of the three detectors.
+        """Inject a signal into noise in each of the interferometers.
 
         Parameters
         ==========
         parameters: dict
             Parameters of the injection.
         injection_polarizations: dict
-           Polarizations of waveform to inject, output of
-           `waveform_generator.frequency_domain_strain()`. If
-           `waveform_generator` is also given, the injection_polarizations will
-           be calculated directly and this argument can be ignored.
+           Polarizations of waveform to inject. If `waveform_generator` is also
+           given, the injection_polarizations will be calculated directly and
+           this argument can be ignored.
         waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
             A WaveformGenerator instance using the source model to inject. If
             `injection_polarizations` is given, this will be ignored.
         raise_error: bool
             Whether to raise an error if the injected signal does not fit in
-            the segment.
+            the segment (frequency domain only).
+        domain: str
+            The domain of the injection: "frequency" (default) or "time"
+        placement: str, optional
+            Time domain only; see :code:`inject_signal_time_domain`
 
         Notes
         =====
@@ -174,24 +187,198 @@ class InterferometerList(list):
         injection_polarizations: dict
 
         """
+        if domain == "frequency":
+            if placement is not None:
+                raise ValueError("placement can only be given with domain='time'")
+            if injection_polarizations is None:
+                if waveform_generator is not None:
+                    injection_polarizations = (
+                        waveform_generator.frequency_domain_strain(parameters)
+                    )
+                else:
+                    raise ValueError(
+                        "inject_signal needs one of waveform_generator or "
+                        "injection_polarizations."
+                    )
+
+            all_injection_polarizations = list()
+            for interferometer in self:
+                all_injection_polarizations.append(
+                    interferometer.inject_signal(
+                        parameters=parameters,
+                        injection_polarizations=injection_polarizations,
+                        raise_error=raise_error,
+                    )
+                )
+            return all_injection_polarizations
+
+        elif domain == "time":
+            if raise_error is not True:
+                raise ValueError(
+                    "raise_error can only be given with domain='frequency'"
+                )
+            kwargs = dict() if placement is None else dict(placement=placement)
+            return self.inject_signal_time_domain(
+                parameters=parameters,
+                injection_polarizations=injection_polarizations,
+                waveform_generator=waveform_generator,
+                **kwargs,
+            )
+
+        raise ValueError(f"domain must be 'frequency' or 'time', not {domain!r}")
+
+    def set_analysis_windows(
+        self,
+        duration,
+        start_time=None,
+        analysis_segment="imr",
+        segment_cut_time=None,
+        cut_reference_parameters=None,
+    ):
+        """Set the analysis window of each interferometer
+
+        For "imr", every interferometer gets the same window, from `start_time`
+        to `start_time` + `duration`.
+
+        For "inspiral" and "post_inspiral", each interferometer gets its own cut
+        time, `segment_cut_time` after the arrival of the merger at that
+        interferometer (e.g. -10 M to cut 10 M before the merger), with the
+        `geocent_time`, `ra` and `dec` in `cut_reference_parameters`. The
+        "inspiral" window ends at the cut time and the "post_inspiral" window
+        starts at it.
+
+        Each window starts at the data sample nearest its start time.
+
+        Parameters
+        ==========
+        duration: float
+            The duration of the windows (in s)
+        start_time: float, optional
+            The GPS start time of the windows; required for "imr"
+        analysis_segment: str
+            "imr", "inspiral" or "post_inspiral"
+        segment_cut_time: float, optional
+            The cut time relative to the merger (in s); required for "inspiral" and "post_inspiral"
+        cut_reference_parameters: dict, optional
+            Dictionary with `geocent_time`, `ra` and `dec`; required for "inspiral" and "post_inspiral"
+
+        Examples
+        ========
+        An IMR analysis of a 4 s window starting 3 s before the merger:
+
+        .. code-block:: python
+
+            ifos.set_analysis_windows(duration=4, start_time=parameters["geocent_time"] - 3)
+
+        A 2 s inspiral window and a 0.5 s post-inspiral window, cut 20 M before the
+        merger, with M the total mass in seconds:
+
+        .. code-block:: python
+
+            total_mass = (parameters["mass_1"] + parameters["mass_2"]) * lal.MTSUN_SI
+            segment_cut_time = -20 * total_mass
+            inspiral_ifos.set_analysis_windows(
+                duration=2, analysis_segment="inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
+            post_inspiral_ifos.set_analysis_windows(
+                duration=0.5, analysis_segment="post_inspiral", segment_cut_time=segment_cut_time,
+                cut_reference_parameters=parameters)
+        """
+        if analysis_segment not in ("imr", "inspiral", "post_inspiral"):
+            raise ValueError(
+                "analysis_segment must be 'imr', 'inspiral' or 'post_inspiral', "
+                f"not {analysis_segment!r}"
+            )
+        for interferometer in self:
+            window_start = start_time
+            cut_time = None
+            if analysis_segment != "imr":
+                cut_time = (
+                    cut_reference_parameters["geocent_time"]
+                    + segment_cut_time
+                    + interferometer.time_delay_from_geocenter(
+                        cut_reference_parameters["ra"],
+                        cut_reference_parameters["dec"],
+                        cut_reference_parameters["geocent_time"],
+                    )
+                )
+                window_start = (
+                    cut_time - duration if analysis_segment == "inspiral" else cut_time
+                )
+            interferometer.set_analysis_window(window_start, duration, cut_time)
+            interferometer.meta_data["analysis_window"].update(
+                analysis_segment=analysis_segment, segment_cut_time=segment_cut_time
+            )
+
+    def set_autocovariance_functions_from_power_spectral_densities(self, **kwargs):
+        """Set the autocovariance function of each interferometer from its power spectral density
+
+        See :code:`bilby.gw.detector.Interferometer.set_autocovariance_function_from_power_spectral_density`
+        for the keyword arguments.
+        """
+        for interferometer in self:
+            interferometer.set_autocovariance_function_from_power_spectral_density(
+                **kwargs
+            )
+
+    def inject_signal_time_domain(
+        self,
+        parameters=None,
+        injection_polarizations=None,
+        waveform_generator=None,
+        placement="fd_shift",
+    ):
+        """Inject a time-domain signal into the time-domain strain data of each interferometer.
+
+        Parameters
+        ==========
+        parameters: dict
+            Parameters of the injection.
+        injection_polarizations: dict
+           Polarizations of waveform to inject, output of
+           `waveform_generator.time_domain_strain()`. If
+           `waveform_generator` is also given, the injection_polarizations will
+           be calculated directly and this argument can be ignored.
+        waveform_generator: bilby.gw.waveform_generator.WaveformGenerator
+            A WaveformGenerator instance using the time-domain source model to
+            inject. If `injection_polarizations` is given, this will be ignored.
+        placement: str
+            "fd_shift" (default), "model_time" or "nearest"; see
+            :code:`bilby.gw.detector.Interferometer.get_detector_response_time_domain`
+
+        Returns
+        =======
+        injection_polarizations: dict
+        """
         if injection_polarizations is None:
             if waveform_generator is not None:
-                injection_polarizations = waveform_generator.frequency_domain_strain(
+                if waveform_generator.sampling_frequency is not None and not np.isclose(
+                    waveform_generator.sampling_frequency,
+                    self.sampling_frequency,
+                    rtol=1e-9,
+                    atol=0,
+                ):
+                    raise ValueError(
+                        f"The sampling frequency of the waveform generator "
+                        f"({waveform_generator.sampling_frequency:g} Hz) differs from that of the strain "
+                        f"data ({self.sampling_frequency:g} Hz)"
+                    )
+                injection_polarizations = waveform_generator.time_domain_strain(
                     parameters
                 )
             else:
                 raise ValueError(
-                    "inject_signal needs one of waveform_generator or "
+                    "inject_signal_time_domain needs one of waveform_generator or "
                     "injection_polarizations."
                 )
 
         all_injection_polarizations = list()
         for interferometer in self:
             all_injection_polarizations.append(
-                interferometer.inject_signal(
+                interferometer.inject_signal_time_domain(
                     parameters=parameters,
                     injection_polarizations=injection_polarizations,
-                    raise_error=raise_error,
+                    placement=placement,
                 )
             )
 
