@@ -1,5 +1,6 @@
 astropy>=5
-lalsuite
+# LALSuite 8 changes the neutron-star EOS family API.
+lalsuite<8
 gwpy
 pyfftw
 scikit-learn
