@@ -693,6 +693,66 @@ class TestRelbinBBH(unittest.TestCase):
         )
         self.assertFalse(np.all(out_v223["plus"] == out_v102["plus"]))
 
+    def _xphm_fiducial_and_binned(self, **kwargs):
+        self.parameters.update(mass_1=36.0, mass_2=12.0)
+        in_band = (self.frequency_array >= 20) & (self.frequency_array <= 1000)
+        bin_edges = self.frequency_array[in_band][::40]
+        fiducial_kwargs = dict(self.waveform_kwargs_fiducial, **kwargs)
+        fiducial_kwargs["waveform_approximant"] = "IMRPhenomXPHM"
+        binned_kwargs = dict(self.waveform_kwargs_binned, **kwargs)
+        binned_kwargs["waveform_approximant"] = "IMRPhenomXPHM"
+        binned_kwargs["frequency_bin_edges"] = bin_edges
+        fiducial = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, **self.parameters, **fiducial_kwargs
+        )
+        binned = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, **self.parameters, **binned_kwargs
+        )
+        indices = np.searchsorted(self.frequency_array, bin_edges)
+        return {key: fiducial[key][indices] for key in fiducial}, binned
+
+    @staticmethod
+    def _relative_difference(fiducial, binned):
+        return np.max(np.abs(fiducial - binned)) / np.max(np.abs(binned))
+
+    def test_relbin_fiducial_matches_binned_at_bin_edges(self):
+        """
+        IMRPhenomXHM/XPHM use multibanding only on a uniform frequency grid,
+        so a fiducial waveform on the uniform grid differs from the binned
+        waveform at the same parameters.
+        """
+        fiducial, binned = self._xphm_fiducial_and_binned()
+        for key in ["plus", "cross"]:
+            self.assertLess(
+                self._relative_difference(fiducial[key], binned[key]), 1e-10
+            )
+
+    def test_relbin_fiducial_matches_binned_at_bin_edges_spintaylor(self):
+        """
+        The merger-ringdown SpinTaylor angles of IMRPhenomXPHM depend on the
+        spacing of a uniform frequency grid, so a fiducial waveform on the
+        uniform grid differs from the binned waveform at the same parameters.
+        LALSimulation 6.1.0 also evaluates these angles incorrectly on a
+        frequency sequence, so this test needs LALSimulation >= 6.2.0.
+        """
+        fiducial, binned = self._xphm_fiducial_and_binned(PhenomXPrecVersion=320)
+        for key in ["plus", "cross"]:
+            self.assertLess(
+                self._relative_difference(fiducial[key], binned[key]), 1e-10
+            )
+
+    def test_relbin_fiducial_is_zero_outside_band(self):
+        self.parameters.update(self.waveform_kwargs_fiducial)
+        self.parameters["maximum_frequency"] = 512.0
+        fiducial = bilby.gw.source.lal_binary_black_hole_relative_binning(
+            self.frequency_array, **self.parameters
+        )
+        in_band = (self.frequency_array >= 20.0) & (self.frequency_array <= 512.0)
+        for key in ["plus", "cross"]:
+            self.assertEqual(len(fiducial[key]), len(self.frequency_array))
+            self.assertTrue(np.all(fiducial[key][~in_band] == 0))
+            self.assertTrue(np.all(fiducial[key][in_band] != 0))
+
 
 class TestRelbinBNS(unittest.TestCase):
     def setUp(self):
